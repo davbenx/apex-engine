@@ -1,0 +1,118 @@
+import pandas as pd
+import numpy as np
+import urllib.request
+import json
+import time
+import os
+
+def get_sp500_tickers():
+    try:
+        url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            tables = pd.read_html(response.read())
+            return [t.replace('.', '-') for t in tables[0]['Symbol'].tolist()]
+    except Exception:
+        return ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META', 'GOOGL', 'TSLA']
+
+def fetch_single_ticker(symbol, period="2y"):
+    try:
+        url = f'https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?range={period}&interval=1d'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())['chart']['result'][0]
+            timestamps = pd.to_datetime(data['timestamp'], unit='s')
+            close = data['indicators']['quote'][0]['close']
+            high = data['indicators']['quote'][0]['high']
+            low = data['indicators']['quote'][0]['low']
+            df = pd.DataFrame({'Close': close, 'High': high, 'Low': low}, index=timestamps).ffill().dropna()
+            df = df[~df.index.duplicated(keep='first')]
+            return df
+    except Exception:
+        return None
+
+def calc_indicators(closes, highs, lows):
+    ma200 = closes.rolling(window=200, min_periods=100).mean()
+    ma150 = closes.rolling(window=150, min_periods=75).mean()
+    pc = closes.shift(1)
+    
+    tr = pd.DataFrame(index=closes.index)
+    for col in closes.columns:
+        if col in highs.columns and col in lows.columns:
+            h = highs[col]; l = lows[col]; p = pc[col]
+            tr1 = h - l
+            tr2 = (h - p).abs()
+            tr3 = (l - p).abs()
+            tr[col] = np.maximum(tr1, np.maximum(tr2, tr3))
+            
+    atr = tr.rolling(window=60, min_periods=30).mean()
+    roc26 = closes.pct_change(periods=130) * 100
+    natr = (atr / closes) * 100
+    score = roc26 / (natr + 1e-6)
+    return ma200, ma150, atr, score
+
+print("Inizio calcolo backend Apex...")
+output_data = {"macro": {}, "top20": []}
+
+# MACRO ASSETS
+benchmarks = ['SPY', 'GLD', 'IEF', 'BTC-USD']
+b_closes, b_highs, b_lows = {}, {}, {}
+for sym in benchmarks:
+    df = fetch_single_ticker(sym)
+    if df is not None:
+        b_closes[sym] = df['Close']; b_highs[sym] = df['High']; b_lows[sym] = df['Low']
+    time.sleep(1)
+
+if b_closes:
+    df_c = pd.DataFrame(b_closes).ffill()
+    df_h = pd.DataFrame(b_highs).ffill()
+    df_l = pd.DataFrame(b_lows).ffill()
+    ma200, _, atr, _ = calc_indicators(df_c, df_h, df_l)
+    
+    for sym in benchmarks:
+        if sym in df_c.columns:
+            c = float(df_c[sym].iloc[-1])
+            m = float(ma200[sym].iloc[-1])
+            a = float(atr[sym].iloc[-1]) if pd.notna(atr[sym].iloc[-1]) else 0.0
+            output_data["macro"][sym] = {"price": c, "ma200": m, "atr": a}
+
+# AZIONI TOP 20
+tickers = get_sp500_tickers()
+closes, highs, lows = {}, {}, {}
+for i, sym in enumerate(tickers):
+    df = fetch_single_ticker(sym)
+    if df is not None:
+        closes[sym] = df['Close']; highs[sym] = df['High']; lows[sym] = df['Low']
+    time.sleep(0.1)
+
+if closes:
+    df_c = pd.DataFrame(closes).ffill()
+    df_h = pd.DataFrame(highs).ffill()
+    df_l = pd.DataFrame(lows).ffill()
+    ma200, ma150, atr, score = calc_indicators(df_c, df_h, df_l)
+    daily_pct_change = df_c.pct_change() * 100
+    max_jump_90 = daily_pct_change.iloc[-90:].abs().max()
+    
+    results = []
+    for sym in df_c.columns:
+        c = float(df_c[sym].iloc[-1])
+        m150 = float(ma150[sym].iloc[-1]) if pd.notna(ma150[sym].iloc[-1]) else 0
+        sc = float(score[sym].iloc[-1]) if pd.notna(score[sym].iloc[-1]) else -99
+        a = float(atr[sym].iloc[-1]) if pd.notna(atr[sym].iloc[-1]) else 0
+        jump = float(max_jump_90[sym]) if pd.notna(max_jump_90[sym]) else 100
+        
+        if c > m150 and sc > 0 and jump < 15.0:
+            results.append({
+                "Ticker": sym, 
+                "Prezzo ($)": round(c, 2), 
+                "Momentum Score": round(sc, 2), 
+                "Stop Esatto ($)": round(c - (3.5 * a), 2)
+            })
+            
+    df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False).head(20)
+    output_data["top20"] = df_res.to_dict(orient="records")
+
+# Salva JSON
+with open('apex_data.json', 'w') as f:
+    json.dump(output_data, f, indent=4)
+print("Dati salvati in apex_data.json con successo!")
