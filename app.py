@@ -47,7 +47,7 @@ st.divider()
 # ==========================================
 # 0. CALCOLATORE ALLOCAZIONE E PESI
 # ==========================================
-st.header("💰 Calcolatore Allocazione (Position Sizing)")
+st.header("💰 Calcolatore Allocazione")
 capitale = st.number_input("Inserisci il tuo Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
 
 # Calcoli delle proporzioni (100% Attivo)
@@ -169,7 +169,7 @@ st.divider()
 # ==========================================
 # 3. MOTORE ALTCOIN (TOP 10 CRIPTO)
 # ==========================================
-st.header("🪙 3. Motore Criptovalute (Top 3 Globale a Universo Dinamico)")
+st.header("🪙 3. Motore Criptovalute")
 st.markdown("L'universo si auto-aggiorna prelevando le prime 50 crypto mondiali (escluse stablecoin). Algoritmo: **ROC a 90 Giorni** e filtro saltuario tollerante fino al **40%**. Il Semaforo Macro è dettato dal **Bitcoin (BTC-USD)**.")
 
 col_btc_1, col_btc_2 = st.columns([1, 3])
@@ -195,7 +195,7 @@ with col_btc_2:
     if is_bull_btc:
         cryptotop = data.get("crypto_top", [])
         if cryptotop:
-            df_c = pd.DataFrame(cryptotop)
+            df_c = pd.DataFrame(cryptotop).head(3)
             df_c.index += 1
             if "Momentum Score" in df_c.columns:
                 df_c = df_c.drop(columns=["Momentum Score"])
