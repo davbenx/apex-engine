@@ -63,8 +63,19 @@ with c1:
 
 with c2:
     st.markdown("### 🪙 Crypto (10%)")
-    if is_bull_cr: st.success(f"**🟢 INVESTITO**\n\nQuota: {btc_cap:,.0f}")
-    else: st.error(f"**🔴 CASSA (USDT)**\n\nQuota: {btc_cap:,.0f}")
+    if is_bull_cr:
+        btc_hh = macro.get("BTC-USD", {}).get("highest_high_60", 0)
+        btc_a = macro.get("BTC-USD", {}).get("atr", 0)
+        btc_stop = btc_hh - (2.0 * btc_a)
+        st.success(f"**🟢 INVESTITO**
+
+Quota: {btc_cap:,.0f}
+
+*(Stop BTC: ${btc_stop:,.0f})*")
+    else:
+        st.error(f"**🔴 CASSA (USDT)**
+
+Quota: {btc_cap:,.0f}")
 
 with c3:
     st.markdown("### 🥇 Oro (10%)")
