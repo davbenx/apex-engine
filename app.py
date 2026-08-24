@@ -12,7 +12,7 @@ st.markdown("Dashboard quantitativa per il trend-following istituzionale.")
 # Guida integrata e Lean
 with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
     st.markdown("""
-    ### 🦅 Apex Engine (La Metà Attiva - 50%)
+    ### 🦅 Regole Operative
     1. **Semafori Macro (Venerdì sera):** 
        Se l'indicatore è 🟢 Verde (Prezzo > MA200), mantieni l'asset. Se è 🔴 Rosso (Prezzo < MA200), l'asset è in caduta libera: vendilo e parcheggia il denaro nel porto sicuro in dollari (ETF **IB01**).
     2. **Classifica Top 20 (1 volta al mese):** 
@@ -21,10 +21,7 @@ with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
        * Inserisci l'**Init Stop** al momento dell'acquisto (Azioni e BTC). 
        * Aggiornalo progressivamente usando il **Trail Stop (Chandelier)** indicato nell'App man mano che il trend sale.
        
-    ### 🧱 Convex Stack (La Metà Passiva - 50%)
-    L'altra metà del tuo portafoglio è il tuo ancoraggio strutturale. È composto da ETF "all-weather" (es. **NTSG** WisdomTree US Efficient Core, Managed Futures, Oro Strutturale).
-    1. **Regola D'Oro:** Non si guardano le Medie Mobili e non ci sono Stop Loss. Si compra e si dimentica.
-    2. **Manutenzione (1 volta all'anno):** Controlla le percentuali a Gennaio. Se un asset è salito troppo, vendi l'eccesso e compra quello rimasto indietro (Ribilanciamento).
+
     """)
 
 @st.cache_data(ttl=60)
@@ -53,36 +50,24 @@ st.divider()
 st.header("💰 Calcolatore Allocazione (Position Sizing)")
 capitale = st.number_input("Inserisci il tuo Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
 
-# Calcoli delle proporzioni
-convex_cap = capitale * 0.50
-apex_cap = capitale * 0.50
-eq_cap = apex_cap * 0.70
-gold_cap = apex_cap * 0.10
-bond_cap = apex_cap * 0.10
-btc_cap = apex_cap * 0.10
+# Calcoli delle proporzioni (100% Attivo)
+eq_cap = capitale * 0.70
+gold_cap = capitale * 0.10
+bond_cap = capitale * 0.10
+btc_cap = capitale * 0.10
 single_stock_cap = eq_cap / 20
 
-colA, colB = st.columns(2)
-with colA:
-    st.info(f"""
-    ### 🧱 Convex Stack (50%)
-    **Totale da allocare:** **{convex_cap:,.2f}**
-    
-    Da distribuire passivamente nel tuo mix di ETF strutturali (NTSG, Managed Futures, ecc.). Ribilancia solo una volta all'anno.
-    """)
+st.success(f"""
+### Allocazione del Portafoglio
+**Totale:** **{capitale:,.2f}**
 
-with colB:
-    st.success(f"""
-    ### 🦅 Apex Engine (50%)
-    **Totale da allocare:** **{apex_cap:,.2f}**
-    
-    * 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per singola azione)
-    * 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
-    * 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
-    * ₿ **Motore Bitcoin (10%):** {btc_cap:,.2f}
-    
-    *(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
-    """)
+* 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per ogni singola azione)
+* 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
+* 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
+* ₿ **Motore Bitcoin (10%):** {btc_cap:,.2f}
+
+*(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
+""")
 
 st.divider()
 
@@ -126,7 +111,7 @@ with col_rsp_2:
                     "Prezzo ($)": "{:.2f}",
                     "Momentum Score": "{:.2f}",
                     "Init Stop ($)": "{:.2f}",
-                    "Trail Stop (Chandelier) ($)": "{:.2f}"
+                    "Trail Stop ($)": "{:.2f}"
                 }),
                 use_container_width=True
             )
