@@ -1,0 +1,28 @@
+name: Aggiorna Dati Apex
+
+on:
+  schedule:
+    - cron: '0 23 * * 1-5' # Tutti i giorni lavorativi alle 23:00
+  workflow_dispatch: # Permette avvio manuale
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install pandas numpy lxml html5lib streamlit
+      - name: Run Backend Script
+        run: python backend.py
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add apex_data.json
+          git commit -m "Aggiornamento dati giornaliero Apex" || echo "Nessuna modifica da pushare"
+          git push
