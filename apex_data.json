@@ -1,26 +1,26 @@
 {
     "macro": {
         "RSP": {
-            "price": 221.36500549316406,
-            "ma200": 214.38907485961914,
+            "price": 221.38999938964844,
+            "ma200": 214.38919982910156,
             "atr": 1.8276023527483236,
             "highest_high_60": 223.44000244140625
         },
         "GC=F": {
-            "price": 4691.60009765625,
-            "ma200": 4205.0390112304685,
+            "price": 4691.7998046875,
+            "ma200": 4205.041008300781,
             "atr": 74.55926860377811,
             "highest_high_60": 4738.5
         },
         "IEF": {
-            "price": 93.05000305175781,
-            "ma200": 93.6486994934082,
+            "price": 93.03500366210938,
+            "ma200": 93.64862449645996,
             "atr": 0.27756508053186413,
             "highest_high_60": 93.51000213623047
         },
         "BTC-USD": {
-            "price": 78776.640625,
-            "ma200": 64262.3490234375,
+            "price": 78883.71875,
+            "ma200": 64263.9551953125,
             "atr": 2193.386734308624,
             "highest_high_60": 79891.3046875
         }
@@ -28,165 +28,165 @@
     "top20": [
         {
             "Ticker": "HUM",
-            "Prezzo ($)": 382.02,
-            "Momentum Score": 32.63,
-            "Init Stop ($)": 338.37,
+            "Prezzo ($)": 381.57,
+            "Momentum Score": 32.52,
+            "Init Stop ($)": 337.93,
             "Trail Stop ($)": 385.24
         },
         {
             "Ticker": "PANW",
-            "Prezzo ($)": 351.11,
-            "Momentum Score": 31.93,
-            "Init Stop ($)": 306.95,
+            "Prezzo ($)": 350.96,
+            "Momentum Score": 31.89,
+            "Init Stop ($)": 306.79,
             "Trail Stop ($)": 354.71
         },
         {
             "Ticker": "MPC",
-            "Prezzo ($)": 359.53,
-            "Momentum Score": 31.16,
-            "Init Stop ($)": 327.51,
+            "Prezzo ($)": 359.88,
+            "Momentum Score": 31.25,
+            "Init Stop ($)": 327.85,
             "Trail Stop ($)": 335.58
         },
         {
             "Ticker": "CRL",
-            "Prezzo ($)": 293.28,
-            "Momentum Score": 27.59,
-            "Init Stop ($)": 261.65,
+            "Prezzo ($)": 293.06,
+            "Momentum Score": 27.52,
+            "Init Stop ($)": 261.43,
             "Trail Stop ($)": 267.69
         },
         {
             "Ticker": "VLO",
-            "Prezzo ($)": 346.27,
-            "Momentum Score": 26.99,
-            "Init Stop ($)": 312.38,
+            "Prezzo ($)": 347.08,
+            "Momentum Score": 27.2,
+            "Init Stop ($)": 313.19,
             "Trail Stop ($)": 319.11
         },
         {
             "Ticker": "STT",
-            "Prezzo ($)": 190.29,
-            "Momentum Score": 22.79,
-            "Init Stop ($)": 176.07,
+            "Prezzo ($)": 190.34,
+            "Momentum Score": 22.82,
+            "Init Stop ($)": 176.12,
             "Trail Stop ($)": 180.96
         },
         {
             "Ticker": "PSX",
-            "Prezzo ($)": 240.6,
-            "Momentum Score": 21.06,
-            "Init Stop ($)": 219.75,
+            "Prezzo ($)": 240.83,
+            "Momentum Score": 21.14,
+            "Init Stop ($)": 219.98,
             "Trail Stop ($)": 226.1
         },
         {
             "Ticker": "EXPE",
-            "Prezzo ($)": 333.82,
-            "Momentum Score": 19.93,
-            "Init Stop ($)": 294.8,
+            "Prezzo ($)": 334.11,
+            "Momentum Score": 19.99,
+            "Init Stop ($)": 295.09,
             "Trail Stop ($)": 299.09
         },
         {
             "Ticker": "IQV",
-            "Prezzo ($)": 258.8,
-            "Momentum Score": 19.84,
-            "Init Stop ($)": 232.6,
+            "Prezzo ($)": 258.73,
+            "Momentum Score": 19.82,
+            "Init Stop ($)": 232.54,
             "Trail Stop ($)": 235.68
         },
         {
             "Ticker": "CRWD",
-            "Prezzo ($)": 189.59,
-            "Momentum Score": 19.66,
-            "Init Stop ($)": 161.56,
+            "Prezzo ($)": 189.9,
+            "Momentum Score": 19.77,
+            "Init Stop ($)": 161.87,
             "Trail Stop ($)": 199.48
         },
         {
             "Ticker": "BNY",
-            "Prezzo ($)": 161.89,
-            "Momentum Score": 18.94,
-            "Init Stop ($)": 151.04,
+            "Prezzo ($)": 162.02,
+            "Momentum Score": 19.01,
+            "Init Stop ($)": 151.17,
             "Trail Stop ($)": 154.84
         },
         {
             "Ticker": "TGT",
-            "Prezzo ($)": 169.52,
-            "Momentum Score": 18.76,
-            "Init Stop ($)": 155.14,
+            "Prezzo ($)": 169.63,
+            "Momentum Score": 18.81,
+            "Init Stop ($)": 155.25,
             "Trail Stop ($)": 156.37
         },
         {
             "Ticker": "XYZ",
-            "Prezzo ($)": 81.71,
-            "Momentum Score": 17.7,
-            "Init Stop ($)": 71.89,
+            "Prezzo ($)": 81.72,
+            "Momentum Score": 17.72,
+            "Init Stop ($)": 71.9,
             "Trail Stop ($)": 76.93
         },
         {
             "Ticker": "CNC",
-            "Prezzo ($)": 65.63,
-            "Momentum Score": 17.5,
-            "Init Stop ($)": 57.86,
+            "Prezzo ($)": 65.57,
+            "Momentum Score": 17.44,
+            "Init Stop ($)": 57.8,
             "Trail Stop ($)": 61.59
         },
         {
             "Ticker": "WST",
-            "Prezzo ($)": 349.78,
-            "Momentum Score": 17.44,
-            "Init Stop ($)": 319.02,
+            "Prezzo ($)": 349.42,
+            "Momentum Score": 17.37,
+            "Init Stop ($)": 318.66,
             "Trail Stop ($)": 355.24
         },
         {
             "Ticker": "FDS",
-            "Prezzo ($)": 304.59,
-            "Momentum Score": 16.39,
-            "Init Stop ($)": 265.4,
+            "Prezzo ($)": 304.48,
+            "Momentum Score": 16.37,
+            "Init Stop ($)": 265.29,
             "Trail Stop ($)": 269.28
         },
         {
             "Ticker": "APA",
             "Prezzo ($)": 42.37,
-            "Momentum Score": 16.27,
+            "Momentum Score": 16.28,
             "Init Stop ($)": 37.36,
             "Trail Stop ($)": 40.04
         },
         {
             "Ticker": "AIZ",
-            "Prezzo ($)": 286.63,
-            "Momentum Score": 14.87,
-            "Init Stop ($)": 266.61,
+            "Prezzo ($)": 286.54,
+            "Momentum Score": 14.85,
+            "Init Stop ($)": 266.52,
             "Trail Stop ($)": 283.92
         },
         {
-            "Ticker": "UNH",
-            "Prezzo ($)": 397.14,
-            "Momentum Score": 14.49,
-            "Init Stop ($)": 361.29,
-            "Trail Stop ($)": 425.77
+            "Ticker": "CSCO",
+            "Prezzo ($)": 110.85,
+            "Momentum Score": 14.48,
+            "Init Stop ($)": 98.99,
+            "Trail Stop ($)": 118.51
         },
         {
-            "Ticker": "CSCO",
-            "Prezzo ($)": 110.71,
-            "Momentum Score": 14.4,
-            "Init Stop ($)": 98.85,
-            "Trail Stop ($)": 118.51
+            "Ticker": "UNH",
+            "Prezzo ($)": 396.96,
+            "Momentum Score": 14.46,
+            "Init Stop ($)": 361.12,
+            "Trail Stop ($)": 425.77
         }
     ],
     "crypto_top": [
         {
             "Ticker": "WBT",
-            "Prezzo ($)": 73.0368,
+            "Prezzo ($)": 73.0366,
             "Momentum Score": 13.21,
-            "Init Stop ($)": 69.6146,
+            "Init Stop ($)": 69.6143,
             "Trail Stop ($)": 71.0035
         },
         {
             "Ticker": "ZEC",
-            "Prezzo ($)": 812.54,
-            "Momentum Score": 8.8,
-            "Init Stop ($)": 733.3746,
+            "Prezzo ($)": 820.25,
+            "Momentum Score": 9.16,
+            "Init Stop ($)": 741.0847,
             "Trail Stop ($)": 801.0913
         },
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2471.3899,
-            "Momentum Score": 5.84,
-            "Init Stop ($)": 2307.5783,
+            "Prezzo ($)": 2477.0,
+            "Momentum Score": 5.93,
+            "Init Stop ($)": 2313.1884,
             "Trail Stop ($)": 2382.0695
         }
     ]
