@@ -1,3 +1,4 @@
+import datetime
 import pandas as pd
 import numpy as np
 import urllib.request
@@ -64,7 +65,7 @@ def calc_indicators(opens, closes, highs, lows, roc_period=130):
     return ma200, ma150, atr, score, highest_high_60, gap_max, gap_min
 
 print("Inizio calcolo backend Apex (Aggiornato con Wilder e Chandelier)...")
-output_data = {"macro": {}, "top20": []}
+output_data = {"macro": {}, "top20": [], "timestamp": datetime.datetime.now().strftime("%d %b %Y, %H:%M (UTC)")}
 
 # MACRO ASSETS (Sostituito SPY con RSP)
 benchmarks = ['RSP', 'GC=F', 'IEF', 'BTC-USD']
