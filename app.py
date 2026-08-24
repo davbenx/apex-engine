@@ -41,16 +41,16 @@ st.markdown("---")
 st.header("🛡️ 2. Motori Alternativi Indipendenti")
 col1, col2, col3 = st.columns(3)
 
-gld = macro.get("GLD", {})
+gold = macro.get("GC=F", {})
 ief = macro.get("IEF", {})
 btc = macro.get("BTC-USD", {})
 
 with col1:
     st.subheader("Oro Fisico")
-    if gld.get("price", 0) > gld.get("ma200", 0):
-        st.success(f"🟢 **BULL MARKET**\nGLD = {gld['price']:.2f}\nMA200 = {gld['ma200']:.2f}")
+    if gold.get("price", 0) > gold.get("ma200", 0):
+        st.success(f"🟢 **BULL MARKET**\nOro ($) = {gold['price']:.2f}\nMA200 = {gold['ma200']:.2f}")
     else:
-        st.error(f"🔴 **BEAR MARKET**\nGLD = {gld['price']:.2f}\nMA200 = {gld['ma200']:.2f}")
+        st.error(f"🔴 **BEAR MARKET**\nOro ($) = {gold['price']:.2f}\nMA200 = {gold['ma200']:.2f}")
 
 with col2:
     st.subheader("Obbligazioni USA")
