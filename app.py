@@ -19,22 +19,23 @@ if not data:
     st.error("🚨 Dati non ancora calcolati. Il backend sta girando su GitHub.")
     st.stop()
 
-st.markdown("Questa versione si carica all'istante leggendo i dati elaborati di notte. Zero blocchi, zero latenza.")
+st.markdown("Questa versione si carica all'istante leggendo i dati elaborati di notte. Calcoli allineati allo standard istituzionale (Wilder's ATR, Chandelier Exit, RSP).")
 
 macro = data.get("macro", {})
-spy = macro.get("SPY", {})
+rsp = macro.get("RSP", {})
 
 st.markdown("---")
 st.header("📈 1. Motore Azionario (Top 20 Leader)")
-if spy.get("price", 0) > spy.get("ma200", 0):
-    st.success(f"🟢 **Azionario: BULL MARKET** (S&P 500 = {spy['price']:.2f} > MA200 = {spy['ma200']:.2f}).")
+# Controllo macro su RSP (S&P 500 Equal Weight)
+if rsp.get("price", 0) > rsp.get("ma200", 0):
+    st.success(f"🟢 **Azionario: BULL MARKET** (RSP Equal Weight = {rsp['price']:.2f} > MA200 = {rsp['ma200']:.2f}).")
     top20 = data.get("top20", [])
     if top20:
         df = pd.DataFrame(top20)
         df.index += 1
         st.dataframe(df)
 else:
-    st.error(f"🔴 **Azionario: BEAR MARKET** (S&P 500 = {spy['price']:.2f} < MA200 = {spy['ma200']:.2f}). CASSA.")
+    st.error(f"🔴 **Azionario: BEAR MARKET** (RSP Equal Weight = {rsp['price']:.2f} < MA200 = {rsp['ma200']:.2f}). CASSA.")
 
 st.markdown("---")
 st.header("🛡️ 2. Motori Alternativi Indipendenti")
