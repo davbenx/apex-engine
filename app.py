@@ -62,7 +62,9 @@ with col2:
 with col3:
     st.subheader("Bitcoin")
     if btc.get("price", 0) > btc.get("ma200", 0):
-        stop_btc = btc.get('price', 0) - (2.0 * btc.get('atr', 0))
-        st.success(f"🟢 **BULL MARKET**\nBTC = ${btc.get('price', 0):,.0f}\nMA200 = ${btc.get('ma200', 0):,.0f}\nStop: **${stop_btc:,.0f}**")
+        hh = btc.get('highest_high_60', btc.get('price', 0))
+        stop_btc_init = btc.get('price', 0) - (2.0 * btc.get('atr', 0))
+        stop_btc_trail = hh - (2.0 * btc.get('atr', 0))
+        st.success(f"🟢 **BULL MARKET**\nBTC = ${btc.get('price', 0):,.0f}\nMA200 = ${btc.get('ma200', 0):,.0f}\nInit Stop: **${stop_btc_init:,.0f}**\nTrail Stop: **${stop_btc_trail:,.0f}**")
     else:
         st.error(f"🔴 **BEAR MARKET**\nBTC = ${btc.get('price', 0):,.0f}\nMA200 = ${btc.get('ma200', 0):,.0f}")
