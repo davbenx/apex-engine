@@ -1,146 +1,166 @@
 {
     "macro": {
-        "SPY": {
-            "price": 763.5499877929688,
-            "ma200": 746.8405520629883,
-            "atr": 6.660997517903646
+        "RSP": {
+            "price": 221.61000061035156,
+            "ma200": 214.39029983520507,
+            "atr": 1.825352444301058
         },
-        "GLD": {
-            "price": 428.4100036621094,
-            "ma200": 395.8398991394043,
-            "atr": 5.558332316080729
+        "GC=F": {
+            "price": 4727.60009765625,
+            "ma200": 4205.399011230469,
+            "atr": 74.55926860377811
         },
         "IEF": {
-            "price": 93.03500366210938,
-            "ma200": 93.85027465820312,
-            "atr": 0.2840833028157552
+            "price": 93.06999969482422,
+            "ma200": 93.64879947662354,
+            "atr": 0.27698181331995003
         },
         "BTC-USD": {
-            "price": 79386.109375,
-            "ma200": 68162.3139453125,
-            "atr": 1867.9586588541667
+            "price": 79943.046875,
+            "ma200": 64279.8451171875,
+            "atr": 2195.9497881280677
         }
     },
     "top20": [
         {
-            "Ticker": "MPC",
-            "Prezzo ($)": 359.68,
-            "Momentum Score": 29.57,
-            "Stop Esatto ($)": 325.9
-        },
-        {
             "Ticker": "HUM",
-            "Prezzo ($)": 385.01,
-            "Momentum Score": 29.21,
-            "Stop Esatto ($)": 335.12
-        },
-        {
-            "Ticker": "CRL",
-            "Prezzo ($)": 295.17,
-            "Momentum Score": 27.27,
-            "Stop Esatto ($)": 262.51
+            "Prezzo ($)": 384.42,
+            "Momentum Score": 33.23,
+            "Init Stop ($)": 340.78,
+            "Trail Stop (Chandelier) ($)": 385.24
         },
         {
             "Ticker": "PANW",
-            "Prezzo ($)": 352.49,
-            "Momentum Score": 26.32,
-            "Stop Esatto ($)": 298.32
+            "Prezzo ($)": 350.48,
+            "Momentum Score": 31.76,
+            "Init Stop ($)": 306.31,
+            "Trail Stop (Chandelier) ($)": 354.71
+        },
+        {
+            "Ticker": "MPC",
+            "Prezzo ($)": 359.6,
+            "Momentum Score": 31.2,
+            "Init Stop ($)": 327.6,
+            "Trail Stop (Chandelier) ($)": 335.6
+        },
+        {
+            "Ticker": "CRL",
+            "Prezzo ($)": 294.21,
+            "Momentum Score": 27.87,
+            "Init Stop ($)": 262.58,
+            "Trail Stop (Chandelier) ($)": 267.69
         },
         {
             "Ticker": "VLO",
-            "Prezzo ($)": 346.04,
-            "Momentum Score": 24.77,
-            "Stop Esatto ($)": 309.2
-        },
-        {
-            "Ticker": "PSX",
-            "Prezzo ($)": 240.92,
-            "Momentum Score": 20.48,
-            "Stop Esatto ($)": 219.38
-        },
-        {
-            "Ticker": "EXPE",
-            "Prezzo ($)": 334.82,
-            "Momentum Score": 20.25,
-            "Stop Esatto ($)": 296.02
+            "Prezzo ($)": 345.4,
+            "Momentum Score": 26.79,
+            "Init Stop ($)": 311.54,
+            "Trail Stop (Chandelier) ($)": 319.14
         },
         {
             "Ticker": "STT",
-            "Prezzo ($)": 189.03,
-            "Momentum Score": 20.06,
-            "Stop Esatto ($)": 173.31
+            "Prezzo ($)": 189.21,
+            "Momentum Score": 22.4,
+            "Init Stop ($)": 175.08,
+            "Trail Stop (Chandelier) ($)": 181.05
         },
         {
-            "Ticker": "IQV",
-            "Prezzo ($)": 259.89,
-            "Momentum Score": 19.76,
-            "Stop Esatto ($)": 233.17
+            "Ticker": "ABNB",
+            "Prezzo ($)": 192.86,
+            "Momentum Score": 21.75,
+            "Init Stop ($)": 175.72,
+            "Trail Stop (Chandelier) ($)": 176.21
         },
         {
-            "Ticker": "XYZ",
-            "Prezzo ($)": 83.08,
-            "Momentum Score": 18.33,
-            "Stop Esatto ($)": 73.0
+            "Ticker": "PSX",
+            "Prezzo ($)": 240.51,
+            "Momentum Score": 21.05,
+            "Init Stop ($)": 219.69,
+            "Trail Stop (Chandelier) ($)": 226.13
         },
         {
-            "Ticker": "TGT",
-            "Prezzo ($)": 169.79,
-            "Momentum Score": 18.08,
-            "Stop Esatto ($)": 154.77
-        },
-        {
-            "Ticker": "WST",
-            "Prezzo ($)": 350.38,
-            "Momentum Score": 17.75,
-            "Stop Esatto ($)": 319.93
-        },
-        {
-            "Ticker": "APA",
-            "Prezzo ($)": 42.46,
-            "Momentum Score": 17.52,
-            "Stop Esatto ($)": 37.77
-        },
-        {
-            "Ticker": "BNY",
-            "Prezzo ($)": 161.14,
-            "Momentum Score": 16.96,
-            "Stop Esatto ($)": 149.28
+            "Ticker": "EXPE",
+            "Prezzo ($)": 337.49,
+            "Momentum Score": 20.71,
+            "Init Stop ($)": 298.48,
+            "Trail Stop (Chandelier) ($)": 299.05
         },
         {
             "Ticker": "CRWD",
-            "Prezzo ($)": 191.44,
-            "Momentum Score": 16.73,
-            "Stop Esatto ($)": 157.46
+            "Prezzo ($)": 190.73,
+            "Momentum Score": 20.05,
+            "Init Stop ($)": 162.71,
+            "Trail Stop (Chandelier) ($)": 199.48
         },
         {
-            "Ticker": "FDS",
-            "Prezzo ($)": 306.83,
-            "Momentum Score": 15.35,
-            "Stop Esatto ($)": 263.85
+            "Ticker": "IQV",
+            "Prezzo ($)": 259.47,
+            "Momentum Score": 20.03,
+            "Init Stop ($)": 233.27,
+            "Trail Stop (Chandelier) ($)": 235.68
+        },
+        {
+            "Ticker": "TGT",
+            "Prezzo ($)": 170.36,
+            "Momentum Score": 19.16,
+            "Init Stop ($)": 155.99,
+            "Trail Stop (Chandelier) ($)": 156.3
+        },
+        {
+            "Ticker": "BNY",
+            "Prezzo ($)": 161.59,
+            "Momentum Score": 18.83,
+            "Init Stop ($)": 150.77,
+            "Trail Stop (Chandelier) ($)": 154.87
+        },
+        {
+            "Ticker": "XYZ",
+            "Prezzo ($)": 82.82,
+            "Momentum Score": 18.59,
+            "Init Stop ($)": 72.99,
+            "Trail Stop (Chandelier) ($)": 76.93
         },
         {
             "Ticker": "CNC",
-            "Prezzo ($)": 65.1,
-            "Momentum Score": 15.02,
-            "Stop Esatto ($)": 56.32
+            "Prezzo ($)": 65.54,
+            "Momentum Score": 17.46,
+            "Init Stop ($)": 57.79,
+            "Trail Stop (Chandelier) ($)": 61.62
+        },
+        {
+            "Ticker": "WST",
+            "Prezzo ($)": 349.48,
+            "Momentum Score": 17.38,
+            "Init Stop ($)": 318.72,
+            "Trail Stop (Chandelier) ($)": 355.24
+        },
+        {
+            "Ticker": "FDS",
+            "Prezzo ($)": 306.07,
+            "Momentum Score": 16.69,
+            "Init Stop ($)": 266.88,
+            "Trail Stop (Chandelier) ($)": 269.28
+        },
+        {
+            "Ticker": "APA",
+            "Prezzo ($)": 41.89,
+            "Momentum Score": 15.58,
+            "Init Stop ($)": 36.88,
+            "Trail Stop (Chandelier) ($)": 40.04
         },
         {
             "Ticker": "AIZ",
-            "Prezzo ($)": 287.03,
-            "Momentum Score": 14.66,
-            "Stop Esatto ($)": 266.57
+            "Prezzo ($)": 286.74,
+            "Momentum Score": 14.9,
+            "Init Stop ($)": 266.72,
+            "Trail Stop (Chandelier) ($)": 283.92
         },
         {
-            "Ticker": "UNH",
-            "Prezzo ($)": 394.58,
-            "Momentum Score": 13.32,
-            "Stop Esatto ($)": 356.75
-        },
-        {
-            "Ticker": "ADP",
-            "Prezzo ($)": 284.21,
-            "Momentum Score": 13.26,
-            "Stop Esatto ($)": 259.16
+            "Ticker": "HPQ",
+            "Prezzo ($)": 28.7,
+            "Momentum Score": 14.72,
+            "Init Stop ($)": 24.93,
+            "Trail Stop (Chandelier) ($)": 28.42
         }
     ]
 }
