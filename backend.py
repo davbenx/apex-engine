@@ -124,8 +124,7 @@ if closes:
                 "Ticker": sym, 
                 "Prezzo ($)": round(c, 2), 
                 "Momentum Score": round(sc, 2), 
-                "Init Stop ($)": round(c - (3.5 * a), 2),
-                "Trail Stop ($)": round(max_h60 - (3.5 * a), 2)
+                "Stop Loss ($)": round(max_h60 - (3.5 * a), 2)
             })
             
     df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False).head(20)
@@ -196,8 +195,7 @@ if c_closes:
                 "Ticker": sym.replace("-USD", ""), 
                 "Prezzo ($)": round(c, 4), 
                 "Momentum Score": round(sc, 2),
-                "Init Stop ($)": round(c - (2.0 * a), 4),
-                "Trail Stop ($)": round(max_h60 - (2.0 * a), 4)
+                "Stop Loss ($)": round(max_h60 - (2.0 * a), 4)
             })
             
     df_res_c = pd.DataFrame(results_c).sort_values(by="Momentum Score", ascending=False).head(3) # Top 3 altcoin
