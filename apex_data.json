@@ -1,0 +1,146 @@
+{
+    "macro": {
+        "SPY": {
+            "price": 763.5499877929688,
+            "ma200": 746.8405520629883,
+            "atr": 6.660997517903646
+        },
+        "GLD": {
+            "price": 428.4100036621094,
+            "ma200": 395.8398991394043,
+            "atr": 5.558332316080729
+        },
+        "IEF": {
+            "price": 93.03500366210938,
+            "ma200": 93.85027465820312,
+            "atr": 0.2840833028157552
+        },
+        "BTC-USD": {
+            "price": 79386.109375,
+            "ma200": 68162.3139453125,
+            "atr": 1867.9586588541667
+        }
+    },
+    "top20": [
+        {
+            "Ticker": "MPC",
+            "Prezzo ($)": 359.68,
+            "Momentum Score": 29.57,
+            "Stop Esatto ($)": 325.9
+        },
+        {
+            "Ticker": "HUM",
+            "Prezzo ($)": 385.01,
+            "Momentum Score": 29.21,
+            "Stop Esatto ($)": 335.12
+        },
+        {
+            "Ticker": "CRL",
+            "Prezzo ($)": 295.17,
+            "Momentum Score": 27.27,
+            "Stop Esatto ($)": 262.51
+        },
+        {
+            "Ticker": "PANW",
+            "Prezzo ($)": 352.49,
+            "Momentum Score": 26.32,
+            "Stop Esatto ($)": 298.32
+        },
+        {
+            "Ticker": "VLO",
+            "Prezzo ($)": 346.04,
+            "Momentum Score": 24.77,
+            "Stop Esatto ($)": 309.2
+        },
+        {
+            "Ticker": "PSX",
+            "Prezzo ($)": 240.92,
+            "Momentum Score": 20.48,
+            "Stop Esatto ($)": 219.38
+        },
+        {
+            "Ticker": "EXPE",
+            "Prezzo ($)": 334.82,
+            "Momentum Score": 20.25,
+            "Stop Esatto ($)": 296.02
+        },
+        {
+            "Ticker": "STT",
+            "Prezzo ($)": 189.03,
+            "Momentum Score": 20.06,
+            "Stop Esatto ($)": 173.31
+        },
+        {
+            "Ticker": "IQV",
+            "Prezzo ($)": 259.89,
+            "Momentum Score": 19.76,
+            "Stop Esatto ($)": 233.17
+        },
+        {
+            "Ticker": "XYZ",
+            "Prezzo ($)": 83.08,
+            "Momentum Score": 18.33,
+            "Stop Esatto ($)": 73.0
+        },
+        {
+            "Ticker": "TGT",
+            "Prezzo ($)": 169.79,
+            "Momentum Score": 18.08,
+            "Stop Esatto ($)": 154.77
+        },
+        {
+            "Ticker": "WST",
+            "Prezzo ($)": 350.38,
+            "Momentum Score": 17.75,
+            "Stop Esatto ($)": 319.93
+        },
+        {
+            "Ticker": "APA",
+            "Prezzo ($)": 42.46,
+            "Momentum Score": 17.52,
+            "Stop Esatto ($)": 37.77
+        },
+        {
+            "Ticker": "BNY",
+            "Prezzo ($)": 161.14,
+            "Momentum Score": 16.96,
+            "Stop Esatto ($)": 149.28
+        },
+        {
+            "Ticker": "CRWD",
+            "Prezzo ($)": 191.44,
+            "Momentum Score": 16.73,
+            "Stop Esatto ($)": 157.46
+        },
+        {
+            "Ticker": "FDS",
+            "Prezzo ($)": 306.83,
+            "Momentum Score": 15.35,
+            "Stop Esatto ($)": 263.85
+        },
+        {
+            "Ticker": "CNC",
+            "Prezzo ($)": 65.1,
+            "Momentum Score": 15.02,
+            "Stop Esatto ($)": 56.32
+        },
+        {
+            "Ticker": "AIZ",
+            "Prezzo ($)": 287.03,
+            "Momentum Score": 14.66,
+            "Stop Esatto ($)": 266.57
+        },
+        {
+            "Ticker": "UNH",
+            "Prezzo ($)": 394.58,
+            "Momentum Score": 13.32,
+            "Stop Esatto ($)": 356.75
+        },
+        {
+            "Ticker": "ADP",
+            "Prezzo ($)": 284.21,
+            "Momentum Score": 13.26,
+            "Stop Esatto ($)": 259.16
+        }
+    ]
+}
