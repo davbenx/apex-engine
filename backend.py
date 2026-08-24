@@ -133,27 +133,32 @@ if closes:
 
 
 
+
 # ==============================
-# MOTORE CRIPTOVALUTE (ALTCOIN)
+# MOTORE CRIPTOVALUTE (KRAKEN)
 # ==============================
-print("Ricerca Universo Cripto Dinamico via CoinGecko...")
+print("Ricerca Universo Cripto (Filtro Kraken)...")
+KRAKEN_WHITELIST = [
+    'BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'TRX', 'DOT', 'LINK', 'AVAX', 
+    'SHIB', 'LTC', 'BCH', 'NEAR', 'UNI', 'APT', 'ICP', 'STX', 'XLM', 'FET', 
+    'FIL', 'AAVE', 'ALGO', 'RNDR', 'MKR', 'SUI', 'OP', 'INJ', 'PEPE', 'WIF', 
+    'BONK', 'FLOKI', 'GRT', 'SNX', 'IMX', 'LDO', 'ATOM', 'ARB', 'SEI', 'TIA', 'POL', 'RENDER'
+]
+
 crypto_tickers = []
 try:
-    req = urllib.request.Request('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1', headers={'User-Agent': 'Mozilla/5.0'})
+    req = urllib.request.Request('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1', headers={'User-Agent': 'Mozilla/5.0'})
     data = json.loads(urllib.request.urlopen(req).read().decode())
-    stables_and_wrapped = ['USDT', 'USDC', 'DAI', 'FDUSD', 'USDE', 'WBTC', 'WETH', 'STETH', 'WSTETH', 'USDD', 'FRAX', 'TUSD']
     for d in data:
         sym = d['symbol'].upper()
-        if sym not in stables_and_wrapped:
+        if sym in KRAKEN_WHITELIST:
             crypto_tickers.append(sym + '-USD')
-    print(f"Trovate {len(crypto_tickers)} coin legittime nella Top 50 globale.")
+    print(f"Trovate {len(crypto_tickers)} coin scambiabili su Kraken nella Top globale.")
 except Exception as e:
-    print("Errore CoinGecko, uso lista fallback...")
-    crypto_tickers = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 'TON-USD', 'LINK-USD']
+    print("Errore API, uso fallback Kraken...")
+    crypto_tickers = [s + '-USD' for s in KRAKEN_WHITELIST[:30]]
 
-# Per sicurezza limito l'universo alle prime 30 per evitare limiti di Yahoo Finance
 crypto_tickers = crypto_tickers[:30]
-
 c_opens, c_closes, c_highs, c_lows = {}, {}, {}, {}
 for i, sym in enumerate(crypto_tickers):
     df = fetch_single_ticker(sym)
