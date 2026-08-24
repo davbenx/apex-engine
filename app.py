@@ -3,30 +3,9 @@ import pandas as pd
 import json
 import os
 
-# Configurazione base della pagina (a11y)
 st.set_page_config(page_title="Apex Multi-Asset", page_icon="🦅", layout="wide")
 
 st.title("🦅 Apex Multi-Asset Engine")
-st.markdown("Dashboard quantitativa per il trend-following istituzionale.")
-
-# Guida integrata e Lean
-with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
-    st.markdown("""
-    ### 🦅 Regole Operative (Il Ritmo della Strategia)
-
-**📅 1 VOLTA AL MESE: La Rotazione**
-L'ultimo venerdì del mese, guarda le classifiche dell'App. Se un'Azione o una Crypto che possiedi è uscita dalla tabella, vendila e usa i soldi per comprare il nuovo asset che ne ha preso il posto in classifica. *(Oro e Bond non ruotano: si tengono finché il Semaforo è verde).*
-
-**📅 1 VOLTA A SETTIMANA: Aggiornamento Stop e Macro**
-Durante il weekend controlla due cose:
-1. **Semafori Macro:** Se S&P 500 o Bitcoin sono diventati 🔴 Rossi, il lunedì vendi immediatamente tutto il comparto (non aspettare fine mese) e passa al porto sicuro in liquidità (ETF **IB01** per le Azioni, USDT per le Crypto).
-2. **Trailing Stop:** Verifica i nuovi valori di Stop sull'App. Entra nel tuo broker (Banca o Exchange) e "alza" il prezzo dell'ordine di Stop Loss automatico per proteggere i nuovi profitti.
-
-**⚡ AUTOMATICO: Esecuzione dello Stop Loss**
-Se un martedì a caso il mercato crolla, il broker venderà l'asset in automatico al prezzo del tuo Stop Loss. Tu non fare nulla: tieni i soldi al sicuro in Cassa/USDT fino al giorno della successiva Rotazione Mensile.
-       
-
-    """)
 
 @st.cache_data(ttl=60)
 def load_data():
@@ -37,177 +16,93 @@ def load_data():
 
 data = load_data()
 if not data:
-    st.error("🚨 Dati non disponibili. Il motore backend su GitHub non ha ancora completato l'aggiornamento notturno.")
+    st.error("🚨 Dati non disponibili. Attendi l'aggiornamento notturno su GitHub.")
     st.stop()
 
-macro = data.get("macro", {})
-rsp = macro.get("RSP", {})
-gold = macro.get("GC=F", {})
-ief = macro.get("IEF", {})
-btc = macro.get("BTC-USD", {})
+# --- TIMESTAMPS ---
+last_update = data.get("timestamp", "Dato non disponibile")
+st.caption(f"🕒 **Ultimo Ricalcolo:** {last_update} | ⏳ **Prossimo Aggiornamento Previsto:** Stanotte alle 23:30")
+
+with st.expander("📖 Regole Operative", expanded=False):
+    st.markdown("""
+    **📅 1 VOLTA AL MESE (Rotazione):** L'ultimo venerdì del mese, vendi gli asset usciti dalle tabelle sottostanti e compra i nuovi entrati. (Oro e Bond non ruotano, si tengono finché verdi).
+    
+    **📅 1 VOLTA A SETTIMANA (Macro & Stop):** Nel weekend, controlla se un semaforo nel Cockpit è diventato 🔴 ROSSO. In tal caso, il lunedì vendi tutto quel comparto e vai in Cassa. Se è verde, aggiorna sul broker i nuovi livelli di **Stop Loss ($)** indicati nelle tabelle.
+    
+    **⚡ AUTOMATICO (Esecuzione):** Se in un giorno qualsiasi il prezzo crolla sotto lo Stop Loss, il broker venderà in automatico. Tieni i soldi in cassa fino alla successiva rotazione mensile.
+    """)
 
 st.divider()
 
-# ==========================================
-# 0. CALCOLATORE ALLOCAZIONE E PESI
-# ==========================================
-st.header("💰 Calcolatore Allocazione")
-capitale = st.number_input("Inserisci il tuo Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
+# --- COCKPIT ALLOCAZIONE ---
+st.header("🎛️ Cockpit Allocazione")
+capitale = st.number_input("Capitale Totale Operativo", min_value=1000, value=100000, step=1000, format="%d", help="Inserisci il capitale totale. L'algoritmo calcolerà i pesi esatti per ogni comparto.")
 
-# Calcoli delle proporzioni (100% Attivo)
 eq_cap = capitale * 0.70
+btc_cap = capitale * 0.10
 gold_cap = capitale * 0.10
 bond_cap = capitale * 0.10
-btc_cap = capitale * 0.10
-single_crypto_cap = btc_cap / 3
+
 single_stock_cap = eq_cap / 20
+single_crypto_cap = btc_cap / 3
 
-st.success(f"""
-### Allocazione del Portafoglio
-**Totale:** **{capitale:,.2f}**
+macro = data.get("macro", {})
+is_bull_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
+is_bull_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
+is_bull_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
+is_bull_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
 
-* 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per ogni singola azione)
-* 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
-* 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
-* ₿ **Motore Criptovalute Top 3 (10%):** {btc_cap:,.2f} (Esattamente **{single_crypto_cap:,.2f}** per le prime 3 in classifica)
+# 4 Colonne visive per lo stato istantaneo
+c1, c2, c3, c4 = st.columns(4)
 
-*(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
-""")
+with c1:
+    st.markdown("### 📈 Azioni (70%)")
+    if is_bull_eq: st.success(f"**🟢 INVESTITO**\n\nQuota: {eq_cap:,.0f}")
+    else: st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {eq_cap:,.0f}")
+
+with c2:
+    st.markdown("### 🪙 Crypto (10%)")
+    if is_bull_cr: st.success(f"**🟢 INVESTITO**\n\nQuota: {btc_cap:,.0f}")
+    else: st.error(f"**🔴 CASSA (USDT)**\n\nQuota: {btc_cap:,.0f}")
+
+with c3:
+    st.markdown("### 🥇 Oro (10%)")
+    if is_bull_g: st.success(f"**🟢 MANTIENI**\n\nQuota: {gold_cap:,.0f}")
+    else: st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {gold_cap:,.0f}")
+
+with c4:
+    st.markdown("### 🛡️ Bond (10%)")
+    if is_bull_b: st.success(f"**🟢 MANTIENI**\n\nQuota: {bond_cap:,.0f}")
+    else: st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {bond_cap:,.0f}")
 
 st.divider()
 
-# ==========================================
-# 1. MOTORE AZIONARIO (RSP + TOP 20)
-# ==========================================
-st.header("📈 1. Motore Azionario")
+# --- TABELLE OPERATIVE (Solo Motori Attivi e Rotazionali) ---
+st.header("📋 Liste Operative")
+st.caption("Usa queste tabelle solo durante la Rotazione Mensile per sapere cosa comprare, e ogni weekend per aggiornare lo Stop Loss sul broker.")
 
-col_rsp_1, col_rsp_2 = st.columns([1, 3])
-rsp_price = rsp.get('price', 0)
-rsp_ma200 = rsp.get('ma200', 0)
-is_bull_eq = rsp_price > rsp_ma200
+col_az, col_cr = st.columns([2, 1])
 
-with col_rsp_1:
-    st.metric(
-        label="RSP (S&P 500 Equal Weight)", 
-        value=f"${rsp_price:.2f}", 
-        delta=f"MA200: ${rsp_ma200:.2f}", 
-        delta_color="off",
-        help="Interruttore generale del mercato azionario"
-    )
-    if is_bull_eq:
-        st.success(f"""🟢 **Trend: BULL MARKET**
-        
-**Azione:** Compra le Top 20 
-*(Quota da usare: {eq_cap:,.2f})*""")
-    else:
-        st.error(f"""🔴 **Trend: BEAR MARKET**
-        
-**Azione:** Vendi le 20 azioni -> Vai in Cassa (IB01) 
-*(Cassa obiettivo: {eq_cap:,.2f})*""")
-
-with col_rsp_2:
+with col_az:
+    st.subheader(f"📈 Top 20 Azioni ({single_stock_cap:,.0f} cad.)")
     if is_bull_eq:
         top20 = data.get("top20", [])
         if top20:
-            df = pd.DataFrame(top20)
-            df.index += 1
-            if "Momentum Score" in df.columns:
-                df = df.drop(columns=["Momentum Score"])
-            if "Trail Stop (Chandelier) ($)" in df.columns:
-                df = df.rename(columns={"Trail Stop (Chandelier) ($)": "Trail Stop ($)"})
-            st.dataframe(
-                df.style.format({
-                    "Prezzo ($)": "{:.2f}",
-                    "Stop Loss ($)": "{:.2f}"
-                }),
-                use_container_width=True
-            )
-            st.caption("💡 *Tip Operativo:* Inserisci lo **Stop Loss** il giorno in cui acquisti il titolo e aggiornalo periodicamente al rialzo copiando il nuovo valore indicato qui.")
+            df_eq = pd.DataFrame(top20)
+            df_eq.index += 1
+            if "Momentum Score" in df_eq.columns: df_eq = df_eq.drop(columns=["Momentum Score"])
+            st.dataframe(df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}), use_container_width=True)
     else:
-        st.info("La classifica Top 20 è nascosta durante i Bear Market per prevenire acquisti accidentali.")
+        st.info("Semaforo Azionario Rosso. Tabella disattivata, mantieni il capitale in IB01.")
 
-st.divider()
-
-# ==========================================
-# 2. MOTORI ALTERNATIVI (ORO, BOND, BTC)
-# ==========================================
-st.header("🛡️ 2. Motori Alternativi")
-c1, c2 = st.columns(2)
-
-# ORO
-with c1:
-    g_p = gold.get('price', 0)
-    g_ma = gold.get('ma200', 0)
-    st.metric(label="Oro Fisico (GC=F)", value=f"${g_p:,.2f}", delta=f"MA200: ${g_ma:,.2f}", delta_color="off")
-    if g_p > g_ma:
-        st.success(f"""🟢 **BULL MARKET**
-        
-**Azione:** Compra/Mantieni
-*(Quota: {gold_cap:,.2f})*""")
-    else:
-        st.error(f"""🔴 **BEAR MARKET**
-        
-**Azione:** Vendi Oro -> Vai in Cassa
-*(Cassa obiettivo: {gold_cap:,.2f})*""")
-
-# BOND
-with c2:
-    i_p = ief.get('price', 0)
-    i_ma = ief.get('ma200', 0)
-    st.metric(label="Obbligazioni USA (IEF)", value=f"${i_p:.2f}", delta=f"MA200: ${i_ma:.2f}", delta_color="off", help="Riferimento: Treasury USA 7-10 anni")
-    if i_p > i_ma:
-        st.success(f"""🟢 **BULL MARKET**
-        
-**Azione:** Compra/Mantieni
-*(Quota: {bond_cap:,.2f})*""")
-    else:
-        st.error(f"""🔴 **BEAR MARKET**
-        
-**Azione:** Vendi IBTM -> Vai in Cassa
-*(Cassa obiettivo: {bond_cap:,.2f})*""")
-
-
-st.divider()
-
-# ==========================================
-# 3. MOTORE ALTCOIN (TOP 10 CRIPTO)
-# ==========================================
-st.header("🪙 3. Motore Criptovalute")
-
-col_btc_1, col_btc_2 = st.columns([1, 3])
-is_bull_btc = btc.get('price', 0) > btc.get('ma200', 0)
-
-with col_btc_1:
-    st.metric(
-        label="Semaforo Macro (Bitcoin)", 
-        value=f"${btc.get('price', 0):,.2f}", 
-        delta=f"MA200: ${btc.get('ma200', 0):,.2f}", 
-        delta_color="off"
-    )
-    if is_bull_btc:
-        st.success(f"""🟢 **Trend: BULL MARKET**
-        
-**Azione:** Compra le Top 3 (Quota: {btc_cap:,.2f} -> {single_crypto_cap:,.2f} a moneta)""")
-    else:
-        st.error(f"""🔴 **Trend: BEAR MARKET**
-        
-**Azione:** Vendi tutto -> Vai in USDT / Cassa / Dollari""")
-
-with col_btc_2:
-    if is_bull_btc:
+with col_cr:
+    st.subheader(f"🪙 Top 3 Crypto ({single_crypto_cap:,.0f} cad.)")
+    if is_bull_cr:
         cryptotop = data.get("crypto_top", [])
         if cryptotop:
-            df_c = pd.DataFrame(cryptotop).head(3)
+            df_c = pd.DataFrame(cryptotop)
             df_c.index += 1
-            if "Momentum Score" in df_c.columns:
-                df_c = df_c.drop(columns=["Momentum Score"])
-            st.dataframe(
-                df_c.style.format({
-                    "Prezzo ($)": "{:.4f}",
-                    "Stop Loss ($)": "{:.4f}"
-                }),
-                use_container_width=True
-            )
-            st.caption("💡 Inserisci sempre l'ordine di Stop Loss all'acquisto e aggiornalo seguendo i rialzi.")
+            if "Momentum Score" in df_c.columns: df_c = df_c.drop(columns=["Momentum Score"])
+            st.dataframe(df_c.style.format({"Prezzo ($)": "{:.4f}", "Stop Loss ($)": "{:.4f}"}), use_container_width=True)
     else:
-        st.info("La classifica Cripto è disattivata. Quando il Bitcoin scende sotto la Media 200, le altcoin crollano matematicamente. Tieni la liquidità al sicuro.")
+        st.info("Semaforo Crypto Rosso. Tabella disattivata, mantieni il capitale in USDT.")
