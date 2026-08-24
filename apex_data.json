@@ -7,8 +7,8 @@
             "highest_high_60": 223.44000244140625
         },
         "GC=F": {
-            "price": 4717.60009765625,
-            "ma200": 4205.299011230469,
+            "price": 4717.89990234375,
+            "ma200": 4205.302009277344,
             "atr": 72.93829475395171,
             "highest_high_60": 4718.0
         },
@@ -19,8 +19,8 @@
             "highest_high_60": 93.51000213623047
         },
         "BTC-USD": {
-            "price": 78777.96875,
-            "ma200": 64262.3689453125,
+            "price": 78787.5234375,
+            "ma200": 64262.512265625,
             "atr": 2193.386734308624,
             "highest_high_60": 79891.3046875
         }
@@ -83,8 +83,8 @@
         {
             "Ticker": "TGT",
             "Prezzo ($)": 169.89,
-            "Momentum Score": 19.03,
-            "Stop Loss ($)": 156.44
+            "Momentum Score": 18.93,
+            "Stop Loss ($)": 156.37
         },
         {
             "Ticker": "CNC",
@@ -101,8 +101,8 @@
         {
             "Ticker": "APA",
             "Prezzo ($)": 42.96,
-            "Momentum Score": 17.18,
-            "Stop Loss ($)": 40.05
+            "Momentum Score": 17.15,
+            "Stop Loss ($)": 40.04
         },
         {
             "Ticker": "FDS",
@@ -147,6 +147,7 @@
             "Stop Loss ($)": 50.27
         }
     ],
+    "timestamp": "24 Aug 2026, 22:52 (UTC)",
     "crypto_top": [
         {
             "Ticker": "WLFI",
@@ -156,16 +157,15 @@
         },
         {
             "Ticker": "ZEC",
-            "Prezzo ($)": 831.83001709,
-            "Momentum Score": 9.69,
+            "Prezzo ($)": 827.88000488,
+            "Momentum Score": 9.5,
             "Stop Loss ($)": 800.81351834
         },
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2478.56005859,
-            "Momentum Score": 5.96,
+            "Prezzo ($)": 2475.55004883,
+            "Momentum Score": 5.91,
             "Stop Loss ($)": 2382.0695484
         }
-    ],
-    "timestamp": "24 Aug 2026, 22:47 (UTC)"
+    ]
 }
