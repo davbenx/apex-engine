@@ -12,13 +12,18 @@ st.markdown("Dashboard quantitativa per il trend-following istituzionale.")
 # Guida integrata e Lean
 with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
     st.markdown("""
-    ### 🦅 Regole Operative
-    1. **Semafori Macro (Controllo fine settimana):** 
-       Se l'indicatore è 🟢 Verde, il comparto è attivo. Se è 🔴 Rosso, vendi tutti gli asset di quel motore e parcheggia i soldi in liquidità (ETF **IB01** per Azioni/Bond, USDT per le Crypto).
-    2. **Rotazione (1 volta al mese):** 
-       A fine mese, guarda le tabelle. Vendi le Azioni o le Crypto che non sono più in classifica e compra chi ne ha preso il posto. Per Oro e Bond, mantieni la posizione finché il semaforo è verde.
-    3. **Stop a Inseguimento (Da inserire in automatico sul broker):** 
-       Usa l'**Init Stop** il giorno dell'acquisto. Nei giorni successivi, alza il tuo stop loss seguendo il valore del **Trail Stop** sull'App. Se lo stop viene colpito, **vendi immediatamente** (non aspettare fine mese) e tieni i soldi in cassa fino alla successiva rotazione mensile.
+    ### 🦅 Regole Operative (Il Ritmo della Strategia)
+
+**📅 1 VOLTA AL MESE: La Rotazione**
+L'ultimo venerdì del mese, guarda le classifiche dell'App. Se un'Azione o una Crypto che possiedi è uscita dalla tabella, vendila e usa i soldi per comprare il nuovo asset che ne ha preso il posto in classifica. *(Oro e Bond non ruotano: si tengono finché il Semaforo è verde).*
+
+**📅 1 VOLTA A SETTIMANA: Aggiornamento Stop e Macro**
+Durante il weekend controlla due cose:
+1. **Semafori Macro:** Se S&P 500 o Bitcoin sono diventati 🔴 Rossi, il lunedì vendi immediatamente tutto il comparto (non aspettare fine mese) e passa al porto sicuro in liquidità (ETF **IB01** per le Azioni, USDT per le Crypto).
+2. **Trailing Stop:** Verifica i nuovi valori di Stop sull'App. Entra nel tuo broker (Banca o Exchange) e "alza" il prezzo dell'ordine di Stop Loss automatico per proteggere i nuovi profitti.
+
+**⚡ AUTOMATICO: Esecuzione dello Stop Loss**
+Se un martedì a caso il mercato crolla, il broker venderà l'asset in automatico al prezzo del tuo Stop Loss. Tu non fare nulla: tieni i soldi al sicuro in Cassa/USDT fino al giorno della successiva Rotazione Mensile.
        
 
     """)
