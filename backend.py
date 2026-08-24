@@ -82,12 +82,14 @@ if b_closes:
     df_l = pd.DataFrame(b_lows).ffill()
     ma200, _, atr, _, _, _, _ = calc_indicators(df_o, df_c, df_h, df_l)
     
+    highest_high_60 = df_h.rolling(window=60, min_periods=30).max()
     for sym in benchmarks:
         if sym in df_c.columns:
             c = float(df_c[sym].iloc[-1])
             m = float(ma200[sym].iloc[-1])
             a = float(atr[sym].iloc[-1]) if pd.notna(atr[sym].iloc[-1]) else 0.0
-            output_data["macro"][sym] = {"price": c, "ma200": m, "atr": a}
+            hh = float(highest_high_60[sym].iloc[-1]) if pd.notna(highest_high_60[sym].iloc[-1]) else c
+            output_data["macro"][sym] = {"price": c, "ma200": m, "atr": a, "highest_high_60": hh}
 
 # AZIONI TOP 20
 tickers = get_sp500_tickers()
