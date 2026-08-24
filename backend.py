@@ -67,7 +67,7 @@ print("Inizio calcolo backend Apex (Aggiornato con Wilder e Chandelier)...")
 output_data = {"macro": {}, "top20": []}
 
 # MACRO ASSETS (Sostituito SPY con RSP)
-benchmarks = ['RSP', 'GLD', 'IEF', 'BTC-USD']
+benchmarks = ['RSP', 'GC=F', 'IEF', 'BTC-USD']
 b_opens, b_closes, b_highs, b_lows = {}, {}, {}, {}
 for sym in benchmarks:
     df = fetch_single_ticker(sym)
