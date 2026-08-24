@@ -122,7 +122,7 @@ with col_rsp_2:
                 }),
                 use_container_width=True
             )
-            st.caption("💡 *Tip Operativo:* Inserisci lo **Stop Loss** il giorno in cui acquisti il titolo e aggiornalo periodicamente al rialzo copiando il valore che vedi qui. sul broker nelle settimane successive.")
+            st.caption("💡 *Tip Operativo:* Inserisci lo **Stop Loss** il giorno in cui acquisti il titolo e aggiornalo periodicamente al rialzo copiando il nuovo valore indicato qui.")
     else:
         st.info("La classifica Top 20 è nascosta durante i Bear Market per prevenire acquisti accidentali.")
 
@@ -208,6 +208,6 @@ with col_btc_2:
                 }),
                 use_container_width=True
             )
-            st.caption("💡 I prezzi delle Altcoin sono mostrati con 4 decimali. Inserire sempre lo Stop Loss all'acquisto e aggiornarlo al rialzo.")
+            st.caption("💡 Inserisci sempre l'ordine di Stop Loss all'acquisto e aggiornalo seguendo i rialzi.")
     else:
         st.info("La classifica Cripto è disattivata. Quando il Bitcoin scende sotto la Media 200, le altcoin crollano matematicamente. Tieni la liquidità al sicuro.")
