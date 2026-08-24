@@ -61,7 +61,7 @@ with c1:
     if is_bull_eq:
         st.success(f"**🟢 INVESTITO**\n\nQuota: {eq_cap:,.0f}")
     else:
-        st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {eq_cap:,.0f}")
+        st.error(f"**🔴 LIQUIDO (IB01)**\n\nQuota: {eq_cap:,.0f}")
 
 with c2:
     st.markdown("### 🪙 Crypto (10%)")
@@ -71,21 +71,21 @@ with c2:
         btc_stop = btc_hh - (2.0 * btc_a)
         st.success(f"**🟢 INVESTITO**\n\nQuota: {btc_cap:,.0f}\n\n*(Stop BTC: ${btc_stop:,.0f})*")
     else:
-        st.error(f"**🔴 CASSA (USDT)**\n\nQuota: {btc_cap:,.0f}")
+        st.error(f"**🔴 LIQUIDO (USDT)**\n\nQuota: {btc_cap:,.0f}")
 
 with c3:
     st.markdown("### 🥇 Oro (10%)")
     if is_bull_g:
-        st.success(f"**🟢 MANTIENI**\n\nQuota: {gold_cap:,.0f}")
+        st.success(f"**🟢 INVESTITO**\n\nQuota: {gold_cap:,.0f}")
     else:
-        st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {gold_cap:,.0f}")
+        st.error(f"**🔴 LIQUIDO (IB01)**\n\nQuota: {gold_cap:,.0f}")
 
 with c4:
     st.markdown("### 🛡️ Bond (10%)")
     if is_bull_b:
-        st.success(f"**🟢 MANTIENI**\n\nQuota: {bond_cap:,.0f}")
+        st.success(f"**🟢 INVESTITO**\n\nQuota: {bond_cap:,.0f}")
     else:
-        st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {bond_cap:,.0f}")
+        st.error(f"**🔴 LIQUIDO (IB01)**\n\nQuota: {bond_cap:,.0f}")
 
 st.divider()
 
@@ -96,7 +96,8 @@ st.caption("Usa queste tabelle solo durante la Rotazione Mensile per sapere cosa
 col_az, col_cr = st.columns([2, 1])
 
 with col_az:
-    st.subheader(f"📈 Top 20 Azioni ({single_stock_cap:,.0f} cad.)")
+    st.subheader("📈 Top 20 Azioni")
+    st.caption(f"Size per singola posizione: **${single_stock_cap:,.0f}**")
     if is_bull_eq:
         top20 = data.get("top20", [])
         if top20:
@@ -108,7 +109,8 @@ with col_az:
         st.info("Semaforo Azionario Rosso. Tabella disattivata, mantieni il capitale in IB01.")
 
 with col_cr:
-    st.subheader(f"🪙 Top 3 Crypto ({single_crypto_cap:,.0f} cad.)")
+    st.subheader("🪙 Top 3 Crypto")
+    st.caption(f"Size per singola posizione: **${single_crypto_cap:,.0f}**")
     if is_bull_cr:
         cryptotop = data.get("crypto_top", [])
         if cryptotop:
