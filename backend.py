@@ -137,7 +137,7 @@ if closes:
 # ==============================
 print("Inizio calcolo Altcoin...")
 crypto_tickers = [
-    'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 
+    'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 
     'TON-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'SHIB-USD', 'BCH-USD', 'LTC-USD', 
     'NEAR-USD', 'UNI-USD', 'APT-USD', 'ICP-USD', 'STX-USD', 'XLM-USD', 'FET-USD', 
     'FIL-USD', 'AAVE-USD', 'ALGO-USD', 'RNDR-USD', 'MKR-USD', 'SUI-USD', 'OP-USD', 'INJ-USD'
@@ -175,8 +175,8 @@ if c_closes:
                 "Ticker": sym.replace("-USD", ""), 
                 "Prezzo ($)": round(c, 4), 
                 "Momentum Score": round(sc, 2),
-                "Init Stop ($)": round(c - (3.5 * a), 4),
-                "Trail Stop ($)": round(max_h60 - (3.5 * a), 4)
+                "Init Stop ($)": round(c - (2.0 * a), 4),
+                "Trail Stop ($)": round(max_h60 - (2.0 * a), 4)
             })
             
     df_res_c = pd.DataFrame(results_c).sort_values(by="Momentum Score", ascending=False).head(10) # Top 10 altcoin
