@@ -20,8 +20,9 @@ if not data:
     st.stop()
 
 # --- TIMESTAMPS ---
-last_update = data.get("timestamp", "Dato non disponibile")
-st.caption(f"🕒 **Ultimo Ricalcolo:** {last_update} | ⏳ **Prossimo Aggiornamento Previsto:** Stanotte alle 23:30")
+last_update = data.get("timestamp", "In attesa del ricalcolo notturno (Esegui il Workflow su GitHub)")
+st.caption(f"🕒 **Ultimo Ricalcolo:** {last_update}")
+st.caption("⏳ **Prossimo Aggiornamento Previsto:** Stanotte alle 23:30")
 
 with st.expander("📖 Regole Operative", expanded=False):
     st.markdown("""
