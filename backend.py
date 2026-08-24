@@ -22,16 +22,19 @@ def fetch_single_ticker(symbol, period="2y"):
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())['chart']['result'][0]
             timestamps = pd.to_datetime(data['timestamp'], unit='s')
-            close = data['indicators']['quote'][0]['close']
-            high = data['indicators']['quote'][0]['high']
-            low = data['indicators']['quote'][0]['low']
-            df = pd.DataFrame({'Close': close, 'High': high, 'Low': low}, index=timestamps).ffill().dropna()
+            quote = data['indicators']['quote'][0]
+            df = pd.DataFrame({
+                'Open': quote['open'],
+                'High': quote['high'],
+                'Low': quote['low'],
+                'Close': quote['close']
+            }, index=timestamps).ffill().dropna()
             df = df[~df.index.duplicated(keep='first')]
             return df
     except Exception:
         return None
 
-def calc_indicators(closes, highs, lows):
+def calc_indicators(opens, closes, highs, lows):
     ma200 = closes.rolling(window=200, min_periods=100).mean()
     ma150 = closes.rolling(window=150, min_periods=75).mean()
     pc = closes.shift(1)
@@ -40,34 +43,44 @@ def calc_indicators(closes, highs, lows):
     for col in closes.columns:
         if col in highs.columns and col in lows.columns:
             h = highs[col]; l = lows[col]; p = pc[col]
-            tr1 = h - l
-            tr2 = (h - p).abs()
-            tr3 = (l - p).abs()
-            tr[col] = np.maximum(tr1, np.maximum(tr2, tr3))
+            tr[col] = np.maximum(h - l, np.maximum((h - p).abs(), (l - p).abs()))
             
-    atr = tr.rolling(window=60, min_periods=30).mean()
-    roc26 = closes.pct_change(periods=130) * 100
+    # Wilder's Smoothing per ATR (alpha = 1/60)
+    atr = tr.ewm(alpha=1/60, adjust=False).mean()
+    
+    # Momentum Score
+    roc130 = closes.pct_change(periods=130) * 100
     natr = (atr / closes) * 100
-    score = roc26 / (natr + 1e-6)
-    return ma200, ma150, atr, score
+    score = roc130 / (natr + 1e-6)
+    
+    # Chandelier Exit (Highest High in last 60 days)
+    highest_high_60 = highs.rolling(window=60, min_periods=30).max()
+    
+    # Gap Up e Gap Down su 90 giorni
+    gaps = ((opens - pc) / pc) * 100
+    gap_max = gaps.rolling(window=90, min_periods=1).max()
+    gap_min = gaps.rolling(window=90, min_periods=1).min()
+    
+    return ma200, ma150, atr, score, highest_high_60, gap_max, gap_min
 
-print("Inizio calcolo backend Apex...")
+print("Inizio calcolo backend Apex (Aggiornato con Wilder e Chandelier)...")
 output_data = {"macro": {}, "top20": []}
 
-# MACRO ASSETS
-benchmarks = ['SPY', 'GLD', 'IEF', 'BTC-USD']
-b_closes, b_highs, b_lows = {}, {}, {}
+# MACRO ASSETS (Sostituito SPY con RSP)
+benchmarks = ['RSP', 'GLD', 'IEF', 'BTC-USD']
+b_opens, b_closes, b_highs, b_lows = {}, {}, {}, {}
 for sym in benchmarks:
     df = fetch_single_ticker(sym)
     if df is not None:
-        b_closes[sym] = df['Close']; b_highs[sym] = df['High']; b_lows[sym] = df['Low']
+        b_opens[sym] = df['Open']; b_closes[sym] = df['Close']; b_highs[sym] = df['High']; b_lows[sym] = df['Low']
     time.sleep(1)
 
 if b_closes:
+    df_o = pd.DataFrame(b_opens).ffill()
     df_c = pd.DataFrame(b_closes).ffill()
     df_h = pd.DataFrame(b_highs).ffill()
     df_l = pd.DataFrame(b_lows).ffill()
-    ma200, _, atr, _ = calc_indicators(df_c, df_h, df_l)
+    ma200, _, atr, _, _, _, _ = calc_indicators(df_o, df_c, df_h, df_l)
     
     for sym in benchmarks:
         if sym in df_c.columns:
@@ -78,20 +91,20 @@ if b_closes:
 
 # AZIONI TOP 20
 tickers = get_sp500_tickers()
-closes, highs, lows = {}, {}, {}
+opens, closes, highs, lows = {}, {}, {}, {}
 for i, sym in enumerate(tickers):
     df = fetch_single_ticker(sym)
     if df is not None:
-        closes[sym] = df['Close']; highs[sym] = df['High']; lows[sym] = df['Low']
+        opens[sym] = df['Open']; closes[sym] = df['Close']; highs[sym] = df['High']; lows[sym] = df['Low']
     time.sleep(0.1)
 
 if closes:
+    df_o = pd.DataFrame(opens).ffill()
     df_c = pd.DataFrame(closes).ffill()
     df_h = pd.DataFrame(highs).ffill()
     df_l = pd.DataFrame(lows).ffill()
-    ma200, ma150, atr, score = calc_indicators(df_c, df_h, df_l)
-    daily_pct_change = df_c.pct_change() * 100
-    max_jump_90 = daily_pct_change.iloc[-90:].abs().max()
+    
+    ma200, ma150, atr, score, hh60, gap_max, gap_min = calc_indicators(df_o, df_c, df_h, df_l)
     
     results = []
     for sym in df_c.columns:
@@ -99,20 +112,23 @@ if closes:
         m150 = float(ma150[sym].iloc[-1]) if pd.notna(ma150[sym].iloc[-1]) else 0
         sc = float(score[sym].iloc[-1]) if pd.notna(score[sym].iloc[-1]) else -99
         a = float(atr[sym].iloc[-1]) if pd.notna(atr[sym].iloc[-1]) else 0
-        jump = float(max_jump_90[sym]) if pd.notna(max_jump_90[sym]) else 100
+        max_h60 = float(hh60[sym].iloc[-1]) if pd.notna(hh60[sym].iloc[-1]) else c
+        g_max = float(gap_max[sym].iloc[-1]) if pd.notna(gap_max[sym].iloc[-1]) else 0
+        g_min = float(gap_min[sym].iloc[-1]) if pd.notna(gap_min[sym].iloc[-1]) else 0
         
-        if c > m150 and sc > 0 and jump < 15.0:
+        # Filtro: Prezzo > MA150, Score > 0, Niente GapUp > 15%, Niente GapDn < -15%
+        if c > m150 and sc > 0 and g_max < 15.0 and g_min > -15.0:
             results.append({
                 "Ticker": sym, 
                 "Prezzo ($)": round(c, 2), 
                 "Momentum Score": round(sc, 2), 
-                "Stop Esatto ($)": round(c - (3.5 * a), 2)
+                "Init Stop ($)": round(c - (3.5 * a), 2),
+                "Trail Stop (Chandelier) ($)": round(max_h60 - (3.5 * a), 2)
             })
             
     df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False).head(20)
     output_data["top20"] = df_res.to_dict(orient="records")
 
-# Salva JSON
 with open('apex_data.json', 'w') as f:
     json.dump(output_data, f, indent=4)
 print("Dati salvati in apex_data.json con successo!")
