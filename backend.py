@@ -132,16 +132,27 @@ if closes:
     output_data["top20"] = df_res.to_dict(orient="records")
 
 
+
 # ==============================
 # MOTORE CRIPTOVALUTE (ALTCOIN)
 # ==============================
-print("Inizio calcolo Altcoin...")
-crypto_tickers = [
-    'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 
-    'TON-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'SHIB-USD', 'BCH-USD', 'LTC-USD', 
-    'NEAR-USD', 'UNI-USD', 'APT-USD', 'ICP-USD', 'STX-USD', 'XLM-USD', 'FET-USD', 
-    'FIL-USD', 'AAVE-USD', 'ALGO-USD', 'RNDR-USD', 'MKR-USD', 'SUI-USD', 'OP-USD', 'INJ-USD'
-]
+print("Ricerca Universo Cripto Dinamico via CoinGecko...")
+crypto_tickers = []
+try:
+    req = urllib.request.Request('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1', headers={'User-Agent': 'Mozilla/5.0'})
+    data = json.loads(urllib.request.urlopen(req).read().decode())
+    stables_and_wrapped = ['USDT', 'USDC', 'DAI', 'FDUSD', 'USDE', 'WBTC', 'WETH', 'STETH', 'WSTETH', 'USDD', 'FRAX', 'TUSD']
+    for d in data:
+        sym = d['symbol'].upper()
+        if sym not in stables_and_wrapped:
+            crypto_tickers.append(sym + '-USD')
+    print(f"Trovate {len(crypto_tickers)} coin legittime nella Top 50 globale.")
+except Exception as e:
+    print("Errore CoinGecko, uso lista fallback...")
+    crypto_tickers = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 'TON-USD', 'LINK-USD']
+
+# Per sicurezza limito l'universo alle prime 30 per evitare limiti di Yahoo Finance
+crypto_tickers = crypto_tickers[:30]
 
 c_opens, c_closes, c_highs, c_lows = {}, {}, {}, {}
 for i, sym in enumerate(crypto_tickers):
