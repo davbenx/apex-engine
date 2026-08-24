@@ -185,7 +185,8 @@ if c_closes:
         g_min = float(gap_min_c[sym].iloc[-1]) if pd.notna(gap_min_c[sym].iloc[-1]) else 0
         
         # Filtro Crypto: Prezzo > MA150, Score > 0, Limite Gap a 40%
-        if c > m150 and sc > 0 and g_max < 40.0 and g_min > -40.0:
+        trail_stop_cr = max_h60 - (2.0 * a)
+        if c > m150 and sc > 0 and g_max < 40.0 and g_min > -40.0 and c > trail_stop_cr:
             results_c.append({
                 "Ticker": sym.replace("-USD", ""), 
                 "Prezzo ($)": round(c, 4), 
