@@ -135,28 +135,37 @@ if closes:
 
 
 # ==============================
-# MOTORE CRIPTOVALUTE (KRAKEN)
+# MOTORE CRIPTOVALUTE (DINAMICO KRAKEN)
 # ==============================
-print("Ricerca Universo Cripto (Filtro Kraken)...")
-KRAKEN_WHITELIST = [
-    'BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'TRX', 'DOT', 'LINK', 'AVAX', 
-    'SHIB', 'LTC', 'BCH', 'NEAR', 'UNI', 'APT', 'ICP', 'STX', 'XLM', 'FET', 
-    'FIL', 'AAVE', 'ALGO', 'RNDR', 'MKR', 'SUI', 'OP', 'INJ', 'PEPE', 'WIF', 
-    'BONK', 'FLOKI', 'GRT', 'SNX', 'IMX', 'LDO', 'ATOM', 'ARB', 'SEI', 'TIA', 'POL', 'RENDER'
-]
+print("Ricerca Universo Cripto (Kraken API + CoinGecko)...")
 
-crypto_tickers = []
 try:
-    req = urllib.request.Request('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1', headers={'User-Agent': 'Mozilla/5.0'})
-    data = json.loads(urllib.request.urlopen(req).read().decode())
-    for d in data:
+    # 1. Asset Kraken
+    req_k = urllib.request.Request('https://api.kraken.com/0/public/Assets', headers={'User-Agent': 'Mozilla/5.0'})
+    kraken_data = json.loads(urllib.request.urlopen(req_k).read().decode())['result']
+    kraken_symbols = [info['altname'].upper() for key, info in kraken_data.items()]
+    
+    # 2. Mappature storiche
+    if "XBT" in kraken_symbols: kraken_symbols.append("BTC")
+    if "XDG" in kraken_symbols: kraken_symbols.append("DOGE")
+    
+    # 3. Top 100 CoinGecko
+    req_cg = urllib.request.Request('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1', headers={'User-Agent': 'Mozilla/5.0'})
+    cg_data = json.loads(urllib.request.urlopen(req_cg).read().decode())
+    
+    # 4. Blacklist (Solo Stablecoin, Wrapped e Falsi Positivi evidenti. WBT è permesso)
+    BLACKLIST = ['USDT', 'USDC', 'DAI', 'FDUSD', 'USDE', 'WBTC', 'WETH', 'STETH', 'WSTETH', 'USDS', 'USD1', 'USDG', 'CC', 'RAIN', 'HYPE']
+                 
+    crypto_tickers = []
+    for d in cg_data:
         sym = d['symbol'].upper()
-        if sym in KRAKEN_WHITELIST:
+        if sym in kraken_symbols and sym not in BLACKLIST:
             crypto_tickers.append(sym + '-USD')
-    print(f"Trovate {len(crypto_tickers)} coin scambiabili su Kraken nella Top globale.")
+            
+    print(f"Trovate {len(crypto_tickers)} coin globali tradabili su Kraken.")
 except Exception as e:
-    print("Errore API, uso fallback Kraken...")
-    crypto_tickers = [s + '-USD' for s in KRAKEN_WHITELIST[:30]]
+    print("Errore API, uso fallback...")
+    crypto_tickers = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 'DOT-USD', 'LINK-USD', 'AVAX-USD', 'SHIB-USD', 'LTC-USD', 'BCH-USD', 'NEAR-USD', 'UNI-USD']
 
 crypto_tickers = crypto_tickers[:30]
 c_opens, c_closes, c_highs, c_lows = {}, {}, {}, {}
