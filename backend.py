@@ -155,7 +155,7 @@ try:
     cg_data = json.loads(urllib.request.urlopen(req_cg).read().decode())
     
     # 4. Blacklist (Solo Stablecoin, Wrapped e Falsi Positivi evidenti. WBT è permesso)
-    BLACKLIST = ['USDT', 'USDC', 'DAI', 'FDUSD', 'USDE', 'WBTC', 'WETH', 'STETH', 'WSTETH', 'USDS', 'USD1', 'USDG', 'CC', 'RAIN', 'HYPE']
+    BLACKLIST = ['USDT', 'USDC', 'DAI', 'FDUSD', 'USDE', 'WBTC', 'WETH', 'STETH', 'WSTETH', 'USDS', 'USD1', 'USDG', 'CC', 'RAIN', 'HYPE', 'WLFI']
                  
     crypto_tickers = []
     for d in cg_data:
