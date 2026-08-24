@@ -13,13 +13,12 @@ st.markdown("Dashboard quantitativa per il trend-following istituzionale.")
 with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
     st.markdown("""
     ### 🦅 Regole Operative
-    1. **Semafori Macro (Venerdì sera):** 
-       Se l'indicatore è 🟢 Verde (Prezzo > MA200), mantieni l'asset. Se è 🔴 Rosso (Prezzo < MA200), l'asset è in caduta libera: vendilo e parcheggia il denaro nel porto sicuro in dollari (ETF **IB01**).
-    2. **Classifica Top 20 (1 volta al mese):** 
-       Se il Motore Azionario è Verde, a fine mese vendi le azioni uscite dalla classifica e compra le nuove prime classificate.
-    3. **Stop Loss (Esecuzione Istantanea sul Broker):** 
-       * Inserisci l'**Init Stop** al momento dell'acquisto (Azioni e BTC). 
-       * Aggiornalo progressivamente usando il **Trail Stop** indicato nell'App man mano che il trend sale.
+    1. **Semafori Macro (Controllo fine settimana):** 
+       Se l'indicatore è 🟢 Verde, il comparto è attivo. Se è 🔴 Rosso, vendi tutti gli asset di quel motore e parcheggia i soldi in liquidità (ETF **IB01** per Azioni/Bond, USDT per le Crypto).
+    2. **Rotazione (1 volta al mese):** 
+       A fine mese, guarda le tabelle. Vendi le Azioni o le Crypto che non sono più in classifica e compra chi ne ha preso il posto. Per Oro e Bond, mantieni la posizione finché il semaforo è verde.
+    3. **Stop a Inseguimento (Da inserire in automatico sul broker):** 
+       Usa l'**Init Stop** il giorno dell'acquisto. Nei giorni successivi, alza il tuo stop loss seguendo il valore del **Trail Stop** sull'App. Se lo stop viene colpito, **vendi immediatamente** (non aspettare fine mese) e tieni i soldi in cassa fino alla successiva rotazione mensile.
        
 
     """)
@@ -75,7 +74,7 @@ st.divider()
 # ==========================================
 # 1. MOTORE AZIONARIO (RSP + TOP 20)
 # ==========================================
-st.header("📈 1. Motore Azionario (S&P 500)")
+st.header("📈 1. Motore Azionario")
 
 col_rsp_1, col_rsp_2 = st.columns([1, 3])
 rsp_price = rsp.get('price', 0)
@@ -128,7 +127,7 @@ st.divider()
 # ==========================================
 # 2. MOTORI ALTERNATIVI (ORO, BOND, BTC)
 # ==========================================
-st.header("🛡️ 2. Motori Alternativi Indipendenti")
+st.header("🛡️ 2. Motori Alternativi")
 c1, c2 = st.columns(2)
 
 # ORO
