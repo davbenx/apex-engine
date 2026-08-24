@@ -34,7 +34,7 @@ def fetch_single_ticker(symbol, period="2y"):
     except Exception:
         return None
 
-def calc_indicators(opens, closes, highs, lows):
+def calc_indicators(opens, closes, highs, lows, roc_period=130):
     ma200 = closes.rolling(window=200, min_periods=100).mean()
     ma150 = closes.rolling(window=150, min_periods=75).mean()
     pc = closes.shift(1)
@@ -49,7 +49,7 @@ def calc_indicators(opens, closes, highs, lows):
     atr = tr.ewm(alpha=1/60, adjust=False).mean()
     
     # Momentum Score
-    roc130 = closes.pct_change(periods=130) * 100
+    roc130 = closes.pct_change(periods=roc_period) * 100
     natr = (atr / closes) * 100
     score = roc130 / (natr + 1e-6)
     
@@ -131,6 +131,58 @@ if closes:
     df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False).head(20)
     output_data["top20"] = df_res.to_dict(orient="records")
 
+
+# ==============================
+# MOTORE CRIPTOVALUTE (ALTCOIN)
+# ==============================
+print("Inizio calcolo Altcoin...")
+crypto_tickers = [
+    'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD', 
+    'TON-USD', 'LINK-USD', 'DOT-USD', 'AVAX-USD', 'SHIB-USD', 'BCH-USD', 'LTC-USD', 
+    'NEAR-USD', 'UNI-USD', 'APT-USD', 'ICP-USD', 'STX-USD', 'XLM-USD', 'FET-USD', 
+    'FIL-USD', 'AAVE-USD', 'ALGO-USD', 'RNDR-USD', 'MKR-USD', 'SUI-USD', 'OP-USD', 'INJ-USD'
+]
+
+c_opens, c_closes, c_highs, c_lows = {}, {}, {}, {}
+for i, sym in enumerate(crypto_tickers):
+    df = fetch_single_ticker(sym)
+    if df is not None:
+        c_opens[sym] = df['Open']; c_closes[sym] = df['Close']; c_highs[sym] = df['High']; c_lows[sym] = df['Low']
+    time.sleep(0.1)
+
+if c_closes:
+    df_o = pd.DataFrame(c_opens).ffill()
+    df_c = pd.DataFrame(c_closes).ffill()
+    df_h = pd.DataFrame(c_highs).ffill()
+    df_l = pd.DataFrame(c_lows).ffill()
+    
+    # ROC a 90 giorni per le Crypto
+    ma200_c, ma150_c, atr_c, score_c, hh60_c, gap_max_c, gap_min_c = calc_indicators(df_o, df_c, df_h, df_l, roc_period=90)
+    
+    results_c = []
+    for sym in df_c.columns:
+        c = float(df_c[sym].iloc[-1])
+        m150 = float(ma150_c[sym].iloc[-1]) if pd.notna(ma150_c[sym].iloc[-1]) else 0
+        sc = float(score_c[sym].iloc[-1]) if pd.notna(score_c[sym].iloc[-1]) else -99
+        a = float(atr_c[sym].iloc[-1]) if pd.notna(atr_c[sym].iloc[-1]) else 0
+        max_h60 = float(hh60_c[sym].iloc[-1]) if pd.notna(hh60_c[sym].iloc[-1]) else c
+        g_max = float(gap_max_c[sym].iloc[-1]) if pd.notna(gap_max_c[sym].iloc[-1]) else 0
+        g_min = float(gap_min_c[sym].iloc[-1]) if pd.notna(gap_min_c[sym].iloc[-1]) else 0
+        
+        # Filtro Crypto: Prezzo > MA150, Score > 0, Limite Gap a 40%
+        if c > m150 and sc > 0 and g_max < 40.0 and g_min > -40.0:
+            results_c.append({
+                "Ticker": sym.replace("-USD", ""), 
+                "Prezzo ($)": round(c, 4), 
+                "Momentum Score": round(sc, 2),
+                "Init Stop ($)": round(c - (3.5 * a), 4),
+                "Trail Stop ($)": round(max_h60 - (3.5 * a), 4)
+            })
+            
+    df_res_c = pd.DataFrame(results_c).sort_values(by="Momentum Score", ascending=False).head(10) # Top 10 altcoin
+    output_data["crypto_top"] = df_res_c.to_dict(orient="records")
+
 with open('apex_data.json', 'w') as f:
+
     json.dump(output_data, f, indent=4)
 print("Dati salvati in apex_data.json con successo!")
