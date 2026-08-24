@@ -204,9 +204,9 @@ if c_closes:
         if c > m150 and sc > 0 and g_max < 40.0 and g_min > -40.0 and c > trail_stop_cr:
             results_c.append({
                 "Ticker": sym.replace("-USD", ""), 
-                "Prezzo ($)": round(c, 4), 
+                "Prezzo ($)": round(c, 8), 
                 "Momentum Score": round(sc, 2),
-                "Stop Loss ($)": round(max_h60 - (2.0 * a), 4)
+                "Stop Loss ($)": round(max_h60 - (2.0 * a), 8)
             })
             
     df_res_c = pd.DataFrame(results_c).sort_values(by="Momentum Score", ascending=False).head(3) # Top 3 altcoin
