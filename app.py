@@ -58,8 +58,10 @@ c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.markdown("### 📈 Azioni (70%)")
-    if is_bull_eq: st.success(f"**🟢 INVESTITO**\n\nQuota: {eq_cap:,.0f}")
-    else: st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {eq_cap:,.0f}")
+    if is_bull_eq:
+        st.success(f"**🟢 INVESTITO**\n\nQuota: {eq_cap:,.0f}")
+    else:
+        st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {eq_cap:,.0f}")
 
 with c2:
     st.markdown("### 🪙 Crypto (10%)")
@@ -67,25 +69,23 @@ with c2:
         btc_hh = macro.get("BTC-USD", {}).get("highest_high_60", 0)
         btc_a = macro.get("BTC-USD", {}).get("atr", 0)
         btc_stop = btc_hh - (2.0 * btc_a)
-        st.success(f"**🟢 INVESTITO**
-
-Quota: {btc_cap:,.0f}
-
-*(Stop BTC: ${btc_stop:,.0f})*")
+        st.success(f"**🟢 INVESTITO**\n\nQuota: {btc_cap:,.0f}\n\n*(Stop BTC: ${btc_stop:,.0f})*")
     else:
-        st.error(f"**🔴 CASSA (USDT)**
-
-Quota: {btc_cap:,.0f}")
+        st.error(f"**🔴 CASSA (USDT)**\n\nQuota: {btc_cap:,.0f}")
 
 with c3:
     st.markdown("### 🥇 Oro (10%)")
-    if is_bull_g: st.success(f"**🟢 MANTIENI**\n\nQuota: {gold_cap:,.0f}")
-    else: st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {gold_cap:,.0f}")
+    if is_bull_g:
+        st.success(f"**🟢 MANTIENI**\n\nQuota: {gold_cap:,.0f}")
+    else:
+        st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {gold_cap:,.0f}")
 
 with c4:
     st.markdown("### 🛡️ Bond (10%)")
-    if is_bull_b: st.success(f"**🟢 MANTIENI**\n\nQuota: {bond_cap:,.0f}")
-    else: st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {bond_cap:,.0f}")
+    if is_bull_b:
+        st.success(f"**🟢 MANTIENI**\n\nQuota: {bond_cap:,.0f}")
+    else:
+        st.error(f"**🔴 CASSA (IB01)**\n\nQuota: {bond_cap:,.0f}")
 
 st.divider()
 
