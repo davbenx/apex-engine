@@ -57,7 +57,7 @@ def calc_indicators(opens, closes, highs, lows):
     highest_high_60 = highs.rolling(window=60, min_periods=30).max()
     
     # Gap Up e Gap Down su 90 giorni
-    gaps = ((opens - pc) / pc) * 100
+    gaps = ((closes - pc) / pc) * 100
     gap_max = gaps.rolling(window=90, min_periods=1).max()
     gap_min = gaps.rolling(window=90, min_periods=1).min()
     
