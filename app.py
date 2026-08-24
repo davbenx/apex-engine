@@ -55,6 +55,7 @@ eq_cap = capitale * 0.70
 gold_cap = capitale * 0.10
 bond_cap = capitale * 0.10
 btc_cap = capitale * 0.10
+single_crypto_cap = btc_cap / 3
 single_stock_cap = eq_cap / 20
 
 st.success(f"""
@@ -64,7 +65,7 @@ st.success(f"""
 * 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per ogni singola azione)
 * 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
 * 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
-* ₿ **Motore Criptovalute (10%):** {btc_cap:,.2f}
+* ₿ **Motore Criptovalute Top 3 (10%):** {btc_cap:,.2f} (Esattamente **{single_crypto_cap:,.2f}** per le prime 3 in classifica)
 
 *(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
 """)
@@ -168,8 +169,8 @@ st.divider()
 # ==========================================
 # 3. MOTORE ALTCOIN (TOP 10 CRIPTO)
 # ==========================================
-st.header("🪙 3. Motore Criptovalute (Classifica Globale)")
-st.markdown("Algoritmo accelerato per il mercato Cripto: **ROC a 90 Giorni** e filtro saltuario tollerante fino al **40%**. Il Semaforo Macro è dettato dal **Bitcoin (BTC-USD)**.")
+st.header("🪙 3. Motore Criptovalute (Top 3 Globale a Universo Dinamico)")
+st.markdown("L'universo si auto-aggiorna prelevando le prime 50 crypto mondiali (escluse stablecoin). Algoritmo: **ROC a 90 Giorni** e filtro saltuario tollerante fino al **40%**. Il Semaforo Macro è dettato dal **Bitcoin (BTC-USD)**.")
 
 col_btc_1, col_btc_2 = st.columns([1, 3])
 is_bull_btc = btc.get('price', 0) > btc.get('ma200', 0)
@@ -184,7 +185,7 @@ with col_btc_1:
     if is_bull_btc:
         st.success(f"""🟢 **Trend: BULL MARKET**
         
-**Azione:** Investi nelle prime 2 o 3 della classifica""")
+**Azione:** Compra le Top 3 (Quota: {btc_cap:,.2f} -> {single_crypto_cap:,.2f} a moneta)""")
     else:
         st.error(f"""🔴 **Trend: BEAR MARKET**
         
