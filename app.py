@@ -28,14 +28,14 @@ st.markdown("---")
 st.header("📈 1. Motore Azionario (Top 20 Leader)")
 # Controllo macro su RSP (S&P 500 Equal Weight)
 if rsp.get("price", 0) > rsp.get("ma200", 0):
-    st.success(f"🟢 **Azionario: BULL MARKET** (RSP Equal Weight = {rsp['price']:.2f} > MA200 = {rsp['ma200']:.2f}).")
+    st.success(f"🟢 **Azionario: BULL MARKET** (RSP Equal Weight = {rsp.get('price', 0):.2f} > MA200 = {rsp.get('ma200', 0):.2f}).")
     top20 = data.get("top20", [])
     if top20:
         df = pd.DataFrame(top20)
         df.index += 1
         st.dataframe(df)
 else:
-    st.error(f"🔴 **Azionario: BEAR MARKET** (RSP Equal Weight = {rsp['price']:.2f} < MA200 = {rsp['ma200']:.2f}). CASSA.")
+    st.error(f"🔴 **Azionario: BEAR MARKET** (RSP Equal Weight = {rsp.get('price', 0):.2f} < MA200 = {rsp.get('ma200', 0):.2f}). CASSA.")
 
 st.markdown("---")
 st.header("🛡️ 2. Motori Alternativi Indipendenti")
@@ -48,21 +48,21 @@ btc = macro.get("BTC-USD", {})
 with col1:
     st.subheader("Oro Fisico")
     if gold.get("price", 0) > gold.get("ma200", 0):
-        st.success(f"🟢 **BULL MARKET**\nOro ($) = {gold['price']:.2f}\nMA200 = {gold['ma200']:.2f}")
+        st.success(f"🟢 **BULL MARKET**\nOro ($) = {gold.get('price', 0):.2f}\nMA200 = {gold.get('ma200', 0):.2f}")
     else:
-        st.error(f"🔴 **BEAR MARKET**\nOro ($) = {gold['price']:.2f}\nMA200 = {gold['ma200']:.2f}")
+        st.error(f"🔴 **BEAR MARKET**\nOro ($) = {gold.get('price', 0):.2f}\nMA200 = {gold.get('ma200', 0):.2f}")
 
 with col2:
     st.subheader("Obbligazioni USA")
     if ief.get("price", 0) > ief.get("ma200", 0):
-        st.success(f"🟢 **BULL MARKET**\nIEF = {ief['price']:.2f}\nMA200 = {ief['ma200']:.2f}")
+        st.success(f"🟢 **BULL MARKET**\nIEF = {ief.get('price', 0):.2f}\nMA200 = {ief.get('ma200', 0):.2f}")
     else:
-        st.error(f"🔴 **BEAR MARKET**\nIEF = {ief['price']:.2f}\nMA200 = {ief['ma200']:.2f}")
+        st.error(f"🔴 **BEAR MARKET**\nIEF = {ief.get('price', 0):.2f}\nMA200 = {ief.get('ma200', 0):.2f}")
 
 with col3:
     st.subheader("Bitcoin")
     if btc.get("price", 0) > btc.get("ma200", 0):
-        stop_btc = btc['price'] - (2.0 * btc['atr'])
-        st.success(f"🟢 **BULL MARKET**\nBTC = ${btc['price']:,.0f}\nMA200 = ${btc['ma200']:,.0f}\nStop: **${stop_btc:,.0f}**")
+        stop_btc = btc.get('price', 0) - (2.0 * btc.get('atr', 0))
+        st.success(f"🟢 **BULL MARKET**\nBTC = ${btc.get('price', 0):,.0f}\nMA200 = ${btc.get('ma200', 0):,.0f}\nStop: **${stop_btc:,.0f}**")
     else:
-        st.error(f"🔴 **BEAR MARKET**\nBTC = ${btc['price']:,.0f}\nMA200 = ${btc['ma200']:,.0f}")
+        st.error(f"🔴 **BEAR MARKET**\nBTC = ${btc.get('price', 0):,.0f}\nMA200 = ${btc.get('ma200', 0):,.0f}")
