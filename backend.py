@@ -119,7 +119,8 @@ if closes:
         g_min = float(gap_min[sym].iloc[-1]) if pd.notna(gap_min[sym].iloc[-1]) else 0
         
         # Filtro: Prezzo > MA150, Score > 0, Niente GapUp > 15%, Niente GapDn < -15%
-        if c > m150 and sc > 0 and g_max < 15.0 and g_min > -15.0:
+        trail_stop_eq = max_h60 - (3.5 * a)
+        if c > m150 and sc > 0 and g_max < 15.0 and g_min > -15.0 and c > trail_stop_eq:
             results.append({
                 "Ticker": sym, 
                 "Prezzo ($)": round(c, 2), 
