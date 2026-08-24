@@ -118,12 +118,11 @@ with col_rsp_2:
             st.dataframe(
                 df.style.format({
                     "Prezzo ($)": "{:.2f}",
-                    "Init Stop ($)": "{:.2f}",
-                    "Trail Stop ($)": "{:.2f}"
+                    "Stop Loss ($)": "{:.2f}"
                 }),
                 use_container_width=True
             )
-            st.caption("💡 *Tip Operativo:* L'**Init Stop** va usato solo il giorno in cui acquisti il titolo. Il **Trail Stop** va usato per aggiornare al rialzo l'ordine sul broker nelle settimane successive.")
+            st.caption("💡 *Tip Operativo:* Inserisci lo **Stop Loss** il giorno in cui acquisti il titolo e aggiornalo periodicamente al rialzo copiando il valore che vedi qui. sul broker nelle settimane successive.")
     else:
         st.info("La classifica Top 20 è nascosta durante i Bear Market per prevenire acquisti accidentali.")
 
@@ -206,11 +205,10 @@ with col_btc_2:
             st.dataframe(
                 df_c.style.format({
                     "Prezzo ($)": "{:.4f}",
-                    "Init Stop ($)": "{:.4f}",
-                    "Trail Stop ($)": "{:.4f}"
+                    "Stop Loss ($)": "{:.4f}"
                 }),
                 use_container_width=True
             )
-            st.caption("💡 I prezzi delle Altcoin sono mostrati con 4 decimali. Inserire sempre l'Init Stop all'acquisto.")
+            st.caption("💡 I prezzi delle Altcoin sono mostrati con 4 decimali. Inserire sempre lo Stop Loss all'acquisto e aggiornarlo al rialzo.")
     else:
         st.info("La classifica Cripto è disattivata. Quando il Bitcoin scende sotto la Media 200, le altcoin crollano matematicamente. Tieni la liquidità al sicuro.")
