@@ -141,10 +141,10 @@ if closes:
 print("Ricerca Universo Cripto (Kraken API + CoinGecko)...")
 
 try:
-    # 1. Asset Kraken
-    req_k = urllib.request.Request('https://api.kraken.com/0/public/Assets', headers={'User-Agent': 'Mozilla/5.0'})
-    kraken_data = json.loads(urllib.request.urlopen(req_k).read().decode())['result']
-    kraken_symbols = [info['altname'].upper() for key, info in kraken_data.items()]
+    # 1. Asset Kraken (SOLO PERPETUAL FUTURES per tassa al 26%)
+    req_k = urllib.request.Request('https://futures.kraken.com/derivatives/api/v3/instruments', headers={'User-Agent': 'Mozilla/5.0'})
+    kraken_data = json.loads(urllib.request.urlopen(req_k).read().decode())['instruments']
+    kraken_symbols = [i['symbol'][3:-3].upper() for i in kraken_data if i.get('tradeable') and i['symbol'].startswith('PF_') and i['symbol'].endswith('USD')]
     
     # 2. Mappature storiche
     if "XBT" in kraken_symbols: kraken_symbols.append("BTC")
