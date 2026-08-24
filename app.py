@@ -106,10 +106,13 @@ with col_rsp_2:
         if top20:
             df = pd.DataFrame(top20)
             df.index += 1
+            if "Momentum Score" in df.columns:
+                df = df.drop(columns=["Momentum Score"])
+            if "Trail Stop (Chandelier) ($)" in df.columns:
+                df = df.rename(columns={"Trail Stop (Chandelier) ($)": "Trail Stop ($)"})
             st.dataframe(
                 df.style.format({
                     "Prezzo ($)": "{:.2f}",
-                    "Momentum Score": "{:.2f}",
                     "Init Stop ($)": "{:.2f}",
                     "Trail Stop ($)": "{:.2f}"
                 }),
