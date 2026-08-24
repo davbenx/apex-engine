@@ -64,7 +64,7 @@ st.success(f"""
 * 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per ogni singola azione)
 * 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
 * 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
-* ₿ **Motore Bitcoin (10%):** {btc_cap:,.2f}
+* ₿ **Motore Bitcoin/Altcoin (10%):** {btc_cap:,.2f}
 
 *(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
 """)
@@ -185,3 +185,50 @@ with c3:
         
 **Azione:** Vendi BTC -> Vai in Cassa
 *(Cassa obiettivo: {btc_cap:,.2f})*""")
+
+st.divider()
+
+# ==========================================
+# 3. MOTORE ALTCOIN (TOP 10 CRIPTO)
+# ==========================================
+st.header("🪙 3. Motore Altcoin (Classifica Top 10)")
+st.markdown("Algoritmo accelerato per il mercato Cripto: **ROC a 90 Giorni** e filtro saltuario tollerante fino al **40%**. Il Semaforo Macro è dettato dal **Bitcoin (BTC-USD)**.")
+
+col_btc_1, col_btc_2 = st.columns([1, 3])
+is_bull_btc = btc.get('price', 0) > btc.get('ma200', 0)
+
+with col_btc_1:
+    st.metric(
+        label="Semaforo Macro (Bitcoin)", 
+        value=f"${btc.get('price', 0):,.2f}", 
+        delta=f"MA200: ${btc.get('ma200', 0):,.2f}", 
+        delta_color="off"
+    )
+    if is_bull_btc:
+        st.success(f"""🟢 **Trend: BULL MARKET**
+        
+**Azione:** Compra le Top 10 Altcoin""")
+    else:
+        st.error(f"""🔴 **Trend: BEAR MARKET**
+        
+**Azione:** Vendi le Altcoin -> Vai in USDT / Dollari""")
+
+with col_btc_2:
+    if is_bull_btc:
+        cryptotop = data.get("crypto_top", [])
+        if cryptotop:
+            df_c = pd.DataFrame(cryptotop)
+            df_c.index += 1
+            if "Momentum Score" in df_c.columns:
+                df_c = df_c.drop(columns=["Momentum Score"])
+            st.dataframe(
+                df_c.style.format({
+                    "Prezzo ($)": "{:.4f}",
+                    "Init Stop ($)": "{:.4f}",
+                    "Trail Stop ($)": "{:.4f}"
+                }),
+                use_container_width=True
+            )
+            st.caption("💡 I prezzi delle Altcoin sono mostrati con 4 decimali. Inserire sempre l'Init Stop all'acquisto.")
+    else:
+        st.info("La classifica Altcoin è disattivata. Quando il Bitcoin scende sotto la Media 200, le altcoin crollano matematicamente. Tieni la liquidità al sicuro.")
