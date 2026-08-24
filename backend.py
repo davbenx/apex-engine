@@ -125,7 +125,7 @@ if closes:
                 "Prezzo ($)": round(c, 2), 
                 "Momentum Score": round(sc, 2), 
                 "Init Stop ($)": round(c - (3.5 * a), 2),
-                "Trail Stop (Chandelier) ($)": round(max_h60 - (3.5 * a), 2)
+                "Trail Stop ($)": round(max_h60 - (3.5 * a), 2)
             })
             
     df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False).head(20)
