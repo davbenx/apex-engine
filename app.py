@@ -19,7 +19,7 @@ with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
        Se il Motore Azionario è Verde, a fine mese vendi le azioni uscite dalla classifica e compra le nuove prime classificate.
     3. **Stop Loss (Esecuzione Istantanea sul Broker):** 
        * Inserisci l'**Init Stop** al momento dell'acquisto (Azioni e BTC). 
-       * Aggiornalo progressivamente usando il **Trail Stop (Chandelier)** indicato nell'App man mano che il trend sale.
+       * Aggiornalo progressivamente usando il **Trail Stop** indicato nell'App man mano che il trend sale.
        
 
     """)
@@ -163,7 +163,7 @@ with c2:
 with c3:
     b_p = btc.get('price', 0)
     b_ma = btc.get('ma200', 0)
-    st.metric(label="Bitcoin (BTC-USD)", value=f"${b_p:,.0f}", delta=f"MA200: ${b_ma:,.0f}", delta_color="off")
+    st.metric(label="Bitcoin (BTC-USD)", value=f"${b_p:,.2f}", delta=f"MA200: ${b_ma:,.2f}", delta_color="off")
     if b_p > b_ma:
         hh = btc.get('highest_high_60', b_p)
         atr = btc.get('atr', 0)
@@ -174,8 +174,8 @@ with c3:
 **Azione:** Compra/Mantieni 
 *(Quota: {btc_cap:,.2f})*
 
-* 🛡️ **Init Stop:** ${st_init:,.0f}
-* 🎯 **Trail Stop:** ${st_trail:,.0f}
+* 🛡️ **Init Stop:** ${st_init:,.2f}
+* 🎯 **Trail Stop:** ${st_trail:,.2f}
 """)
     else:
         st.error(f"""🔴 **BEAR MARKET**
