@@ -9,20 +9,22 @@ st.set_page_config(page_title="Apex Multi-Asset", page_icon="🦅", layout="wide
 st.title("🦅 Apex Multi-Asset Engine")
 st.markdown("Dashboard quantitativa per il trend-following istituzionale.")
 
-# Guida integrata e Lean (Nascosta di default per non sporcare la UI)
+# Guida integrata e Lean
 with st.expander("📖 Guida Rapida e Regole Operative", expanded=False):
     st.markdown("""
-    ### Architettura del Portafoglio
-    Questa App gestisce esclusivamente il **50% Attivo (Apex)** del tuo patrimonio. Il restante 50% (Convex Stack) va mantenuto passivamente a vita.
-    
-    ### Il tuo Calendario Operativo
-    1. **Semafori Macro (Controllo 1 volta a settimana - Venerdì sera):** 
-       Guarda i 4 riquadri della dashboard. Se l'indicatore è 🟢 Verde (Prezzo > MA200), mantieni l'asset. Se è 🔴 Rosso (Prezzo < MA200), l'asset è in caduta libera: vendilo e parcheggia il denaro nel porto sicuro in dollari (ETF **IB01**).
-    2. **Classifica Top 20 (Rotazione 1 volta al mese):** 
-       Se il Motore Azionario è Verde, una volta al mese vendi le azioni che sono uscite dalla classifica e compra le nuove prime classificate.
-    3. **Stop Loss (Impostazione Istantanea sul Broker):** 
-       * Appena compri un'azione (o Bitcoin), inserisci subito l'**Init Stop** su Interactive Brokers. 
-       * Se il trend sale, aggiorna periodicamente lo stop sul broker usando il **Trail Stop (Chandelier)** indicato nell'App. Per Oro e Bond non serve lo stop loss.
+    ### 🦅 Apex Engine (La Metà Attiva - 50%)
+    1. **Semafori Macro (Venerdì sera):** 
+       Se l'indicatore è 🟢 Verde (Prezzo > MA200), mantieni l'asset. Se è 🔴 Rosso (Prezzo < MA200), l'asset è in caduta libera: vendilo e parcheggia il denaro nel porto sicuro in dollari (ETF **IB01**).
+    2. **Classifica Top 20 (1 volta al mese):** 
+       Se il Motore Azionario è Verde, a fine mese vendi le azioni uscite dalla classifica e compra le nuove prime classificate.
+    3. **Stop Loss (Esecuzione Istantanea sul Broker):** 
+       * Inserisci l'**Init Stop** al momento dell'acquisto (Azioni e BTC). 
+       * Aggiornalo progressivamente usando il **Trail Stop (Chandelier)** indicato nell'App man mano che il trend sale.
+       
+    ### 🧱 Convex Stack (La Metà Passiva - 50%)
+    L'altra metà del tuo portafoglio è il tuo ancoraggio strutturale. È composto da ETF "all-weather" (es. **NTSG** WisdomTree US Efficient Core, Managed Futures, Oro Strutturale).
+    1. **Regola D'Oro:** Non si guardano le Medie Mobili e non ci sono Stop Loss. Si compra e si dimentica.
+    2. **Manutenzione (1 volta all'anno):** Controlla le percentuali a Gennaio. Se un asset è salito troppo, vendi l'eccesso e compra quello rimasto indietro (Ribilanciamento).
     """)
 
 @st.cache_data(ttl=60)
@@ -46,6 +48,45 @@ btc = macro.get("BTC-USD", {})
 st.divider()
 
 # ==========================================
+# 0. CALCOLATORE ALLOCAZIONE E PESI
+# ==========================================
+st.header("💰 Calcolatore Allocazione (Position Sizing)")
+capitale = st.number_input("Inserisci il tuo Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
+
+# Calcoli delle proporzioni
+convex_cap = capitale * 0.50
+apex_cap = capitale * 0.50
+eq_cap = apex_cap * 0.70
+gold_cap = apex_cap * 0.10
+bond_cap = apex_cap * 0.10
+btc_cap = apex_cap * 0.10
+single_stock_cap = eq_cap / 20
+
+colA, colB = st.columns(2)
+with colA:
+    st.info(f"""
+    ### 🧱 Convex Stack (50%)
+    **Totale da allocare:** **{convex_cap:,.2f}**
+    
+    Da distribuire passivamente nel tuo mix di ETF strutturali (NTSG, Managed Futures, ecc.). Ribilancia solo una volta all'anno.
+    """)
+
+with colB:
+    st.success(f"""
+    ### 🦅 Apex Engine (50%)
+    **Totale da allocare:** **{apex_cap:,.2f}**
+    
+    * 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per singola azione)
+    * 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
+    * 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
+    * ₿ **Motore Bitcoin (10%):** {btc_cap:,.2f}
+    
+    *(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
+    """)
+
+st.divider()
+
+# ==========================================
 # 1. MOTORE AZIONARIO (RSP + TOP 20)
 # ==========================================
 st.header("📈 1. Motore Azionario (S&P 500)")
@@ -64,9 +105,15 @@ with col_rsp_1:
         help="Interruttore generale del mercato azionario"
     )
     if is_bull_eq:
-        st.success("🟢 **Trend: BULL MARKET**\n\n**Azione:** Investi nelle Top 20")
+        st.success(f"""🟢 **Trend: BULL MARKET**
+        
+**Azione:** Compra le Top 20 
+*(Quota da usare: {eq_cap:,.2f})*""")
     else:
-        st.error("🔴 **Trend: BEAR MARKET**\n\n**Azione:** Vendi le 20 azioni -> Vai in Cassa (IB01)")
+        st.error(f"""🔴 **Trend: BEAR MARKET**
+        
+**Azione:** Vendi le 20 azioni -> Vai in Cassa (IB01) 
+*(Cassa obiettivo: {eq_cap:,.2f})*""")
 
 with col_rsp_2:
     if is_bull_eq:
@@ -74,7 +121,6 @@ with col_rsp_2:
         if top20:
             df = pd.DataFrame(top20)
             df.index += 1
-            # Formattazione per la leggibilità (a11y)
             st.dataframe(
                 df.style.format({
                     "Prezzo ($)": "{:.2f}",
@@ -102,9 +148,15 @@ with c1:
     g_ma = gold.get('ma200', 0)
     st.metric(label="Oro Fisico (GC=F)", value=f"${g_p:,.2f}", delta=f"MA200: ${g_ma:,.2f}", delta_color="off")
     if g_p > g_ma:
-        st.success("🟢 **BULL MARKET**\n\n**Azione:** Compra o Mantieni l'Oro")
+        st.success(f"""🟢 **BULL MARKET**
+        
+**Azione:** Compra/Mantieni
+*(Quota: {gold_cap:,.2f})*""")
     else:
-        st.error("🔴 **BEAR MARKET**\n\n**Azione:** Vendi Oro -> Vai in Cassa (IB01)")
+        st.error(f"""🔴 **BEAR MARKET**
+        
+**Azione:** Vendi Oro -> Vai in Cassa
+*(Cassa obiettivo: {gold_cap:,.2f})*""")
 
 # BOND
 with c2:
@@ -112,9 +164,15 @@ with c2:
     i_ma = ief.get('ma200', 0)
     st.metric(label="Obbligazioni USA (IEF)", value=f"${i_p:.2f}", delta=f"MA200: ${i_ma:.2f}", delta_color="off", help="Riferimento: Treasury USA 7-10 anni")
     if i_p > i_ma:
-        st.success("🟢 **BULL MARKET**\n\n**Azione:** Compra o Mantieni IBTM")
+        st.success(f"""🟢 **BULL MARKET**
+        
+**Azione:** Compra/Mantieni
+*(Quota: {bond_cap:,.2f})*""")
     else:
-        st.error("🔴 **BEAR MARKET**\n\n**Azione:** Vendi IBTM -> Vai in Cassa (IB01)")
+        st.error(f"""🔴 **BEAR MARKET**
+        
+**Azione:** Vendi IBTM -> Vai in Cassa
+*(Cassa obiettivo: {bond_cap:,.2f})*""")
 
 # BTC
 with c3:
@@ -126,6 +184,16 @@ with c3:
         atr = btc.get('atr', 0)
         st_init = b_p - (2.0 * atr)
         st_trail = hh - (2.0 * atr)
-        st.success(f"🟢 **BULL MARKET**\n\n**Azione:** Compra o Mantieni BTC\n\n🛡️ **Init Stop:** ${st_init:,.0f}\n🎯 **Trail Stop:** ${st_trail:,.0f}")
+        st.success(f"""🟢 **BULL MARKET**
+        
+**Azione:** Compra/Mantieni 
+*(Quota: {btc_cap:,.2f})*
+
+* 🛡️ **Init Stop:** ${st_init:,.0f}
+* 🎯 **Trail Stop:** ${st_trail:,.0f}
+""")
     else:
-        st.error("🔴 **BEAR MARKET**\n\n**Azione:** Vendi BTC -> Vai in Cassa (IB01)")
+        st.error(f"""🔴 **BEAR MARKET**
+        
+**Azione:** Vendi BTC -> Vai in Cassa
+*(Cassa obiettivo: {btc_cap:,.2f})*""")
