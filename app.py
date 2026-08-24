@@ -64,7 +64,7 @@ st.success(f"""
 * 📈 **Motore Azionario Top 20 (70%):** {eq_cap:,.2f} (Esattamente **{single_stock_cap:,.2f}** per ogni singola azione)
 * 🥇 **Motore Oro (10%):** {gold_cap:,.2f}
 * 🛡️ **Motore Obbligazioni (10%):** {bond_cap:,.2f}
-* ₿ **Motore Bitcoin/Altcoin (10%):** {btc_cap:,.2f}
+* ₿ **Motore Criptovalute (10%):** {btc_cap:,.2f}
 
 *(Se un motore qui sotto è 🔴 ROSSO, la sua quota va parcheggiata in ETF liquidità IB01/XEON)*
 """)
@@ -128,7 +128,7 @@ st.divider()
 # 2. MOTORI ALTERNATIVI (ORO, BOND, BTC)
 # ==========================================
 st.header("🛡️ 2. Motori Alternativi Indipendenti")
-c1, c2, c3 = st.columns(3)
+c1, c2 = st.columns(2)
 
 # ORO
 with c1:
@@ -162,36 +162,13 @@ with c2:
 **Azione:** Vendi IBTM -> Vai in Cassa
 *(Cassa obiettivo: {bond_cap:,.2f})*""")
 
-# BTC
-with c3:
-    b_p = btc.get('price', 0)
-    b_ma = btc.get('ma200', 0)
-    st.metric(label="Bitcoin (BTC-USD)", value=f"${b_p:,.2f}", delta=f"MA200: ${b_ma:,.2f}", delta_color="off")
-    if b_p > b_ma:
-        hh = btc.get('highest_high_60', b_p)
-        atr = btc.get('atr', 0)
-        st_init = b_p - (2.0 * atr)
-        st_trail = hh - (2.0 * atr)
-        st.success(f"""🟢 **BULL MARKET**
-        
-**Azione:** Compra/Mantieni 
-*(Quota: {btc_cap:,.2f})*
-
-* 🛡️ **Init Stop:** ${st_init:,.2f}
-* 🎯 **Trail Stop:** ${st_trail:,.2f}
-""")
-    else:
-        st.error(f"""🔴 **BEAR MARKET**
-        
-**Azione:** Vendi BTC -> Vai in Cassa
-*(Cassa obiettivo: {btc_cap:,.2f})*""")
 
 st.divider()
 
 # ==========================================
 # 3. MOTORE ALTCOIN (TOP 10 CRIPTO)
 # ==========================================
-st.header("🪙 3. Motore Altcoin (Classifica Top 10)")
+st.header("🪙 3. Motore Criptovalute (Classifica Globale)")
 st.markdown("Algoritmo accelerato per il mercato Cripto: **ROC a 90 Giorni** e filtro saltuario tollerante fino al **40%**. Il Semaforo Macro è dettato dal **Bitcoin (BTC-USD)**.")
 
 col_btc_1, col_btc_2 = st.columns([1, 3])
@@ -207,11 +184,11 @@ with col_btc_1:
     if is_bull_btc:
         st.success(f"""🟢 **Trend: BULL MARKET**
         
-**Azione:** Compra le Top 10 Altcoin""")
+**Azione:** Investi nelle prime 2 o 3 della classifica""")
     else:
         st.error(f"""🔴 **Trend: BEAR MARKET**
         
-**Azione:** Vendi le Altcoin -> Vai in USDT / Dollari""")
+**Azione:** Vendi tutto -> Vai in USDT / Cassa / Dollari""")
 
 with col_btc_2:
     if is_bull_btc:
@@ -231,4 +208,4 @@ with col_btc_2:
             )
             st.caption("💡 I prezzi delle Altcoin sono mostrati con 4 decimali. Inserire sempre l'Init Stop all'acquisto.")
     else:
-        st.info("La classifica Altcoin è disattivata. Quando il Bitcoin scende sotto la Media 200, le altcoin crollano matematicamente. Tieni la liquidità al sicuro.")
+        st.info("La classifica Cripto è disattivata. Quando il Bitcoin scende sotto la Media 200, le altcoin crollano matematicamente. Tieni la liquidità al sicuro.")
