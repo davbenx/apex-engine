@@ -173,7 +173,6 @@ st.divider()
 # 3. MOTORE ALTCOIN (TOP 10 CRIPTO)
 # ==========================================
 st.header("🪙 3. Motore Criptovalute")
-st.markdown("L'universo si auto-aggiorna prelevando le prime 50 crypto mondiali (escluse stablecoin). Algoritmo: **ROC a 90 Giorni** e filtro saltuario tollerante fino al **40%**. Il Semaforo Macro è dettato dal **Bitcoin (BTC-USD)**.")
 
 col_btc_1, col_btc_2 = st.columns([1, 3])
 is_bull_btc = btc.get('price', 0) > btc.get('ma200', 0)
