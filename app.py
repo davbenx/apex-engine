@@ -33,6 +33,12 @@ with st.expander("📖 Regole Operative", expanded=False):
     **⚡ AUTOMATICO (Esecuzione):** Se in un giorno qualsiasi il prezzo crolla sotto lo Stop Loss, il broker venderà in automatico. Tieni i soldi in cassa fino alla successiva rotazione mensile.
     """)
 
+def format_price(x):
+    if x >= 1000: return f"{x:,.2f}"
+    elif x >= 1: return f"{x:,.4f}"
+    elif x >= 0.01: return f"{x:,.6f}"
+    else: return f"{x:,.8f}"
+
 st.divider()
 
 # --- COCKPIT ALLOCAZIONE ---
@@ -117,6 +123,6 @@ with col_cr:
             df_c = pd.DataFrame(cryptotop)
             df_c.index += 1
             if "Momentum Score" in df_c.columns: df_c = df_c.drop(columns=["Momentum Score"])
-            st.dataframe(df_c.style.format({"Prezzo ($)": "{:.4f}", "Stop Loss ($)": "{:.4f}"}), use_container_width=True)
+            st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True)
     else:
         st.info("Semaforo Crypto Rosso. Tabella disattivata, mantieni il capitale in USDT.")
