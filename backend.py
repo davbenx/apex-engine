@@ -159,6 +159,10 @@ if c_closes:
     # ROC a 90 giorni per le Crypto
     ma200_c, ma150_c, atr_c, score_c, hh60_c, gap_max_c, gap_min_c = calc_indicators(df_o, df_c, df_h, df_l, roc_period=90)
     
+    # BONUS FISCALE: +25% al Momentum Score del Bitcoin per compensare l'efficienza dell'ETP
+    if 'BTC-USD' in score_c.columns:
+        score_c['BTC-USD'] = score_c['BTC-USD'] * 1.25
+        
     results_c = []
     for sym in df_c.columns:
         c = float(df_c[sym].iloc[-1])
