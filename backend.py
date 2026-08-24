@@ -194,7 +194,7 @@ if c_closes:
                 "Trail Stop ($)": round(max_h60 - (2.0 * a), 4)
             })
             
-    df_res_c = pd.DataFrame(results_c).sort_values(by="Momentum Score", ascending=False).head(10) # Top 10 altcoin
+    df_res_c = pd.DataFrame(results_c).sort_values(by="Momentum Score", ascending=False).head(3) # Top 3 altcoin
     output_data["crypto_top"] = df_res_c.to_dict(orient="records")
 
 with open('apex_data.json', 'w') as f:
