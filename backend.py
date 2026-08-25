@@ -208,6 +208,38 @@ if capital > 0:
 
 output["allocations"] = allocations
 
+import os
+import datetime
+today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+macro_dates = {}
+macro_events = []
+
+old_data = None
+try:
+    if os.path.exists("apex_data.json"):
+        with open("apex_data.json", "r") as f:
+            old_data = json.load(f)
+except:
+    pass
+
+old_alloc = old_data.get("allocations", {}) if old_data else {}
+old_dates = old_data.get("macro_dates", {}) if old_data else {}
+
+for engine in ["Equities", "Crypto", "Gold", "Bonds"]:
+    was_active = old_alloc.get(engine, 0) > 0
+    is_active = allocations.get(engine, 0) > 0
+    
+    if was_active == is_active and engine in old_dates:
+        macro_dates[engine] = old_dates[engine]
+    else:
+        macro_dates[engine] = today_str
+        if old_data is not None: # Not the first run
+            stato_nuovo = "🟢 ATTIVATO" if is_active else "🔴 DISATTIVATO"
+            macro_events.append(f"⚠️ MACRO REGIME: Il motore {engine} è passato a {stato_nuovo}")
+
+output["macro_dates"] = macro_dates
+output["macro_events"] = macro_events
+
 if allocations["Equities"] > 0:
     print("Elaborazione Azioni (S&P 500)...")
     eq_ticks = get_sp500_tickers()
@@ -552,6 +584,13 @@ def send_telegram_alert(data_dict, action_log):
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
 
         # 1. Action Log (if any weekly actions or macro actions triggered)
+        macro_evs = data_dict.get('macro_events', [])
+        if macro_evs:
+            msg += "🚨 *ALLERTA MACRO REGIME* 🚨\n"
+            for ev in macro_evs:
+                msg += f"• {ev}\n"
+            msg += "\n"
+            
         if action_log:
             msg += "🚀 *AZIONI DA ESEGUIRE OGGI*\n"
             for log in action_log:
@@ -611,8 +650,8 @@ def send_telegram_alert(data_dict, action_log):
         print(f"Errore nell'invio Telegram: {e}")
 
 
-# Invia Telegram solo il Venerdì
-if datetime.datetime.now().weekday() == 4:
+# Invia Telegram solo il Venerdì, OPPURE se c'è stato un cambio di Regime Macro
+if datetime.datetime.now().weekday() == 4 or output.get("macro_events", []):
     send_telegram_alert(output, action_log)
 else:
-    print("Nessun alert Telegram oggi (non è Venerdì).")
+    print("Nessun alert Telegram oggi (non è Venerdì e nessun cambio macro).")
