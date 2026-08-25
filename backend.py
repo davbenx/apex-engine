@@ -60,10 +60,10 @@ def calc_indicators(df_dict, roc_period=130):
     ma200 = closes.rolling(window=200, min_periods=100).mean()
     ma150 = closes.rolling(window=150, min_periods=75).mean()
     
-    tr = pd.DataFrame(index=closes.index)
-    for col in closes.columns:
-        if col in highs.columns and col in lows.columns:
-            tr[col] = np.maximum(highs[col] - lows[col], np.maximum((highs[col] - pc[col]).abs(), (lows[col] - pc[col]).abs()))
+    hl = highs - lows
+    hp = (highs - pc).abs()
+    lp = (lows - pc).abs()
+    tr = pd.DataFrame(np.maximum(hl.values, np.maximum(hp.values, lp.values)), index=closes.index, columns=closes.columns)
             
     atr = tr.ewm(alpha=1/60, adjust=False).mean()
     score = (closes.pct_change(periods=roc_period) * 100) / ((atr / closes) * 100 + 1e-6)
