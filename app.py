@@ -307,9 +307,9 @@ if pf and "open_positions" in pf and pf["open_positions"]:
         st.subheader("📈 Azioni in Portafoglio")
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Size Allocata ($)"] = single_eq
+            df_op_eq["Size Allocata"] = single_eq
             st.dataframe(df_op_eq.style.format({"Prezzo Ingresso": "{:.2f}", "Stop Loss (Trailing)": "{:.2f}",
-                         "Size Allocata ($)": "{:,.0f}"}), use_container_width=True, hide_index=True)
+                         "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
         else:
             st.info("Nessuna azione in portafoglio.")
 
@@ -331,9 +331,9 @@ if pf and "open_positions" in pf and pf["open_positions"]:
                         budgets.append(capitale * 0.05)
                 else:
                     budgets.append(capitale * 0.05)
-            df_op_cr["Size Allocata ($)"] = budgets
+            df_op_cr["Size Allocata"] = budgets
             st.dataframe(df_op_cr.style.format({"Prezzo Ingresso": format_price, "Stop Loss (Trailing)": format_price,
-                         "Size Allocata ($)": "{:,.0f}"}), use_container_width=True, hide_index=True)
+                         "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
         else:
             st.info("Nessuna crypto in portafoglio.")
 else:
