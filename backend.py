@@ -174,7 +174,8 @@ if capital > 0:
 output["allocations"] = allocations
 
 bull_eq = allocations["Equities"] > 0
-bull_cr = allocations["Crypto"] > 0 json
+bull_cr = allocations["Crypto"] > 0
+
 import time
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
