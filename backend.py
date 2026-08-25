@@ -358,18 +358,17 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
 
     action_log = []
 
-    # 1. Check Stop Losses on EXISTING positions
+    # 1. Check Stop Losses & Update Trailing Stops (Daily/Weekly)
     sold_keys = []
     for ticker, pos in pf["open_positions"].items():
         is_crypto = pos.get("is_crypto", False)
         inds = cr_inds if is_crypto else eq_inds
         sym = ticker + "-USD" if is_crypto else ticker
-
+        
         if inds and sym in inds['c'].columns:
-            low_price = float(
-                inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
+            low_price = float(inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
             close_price = float(inds['c'][sym].iloc[-1])
-
+            
             # Aggiornamento Trailing Stop (solo a salire, SOLO IL VENERDI)
             if today.weekday() == 4:
                 try:
@@ -379,45 +378,112 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                         pos["stop_loss"] = new_stop
                 except:
                     pass
-
+                    
             # Stop loss hit
             if low_price < pos["stop_loss"]:
-                profit_pct = (close_price / pos["entry_price"]) - 1.0
+                open_price = float(inds['open'][sym].iloc[-1]) if 'open' in inds else float(inds['c'][sym].iloc[-1])
+                
+                if open_price < pos["stop_loss"]:
+                    exit_price = open_price
+                else:
+                    exit_price = pos["stop_loss"]
+                    
+                profit_pct = (exit_price / pos["entry_price"]) - 1.0
                 pf["trade_history"].append({
                     "ticker": ticker,
                     "entry_date": pos["entry_date"],
                     "exit_date": today_str,
                     "entry_price": pos["entry_price"],
-                    "exit_price": close_price,
+                    "exit_price": exit_price,
                     "profit_pct": round(profit_pct * 100, 2),
                     "reason": "Stop Loss"
                 })
-                action_log.append(
-                    f"🔴 STOP LOSS: {ticker} venduto a {close_price} ({round(profit_pct*100, 2)}%)")
+                action_log.append(f"🔴 STOP LOSS: {ticker} venduto a {exit_price:.2f} ({round(profit_pct*100,2)}%)")
                 sold_keys.append(ticker)
-
+                
     for k in sold_keys:
         del pf["open_positions"][k]
+        
+    # 2. Weekly Actions (Macro Shifts & Deploying Cash)
+    if today.weekday() == 4:
+        alloc = output["allocations"]
+        
+        # Sell assets if their macro engine is OFF
+        forced_sells = []
+        for ticker, pos in list(pf["open_positions"].items()):
+            is_crypto = pos.get("is_crypto", False)
+            if is_crypto and alloc["Crypto"] == 0:
+                forced_sells.append(ticker)
+            elif not is_crypto and alloc["Equities"] == 0:
+                forced_sells.append(ticker)
+                
+        for ticker in forced_sells:
+            pos = pf["open_positions"][ticker]
+            is_crypto = pos.get("is_crypto", False)
+            inds = cr_inds if is_crypto else eq_inds
+            sym = ticker + "-USD" if is_crypto else ticker
+            close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
+            
+            profit_pct = (close_price / pos["entry_price"]) - 1.0
+            pf["trade_history"].append({
+                "ticker": ticker,
+                "entry_date": pos["entry_date"],
+                "exit_date": today_str,
+                "entry_price": pos["entry_price"],
+                "exit_price": close_price,
+                "profit_pct": round(profit_pct * 100, 2),
+                "reason": "Macro Bear"
+            })
+            action_log.append(f"🔴 MACRO BEAR: {ticker} liquidato a {close_price:.2f} ({round(profit_pct*100,2)}%)")
+            del pf["open_positions"][ticker]
 
-    # 2. Rebalance on Rotation Day
+        # Buy missing assets to deploy cash (if Macro is ON)
+        if alloc["Equities"] > 0:
+            current_eq = len([k for k, v in pf["open_positions"].items() if not v.get("is_crypto", False)])
+            to_buy = 20 - current_eq
+            if to_buy > 0:
+                for row in output.get("top20", []):
+                    ticker = row["Ticker"]
+                    if ticker not in pf["open_positions"]:
+                        pf["open_positions"][ticker] = {
+                            "entry_date": today_str,
+                            "entry_price": row["Prezzo ($)"],
+                            "stop_loss": row["Stop Loss ($)"],
+                            "is_crypto": False
+                        }
+                        action_log.append(f"🟢 ACQUISTO SETTIMANALE (Reinvestimento Cash): {ticker} a {row['Prezzo ($)']}")
+                        to_buy -= 1
+                        if to_buy == 0: break
+                        
+        if alloc["Crypto"] > 0:
+            # We don't dynamically add crypto based on count, we just buy the top 3 if missing
+            for row in output.get("crypto_top", []):
+                ticker = row["Ticker"]
+                if ticker not in pf["open_positions"]:
+                    pf["open_positions"][ticker] = {
+                        "entry_date": today_str,
+                        "entry_price": row["Prezzo ($)"],
+                        "stop_loss": row["Stop Loss ($)"],
+                        "is_crypto": True
+                    }
+                    action_log.append(f"🟢 ACQUISTO SETTIMANALE CRYPTO: {ticker} a {row['Prezzo ($)']}")
+
+    # 3. Monthly Rotation (Sell underperformers that dropped out of rankings)
     if is_rotation:
         desired = {}
         for row in output.get("top20", []):
-            desired[row["Ticker"]] = {
-                "price": row["Prezzo ($)"], "stop": row["Stop Loss ($)"], "is_cr": False}
+            desired[row["Ticker"]] = True
         for row in output.get("crypto_top", []):
-            desired[row["Ticker"]] = {
-                "price": row["Prezzo ($)"], "stop": row["Stop Loss ($)"], "is_cr": True}
-
+            desired[row["Ticker"]] = True
+            
         sold_rot = []
         for ticker, pos in list(pf["open_positions"].items()):
             if ticker not in desired:
                 is_crypto = pos.get("is_crypto", False)
                 inds = cr_inds if is_crypto else eq_inds
                 sym = ticker + "-USD" if is_crypto else ticker
-                close_price = float(
-                    inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
-
+                close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
+                
                 profit_pct = (close_price / pos["entry_price"]) - 1.0
                 pf["trade_history"].append({
                     "ticker": ticker,
@@ -428,33 +494,12 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                     "profit_pct": round(profit_pct * 100, 2),
                     "reason": "Rotazione"
                 })
-                action_log.append(
-                    f"🔄 ROTAZIONE (VENDITA): {ticker} chiuso a {close_price} ({round(profit_pct*100, 2)}%)")
+                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} chiuso a {close_price:.2f} ({round(profit_pct*100,2)}%)")
                 sold_rot.append(ticker)
-
+                
         for k in sold_rot:
             del pf["open_positions"][k]
-
-        for ticker, info in desired.items():
-            if ticker not in pf["open_positions"]:
-                pf["open_positions"][ticker] = {
-                    "entry_date": today_str,
-                    "entry_price": info["price"],
-                    "stop_loss": info["stop"],
-                    "is_crypto": info["is_cr"]
-                }
-                action_log.append(
-                    f"🟢 ROTAZIONE (ACQUISTO): {ticker} a {info['price']}")
-            # Lo stop_loss viene ora aggiornato giornalmente sopra.
-
-    pf["pending_alerts"].extend(action_log)
-
-    # We will return the accumulated alerts ONLY if today is Friday
-    final_alerts = []
-    if today.weekday() == 4:
-        final_alerts = pf["pending_alerts"].copy()
-        pf["pending_alerts"] = []  # Clear after sending
-
+            
     with open(pf_file, 'w') as f:
         json.dump(pf, f, indent=4)
 
