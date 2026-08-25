@@ -87,14 +87,14 @@ with col_title:
         <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(255, 255, 255, 0.12); padding: 8px 12px; border-radius: 12px; font-size: 26px;">🦅</div>
         <div>
             <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
-            <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Quantitative Multi-Asset System</div>
+            <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset</div>
         </div>
     </div>
     ''', unsafe_allow_html=True)
 with col_meta:
     st.markdown(f'''
     <div style="text-align: right; padding-top: 10px;">
-        <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Live</span>
+        <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Attivo</span>
         <div style="color: #9CA3AF; font-size: 11.5px; margin-top: 5px;">
             🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
         </div>
@@ -169,7 +169,7 @@ tab_pf, tab_perf, tab_radar, tab_log, tab_guide = st.tabs([
     "💼 Portafoglio",
     "📈 Metriche",
     "🔮 Radar Rotazione",
-    "📜 Trade Log",
+    "📜 Storico Operazioni",
     "📖 Guida"
 ])
 
@@ -234,13 +234,13 @@ if pf and "open_positions" in pf:
         entry_formatted = f"{entry_raw} ({days_str})" if days_str else entry_raw
 
         row = {
-            "Ticker": ticker,
+            "Titolo": ticker,
             "Data Ingresso": entry_formatted,
             "Ingresso ($)": info["entry_price"],
             "Attuale ($)": curr_p,
             "Stop Loss ($)": stop_p,
             "Distanza Stop": dist_stop_pct,
-            "P&L (%)": pnl_pct
+            "Rendimento %": pnl_pct
         }
         if info.get("is_crypto", False):
             op_cr.append(row)
@@ -316,7 +316,7 @@ with tab_pf:
 
         st.markdown(f'''
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
-            <div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">P&L Galleggiante Aperto</div>
+            <div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante Aperto</div>
             <div style="font-size: 19px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
                 {pnl_text}
             </div>
@@ -371,7 +371,7 @@ with tab_pf:
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Size"] = single_eq
+            df_op_eq["Importo"] = single_eq
             df_op_eq["P&L Monetario"] = (
                 df_op_eq["P&L (%)"] / 100) * df_op_eq["Size"]
 
@@ -380,10 +380,10 @@ with tab_pf:
                 "Attuale ($)": "{:.2f}",
                 "Stop Loss ($)": "{:.2f}",
                 "Distanza Stop": "{:.1f}%",
-                "Size": "{:,.0f}",
-                "P&L (%)": "{:+.2f}%",
-                "P&L Monetario": "{:+,.0f}"
-            }).map(color_pnl, subset=['P&L (%)', 'P&L Monetario']).map(color_stop_dist, subset=['Distanza Stop'])
+                "Importo": "{:,.0f}",
+                "Rendimento %": "{:+.2f}%",
+                "Rendimento Netto": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento Netto']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_eq_styled, use_container_width=True,
                          hide_index=True)
@@ -414,7 +414,7 @@ with tab_pf:
                         budgets.append(capitale * 0.05)
                 else:
                     budgets.append(capitale * 0.05)
-            df_op_cr["Size"] = budgets
+            df_op_cr["Importo"] = budgets
             df_op_cr["P&L Monetario"] = (
                 df_op_cr["P&L (%)"] / 100) * df_op_cr["Size"]
 
@@ -423,10 +423,10 @@ with tab_pf:
                 "Attuale ($)": format_price,
                 "Stop Loss ($)": format_price,
                 "Distanza Stop": "{:.1f}%",
-                "Size": "{:,.0f}",
-                "P&L (%)": "{:+.2f}%",
-                "P&L Monetario": "{:+,.0f}"
-            }).map(color_pnl, subset=['P&L (%)', 'P&L Monetario']).map(color_stop_dist, subset=['Distanza Stop'])
+                "Importo": "{:,.0f}",
+                "Rendimento %": "{:+.2f}%",
+                "Rendimento Netto": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento Netto']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_cr_styled, use_container_width=True,
                          hide_index=True)
@@ -436,7 +436,7 @@ with tab_pf:
 # TAB 2: METRICHE & GRAFICO
 # ==============================================================================
 with tab_perf:
-    st.markdown("#### 📈 Equity Curve Live (vs S&P 500)")
+    st.markdown("#### 📈 Andamento del Portafoglio")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -501,7 +501,7 @@ with tab_perf:
                 line=dict(color='#10B981', width=3),
                 fill='tozeroy',
                 fillcolor='rgba(16, 185, 129, 0.08)',
-                name='Apex Multi-Asset (Strategy)'))
+                name='Strategia Apex'))
 
         if not df_spy.empty:
             fig.add_trace(
@@ -510,7 +510,7 @@ with tab_perf:
                     y=df_spy['Normalized'],
                     mode='lines',
                     line=dict(color='#94A3B8', width=2, dash='dot'),
-                    name='S&P 500 (Benchmark)'))
+                    name='S&P 500'))
 
         fig.update_layout(
             template='plotly_dark',
@@ -554,21 +554,21 @@ with tab_perf:
         expectancy = (win_rate / 100 * avg_win) + \
             (1 - win_rate / 100) * avg_loss
 
-        st.markdown("#### 🎯 Vantaggio Matematico (The Edge)")
+        st.markdown("#### 🎯 Vantaggio Matematico")
         rm1, rm2, rm3, rm4 = st.columns(4)
-        rm1.metric("Win Rate", f"{win_rate:.1f}%")
-        rm2.metric("Payoff Ratio (R:R)", f"{payoff_ratio:.2f}x")
-        rm3.metric("Profit Factor", f"{profit_factor:.2f}")
-        rm4.metric("Expectancy", f"{expectancy:+.2f}%")
+        rm1.metric("Tasso di Successo", f"{win_rate:.1f}%")
+        rm2.metric("Rapporto Guadagno / Perdita", f"{payoff_ratio:.2f}x")
+        rm3.metric("Fattore di Profitto", f"{profit_factor:.2f}")
+        rm4.metric("Valore Atteso", f"{expectancy:+.2f}%")
 
         st.write("")
 
-        st.markdown("#### ⚙️ Statistiche Operative & Rischio")
+        st.markdown("#### ⚙️ Statistiche Operative")
         om1, om2, om3, om4 = st.columns(4)
-        om1.metric("Trade Chiusi", f"{len(hist)}")
+        om1.metric("Operazioni Chiuse", f"{len(hist)}")
         om2.metric("Vincita Media", f"{avg_win:+.2f}%")
         om3.metric("Perdita Media", f"{avg_loss:+.2f}%")
-        om4.metric("Max Drawdown Live", f"{max_dd:.2f}%")
+        om4.metric("Perdita Massima Storica", f"{max_dd:.2f}%")
 
 
 # ==============================================================================
@@ -590,18 +590,19 @@ with tab_radar:
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
-        st.markdown("**📈 Top 20 Azioni (S&P 500 Momentum)**")
+        st.markdown("**📈 Top 20 Azioni**")
         if is_bull_eq:
             top20 = data.get("top20", [])
             if top20:
                 df_eq = pd.DataFrame(top20)
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
+                df_eq = df_eq.rename(columns={"Ticker": "Titolo"})
 
-                df_eq["Pos"] = df_eq["Ticker"].apply(
+                df_eq["Pos"] = df_eq["Titolo"].apply(
                     lambda t: "⭐" if t in held_tickers else "🆕")
 
-                cols = ["Pos", "Ticker", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
                 st.dataframe(
@@ -617,17 +618,18 @@ with tab_radar:
                 "Motore Azionario OFF (Semaforo Rosso). Nessun acquisto previsto.")
 
     with rc2:
-        st.markdown("**🪙 Top 3 Crypto Momentum**")
+        st.markdown("**🪙 Top 3 Crypto**")
         if is_bull_cr:
             cr_top = data.get("crypto_top", [])
             if cr_top:
                 df_c = pd.DataFrame(cr_top)
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
+                df_c = df_c.rename(columns={"Ticker": "Titolo"})
 
-                df_c["Pos"] = df_c["Ticker"].apply(
+                df_c["Pos"] = df_c["Titolo"].apply(
                     lambda t: "⭐" if t in held_tickers else "🆕")
-                cols = ["Pos", "Ticker", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
@@ -659,12 +661,25 @@ with tab_log:
                     return f'color: {color}; font-weight: 700;'
                 return ''
 
+            df_hist = df_hist.rename(columns={
+                "ticker": "Titolo",
+                "entry_date": "Data Ingresso",
+                "exit_date": "Data Uscita",
+                "entry_price": "Prezzo Ingresso",
+                "exit_price": "Prezzo Uscita",
+                "profit_pct": "Rendimento %",
+                "reason": "Motivazione"
+            })
+            # Drop is_crypto column if present for cleaner view
+            if "is_crypto" in df_hist.columns:
+                df_hist = df_hist.drop(columns=["is_crypto"])
+
             st.dataframe(
                 df_hist.style.format({
-                    "entry_price": "{:.2f}",
-                    "exit_price": "{:.2f}",
-                    "profit_pct": "{:+.2f}%"
-                }).map(color_trade_pnl, subset=['profit_pct']),
+                    "Prezzo Ingresso": "{:.2f}",
+                    "Prezzo Uscita": "{:.2f}",
+                    "Rendimento %": "{:+.2f}%"
+                }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist.columns else None),
                 use_container_width=True,
                 hide_index=True
             )
@@ -678,7 +693,7 @@ with tab_log:
 # TAB 5: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
-    st.markdown("#### 📖 Regole Operative (Come usare la Dashboard)")
+    st.markdown("#### 📖 Regole Operative")
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px;">
@@ -702,14 +717,14 @@ with tab_guide:
 
     st.divider()
 
-    st.markdown("#### 🧠 Documentazione Strategia e Backtest")
+    st.markdown("#### 🧠 Documentazione Strategica")
     st.markdown('''
     **Apex Multi-Asset Engine** è un motore quantitativo a guida autonoma progettato per generare **Alpha assoluto**, battendo l'S&P 500 nel lungo termine e proteggendo al contempo il capitale dai crolli di mercato (Drawdown).
 
     ##### 1. Il Motore Macro (Waterfall Allocation)
     È il cuore difensivo della strategia. Misura il trend strutturale del mercato:
     - Se l'S&P 500 è sopra la sua media mobile a 200 giorni, il sistema alloca il capitale sugli asset di rischio (**Azioni** e **Crypto**).
-    - Se l'S&P 500 crolla, il sistema attiva il protocollo *Waterfall*: sposta i fondi prima sull'**Oro (GLD)**. Se anche l'Oro è negativo, si rifugia nei **Titoli di Stato USA (TLT)**. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
+    - Se l'S&P 500 crolla, il sistema attiva il protocollo *Waterfall*: sposta i fondi prima sull'**Oro**. Se anche l'Oro è negativo, si rifugia nelle **Obbligazioni**. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
 
     ##### 2. Il Motore Azionario (Momentum Cross-Sectional)
     Quando il semaforo Macro è verde:
