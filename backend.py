@@ -471,14 +471,11 @@ def send_telegram_alert(data_dict, action_log):
         print(f"Errore nell'invio Telegram: {e}")
 
 # Invia la notifica alla fine dello script
-
 import os
 import datetime
-# Invia Telegram solo il Venerdì (weekday == 4) o se lanciato a mano (workflow_dispatch)
-is_friday = datetime.datetime.now().weekday() == 4
-is_manual = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
-if is_friday or is_manual:
-    if datetime.datetime.now().weekday() == 4:
+
+# Invia Telegram solo il Venerdì
+if datetime.datetime.now().weekday() == 4:
     send_telegram_alert(output, action_log)
 else:
     print("Nessun alert Telegram oggi (non è Venerdì).")
