@@ -241,6 +241,14 @@ def send_telegram_alert(data_dict):
         is_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
         is_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
         
+        
+        def fmt(val):
+            try:
+                v = float(val)
+                return f"{v:.2f}" if v > 1 else f"{v:.6f}"
+            except:
+                return str(val)
+
         msg = f"🦅 *APEX ENGINE UPDATE* 🦅\n"
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
         
@@ -253,14 +261,14 @@ def send_telegram_alert(data_dict):
         msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
         if is_eq and "top20" in data_dict and data_dict["top20"]:
             for i, row in enumerate(data_dict["top20"]):
-                msg += f"{i+1}. {row['Ticker']} (Stop: ${row['Stop Loss ($)']})\n"
+                msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
             msg += "Semaforo Rosso - Azionario disattivato.\n"
             
         msg += "\n🪙 *TOP 3 CRYPTO*\n"
         if is_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
             for i, row in enumerate(data_dict["crypto_top"]):
-                msg += f"{i+1}. {row['Ticker']} (Stop: ${row['Stop Loss ($)']})\n"
+                msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
             msg += "Semaforo Rosso - Crypto disattivate.\n"
             
