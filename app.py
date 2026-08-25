@@ -257,7 +257,7 @@ with c5:
 st.divider()
 
 # --- POSIZIONI APERTE (IL MIO PORTAFOGLIO) ---
-st.header("💼 Il Mio Portafoglio (Posizioni Reali)")
+st.header("💼 Il Mio Portafoglio")
 def format_price(x):
     if x >= 1000: return f"{x:,.2f}"
     elif x >= 1: return f"{x:,.4f}"
