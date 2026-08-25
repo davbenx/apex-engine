@@ -369,6 +369,7 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
             low_price = float(
                 inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
             close_price = float(inds['c'][sym].iloc[-1])
+            pos["current_price"] = close_price  # Salva il prezzo attuale per la dashboard
 
             # Aggiornamento Trailing Stop (solo a salire, SOLO IL VENERDI)
             if today.weekday() == 4:
