@@ -286,11 +286,7 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
 
 # Chiamata al tracker
 
-# Aggiorna l'Equity Curve OGNI GIORNO
-update_equity_curve(output, calc_indicators(b_data), calc_indicators(eq_data), calc_indicators(cr_data))
 
-# Aggiorna il Portfolio Logger
-action_log = update_portfolio(output, calc_indicators(b_data), calc_indicators(eq_data), calc_indicators(cr_data))
 
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
@@ -408,6 +404,12 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
     return final_alerts
 
 # ==============================
+# Aggiorna l'Equity Curve OGNI GIORNO
+update_equity_curve(output, calc_indicators(b_data), calc_indicators(eq_data), calc_indicators(cr_data))
+
+# Aggiorna il Portfolio Logger
+action_log = update_portfolio(output, calc_indicators(b_data), calc_indicators(eq_data), calc_indicators(cr_data))
+
 # ==============================
 # NOTIFICHE TELEGRAM
 # ==============================
