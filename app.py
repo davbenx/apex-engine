@@ -82,17 +82,24 @@ last_update = data.get("timestamp", "Sincronizzazione in corso...")
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
-    st.title("🦅 Apex Multi-Asset Engine")
-with col_meta:
-    st.markdown(f"""
-    <div style="text-align: right; padding-top: 15px;">
-        <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Live</span>
-        <div style="color: #9CA3AF; font-size: 12px; margin-top: 5px;">
-            🕒 <strong>Aggiornato:</strong> {last_update}<br>
-            ⏳ <strong>Prossimo Ricalcolo:</strong> 01:30 UTC
+    st.markdown('''
+    <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
+        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(255, 255, 255, 0.12); padding: 8px 12px; border-radius: 12px; font-size: 26px;">🦅</div>
+        <div>
+            <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
+            <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Quantitative Multi-Asset System</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    ''', unsafe_allow_html=True)
+with col_meta:
+    st.markdown(f'''
+    <div style="text-align: right; padding-top: 10px;">
+        <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Live</span>
+        <div style="color: #9CA3AF; font-size: 11.5px; margin-top: 5px;">
+            🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
 
 # --- MACRO ENGINE STATUS CHIPS ---
 alloc = data['allocations']
@@ -249,7 +256,7 @@ with tab_pf:
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         capitale = st.number_input(
-            "💰 Capitale Broker Reale", min_value=1000.0, value=100000.0, step=1000.0)
+            "💰 Capitale Broker Reale", min_value=1000, value=100000, step=1000, format="%d")
         st.caption(
             "Le size e le metriche si adattano istantaneamente al capitale inserito.")
 
@@ -295,17 +302,26 @@ with tab_pf:
                    100) if tot_invested_usd > 0 else 0.0
 
     with c_pnl:
-        if len(op_eq) + len(op_cr) > 0:
+        num_pos = len(op_eq) + len(op_cr)
+        if num_pos > 0:
             pnl_sign = "+" if tot_pnl_usd >= 0 else ""
             pnl_col = "#10B981" if tot_pnl_usd >= 0 else "#EF4444"
-            st.markdown(f'''
-            <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 8px 14px; margin-top: 4px;">
-                <div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase;">P&L Galleggiante Aperto</div>
-                <div style="font-size: 18px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">
-                    {pnl_sign}{tot_pnl_usd:,.0f} <span style="font-size: 13px; font-weight: 600;">({pnl_sign}{tot_pnl_pct:.2f}%)</span>
-                </div>
+            pnl_text = f"{pnl_sign}{tot_pnl_usd:,.0f} <span style='font-size: 13px; font-weight: 600;'>({pnl_sign}{tot_pnl_pct:.2f}%)</span>"
+            sub_text = f"Su {num_pos} posizioni aperte"
+        else:
+            pnl_col = "#9CA3AF"
+            pnl_text = "0 <span style='font-size: 13px; font-weight: 600;'>(0.00%)</span>"
+            sub_text = "Nessuna posizione aperta (attesa venerdì)"
+
+        st.markdown(f'''
+        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
+            <div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">P&L Galleggiante Aperto</div>
+            <div style="font-size: 19px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
+                {pnl_text}
             </div>
-            ''', unsafe_allow_html=True)
+            <div style="color: #6B7280; font-size: 10.5px;">{sub_text}</div>
+        </div>
+        ''', unsafe_allow_html=True)
 
     st.write("")
 
