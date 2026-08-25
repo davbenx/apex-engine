@@ -160,7 +160,9 @@ with col_cr:
             if "Momentum Score" in df_c.columns: df_c = df_c.drop(columns=["Momentum Score"])
             st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
     else:
-        st.info("Semaforo Rosso. Tabella disattivata.")st.subheader("🎛️ Allocazione Portafoglio (Dual Momentum)")
+        st.info("Semaforo Rosso. Tabella disattivata.")
+
+st.subheader("🎛️ Allocazione Portafoglio (Waterfall)")
 alloc = data.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 
 c1, c2, c3, c4, c5 = st.columns(5)
