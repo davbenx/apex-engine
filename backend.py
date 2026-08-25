@@ -326,8 +326,8 @@ def send_telegram_alert(data_dict):
         msg += f"{eq_icon} Azionario: {data_dict['allocations']['Equities']}%\n"
         msg += f"{cr_icon} Crypto: {data_dict['allocations']['Crypto']}%\n"
         msg += f"{g_icon} Oro: {data_dict['allocations']['Gold']}%\n"
-        msg += f"{b_icon} Bond: {data_dict['allocations']['Bonds']}%\n"
-        msg += f"{c_icon} Cash: {data_dict['allocations']['Cash']}%\n\n"
+        msg += f"{b_icon} Obbligazioni: {data_dict['allocations']['Bonds']}%\n"
+        msg += f"{c_icon} Monetario: {data_dict['allocations']['Cash']}%\n\n"
         
         msg += "📋 *TOP 20 AZIONI*\n"
         if data_dict['allocations']['Equities'] > 0:
