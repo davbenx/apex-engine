@@ -45,7 +45,14 @@ st.caption("⏳ **Prossimo Ricalcolo:** 01:30")
 
 st.markdown("### 🎛️ Motori Macro (Cockpit)")
 alloc = data['allocations']
-capitale = 100000
+
+with st.sidebar:
+    st.markdown("### ⚙️ Impostazioni")
+    capitale = st.number_input(
+        "💰 Capitale Broker", min_value=1000.0, value=100000.0, step=1000.0)
+    st.caption(
+        "Modifica il capitale reale per ricalcolare tutte le size operative della dashboard.")
+
 
 is_bull_eq = alloc['Equities'] > 0
 is_bull_cr = alloc['Crypto'] > 0
@@ -70,20 +77,28 @@ d_b = macro_dates.get("Bonds", "-")
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
-    if is_bull_eq: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_eq})*")
-    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_eq})*")
+    if is_bull_eq:
+        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_eq})*")
+    else:
+        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_eq})*")
 with c2:
     st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
-    if is_bull_cr: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_cr})*")
-    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_cr})*")
+    if is_bull_cr:
+        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_cr})*")
+    else:
+        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_cr})*")
 with c3:
     st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
-    if is_bull_g: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_g})*")
-    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_g})*")
+    if is_bull_g:
+        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_g})*")
+    else:
+        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_g})*")
 with c4:
     st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
-    if is_bull_b: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_b})*")
-    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_b})*")
+    if is_bull_b:
+        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_b})*")
+    else:
+        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_b})*")
 with c5:
     st.markdown(f"### ⚪ Cash `{alloc['Cash']}%`")
     st.info("**⚪ RIFUGIO**")
@@ -91,24 +106,30 @@ with c5:
 st.divider()
 
 
-
 tab_pf, tab_perf, tab_radar, tab_log = st.tabs([
-    "💼 Portafoglio & Allocazione", 
-    "📈 Grafico & Metriche", 
-    "🔮 Radar Rotazione", 
+    "💼 Portafoglio & Allocazione",
+    "📈 Grafico & Metriche",
+    "🔮 Radar Rotazione",
     "📚 Trade Log & Regole"
 ])
 
+
 def format_price(x):
-    if x >= 1000: return f"{x:,.2f}"
-    elif x >= 1: return f"{x:,.4f}"
-    elif x >= 0.01: return f"{x:,.6f}"
-    else: return f"{x:,.8f}"
+    if x >= 1000:
+        return f"{x:,.2f}"
+    elif x >= 1:
+        return f"{x:,.4f}"
+    elif x >= 0.01:
+        return f"{x:,.6f}"
+    else:
+        return f"{x:,.8f}"
+
 
 def load_portfolio():
     import urllib.request
     try:
-        req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
+        req = urllib.request.Request(
+            "https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
         return json.loads(urllib.request.urlopen(req).read().decode())
     except:
         import os
@@ -116,6 +137,7 @@ def load_portfolio():
             with open('portfolio.json', 'r') as f:
                 return json.load(f)
         return None
+
 
 pf = load_portfolio()
 
@@ -127,8 +149,9 @@ num_cr = 0
 if pf and "open_positions" in pf:
     for ticker, info in pf["open_positions"].items():
         curr_p = info.get("current_price", info["entry_price"])
-        pnl_pct = (curr_p / info["entry_price"] - 1.0) * 100 if info["entry_price"] > 0 else 0
-        
+        pnl_pct = (curr_p / info["entry_price"] - 1.0) * \
+            100 if info["entry_price"] > 0 else 0
+
         row = {
             "Ticker": ticker,
             "Data Ingresso": info.get("entry_date", "-"),
@@ -151,7 +174,6 @@ if alloc['Equities'] > 0:
 if alloc['Crypto'] > 0:
     # Approssimazione: se mancano crypto, aggiungiamo il budget medio (5%)
     real_cash += (3 - num_cr) * (capitale * 0.05)
-    
 
 
 with tab_pf:
@@ -159,9 +181,11 @@ with tab_pf:
     st.markdown("### 🏦 Liquidità & Coperture")
     c1, c2, c3 = st.columns(3)
     c1.metric("💵 Cash Totale", f"{real_cash:,.0f}")
-    if alloc['Gold'] > 0: c2.metric("🥇 Oro (GLD)", f"{gold_cap:,.0f}")
-    if alloc['Bonds'] > 0: c3.metric("🛡️ Bond (TLT)", f"{bond_cap:,.0f}")
-    st.write("") 
+    if alloc['Gold'] > 0:
+        c2.metric("🥇 Oro (GLD)", f"{gold_cap:,.0f}")
+    if alloc['Bonds'] > 0:
+        c3.metric("🛡️ Bond (TLT)", f"{bond_cap:,.0f}")
+    st.write("")
 
     # --- RIGA 2: POSIZIONI A RISCHIO ---
     col_az, col_cr = st.columns([2, 1])
@@ -175,21 +199,23 @@ with tab_pf:
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
             df_op_eq["Size"] = single_eq
-            df_op_eq["P&L Monetario"] = (df_op_eq["P&L (%)"] / 100) * df_op_eq["Size"]
-        
+            df_op_eq["P&L Monetario"] = (
+                df_op_eq["P&L (%)"] / 100) * df_op_eq["Size"]
+
             df_eq_styled = df_op_eq.style.format({
-                "Ingresso ($)": "{:.2f}", 
+                "Ingresso ($)": "{:.2f}",
                 "Attuale ($)": "{:.2f}",
-                "Stop Loss ($)": "{:.2f}", 
+                "Stop Loss ($)": "{:.2f}",
                 "Size": "{:,.0f}",
                 "P&L (%)": "{:+.2f}%",
                 "P&L Monetario": "{:+,.0f}"
             }).map(color_pnl, subset=['P&L (%)', 'P&L ($)'])
-        
-            st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
+
+            st.dataframe(df_eq_styled, use_container_width=True,
+                         hide_index=True)
         else:
             st.caption("Nessuna azione.")
-        
+
     with col_cr:
         st.markdown(f"**🪙 Crypto ({num_cr}/3)**")
         if op_cr:
@@ -198,36 +224,44 @@ with tab_pf:
             has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
             for _, r in df_op_cr.iterrows():
                 if has_btc:
-                    if num_cr == 1: budgets.append(capitale * 0.10)
-                    elif num_cr == 2: budgets.append(capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
-                    else: budgets.append(capitale * 0.05)
-                else: budgets.append(capitale * 0.05)
+                    if num_cr == 1:
+                        budgets.append(capitale * 0.10)
+                    elif num_cr == 2:
+                        budgets.append(
+                            capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
+                    else:
+                        budgets.append(capitale * 0.05)
+                else:
+                    budgets.append(capitale * 0.05)
             df_op_cr["Size"] = budgets
-            df_op_cr["P&L Monetario"] = (df_op_cr["P&L (%)"] / 100) * df_op_cr["Size"]
-        
+            df_op_cr["P&L Monetario"] = (
+                df_op_cr["P&L (%)"] / 100) * df_op_cr["Size"]
+
             df_cr_styled = df_op_cr.style.format({
-                "Ingresso ($)": format_price, 
+                "Ingresso ($)": format_price,
                 "Attuale ($)": format_price,
-                "Stop Loss ($)": format_price, 
+                "Stop Loss ($)": format_price,
                 "Size": "{:,.0f}",
                 "P&L (%)": "{:+.2f}%",
                 "P&L Monetario": "{:+,.0f}"
             }).map(color_pnl, subset=['P&L (%)', 'P&L ($)'])
-        
-            st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
+
+            st.dataframe(df_cr_styled, use_container_width=True,
+                         hide_index=True)
         else:
             st.caption("Nessuna crypto.")
 
 
-
 with tab_perf:
     st.markdown("### 📈 Equity Curve (vs S&P 500)")
+
     @st.cache_data(ttl=60)
     @st.cache_data(ttl=3600)
     def load_benchmark():
 
         url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=5y"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(
+            url, headers={'User-Agent': 'Mozilla/5.0'})
         try:
             res = urllib.request.urlopen(req).read().decode()
             data = json.loads(res)['chart']['result'][0]
@@ -243,7 +277,6 @@ with tab_perf:
         except BaseException:
             return pd.DataFrame()
 
-
     def load_equity():
         try:
             req = urllib.request.Request(
@@ -256,7 +289,6 @@ with tab_perf:
                 with open('equity.json', 'r') as f:
                     return json.load(f).get("history", [])
         return []
-
 
     eq_history = load_equity()
     if len(eq_history) > 1:
@@ -345,8 +377,6 @@ with tab_perf:
     else:
         st.info("📊 In attesa del file Equity Curve.")
 
-
-    
     st.markdown("### 📊 Metriche di Rischio")
     if pf:
         hist = pf.get("trade_history", [])
@@ -356,17 +386,20 @@ with tab_perf:
         losses = [t for t in hist if t.get("profit_pct", 0) <= 0]
 
         win_rate = (len(wins) / len(hist) * 100) if hist else 0.0
-        avg_win = sum(t["profit_pct"] for t in wins) / len(wins) if wins else 0.0
-        avg_loss = sum(t["profit_pct"] for t in losses) / len(losses) if losses else 0.0
+        avg_win = sum(t["profit_pct"]
+                      for t in wins) / len(wins) if wins else 0.0
+        avg_loss = sum(t["profit_pct"]
+                       for t in losses) / len(losses) if losses else 0.0
 
-        expectancy = (win_rate / 100 * avg_win) + ((1 - win_rate / 100) * avg_loss)
+        expectancy = (win_rate / 100 * avg_win) + \
+            ((1 - win_rate / 100) * avg_loss)
 
         rm1, rm2, rm3, rm4 = st.columns(4)
         rm1.metric("Win Rate", f"{win_rate:.1f}%")
         rm2.metric("Expectancy per Trade", f"{expectancy:.2f}%")
         rm3.metric("Trade Chiusi", f"{len(hist)}")
         rm4.metric("Posizioni Aperte", f"{len(open_pos)}")
-        
+
 with tab_radar:
     st.markdown("### 🔮 Radar (Prossimi Ingressi)")
     st.markdown("Questa tabella mostra i titoli più forti **Oggi**. Verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).")
@@ -389,8 +422,6 @@ with tab_radar:
                     df_c = df_c.drop(columns=["Momentum Score"])
                 st.dataframe(df_c.style.format(
                     {"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
-
-
 
 
 with tab_log:
@@ -429,4 +460,3 @@ with tab_log:
     - **Aumentare il CAGR** (Tasso di crescita annuo composto) spingendo sull'acceleratore nei mercati Toro.
     - Ridurre il tempo a mercato (*Time in Market*) diminuendo il rischio sistemico senza sacrificare il rendimento.
     ''')
-
