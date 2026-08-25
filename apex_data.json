@@ -7,8 +7,8 @@
             "highest_high_60": 223.44000244140625
         },
         "GC=F": {
-            "price": 4740.7998046875,
-            "ma200": 4206.367009277344,
+            "price": 4740.89990234375,
+            "ma200": 4206.367509765625,
             "atr": 76.99880962351469,
             "highest_high_60": 4748.89990234375
         },
@@ -19,9 +19,9 @@
             "highest_high_60": 93.51000213623047
         },
         "BTC-USD": {
-            "price": 78797.046875,
-            "ma200": 64367.9623046875,
-            "atr": 2113.6810473392784,
+            "price": 79004.7421875,
+            "ma200": 64370.0392578125,
+            "atr": 2114.1387296309454,
             "highest_high_60": 79463.7109375
         }
     },
@@ -147,25 +147,25 @@
             "Stop Loss ($)": 50.27
         }
     ],
-    "timestamp": "25 Aug 2026, 00:26 (UTC)",
     "crypto_top": [
         {
-            "Ticker": "WLFI",
-            "Prezzo ($)": 0.0,
-            "Momentum Score": Infinity,
-            "Stop Loss ($)": 0.0
-        },
-        {
             "Ticker": "ZEC",
-            "Prezzo ($)": 828.35998535,
-            "Momentum Score": 10.89,
+            "Prezzo ($)": 833.16998291,
+            "Momentum Score": 11.14,
             "Stop Loss ($)": 799.77691207
         },
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2478.68994141,
-            "Momentum Score": 6.89,
-            "Stop Loss ($)": 2383.3760289
+            "Prezzo ($)": 2483.52001953,
+            "Momentum Score": 6.97,
+            "Stop Loss ($)": 2383.36107936
+        },
+        {
+            "Ticker": "SOL",
+            "Prezzo ($)": 100.75,
+            "Momentum Score": 6.58,
+            "Stop Loss ($)": 94.91210474
         }
-    ]
+    ],
+    "timestamp": "25 Aug 2026, 00:39 (UTC)"
 }
