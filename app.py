@@ -252,7 +252,7 @@ with c4:
 
 with c5:
     st.markdown(f"### 💵 Monetario `{alloc['Cash']}%`")
-    st.info(f"**⚪ FONDO MONETARIO**\n\nBudget: **{cash_cap:,.0f}**")
+    st.info("**⚪ RIFUGIO**")
 
 st.divider()
 
