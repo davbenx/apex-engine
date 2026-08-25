@@ -9,12 +9,12 @@ import streamlit as st
 
 st.set_page_config(page_title="Apex Multi-Asset", page_icon="🦅", layout="wide")
 
-# --- CUSTOM THEME ENHANCEMENTS ---
+# --- CUSTOM THEME & POLISH ---
 st.markdown("""
 <style>
     /* Metric styling */
     [data-testid="stMetricValue"] {
-        font-size: 1.6rem !important;
+        font-size: 1.5rem !important;
         font-weight: 700 !important;
     }
     [data-testid="stMetricLabel"] {
@@ -30,6 +30,10 @@ st.markdown("""
         border-radius: 8px 8px 0px 0px;
         font-weight: 600;
         font-size: 14px;
+    }
+    /* Smooth transitions */
+    div[style*="border-radius"] {
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -154,6 +158,22 @@ def format_price(x):
         return f"{x:,.8f}"
 
 
+def calculate_days(date_str):
+    try:
+        if not date_str or date_str == "-":
+            return ""
+        for fmt in ("%Y-%m-%d", "%d %b %Y", "%Y/%m/%d"):
+            try:
+                d = datetime.datetime.strptime(date_str.split(" ")[0], fmt)
+                diff = (datetime.datetime.now() - d).days
+                return f"{diff}g"
+            except BaseException:
+                pass
+        return ""
+    except BaseException:
+        return ""
+
+
 def load_portfolio():
     import urllib.request
     try:
@@ -179,13 +199,20 @@ if pf and "open_positions" in pf:
         curr_p = info.get("current_price", info["entry_price"])
         pnl_pct = (curr_p / info["entry_price"] - 1.0) * \
             100 if info["entry_price"] > 0 else 0
+        stop_p = info["stop_loss"]
+        dist_stop_pct = (stop_p / curr_p - 1.0) * 100 if curr_p > 0 else 0
+
+        entry_raw = info.get("entry_date", "-")
+        days_str = calculate_days(entry_raw)
+        entry_formatted = f"{entry_raw} ({days_str})" if days_str else entry_raw
 
         row = {
             "Ticker": ticker,
-            "Data Ingresso": info.get("entry_date", "-"),
+            "Data Ingresso": entry_formatted,
             "Ingresso ($)": info["entry_price"],
             "Attuale ($)": curr_p,
-            "Stop Loss ($)": info["stop_loss"],
+            "Stop Loss ($)": stop_p,
+            "Distanza Stop": dist_stop_pct,
             "P&L (%)": pnl_pct
         }
         if info.get("is_crypto", False):
@@ -205,7 +232,7 @@ with tab_pf:
         capitale = st.number_input(
             "💰 Inserisci Capitale Broker Reale", min_value=1000.0, value=100000.0, step=1000.0)
     st.caption(
-        "Tutte le size monetarie vengono ricalcolate istantaneamente sul capitale inserito.")
+        "Tutte le size monetarie e i P&L vengono ricalcolati istantaneamente sul capitale inserito.")
 
     capitale_azionario = capitale * (alloc['Equities'] / 100)
     single_eq = capitale_azionario / 20 if alloc['Equities'] > 0 else 0
@@ -221,32 +248,81 @@ with tab_pf:
     if alloc['Crypto'] > 0:
         real_cash += (3 - num_cr) * (capitale * 0.05)
 
+    # Calcolo del P&L Totale Galleggiante Aperto
+    tot_pnl_usd = 0.0
+    tot_invested_usd = 0.0
+    for r in op_eq:
+        pnl_val = (r["P&L (%)"] / 100) * single_eq
+        tot_pnl_usd += pnl_val
+        tot_invested_usd += single_eq
+
+    has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
+    for r in op_cr:
+        if has_btc:
+            if num_cr == 1:
+                cr_size = capitale * 0.10
+            elif num_cr == 2:
+                cr_size = capitale * \
+                    0.10 if r['Ticker'] == 'BTC' else capitale * 0.05
+            else:
+                cr_size = capitale * 0.05
+        else:
+            cr_size = capitale * 0.05
+        pnl_val = (r["P&L (%)"] / 100) * cr_size
+        tot_pnl_usd += pnl_val
+        tot_invested_usd += cr_size
+
+    tot_pnl_pct = (tot_pnl_usd / tot_invested_usd *
+                   100) if tot_invested_usd > 0 else 0.0
+
     st.write("")
 
-    # Liquidità & Coperture Cards
-    def make_asset_card(icon, label, amount, subtext, border_col, is_active=True):
+    # Liquidità & Asset Cards
+    def make_asset_card(icon, label, amount, subtext, border_col, is_active=True, is_pnl=False, pnl_pct=0.0):
         opacity = "1" if is_active else "0.5"
-        return (
-            f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 12px 16px; opacity: {opacity};">'
-            f'<div style="color: #9CA3AF; font-size: 12px; font-weight: 600;">{icon} {label}</div>'
-            f'<div style="font-size: 20px; font-weight: 700; margin: 4px 0;">{amount:,.0f}</div>'
-            f'<div style="color: #6B7280; font-size: 11px;">{subtext}</div>'
-            f'</div>'
-        )
+        if is_pnl:
+            pnl_color = "#10B981" if amount >= 0 else "#EF4444"
+            sign = "+" if amount >= 0 else ""
+            amt_str = f"{sign}{amount:,.0f} ({sign}{pnl_pct:.2f}%)"
+            return (
+                f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 12px 16px; opacity: {opacity};">'
+                f'<div style="color: #9CA3AF; font-size: 12px; font-weight: 600;">{icon} {label}</div>'
+                f'<div style="font-size: 19px; font-weight: 700; color: {pnl_color}; margin: 4px 0;">{amt_str}</div>'
+                f'<div style="color: #6B7280; font-size: 11px;">{subtext}</div>'
+                f'</div>'
+            )
+        else:
+            return (
+                f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 12px 16px; opacity: {opacity};">'
+                f'<div style="color: #9CA3AF; font-size: 12px; font-weight: 600;">{icon} {label}</div>'
+                f'<div style="font-size: 19px; font-weight: 700; margin: 4px 0;">{amount:,.0f}</div>'
+                f'<div style="color: #6B7280; font-size: 11px;">{subtext}</div>'
+                f'</div>'
+            )
 
     card_cash = make_asset_card("💵", "CASH / FONDO MONETARIO", real_cash,
-                                "Liquidità strategica + stop scattati", "#3B82F6", True)
+                                "Liquidità strategica + transitoria", "#3B82F6", True)
+    card_pnl = make_asset_card("📊", "P&L NON REALIZZATO", tot_pnl_usd, f"Su {len(op_eq)+len(op_cr)} posizioni aperte",
+                               "#10B981" if tot_pnl_usd >= 0 else "#EF4444", len(op_eq)+len(op_cr) > 0, is_pnl=True, pnl_pct=tot_pnl_pct)
     card_gold = make_asset_card("🥇", "ORO (GLD)", gold_cap, "Copertura Macro",
                                 "#F59E0B" if alloc['Gold'] > 0 else "#4B5563", alloc['Gold'] > 0)
     card_bond = make_asset_card("🛡️", "BOND (TLT)", bond_cap, "Copertura Tassi",
                                 "#8B5CF6" if alloc['Bonds'] > 0 else "#4B5563", alloc['Bonds'] > 0)
 
     st.html(
-        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">{card_cash}{card_gold}{card_bond}</div>')
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px;">{card_cash}{card_pnl}{card_gold}{card_bond}</div>')
 
     def color_pnl(val):
         color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
         return f'color: {color}; font-weight: 700;'
+
+    def color_stop_dist(val):
+        if val > -5.0:
+            return 'color: #EF4444; font-weight: 700;'  # Alert: less than 5% from stop
+        elif val > -10.0:
+            return 'color: #F59E0B; font-weight: 600;'  # Warning: between 5% and 10%
+        else:
+            return 'color: #9CA3AF;'  # Safe
 
     col_az, col_cr = st.columns([2, 1])
 
@@ -268,10 +344,11 @@ with tab_pf:
                 "Ingresso ($)": "{:.2f}",
                 "Attuale ($)": "{:.2f}",
                 "Stop Loss ($)": "{:.2f}",
+                "Distanza Stop": "{:.1f}%",
                 "Size": "{:,.0f}",
                 "P&L (%)": "{:+.2f}%",
                 "P&L Monetario": "{:+,.0f}"
-            }).map(color_pnl, subset=['P&L (%)', 'P&L Monetario'])
+            }).map(color_pnl, subset=['P&L (%)', 'P&L Monetario']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_eq_styled, use_container_width=True,
                          hide_index=True)
@@ -310,10 +387,11 @@ with tab_pf:
                 "Ingresso ($)": format_price,
                 "Attuale ($)": format_price,
                 "Stop Loss ($)": format_price,
+                "Distanza Stop": "{:.1f}%",
                 "Size": "{:,.0f}",
                 "P&L (%)": "{:+.2f}%",
                 "P&L Monetario": "{:+,.0f}"
-            }).map(color_pnl, subset=['P&L (%)', 'P&L Monetario'])
+            }).map(color_pnl, subset=['P&L (%)', 'P&L Monetario']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_cr_styled, use_container_width=True,
                          hide_index=True)
@@ -355,6 +433,9 @@ with tab_perf:
         except BaseException:
             pass
 
+    max_dd = 0.0
+    current_dd = 0.0
+
     if len(eq_history) > 1:
         df_eq = pd.DataFrame(eq_history)
         df_eq['date'] = pd.to_datetime(df_eq['date'])
@@ -363,6 +444,12 @@ with tab_perf:
         start_date = df_eq.index[0]
         base_val = df_eq['equity'].iloc[0]
         df_eq['Apex'] = (df_eq['equity'] / base_val) * 100
+
+        # Calcolo Drawdown
+        cummax = df_eq['equity'].cummax()
+        dd_series = (df_eq['equity'] - cummax) / cummax * 100
+        max_dd = dd_series.min()
+        current_dd = dd_series.iloc[-1]
 
         df_spy = load_benchmark()
         if not df_spy.empty:
@@ -378,9 +465,9 @@ with tab_perf:
                 x=df_eq.index,
                 y=df_eq['Apex'],
                 mode='lines',
-                line=dict(
-                    color='#10B981',
-                    width=3),
+                line=dict(color='#10B981', width=3),
+                fill='tozeroy',
+                fillcolor='rgba(16, 185, 129, 0.08)',
                 name='Apex Multi-Asset (Strategy)'))
 
         if not df_spy.empty:
@@ -389,10 +476,7 @@ with tab_perf:
                     x=df_spy.index,
                     y=df_spy['Normalized'],
                     mode='lines',
-                    line=dict(
-                        color='#94A3B8',
-                        width=2,
-                        dash='dot'),
+                    line=dict(color='#94A3B8', width=2, dash='dot'),
                     name='S&P 500 (Benchmark)'))
 
         fig.update_layout(
@@ -446,12 +530,12 @@ with tab_perf:
 
         st.write("")
 
-        st.markdown("#### ⚙️ Statistiche Operative")
+        st.markdown("#### ⚙️ Statistiche Operative & Rischio")
         om1, om2, om3, om4 = st.columns(4)
         om1.metric("Trade Chiusi", f"{len(hist)}")
         om2.metric("Vincita Media", f"{avg_win:+.2f}%")
         om3.metric("Perdita Media", f"{avg_loss:+.2f}%")
-        om4.metric("Posizioni Aperte", f"{len(open_pos)}")
+        om4.metric("Max Drawdown Live", f"{max_dd:.2f}%")
 
 
 # ==============================================================================
@@ -460,9 +544,16 @@ with tab_perf:
 with tab_radar:
     st.markdown("""
     <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; color: #93C5FD;">
-        💡 <strong>Radar di Rotazione:</strong> Questi sono i titoli con il momentum più alto <strong>Oggi</strong>. Verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).
+        💡 <strong>Radar di Rotazione:</strong> Questi sono i titoli con il momentum più alto <strong>Oggi</strong>. I titoli già presenti in portafoglio sono marcati con ⭐, mentre i nuovi candidati verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).
     </div>
     """, unsafe_allow_html=True)
+
+    held_tickers = set(pf.get("open_positions", {}).keys()) if pf else set()
+
+    def style_radar_status(val):
+        if "⭐" in str(val):
+            return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700;'
+        return 'color: #93C5FD;'
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
@@ -473,8 +564,20 @@ with tab_radar:
                 df_eq = pd.DataFrame(top20)
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
-                st.dataframe(df_eq.style.format(
-                    {"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}), use_container_width=True, hide_index=True)
+
+                df_eq["Stato"] = df_eq["Ticker"].apply(
+                    lambda t: "⭐ In Portafoglio" if t in held_tickers else "🆕 Candidato")
+
+                # Reorder columns to put Stato near Ticker
+                cols = ["Ticker", "Stato", "Prezzo ($)", "Stop Loss ($)"]
+                df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
+
+                st.dataframe(
+                    df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
+                        style_radar_status, subset=['Stato']),
+                    use_container_width=True,
+                    hide_index=True
+                )
             else:
                 st.info("Nessun dato Top 20 disponibile.")
         else:
@@ -489,8 +592,18 @@ with tab_radar:
                 df_c = pd.DataFrame(cr_top)
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
-                st.dataframe(df_c.style.format(
-                    {"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
+
+                df_c["Stato"] = df_c["Ticker"].apply(
+                    lambda t: "⭐ In Portafoglio" if t in held_tickers else "🆕 Candidato")
+                cols = ["Ticker", "Stato", "Prezzo ($)", "Stop Loss ($)"]
+                df_c = df_c[[c for c in cols if c in df_c.columns]]
+
+                st.dataframe(
+                    df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
+                        style_radar_status, subset=['Stato']),
+                    use_container_width=True,
+                    hide_index=True
+                )
             else:
                 st.info("Nessun dato Crypto disponibile.")
         else:
