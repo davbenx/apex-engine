@@ -484,7 +484,7 @@ def send_telegram_alert(data_dict, action_log):
         is_rotation = today.weekday() == 4 and (today + datetime.timedelta(days=7)).month != today.month
         
         if is_rotation:
-            msg += "\n🔄 *RADAR ROTAZIONE (NUOVI TARGET)*\n"
+            msg += "\n🔄 *ROTAZIONE (NUOVI ACQUISTI)*\n"
             msg += "Azioni:\n"
             if data_dict['allocations']['Equities'] > 0:
                 for row in data_dict["top20"][:5]: # Mostro solo le prime 5 per brevità
