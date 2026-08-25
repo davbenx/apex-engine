@@ -112,79 +112,54 @@ def process_engine(df_dict, roc_period, atr_multiplier, gap_limit, is_crypto=Fal
 print("Avvio Motore Apex (Architettura Multithread Definitiva)...")
 output = {"macro": {}, "top20": [], "crypto_top": [], "timestamp": datetime.datetime.now().strftime("%d %b %Y, %H:%M (UTC)")}
 
-print("Elaborazione Macro...")
-b_ticks = ['RSP', 'GC=F', 'IEF', 'BTC-USD']
+print("Elaborazione Macro (Dynamic Dual Momentum)...")
+b_ticks = ['SPY', 'BTC-USD', 'GC=F', 'TLT', 'SHV']
 b_data = fetch_bulk_parallel(b_ticks, max_workers=2)
-b_inds = calc_indicators(b_data)
-if b_inds:
-    for sym in b_ticks:
-        if sym in b_inds['c'].columns:
-            output["macro"][sym] = {
-                "price": float(b_inds['c'][sym].iloc[-1]),
-                "ma200": float(b_inds['m200'][sym].iloc[-1]) if pd.notna(b_inds['m200'][sym].iloc[-1]) else 0,
-                "atr": float(b_inds['atr'][sym].iloc[-1]) if pd.notna(b_inds['atr'][sym].iloc[-1]) else 0,
-                "highest_high_60": float(b_inds['hh60'][sym].iloc[-1]) if pd.notna(b_inds['hh60'][sym].iloc[-1]) else float(b_inds['c'][sym].iloc[-1])
-            }
 
-print("Elaborazione Azioni (S&P 500)...")
-eq_ticks = get_sp500_tickers()
-eq_data = fetch_bulk_parallel(eq_ticks, max_workers=3)
-output["top20"] = process_engine(eq_data, roc_period=130, atr_multiplier=3.5, gap_limit=15.0)[:20]
-
-print("Elaborazione Crypto...")
-try:
-    req_k = urllib.request.Request('https://futures.kraken.com/derivatives/api/v3/instruments', headers={'User-Agent': 'Mozilla/5.0'})
-    kr_data = json.loads(urllib.request.urlopen(req_k).read().decode())['instruments']
-    kr_syms = [i['symbol'][3:-3].upper() for i in kr_data if i.get('tradeable') and i['symbol'].startswith('PF_') and i['symbol'].endswith('USD')]
-    if "XBT" in kr_syms: kr_syms.append("BTC")
-    if "XDG" in kr_syms: kr_syms.append("DOGE")
+macro = {}
+for t in b_ticks:
+    if b_data[t].empty: continue
+    df = b_data[t].resample('D').last().ffill()
+    df_m = df.resample('M').last()
     
-    req_cg = urllib.request.Request('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1', headers={'User-Agent': 'Mozilla/5.0'})
-    cg_data = json.loads(urllib.request.urlopen(req_cg).read().decode())
+    price = df['Close'].iloc[-1]
+    try: ma200 = df['Close'].rolling(200).mean().iloc[-1]
+    except: ma200 = price
+    try: mom = df_m['Close'].pct_change(6).iloc[-1]
+    except: mom = 0.0
     
-    BLACKLIST = ['USDT', 'USDC', 'DAI', 'FDUSD', 'USDE', 'WBTC', 'WETH', 'STETH', 'WSTETH', 'USDS', 'USD1', 'USDG', 'CC', 'RAIN', 'HYPE']
-    c_ticks = [d['symbol'].upper() + '-USD' for d in cg_data if d['symbol'].upper() in kr_syms and d['symbol'].upper() not in BLACKLIST][:30]
-except Exception:
-    c_ticks = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
+    macro[t] = {'price': price, 'ma200': ma200, 'mom': mom}
 
-cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
-output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+# Calcolo Pesi Macro
+allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
+risk_on_map = {"SPY": "Equities", "BTC-USD": "Crypto", "GC=F": "Gold"}
 
+valid_risk_on = []
+for t in risk_on_map.keys():
+    if t in macro and macro[t]['price'] > macro[t]['ma200']:
+        valid_risk_on.append((t, macro[t]['mom']))
 
-# ==============================
-# EQUITY CURVE TRACKER
-# ==============================
-def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
-    import os
-    import json
-    import datetime
+valid_risk_on.sort(key=lambda x: x[1], reverse=True)
+top_2 = [x[0] for x in valid_risk_on[:2]]
+
+for t in top_2:
+    allocations[risk_on_map[t]] += 50
+
+# Slot vuoti vanno nel Safe Haven
+empty_slots = 2 - len(top_2)
+if empty_slots > 0:
+    tlt = macro.get("TLT", {})
+    shv = macro.get("SHV", {})
     
-    eq_file = 'equity.json'
-    if os.path.exists(eq_file):
-        with open(eq_file, 'r') as f:
-            eq_data = json.load(f)
+    if tlt.get('price', 0) > tlt.get('ma200', 0) and tlt.get('mom', 0) > shv.get('mom', 0):
+        allocations["Bonds"] += (50 * empty_slots)
     else:
-        eq_data = {"history": [{"date": (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d"), "value": 100000.0}]}
-        
-    last_value = eq_data["history"][-1]["value"]
-    last_date = eq_data["history"][-1]["date"]
-    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    
-    if last_date == today_str:
-        return # Già aggiornato oggi
-        
-    # Calcolo ritorni giornalieri
-    def get_ret(inds, sym):
-        if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 5:
-            # Ritorno a 5 giorni di borsa (esattamente 1 settimana: da Venerdì scorso a questo Venerdì)
-            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-6]) - 1.0
-        return 0.0
+        allocations["Cash"] += (50 * empty_slots)
 
-    macro = data_dict.get("macro", {})
-    bull_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
-    bull_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
-    bull_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
-    bull_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
+output["allocations"] = allocations
+
+bull_eq = allocations["Equities"] > 0
+bull_cr = allocations["Crypto"] > 0
 
     ret_eq = 0.0
     if bull_eq and "top20" in data_dict and data_dict["top20"]:
@@ -253,20 +228,28 @@ def send_telegram_alert(data_dict):
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
         
         msg += "🎛️ *COCKPIT MACRO*\n"
-        msg += f"📈 Azionario: {'🟢 INVESTITO' if is_eq else '🔴 LIQUIDO'}\n"
-        msg += f"🪙 Crypto: {'🟢 INVESTITO' if is_cr else '🔴 LIQUIDO'}\n"
-        msg += f"🥇 Oro: {'🟢 INVESTITO' if is_g else '🔴 LIQUIDO'}\n"
-        msg += f"🛡️ Bond: {'🟢 INVESTITO' if is_b else '🔴 LIQUIDO'}\n\n"
+        msg += f"📈 Azionario: {data_dict['allocations']['Equities']}%
+"
+        msg += f"🪙 Crypto: {data_dict['allocations']['Crypto']}%
+"
+        msg += f"🥇 Oro: {data_dict['allocations']['Gold']}%
+"
+        msg += f"🛡️ Bond (TLT): {data_dict['allocations']['Bonds']}%
+"
+        msg += f"💵 Cash: {data_dict['allocations']['Cash']}%
+
+"
+
         
         msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
-        if is_eq and "top20" in data_dict and data_dict["top20"]:
+        if bull_eq and "top20" in data_dict and data_dict["top20"]:
             for i, row in enumerate(data_dict["top20"]):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
             msg += "Semaforo Rosso - Azionario disattivato.\n"
             
         msg += "\n🪙 *TOP 3 CRYPTO*\n"
-        if is_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
+        if bull_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
             for i, row in enumerate(data_dict["crypto_top"]):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
