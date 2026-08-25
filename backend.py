@@ -74,7 +74,7 @@ def calc_indicators(df_dict, roc_period=130):
     gap_min = gaps.rolling(window=90, min_periods=1).min()
     
     return {
-        'c': closes, 'm200': ma200, 'm150': ma150, 'atr': atr, 
+        'c': closes, 'low': lows, 'm200': ma200, 'm150': ma150, 'atr': atr, 
         'score': score, 'hh60': highest_high_60, 'g_max': gap_max, 'g_min': gap_min
     }
 
@@ -194,12 +194,7 @@ if allocations["Crypto"] > 0:
         kr_data = json.loads(urllib.request.urlopen(req_k).read().decode())['instruments']
         kr_syms = [d['symbol'].upper() for d in kr_data if d['tradeable'] and 'PI_XBT' not in d['symbol']]
         
-        kr_bases = set()
-        for s in kr_syms:
-            s = s.replace('PI_', '').replace('PF_', '').replace('USD', '')
-            if s == 'XBT': s = 'BTC'
-            kr_bases.add(s)
-            
+        # Recupera le Top 100 Crypto per Market Cap da Yahoo
         url = "https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=false&lang=en-US&region=US&scrIds=all_cryptocurrencies_us&start=0&count=100"
         req_y = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         res_y = urllib.request.urlopen(req_y).read().decode()
@@ -211,7 +206,8 @@ if allocations["Crypto"] > 0:
         for q in quotes:
             sym = q['symbol']
             base = sym.replace('-USD', '')
-            if base not in BLACKLIST and not any(char.isdigit() for char in base) and base in kr_bases:
+            # Aggiungi solo se non è in blacklist e SE ESISTE SU KRAKEN FUTURES
+            if base not in BLACKLIST and not any(char.isdigit() for char in base) and base in kr_syms:
                 c_ticks.append(sym)
                 
         c_ticks = c_ticks[:30]
@@ -220,11 +216,11 @@ if allocations["Crypto"] > 0:
         print("Errore nel recupero lista crypto:", e)
         c_ticks = []
     
-    if not c_ticks:
-        c_ticks = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
-        
-    cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
-    output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+    if c_ticks:
+        cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
+        output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+    else:
+        output["crypto_top"] = []
 else:
     output["crypto_top"] = []
     cr_data = {}
@@ -232,7 +228,10 @@ else:
 # ==============================
 # EQUITY CURVE TRACKER
 # ==============================
-def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
+def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds)
+
+action_log = update_portfolio(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+:
     import os
     import json
     import datetime
@@ -255,7 +254,7 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
     def get_ret(inds, sym):
         if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 5:
             # Ritorno a 5 giorni di borsa (esattamente 1 settimana: da Venerdì scorso a questo Venerdì)
-            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-2]) - 1.0
+            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-6]) - 1.0
         return 0.0
 
     alloc = data_dict.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
@@ -267,26 +266,9 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
         
     ret_cr = 0.0
     if alloc["Crypto"] > 0 and "crypto_top" in data_dict and data_dict["crypto_top"]:
-        cr_top = data_dict["crypto_top"]
-        has_btc = any(c["Ticker"] == "BTC" for c in cr_top)
-        num_alts = len([c for c in cr_top if c["Ticker"] != "BTC"])
+        rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
+        ret_cr = sum(rets) / len(rets) if rets else 0.0
         
-        b_pct = 0.0; a_pct = 0.0
-        if has_btc:
-            if num_alts == 0: b_pct = 10.0 / 15.0
-            elif num_alts == 1: b_pct = 10.0 / 15.0; a_pct = 5.0 / 15.0
-            else: b_pct = 5.0 / 15.0; a_pct = 5.0 / 15.0
-        else:
-            a_pct = 5.0 / 15.0
-
-        for row in cr_top:
-            sym = row["Ticker"] + "-USD"
-            r = get_ret(cr_inds, sym)
-            if row["Ticker"] == "BTC":
-                ret_cr += r * b_pct
-            else:
-                ret_cr += r * a_pct
-                
     ret_g = get_ret(b_inds, "GC=F") if alloc["Gold"] > 0 else 0.0
     ret_b = get_ret(b_inds, "TLT") if alloc["Bonds"] > 0 else 0.0
     
@@ -302,18 +284,120 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
 
 # Chiamata al tracker
 
-# Aggiorna l'Equity Curve ogni giorno
-update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+# Aggiorna l'Equity Curve SOLO il Venerdì
+if datetime.datetime.now().weekday() == 4:
+    update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
 
 
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
 print("Apex Backend elaborato con successo!")
 
+
+# ==============================
+# TRADE LOGGER & PORTFOLIO STATE
+# ==============================
+def update_portfolio(output, b_inds, cr_inds, eq_inds):
+    import os
+    import json
+    import datetime
+    
+    pf_file = 'portfolio.json'
+    if os.path.exists(pf_file):
+        with open(pf_file, 'r') as f:
+            pf = json.load(f)
+    else:
+        pf = {"open_positions": {}, "trade_history": []}
+        
+    today = datetime.datetime.now()
+    is_rotation = today.weekday() == 4 and (today + datetime.timedelta(days=7)).month != today.month
+    today_str = today.strftime("%Y-%m-%d")
+    
+    action_log = []
+    
+    # 1. Check Stop Losses on EXISTING positions
+    sold_keys = []
+    for ticker, pos in pf["open_positions"].items():
+        is_crypto = pos.get("is_crypto", False)
+        inds = cr_inds if is_crypto else eq_inds
+        sym = ticker + "-USD" if is_crypto else ticker
+        
+        if inds and sym in inds['c'].columns:
+            low_price = float(inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
+            close_price = float(inds['c'][sym].iloc[-1])
+            
+            # Stop loss hit
+            if low_price < pos["stop_loss"]:
+                profit_pct = (close_price / pos["entry_price"]) - 1.0
+                pf["trade_history"].append({
+                    "ticker": ticker,
+                    "entry_date": pos["entry_date"],
+                    "exit_date": today_str,
+                    "entry_price": pos["entry_price"],
+                    "exit_price": close_price,
+                    "profit_pct": round(profit_pct * 100, 2),
+                    "reason": "Stop Loss"
+                })
+                action_log.append(f"🔴 STOP LOSS: {ticker} venduto a {close_price} ({round(profit_pct*100,2)}%)")
+                sold_keys.append(ticker)
+                
+    for k in sold_keys:
+        del pf["open_positions"][k]
+        
+    # 2. Rebalance on Rotation Day
+    if is_rotation:
+        desired = {}
+        for row in output.get("top20", []):
+            desired[row["Ticker"]] = {"price": row["Prezzo ($)"], "stop": row["Stop Loss ($)"], "is_cr": False}
+        for row in output.get("crypto_top", []):
+            desired[row["Ticker"]] = {"price": row["Prezzo ($)"], "stop": row["Stop Loss ($)"], "is_cr": True}
+            
+        sold_rot = []
+        for ticker, pos in list(pf["open_positions"].items()):
+            if ticker not in desired:
+                is_crypto = pos.get("is_crypto", False)
+                inds = cr_inds if is_crypto else eq_inds
+                sym = ticker + "-USD" if is_crypto else ticker
+                close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
+                
+                profit_pct = (close_price / pos["entry_price"]) - 1.0
+                pf["trade_history"].append({
+                    "ticker": ticker,
+                    "entry_date": pos["entry_date"],
+                    "exit_date": today_str,
+                    "entry_price": pos["entry_price"],
+                    "exit_price": close_price,
+                    "profit_pct": round(profit_pct * 100, 2),
+                    "reason": "Rotazione"
+                })
+                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} chiuso a {close_price} ({round(profit_pct*100,2)}%)")
+                sold_rot.append(ticker)
+                
+        for k in sold_rot:
+            del pf["open_positions"][k]
+            
+        for ticker, info in desired.items():
+            if ticker not in pf["open_positions"]:
+                pf["open_positions"][ticker] = {
+                    "entry_date": today_str,
+                    "entry_price": info["price"],
+                    "stop_loss": info["stop"],
+                    "is_crypto": info["is_cr"]
+                }
+                action_log.append(f"🟢 ROTAZIONE (ACQUISTO): {ticker} a {info['price']}")
+            else:
+                pf["open_positions"][ticker]["stop_loss"] = info["stop"]
+                
+    with open(pf_file, 'w') as f:
+        json.dump(pf, f, indent=4)
+        
+    return action_log
+
+# ==============================
 # ==============================
 # NOTIFICHE TELEGRAM
 # ==============================
-def send_telegram_alert(data_dict):
+def send_telegram_alert(data_dict, action_log):
     import os
     import urllib.parse
     
@@ -346,10 +430,10 @@ def send_telegram_alert(data_dict):
         msg += f"{eq_icon} Azionario: {data_dict['allocations']['Equities']}%\n"
         msg += f"{cr_icon} Crypto: {data_dict['allocations']['Crypto']}%\n"
         msg += f"{g_icon} Oro: {data_dict['allocations']['Gold']}%\n"
-        msg += f"{b_icon} Obbligazioni: {data_dict['allocations']['Bonds']}%\n"
-        msg += f"{c_icon} Monetario: {data_dict['allocations']['Cash']}%\n\n"
+        msg += f"{b_icon} Bond: {data_dict['allocations']['Bonds']}%\n"
+        msg += f"{c_icon} Cash: {data_dict['allocations']['Cash']}%\n\n"
         
-        msg += "📋 *TOP 20 AZIONI*\n"
+        msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
         if data_dict['allocations']['Equities'] > 0:
             for i, row in enumerate(data_dict["top20"]):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
@@ -386,7 +470,7 @@ import datetime
 is_friday = datetime.datetime.now().weekday() == 4
 is_manual = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
 if is_friday or is_manual:
-    send_telegram_alert(output)
+    send_telegram_alert(output, action_log)
 else:
     print("Nessun alert Telegram oggi (non è Venerdì).")
 
