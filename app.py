@@ -85,8 +85,6 @@ else:
 
 st.divider()
 
-st.divider()
-
 # --- COCKPIT ---
 st.header("🎛️ Allocazione Portafoglio (Waterfall)")
 capitale = st.number_input("Imposta il Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
