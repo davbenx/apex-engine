@@ -295,7 +295,7 @@ print("Apex Backend elaborato con successo!")
 # ==============================
 # TRADE LOGGER & PORTFOLIO STATE
 # ==============================
-def update_portfolio(output, calc_indicators(b_data), cr_inds, eq_inds):
+def update_portfolio(output, b_inds, cr_inds, eq_inds):
     import os
     import json
     import datetime
