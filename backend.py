@@ -153,3 +153,66 @@ output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
 print("Apex Backend elaborato con successo!")
+
+# ==============================
+# NOTIFICHE TELEGRAM
+# ==============================
+def send_telegram_alert(data_dict):
+    import os
+    import urllib.parse
+    
+    token = os.environ.get("TELEGRAM_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    
+    if not token or not chat_id:
+        print("Credenziali Telegram non trovate (o non configurate). Skip alert.")
+        return
+        
+    try:
+        macro = data_dict.get("macro", {})
+        is_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
+        is_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
+        is_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
+        is_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
+        
+        msg = f"🦅 *APEX ENGINE UPDATE* 🦅\n"
+        msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
+        
+        msg += "🎛️ *COCKPIT MACRO*\n"
+        msg += f"📈 Azionario: {'🟢 INVESTITO' if is_eq else '🔴 LIQUIDO'}\n"
+        msg += f"🪙 Crypto: {'🟢 INVESTITO' if is_cr else '🔴 LIQUIDO'}\n"
+        msg += f"🥇 Oro: {'🟢 INVESTITO' if is_g else '🔴 LIQUIDO'}\n"
+        msg += f"🛡️ Bond: {'🟢 INVESTITO' if is_b else '🔴 LIQUIDO'}\n\n"
+        
+        msg += "📋 *TOP 5 AZIONI (S&P 500)*\n"
+        if is_eq and "top20" in data_dict and data_dict["top20"]:
+            for i, row in enumerate(data_dict["top20"][:5]):
+                msg += f"{i+1}. {row['Ticker']} (Mom: {row['Momentum Score']} | Stop: ${row['Stop Loss ($)']})\n"
+        else:
+            msg += "Semaforo Rosso - Azionario disattivato.\n"
+            
+        msg += "\n🪙 *TOP 3 CRYPTO*\n"
+        if is_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
+            for i, row in enumerate(data_dict["crypto_top"][:3]):
+                msg += f"{i+1}. {row['Ticker']} (Mom: {row['Momentum Score']} | Stop: ${row['Stop Loss ($)']})\n"
+        else:
+            msg += "Semaforo Rosso - Crypto disattivate.\n"
+            
+        msg += "\n💡 _Vai sulla Dashboard per la lista completa._"
+        
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        data = urllib.parse.urlencode({
+            "chat_id": chat_id,
+            "text": msg,
+            "parse_mode": "Markdown"
+        }).encode('utf-8')
+        
+        req = urllib.request.Request(url, data=data)
+        urllib.request.urlopen(req)
+        print("Alert Telegram inviato con successo nel Canale!")
+    except Exception as e:
+        print(f"Errore nell'invio Telegram: {e}")
+
+# Invia la notifica alla fine dello script
+send_telegram_alert(output)
+
