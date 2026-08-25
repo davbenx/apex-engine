@@ -130,6 +130,8 @@ for t in b_ticks:
     
     macro[t] = {'price': price, 'ma200': ma200, 'mom': mom}
 
+output["macro"] = macro
+
 # Waterfall Allocation
 allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
 
@@ -158,11 +160,9 @@ for m in ranked:
         allocations["Equities"] = take
         capital -= take
     elif m == "TLT":
-        # Se TLT è in classifica prima del Cash Spillover, si prende tutto lo spazio rimasto
         allocations["Bonds"] = capital
         capital = 0
 
-# Spillover di sicurezza (se avanza capitale non assorbito dai Tetti)
 if capital > 0:
     tlt = macro.get("TLT", {})
     shv = macro.get("SHV", {})
@@ -172,19 +172,44 @@ if capital > 0:
         allocations["Cash"] += capital
 
 output["allocations"] = allocations
-output["allocations"] = allocations
-# Chiamata al tracker
 
-# Aggiorna l'Equity Curve SOLO il Venerdì
-b_inds = calc_indicators(b_data)
-if datetime.datetime.now().weekday() == 4:
-    update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+if allocations["Equities"] > 0:
+    print("Elaborazione Azioni (S&P 500)...")
+    eq_ticks = get_sp500_tickers()
+    eq_data = fetch_bulk_parallel(eq_ticks, max_workers=3)
+    output["top20"] = process_engine(eq_data, roc_period=130, atr_multiplier=3.5, gap_limit=15.0)[:20]
+else:
+    output["top20"] = []
+    eq_data = {}
 
+if allocations["Crypto"] > 0:
+    print("Elaborazione Crypto...")
+    try:
+        req_k = urllib.request.Request('https://futures.kraken.com/derivatives/api/v3/instruments', headers={'User-Agent': 'Mozilla/5.0'})
+        kr_data = json.loads(urllib.request.urlopen(req_k).read().decode())['instruments']
+        kr_syms = [d['symbol'].upper() for d in kr_data if d['tradeable'] and 'PI_XBT' not in d['symbol']]
+        
+        req_cg = urllib.request.Request('https://api.coingecko.com/api/v3/search/trending', headers={'User-Agent': 'Mozilla/5.0'})
+        cg_data = json.loads(urllib.request.urlopen(req_cg).read().decode())['coins']
+        cg_data = [c['item'] for c in cg_data]
+        
+        BLACKLIST = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI']
+        c_ticks = [d['symbol'].upper() + '-USD' for d in cg_data if d['symbol'].upper() in kr_syms and d['symbol'].upper() not in BLACKLIST][:30]
+    except Exception:
+        c_ticks = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
+    
+    cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
+    output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+else:
+    output["crypto_top"] = []
+    cr_data = {}
 
-
+# ==============================
+# EQUITY CURVE TRACKER
+# ==============================
 def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
-    import json
     import os
+    import json
     import datetime
     
     eq_file = 'equity.json'
@@ -192,36 +217,43 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
         with open(eq_file, 'r') as f:
             eq_data = json.load(f)
     else:
-        eq_data = {"history": [{"date": "2024-01-01", "value": 100000.0}]}
+        eq_data = {"history": [{"date": (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d"), "value": 100000.0}]}
         
     last_value = eq_data["history"][-1]["value"]
+    last_date = eq_data["history"][-1]["date"]
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
     
-    if eq_data["history"][-1]["date"] == today_str:
-        return
+    if last_date == today_str:
+        return # Già aggiornato oggi
         
-    def get_ret(inds, ticker):
-        try:
-            return float(inds['Close'][ticker].pct_change().iloc[-1])
-        except:
-            return 0.0
+    # Calcolo ritorni giornalieri
+    def get_ret(inds, sym):
+        if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 5:
+            # Ritorno a 5 giorni di borsa (esattamente 1 settimana: da Venerdì scorso a questo Venerdì)
+            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-6]) - 1.0
+        return 0.0
 
-    alloc = data_dict.get("allocations", {"Equities":0,"Crypto":0,"Gold":0,"Bonds":0,"Cash":100})
-    
+    macro = data_dict.get("macro", {})
+    bull_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
+    bull_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
+    bull_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
+    bull_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
+
     ret_eq = 0.0
-    if alloc["Equities"] > 0 and "top20" in data_dict and data_dict["top20"]:
+    if bull_eq and "top20" in data_dict and data_dict["top20"]:
         rets = [get_ret(eq_inds, row["Ticker"]) for row in data_dict["top20"]]
         ret_eq = sum(rets) / len(rets) if rets else 0.0
         
     ret_cr = 0.0
-    if alloc["Crypto"] > 0 and "crypto_top" in data_dict and data_dict["crypto_top"]:
+    if bull_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
         rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
         ret_cr = sum(rets) / len(rets) if rets else 0.0
         
-    ret_g = get_ret(b_inds, "GC=F") if alloc["Gold"] > 0 else 0.0
-    ret_b = get_ret(b_inds, "TLT") if alloc["Bonds"] > 0 else 0.0
+    ret_g = get_ret(b_inds, "GC=F") if bull_g else 0.0
+    ret_b = get_ret(b_inds, "IEF") if bull_b else 0.0
     
-    tot_ret = ( (alloc["Equities"]/100.0) * ret_eq ) + ( (alloc["Crypto"]/100.0) * ret_cr ) + ( (alloc["Gold"]/100.0) * ret_g ) + ( (alloc["Bonds"]/100.0) * ret_b )
+    # Ritorno Totale Portafoglio
+    tot_ret = (0.70 * ret_eq) + (0.10 * ret_cr) + (0.10 * ret_g) + (0.10 * ret_b)
     
     new_value = last_value * (1.0 + tot_ret)
     eq_data["history"].append({"date": today_str, "value": round(new_value, 2)})
@@ -229,6 +261,13 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
     with open(eq_file, 'w') as f:
         json.dump(eq_data, f, indent=4)
     print(f"Equity Curve aggiornata: {new_value}")
+
+# Chiamata al tracker
+
+# Aggiorna l'Equity Curve SOLO il Venerdì
+if datetime.datetime.now().weekday() == 4:
+    update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+
 
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
@@ -272,8 +311,6 @@ def send_telegram_alert(data_dict):
         msg += f"🥇 Oro: {data_dict['allocations']['Gold']}%\n"
         msg += f"🛡️ Bond (TLT): {data_dict['allocations']['Bonds']}%\n"
         msg += f"💵 Cash: {data_dict['allocations']['Cash']}%\n\n"
-
-
         
         msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
         if data_dict['allocations']['Equities'] > 0:
@@ -288,7 +325,6 @@ def send_telegram_alert(data_dict):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
             msg += "Semaforo Rosso - Crypto disattivate.\n"
-
             
         msg += "\n💡 _Vai sulla Dashboard per la lista completa._"
         
