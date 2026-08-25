@@ -228,10 +228,7 @@ else:
 # ==============================
 # EQUITY CURVE TRACKER
 # ==============================
-def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds)
-
-action_log = update_portfolio(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
-:
+def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
     import os
     import json
     import datetime
