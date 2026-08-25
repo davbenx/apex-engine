@@ -168,8 +168,8 @@ st.write("")
 tab_pf, tab_perf, tab_radar, tab_log, tab_guide = st.tabs([
     "💼 Portafoglio",
     "📈 Metriche",
-    "🔮 Radar Rotazione",
-    "📜 Storico Operazioni",
+    "🔮 Radar",
+    "📜 Storico",
     "📖 Guida"
 ])
 
