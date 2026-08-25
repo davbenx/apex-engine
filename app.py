@@ -33,7 +33,7 @@ if not data:
 # --- TIMESTAMPS ---
 last_update = data.get("timestamp", "Sincronizzazione in corso...")
 st.caption(f"🕒 **Aggiornato:** {last_update}")
-st.caption("⏳ **Prossimo:** 01:30 (Ita)")
+st.caption("⏳ **Prossimo Ricalcolo:** 01:30")
 
 with st.expander("📖 Regole Operative (Come usare questa Dashboard)", expanded=False):
     st.markdown('''
