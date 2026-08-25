@@ -27,6 +27,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add apex_data.json
-          git add equity.json || echo "Nessun equity.json ancora"
+          git add equity.json || echo "No eq"
+          git add portfolio.json || echo "No pf"
           git commit -m "Aggiornamento dati e Equity Curve" || echo "Nessuna modifica da pushare"
           git push
