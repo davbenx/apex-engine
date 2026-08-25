@@ -102,7 +102,51 @@ if len(eq_history) > 1:
     m2.metric(label="Drawdown Attuale", value=f"{current_dd:.2f}%", delta="Distanza dal picco massimo", delta_color="inverse")
     m3.metric(label="Max Drawdown", value=f"{max_dd:.2f}%", delta="Peggior caduta dal lancio", delta_color="off")
     
-    st.line_chart(df_eq['value'], use_container_width=True, color="#00ff00")
+    # Resample to weekly OHLC for candlestick
+    df_weekly = df_eq['value'].resample('W-FRI').ohlc()
+    df_weekly.dropna(inplace=True)
+    
+    fig = go.Figure()
+    
+    # Candlestick
+    fig.add_trace(go.Candlestick(
+        x=df_weekly.index,
+        open=df_weekly['open'],
+        high=df_weekly['high'],
+        low=df_weekly['low'],
+        close=df_weekly['close'],
+        name='Portfolio',
+        increasing_line_color='#00ff00',
+        decreasing_line_color='#ff0000'
+    ))
+    
+    # SPY Benchmark
+    df_spy = load_benchmark()
+    if not df_spy.empty:
+        df_spy = df_spy[df_spy.index >= df_eq.index[0]]
+        if not df_spy.empty:
+            start_val_spy = df_spy['SPY'].iloc[0]
+            our_start_val = df_eq['value'].iloc[0]
+            df_spy['Normalized'] = (df_spy['SPY'] / start_val_spy) * our_start_val
+            
+            fig.add_trace(go.Scatter(
+                x=df_spy.index,
+                y=df_spy['Normalized'],
+                mode='lines',
+                line=dict(color='rgba(255, 255, 255, 0.5)', width=2, dash='dot'),
+                name='S&P 500 (Benchmark)'
+            ))
+            
+    fig.update_layout(
+        template='plotly_dark',
+        xaxis_rangeslider_visible=False,
+        margin=dict(l=0, r=0, t=30, b=0),
+        height=500,
+        legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
 elif len(eq_history) == 1:
     st.info("📊 Tracking avviato. Il grafico dell'Equity Curve apparirà domani con il primo aggiornamento dei prezzi.")
 else:
@@ -169,6 +213,51 @@ with c5:
     st.info(f"**⚪ FONDO MONETARIO**\n\nBudget: **{cash_cap:,.0f}**")
 
 st.divider()
+st.divider()
+
+# --- METRICHE DI RISCHIO E TRADE LOG ---
+st.header("📊 Metriche di Rischio & Trade Log")
+def load_portfolio():
+    try:
+        req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
+        return json.loads(urllib.request.urlopen(req).read().decode())
+    except:
+        if os.path.exists('portfolio.json'):
+            with open('portfolio.json', 'r') as f:
+                return json.load(f)
+        return None
+
+pf = load_portfolio()
+if pf:
+    hist = pf.get("trade_history", [])
+    open_pos = pf.get("open_positions", {})
+    
+    # Calcolo Win Rate ed Expectancy
+    wins = [t for t in hist if t.get("profit_pct", 0) > 0]
+    losses = [t for t in hist if t.get("profit_pct", 0) <= 0]
+    
+    win_rate = (len(wins) / len(hist) * 100) if hist else 0.0
+    avg_win = sum(t["profit_pct"] for t in wins) / len(wins) if wins else 0.0
+    avg_loss = sum(t["profit_pct"] for t in losses) / len(losses) if losses else 0.0
+    
+    expectancy = (win_rate/100 * avg_win) + ((1 - win_rate/100) * avg_loss)
+    
+    rm1, rm2, rm3, rm4 = st.columns(4)
+    rm1.metric("Win Rate", f"{win_rate:.1f}%")
+    rm2.metric("Expectancy per Trade", f"{expectancy:.2f}%")
+    rm3.metric("Trade Chiusi", f"{len(hist)}")
+    rm4.metric("Posizioni Aperte", f"{len(open_pos)}")
+    
+    with st.expander("📝 Visualizza Registro Operazioni (Trade Log)"):
+        if hist:
+            df_hist = pd.DataFrame(hist)
+            df_hist = df_hist.sort_values("exit_date", ascending=False)
+            st.dataframe(df_hist, use_container_width=True)
+        else:
+            st.info("Nessuna operazione chiusa registrata.")
+else:
+    st.info("Portfolio Logger non ancora inizializzato.")
+
 
 # --- TABELLE OPERATIVE ---
 st.header("📋 Liste Operative")
@@ -203,25 +292,5 @@ with col_cr:
             st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata.")
-    # S&P 500 Benchmark Comparison
-    df_spy = load_benchmark()
-    if not df_spy.empty:
-        df_spy = df_spy[df_spy.index >= df_eq.index[0]]
-        if not df_spy.empty:
-            start_val_spy = df_spy['SPY'].iloc[0]
-            our_start_val = df_eq['value'].iloc[0]
-            df_spy['Normalized'] = (df_spy['SPY'] / start_val_spy) * our_start_val
-            
-            fig.add_trace(go.Scatter(
-                x=df_spy.index,
-                y=df_spy['Normalized'],
-                mode='lines',
-                line=dict(color='rgba(255, 255, 255, 0.4)', width=2, dash='dot'),
-                name='S&P 500 (Benchmark)',
-                hoverinfo='skip'
-            ))
-            
-            # Calcolo sovraperformance
-            spy_end = df_spy['SPY'].iloc[-1]
-            spy_perf = ((spy_end / start_val_spy) - 1) * 100
+
 
