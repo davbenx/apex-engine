@@ -555,20 +555,55 @@ with tab_perf:
             (1 - win_rate / 100) * avg_loss
 
         st.markdown("#### 🎯 Vantaggio Matematico")
-        rm1, rm2, rm3, rm4 = st.columns(4)
-        rm1.metric("Tasso di Successo", f"{win_rate:.1f}%")
-        rm2.metric("Rapporto Guadagno / Perdita", f"{payoff_ratio:.2f}x")
-        rm3.metric("Fattore di Profitto", f"{profit_factor:.2f}")
-        rm4.metric("Valore Atteso", f"{expectancy:+.2f}%")
 
-        st.write("")
+        def make_kpi_card(title, value, subtext="", val_color="#F9FAFB", border_color="rgba(128,128,128,0.18)"):
+            return (
+                f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_color}; border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between;">'
+                f'<div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{title}</div>'
+                f'<div style="font-size: 22px; font-weight: 700; color: {val_color}; font-family: \'JetBrains Mono\', monospace; margin-bottom: 2px;">{value}</div>'
+                f'{f"<div style='color: #6B7280; font-size: 10.5px;'>{subtext}</div>" if subtext else ""}'
+                f'</div>'
+            )
+
+        # Colori dinamici per metriche di Edge
+        c_win = "#10B981" if win_rate >= 50 else (
+            "#3B82F6" if win_rate >= 40 else "#9CA3AF")
+        c_payoff = "#10B981" if payoff_ratio >= 2.0 else (
+            "#F59E0B" if payoff_ratio >= 1.0 else "#9CA3AF")
+        c_pf = "#10B981" if profit_factor >= 1.5 else (
+            "#F59E0B" if profit_factor >= 1.0 else ("#EF4444" if hist else "#9CA3AF"))
+        c_exp = "#10B981" if expectancy > 0 else (
+            "#EF4444" if expectancy < 0 else "#9CA3AF")
+
+        card_m1 = make_kpi_card("Tasso di Successo", f"{win_rate:.1f}%", "% operazioni chiuse in profitto",
+                                c_win, "#10B981" if win_rate >= 50 else "rgba(128,128,128,0.18)")
+        card_m2 = make_kpi_card("Rapporto Guadagno / Perdita", f"{payoff_ratio:.2f}x", "Dimensione vincite vs stop loss",
+                                c_payoff, "#10B981" if payoff_ratio >= 2.0 else "rgba(128,128,128,0.18)")
+        card_m3 = make_kpi_card("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite lorde",
+                                c_pf, "#10B981" if profit_factor >= 1.5 else "rgba(128,128,128,0.18)")
+        card_m4 = make_kpi_card("Valore Atteso", f"{expectancy:+.2f}%", "Aspettativa media per trade",
+                                c_exp, "#10B981" if expectancy > 0 else "rgba(128,128,128,0.18)")
+
+        st.html(
+            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 24px;">{card_m1}{card_m2}{card_m3}{card_m4}</div>')
 
         st.markdown("#### ⚙️ Statistiche Operative")
-        om1, om2, om3, om4 = st.columns(4)
-        om1.metric("Operazioni Chiuse", f"{len(hist)}")
-        om2.metric("Vincita Media", f"{avg_win:+.2f}%")
-        om3.metric("Perdita Media", f"{avg_loss:+.2f}%")
-        om4.metric("Perdita Massima Storica", f"{max_dd:.2f}%")
+
+        c_win_avg = "#10B981" if avg_win > 0 else "#9CA3AF"
+        c_loss_avg = "#EF4444" if avg_loss < 0 else "#9CA3AF"
+        c_dd = "#F87171" if max_dd < 0 else "#9CA3AF"
+
+        card_o1 = make_kpi_card(
+            "Operazioni Chiuse", f"{len(hist)}", "Campione statistico complessivo", "#F9FAFB")
+        card_o2 = make_kpi_card(
+            "Vincita Media", f"{avg_win:+.2f}%", "Rendimento medio trade vincenti", c_win_avg)
+        card_o3 = make_kpi_card(
+            "Perdita Media", f"{avg_loss:+.2f}%", "Perdita media stop loss scattati", c_loss_avg)
+        card_o4 = make_kpi_card(
+            "Perdita Massima Storica", f"{max_dd:.2f}%", "Drawdown massimo registrato", c_dd)
+
+        st.html(
+            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 15px;">{card_o1}{card_o2}{card_o3}{card_o4}</div>')
 
 
 # ==============================================================================
