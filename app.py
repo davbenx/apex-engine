@@ -151,8 +151,9 @@ def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
 chip_eq = make_chip("📈", "Azioni", alloc['Equities'], is_bull_eq, d_eq)
 chip_cr = make_chip("🪙", "Crypto", alloc['Crypto'], is_bull_cr, d_cr)
 chip_g = make_chip("🥇", "Oro", alloc['Gold'], is_bull_g, d_g)
-chip_b = make_chip("🛡️", "Bond", alloc['Bonds'], is_bull_b, d_b)
-chip_c = make_chip("💵", "Cash", alloc['Cash'], True, "", is_cash=True)
+chip_b = make_chip("🛡️", "Obbligazioni", alloc['Bonds'], is_bull_b, d_b)
+chip_c = make_chip("💵", "Liquidità / Monetario",
+                   alloc['Cash'], True, "", is_cash=True)
 
 chips_html = f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">{chip_eq}{chip_cr}{chip_g}{chip_b}{chip_c}</div>'
 
@@ -165,11 +166,11 @@ st.write("")
 
 # --- TABS LAYOUT ---
 tab_pf, tab_perf, tab_radar, tab_log, tab_guide = st.tabs([
-    "💼 Portafoglio & Allocazione",
-    "📈 Metriche & Grafico",
+    "💼 Portafoglio",
+    "📈 Metriche",
     "🔮 Radar Rotazione",
     "📜 Trade Log",
-    "📖 Guida & Strategia"
+    "📖 Guida"
 ])
 
 
@@ -336,11 +337,11 @@ with tab_pf:
             f'</div>'
         )
 
-    card_cash = make_asset_card("💵", "CASH / FONDO MONETARIO", real_cash,
+    card_cash = make_asset_card("💵", "LIQUIDITÀ / MONETARIO", real_cash,
                                 "Liquidità strategica + transitoria", "#3B82F6", True)
-    card_gold = make_asset_card("🥇", "ORO (GLD)", gold_cap, "Copertura Macro",
+    card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro",
                                 "#F59E0B" if alloc['Gold'] > 0 else "#4B5563", alloc['Gold'] > 0)
-    card_bond = make_asset_card("🛡️", "BOND (TLT)", bond_cap, "Copertura Tassi",
+    card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi",
                                 "#8B5CF6" if alloc['Bonds'] > 0 else "#4B5563", alloc['Bonds'] > 0)
 
     st.html(
