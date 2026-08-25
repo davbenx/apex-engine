@@ -66,6 +66,7 @@ def calc_indicators(df_dict, roc_period=130):
     closes = pd.DataFrame({k: v['Close'] for k, v in df_dict.items()}).ffill()
     highs = pd.DataFrame({k: v['High'] for k, v in df_dict.items()}).ffill()
     lows = pd.DataFrame({k: v['Low'] for k, v in df_dict.items()}).ffill()
+    opens = pd.DataFrame({k: v['Open'] for k, v in df_dict.items()}).ffill()
     pc = closes.shift(1)
 
     ma200 = closes.rolling(window=200, min_periods=100).mean()
