@@ -32,6 +32,33 @@ with st.expander("📖 Regole Operative (Come usare questa Dashboard)", expanded
     - **⚡ Automazione:** Se durante la settimana il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Tieni i soldi in cassa fino alla successiva rotazione.
     """)
 
+
+# --- EQUITY CURVE ---
+st.header("📈 Performance Live (Equity Curve)")
+@st.cache_data(ttl=60)
+def load_equity():
+    if os.path.exists('equity.json'):
+        with open('equity.json', 'r') as f:
+            return json.load(f).get("history", [])
+    return []
+
+eq_history = load_equity()
+if len(eq_history) > 1:
+    df_eq = pd.DataFrame(eq_history)
+    df_eq['date'] = pd.to_datetime(df_eq['date'])
+    df_eq.set_index('date', inplace=True)
+    
+    start_val = df_eq['value'].iloc[0]
+    end_val = df_eq['value'].iloc[-1]
+    perf_pct = ((end_val / start_val) - 1) * 100
+    
+    st.metric(label="Valore Portafoglio Base (Partenza $100.000)", value=f"${end_val:,.2f}", delta=f"{perf_pct:.2f}% dal lancio")
+    st.line_chart(df_eq['value'], use_container_width=True, color="#00ff00")
+elif len(eq_history) == 1:
+    st.info("📊 Tracking avviato. Il grafico dell'Equity Curve apparirà domani con il primo aggiornamento dei prezzi.")
+else:
+    st.info("📊 In attesa del file Equity Curve.")
+
 st.divider()
 
 # --- COCKPIT ---
