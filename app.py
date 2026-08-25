@@ -35,12 +35,14 @@ st.caption(f"🕒 **Ultimo Ricalcolo:** {last_update}")
 st.caption("⏳ **Prossimo Aggiornamento Previsto:** Stanotte, 23:30 UTC")
 
 with st.expander("📖 Regole Operative (Come usare questa Dashboard)", expanded=False):
-    st.markdown("""
+    st.markdown('''
     - **📅 Rotazione Mensile:** L'ultimo venerdì del mese, controlla le Tabelle Operative. Vendi chi è uscito dalla Top, compra chi è entrato.
-    - **🛡️ Macro & Stop Loss:** Durante il weekend, guarda il Cockpit. Se un motore diventa 🔴 **LIQUIDO**, vendi tutto il comparto lunedì mattina. Se è verde, aggiorna sul broker i nuovi **Stop Loss**.
-    - **⚡ Automazione:** Se durante la settimana il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Tieni i soldi in cassa fino alla successiva rotazione.
-    """)
-
+    - **🛡️ Gestione Cockpit:** 
+        - Se un motore è **🟢 ATTIVO**, mantieni l'investimento nei rispettivi asset e aggiorna i Trailing Stop sul broker.
+        - Se un motore diventa **🔴 DISATTIVATO**, vendi tutto il comparto lunedì mattina.
+    - **💵 Liquidità (Fondo Monetario):** Il capitale parcheggiato in "Cash / Monetario" non va tenuto sul conto corrente, ma investito in ETF Monetari (es. XEON o IB01) per generare una rendita risk-free.
+    - **⚡ Automazione:** Se durante la settimana il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Sposta i soldi nel Fondo Monetario fino alla rotazione successiva.
+    ''')
 
 # --- EQUITY CURVE ---
 st.header("📈 Performance Live")
@@ -86,7 +88,7 @@ else:
 st.divider()
 
 # --- COCKPIT ---
-st.header("🎛️ Allocazione Portafoglio (Waterfall)")
+st.header("🎛️ Allocazione Portafoglio")
 capitale = st.number_input("Imposta il Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
 
 alloc = data.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
@@ -111,26 +113,37 @@ c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
     if is_bull_eq: st.success(f"**🟢 ATTIVO**\n\nBudget: **{eq_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{eq_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{eq_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
 
 with c2:
     st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
-    if is_bull_cr: st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{btc_cap:,.0f}**")
+    if is_bull_cr: 
+        btc_stop = None
+        for c in data.get("crypto_top", []):
+            if c["Ticker"] == "BTC":
+                btc_stop = c["Stop Loss ($)"]
+                break
+        
+        if btc_stop:
+            st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Stop BTC: ${btc_stop:,.0f})*")
+        else:
+            st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**")
+    else: 
+        st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
 
 with c3:
     st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
     if is_bull_g: st.success(f"**🟢 ATTIVO**\n\nBudget: **{gold_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{gold_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{gold_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
 
 with c4:
     st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
     if is_bull_b: st.success(f"**🟢 ATTIVO**\n\nBudget: **{bond_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{bond_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{bond_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
     
 with c5:
-    st.markdown(f"### 💵 Cash `{alloc['Cash']}%`")
-    st.info(f"**⚪ LIQUIDITÀ (Riserva)**\n\nBudget: **{cash_cap:,.0f}**")
+    st.markdown(f"### 💵 Cash / Monetario `{alloc['Cash']}%`")
+    st.info(f"**⚪ FONDO MONETARIO**\n\nBudget: **{cash_cap:,.0f}**")
 
 st.divider()
 
