@@ -59,33 +59,17 @@ d_g = macro_dates.get("Gold", "-")
 d_b = macro_dates.get("Bonds", "-")
 
 c1, c2, c3, c4, c5 = st.columns(5)
-with c1:
-    st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
-    if is_bull_eq:
-        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_eq})*")
-    else:
-        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_eq})*")
-with c2:
-    st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
-    if is_bull_cr:
-        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_cr})*")
-    else:
-        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_cr})*")
-with c3:
-    st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
-    if is_bull_g:
-        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_g})*")
-    else:
-        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_g})*")
-with c4:
-    st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
-    if is_bull_b:
-        st.success(f"**🟢 ATTIVO**\n\n*(dal {d_b})*")
-    else:
-        st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_b})*")
-with c5:
-    st.markdown(f"### ⚪ Cash `{alloc['Cash']}%`")
-    st.info("**⚪ RIFUGIO**")
+c1.metric(f"📈 Azioni ({alloc['Equities']}%)",
+          "🟢 ON" if is_bull_eq else "🔴 OFF", f"dal {d_eq}", delta_color="off")
+c2.metric(f"🪙 Crypto ({alloc['Crypto']}%)",
+          "🟢 ON" if is_bull_cr else "🔴 OFF", f"dal {d_cr}", delta_color="off")
+c3.metric(f"🥇 Oro ({alloc['Gold']}%)",
+          "🟢 ON" if is_bull_g else "🔴 OFF", f"dal {d_g}", delta_color="off")
+c4.metric(f"🛡️ Bond ({alloc['Bonds']}%)",
+          "🟢 ON" if is_bull_b else "🔴 OFF", f"dal {d_b}", delta_color="off")
+c5.metric(f"⚪ Cash ({alloc['Cash']}%)", "🟢 ON" if alloc['Cash']
+          > 0 else "⚪ STBY", "Asset Rifugio", delta_color="off")
+
 
 st.divider()
 
