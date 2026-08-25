@@ -1,0 +1,7 @@
+                         Test  CAGR_%  Max_DD_%
+MA 100 (Paracadute Bond/Cash)   75.37    -45.64
+       MA 100 (No Paracadute)   74.84    -45.64
+       MA 150 (No Paracadute)   73.37    -53.63
+        MA 50 (No Paracadute)   65.22    -53.76
+MA 200 (Paracadute Bond/Cash)   62.92    -62.74
+       MA 200 (No Paracadute)   62.69    -62.88
