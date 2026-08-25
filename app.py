@@ -102,8 +102,7 @@ eq_cap = capitale * (alloc["Equities"] / 100.0)
 single_eq = eq_cap / 20 if alloc["Equities"] > 0 else 0
 
 btc_cap = capitale * (alloc["Crypto"] / 100.0)
-num_cr = len(data.get("crypto_top", []))
-single_cr = btc_cap / max(1, num_cr) if alloc["Crypto"] > 0 else 0
+single_cr = 0 # Gestito dinamicamente
 
 gold_cap = capitale * (alloc["Gold"] / 100.0)
 bond_cap = capitale * (alloc["Bonds"] / 100.0)
