@@ -150,6 +150,67 @@ except Exception:
 cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
 output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
 
+
+# ==============================
+# EQUITY CURVE TRACKER
+# ==============================
+def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
+    import os
+    import json
+    import datetime
+    
+    eq_file = 'equity.json'
+    if os.path.exists(eq_file):
+        with open(eq_file, 'r') as f:
+            eq_data = json.load(f)
+    else:
+        eq_data = {"history": [{"date": (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d"), "value": 100000.0}]}
+        
+    last_value = eq_data["history"][-1]["value"]
+    last_date = eq_data["history"][-1]["date"]
+    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    if last_date == today_str:
+        return # Già aggiornato oggi
+        
+    # Calcolo ritorni giornalieri
+    def get_ret(inds, sym):
+        if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 1:
+            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-2]) - 1.0
+        return 0.0
+
+    macro = data_dict.get("macro", {})
+    bull_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
+    bull_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
+    bull_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
+    bull_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
+
+    ret_eq = 0.0
+    if bull_eq and "top20" in data_dict and data_dict["top20"]:
+        rets = [get_ret(eq_inds, row["Ticker"]) for row in data_dict["top20"]]
+        ret_eq = sum(rets) / len(rets) if rets else 0.0
+        
+    ret_cr = 0.0
+    if bull_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
+        rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
+        ret_cr = sum(rets) / len(rets) if rets else 0.0
+        
+    ret_g = get_ret(b_inds, "GC=F") if bull_g else 0.0
+    ret_b = get_ret(b_inds, "IEF") if bull_b else 0.0
+    
+    # Ritorno Totale Portafoglio
+    tot_ret = (0.70 * ret_eq) + (0.10 * ret_cr) + (0.10 * ret_g) + (0.10 * ret_b)
+    
+    new_value = last_value * (1.0 + tot_ret)
+    eq_data["history"].append({"date": today_str, "value": round(new_value, 2)})
+    
+    with open(eq_file, 'w') as f:
+        json.dump(eq_data, f, indent=4)
+    print(f"Equity Curve aggiornata: {new_value}")
+
+# Chiamata al tracker
+update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
 print("Apex Backend elaborato con successo!")
@@ -214,5 +275,15 @@ def send_telegram_alert(data_dict):
         print(f"Errore nell'invio Telegram: {e}")
 
 # Invia la notifica alla fine dello script
-send_telegram_alert(output)
+
+import os
+import datetime
+# Invia Telegram solo il Venerdì (weekday == 4) o se lanciato a mano (workflow_dispatch)
+is_friday = datetime.datetime.now().weekday() == 4
+is_manual = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+if is_friday or is_manual:
+    send_telegram_alert(output)
+else:
+    print("Nessun alert Telegram oggi (non è Venerdì).")
+
 
