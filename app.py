@@ -235,7 +235,8 @@ with col_az:
             df_eq = pd.DataFrame(top20)
             if "Momentum Score" in df_eq.columns: df_eq = df_eq.drop(columns=["Momentum Score"])
             df_eq["Budget ($)"] = single_eq
-            st.dataframe(df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}", "Budget ($)": "{:,.0f}"}), use_container_width=True, hide_index=True)
+            df_eq = df_eq.rename(columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss", "Budget ($)": "Budget"})
+            st.dataframe(df_eq.style.format({"Prezzo": "{:.2f}", "Stop Loss": "{:.2f}", "Budget": "{:,.0f}"}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata per prevenire acquisti.")
 
@@ -263,9 +264,10 @@ with col_cr:
                 else:
                     budgets.append(capitale * 0.05)
                     
-            df_c["Budget ($)"] = budgets
+            df_c["Budget"] = budgets
+            df_c = df_c.rename(columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
             
-            st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price, "Budget ($)": "{:,.0f}"}), use_container_width=True, hide_index=True)
+            st.dataframe(df_c.style.format({"Prezzo": format_price, "Stop Loss": format_price, "Budget": "{:,.0f}"}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata.")
 
