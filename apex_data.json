@@ -1,174 +1,174 @@
 {
     "macro": {
         "SPY": {
-            "price": 765.0800170898438,
-            "ma200": 719.3888018798829,
-            "mom": 0.11529326663855088
+            "price": 765.9099731445312,
+            "ma200": 719.3929516601562,
+            "mom": 0.11650313276852753
         },
         "BTC-USD": {
-            "price": 79067.3203125,
-            "ma200": 69128.3916015625,
-            "mom": 0.18018219409548397
+            "price": 78770.390625,
+            "ma200": 69126.906953125,
+            "mom": 0.17575013381190763
         },
         "GC=F": {
-            "price": 4720.7998046875,
-            "ma200": 4542.248493652343,
-            "mom": -0.09744770008842363
+            "price": 4726.89990234375,
+            "ma200": 4542.278994140625,
+            "mom": -0.09628144492041868
         },
         "TLT": {
-            "price": 83.33999633789062,
-            "ma200": 85.79430011749268,
-            "mom": -0.08236075073847282
+            "price": 83.47000122070312,
+            "ma200": 85.79495014190674,
+            "mom": -0.08092929419531769
         },
         "SHV": {
-            "price": 110.33499908447266,
-            "ma200": 110.23487468719482,
-            "mom": -0.0004982363029248926
+            "price": 110.33999633789062,
+            "ma200": 110.23489967346191,
+            "mom": -0.0004529672256027295
         }
     },
     "top20": [
         {
             "Ticker": "HUM",
-            "Prezzo ($)": 387.54,
-            "Momentum Score": 33.45,
-            "Stop Loss ($)": 385.45
+            "Prezzo ($)": 389.71,
+            "Momentum Score": 33.99,
+            "Stop Loss ($)": 385.44
         },
         {
             "Ticker": "MPC",
-            "Prezzo ($)": 356.74,
-            "Momentum Score": 30.83,
-            "Stop Loss ($)": 335.7
+            "Prezzo ($)": 354.88,
+            "Momentum Score": 30.25,
+            "Stop Loss ($)": 335.65
         },
         {
             "Ticker": "CRL",
-            "Prezzo ($)": 299.31,
-            "Momentum Score": 29.76,
+            "Prezzo ($)": 297.64,
+            "Momentum Score": 29.24,
             "Stop Loss ($)": 269.11
         },
         {
             "Ticker": "VLO",
-            "Prezzo ($)": 342.33,
-            "Momentum Score": 25.46,
-            "Stop Loss ($)": 319.29
+            "Prezzo ($)": 340.41,
+            "Momentum Score": 24.97,
+            "Stop Loss ($)": 319.28
         },
         {
             "Ticker": "STT",
-            "Prezzo ($)": 193.17,
-            "Momentum Score": 23.28,
-            "Stop Loss ($)": 180.96
+            "Prezzo ($)": 192.95,
+            "Momentum Score": 23.14,
+            "Stop Loss ($)": 180.94
         },
         {
             "Ticker": "PSX",
-            "Prezzo ($)": 238.8,
-            "Momentum Score": 20.85,
-            "Stop Loss ($)": 226.22
+            "Prezzo ($)": 236.9,
+            "Momentum Score": 20.12,
+            "Stop Loss ($)": 226.13
         },
         {
             "Ticker": "EXPE",
-            "Prezzo ($)": 337.44,
-            "Momentum Score": 19.89,
+            "Prezzo ($)": 337.97,
+            "Momentum Score": 20.0,
             "Stop Loss ($)": 302.14
         },
         {
             "Ticker": "BNY",
-            "Prezzo ($)": 163.79,
-            "Momentum Score": 19.61,
-            "Stop Loss ($)": 154.85
+            "Prezzo ($)": 163.65,
+            "Momentum Score": 19.51,
+            "Stop Loss ($)": 154.84
         },
         {
             "Ticker": "IQV",
-            "Prezzo ($)": 259.28,
-            "Momentum Score": 17.95,
+            "Prezzo ($)": 259.42,
+            "Momentum Score": 17.99,
             "Stop Loss ($)": 235.81
         },
         {
-            "Ticker": "XYZ",
-            "Prezzo ($)": 82.41,
-            "Momentum Score": 15.9,
-            "Stop Loss ($)": 77.0
-        },
-        {
             "Ticker": "TGT",
-            "Prezzo ($)": 162.76,
-            "Momentum Score": 15.84,
+            "Prezzo ($)": 163.47,
+            "Momentum Score": 16.15,
             "Stop Loss ($)": 156.11
         },
         {
-            "Ticker": "AIZ",
-            "Prezzo ($)": 285.41,
-            "Momentum Score": 14.95,
-            "Stop Loss ($)": 283.96
+            "Ticker": "XYZ",
+            "Prezzo ($)": 82.72,
+            "Momentum Score": 16.11,
+            "Stop Loss ($)": 76.99
         },
         {
             "Ticker": "CNC",
-            "Prezzo ($)": 64.81,
-            "Momentum Score": 14.83,
+            "Prezzo ($)": 65.0,
+            "Momentum Score": 15.01,
             "Stop Loss ($)": 61.64
         },
         {
+            "Ticker": "AIZ",
+            "Prezzo ($)": 285.15,
+            "Momentum Score": 14.88,
+            "Stop Loss ($)": 283.96
+        },
+        {
             "Ticker": "NWS",
-            "Prezzo ($)": 35.16,
-            "Momentum Score": 14.13,
+            "Prezzo ($)": 35.15,
+            "Momentum Score": 14.11,
             "Stop Loss ($)": 32.37
         },
         {
-            "Ticker": "FDS",
-            "Prezzo ($)": 300.26,
-            "Momentum Score": 13.95,
-            "Stop Loss ($)": 269.51
-        },
-        {
             "Ticker": "NWSA",
-            "Prezzo ($)": 31.0,
-            "Momentum Score": 13.94,
-            "Stop Loss ($)": 28.46
+            "Prezzo ($)": 30.92,
+            "Momentum Score": 13.75,
+            "Stop Loss ($)": 28.47
         },
         {
             "Ticker": "CSX",
-            "Prezzo ($)": 51.62,
-            "Momentum Score": 13.53,
+            "Prezzo ($)": 51.51,
+            "Momentum Score": 13.35,
             "Stop Loss ($)": 50.29
         },
         {
-            "Ticker": "APA",
-            "Prezzo ($)": 41.56,
-            "Momentum Score": 13.13,
-            "Stop Loss ($)": 40.04
+            "Ticker": "FDS",
+            "Prezzo ($)": 296.08,
+            "Momentum Score": 13.14,
+            "Stop Loss ($)": 269.37
         },
         {
             "Ticker": "ADP",
-            "Prezzo ($)": 283.08,
-            "Momentum Score": 13.02,
-            "Stop Loss ($)": 262.51
+            "Prezzo ($)": 282.78,
+            "Momentum Score": 12.94,
+            "Stop Loss ($)": 262.5
         },
         {
-            "Ticker": "PAYX",
-            "Prezzo ($)": 125.36,
-            "Momentum Score": 13.0,
-            "Stop Loss ($)": 115.97
+            "Ticker": "NTRS",
+            "Prezzo ($)": 186.82,
+            "Momentum Score": 12.88,
+            "Stop Loss ($)": 182.26
+        },
+        {
+            "Ticker": "MRK",
+            "Prezzo ($)": 156.45,
+            "Momentum Score": 12.87,
+            "Stop Loss ($)": 144.75
         }
     ],
     "crypto_top": [
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2462.81005859,
-            "Momentum Score": 6.55,
-            "Stop Loss ($)": 2381.92996825
+            "Prezzo ($)": 2451.02001953,
+            "Momentum Score": 6.3,
+            "Stop Loss ($)": 2380.97475178
         },
         {
             "Ticker": "SOL",
-            "Prezzo ($)": 98.08999634,
-            "Momentum Score": 5.45,
-            "Stop Loss ($)": 95.46769413
+            "Prezzo ($)": 97.01999664,
+            "Momentum Score": 5.01,
+            "Stop Loss ($)": 95.44692158
         },
         {
-            "Ticker": "XAUT",
-            "Prezzo ($)": 4647.52880859,
-            "Momentum Score": 3.12,
-            "Stop Loss ($)": 4533.21378518
+            "Ticker": "BNB",
+            "Prezzo ($)": 696.05999756,
+            "Momentum Score": 2.92,
+            "Stop Loss ($)": 690.0769131
         }
     ],
-    "timestamp": "25 Aug 2026, 19:26 (UTC)",
+    "timestamp": "25 Aug 2026, 23:19 (UTC)",
     "allocations": {
         "Equities": 70,
         "Crypto": 15,
@@ -181,5 +181,6 @@
         "Crypto": "2026-08-26",
         "Gold": "2026-08-26",
         "Bonds": "2026-08-26"
-    }
+    },
+    "macro_events": []
 }
