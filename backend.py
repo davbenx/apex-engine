@@ -263,9 +263,26 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
         
     ret_cr = 0.0
     if alloc["Crypto"] > 0 and "crypto_top" in data_dict and data_dict["crypto_top"]:
-        rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
-        ret_cr = sum(rets) / len(rets) if rets else 0.0
+        cr_top = data_dict["crypto_top"]
+        has_btc = any(c["Ticker"] == "BTC" for c in cr_top)
+        num_alts = len([c for c in cr_top if c["Ticker"] != "BTC"])
         
+        b_pct = 0.0; a_pct = 0.0
+        if has_btc:
+            if num_alts == 0: b_pct = 10.0 / 15.0
+            elif num_alts == 1: b_pct = 10.0 / 15.0; a_pct = 5.0 / 15.0
+            else: b_pct = 5.0 / 15.0; a_pct = 5.0 / 15.0
+        else:
+            a_pct = 5.0 / 15.0
+
+        for row in cr_top:
+            sym = row["Ticker"] + "-USD"
+            r = get_ret(cr_inds, sym)
+            if row["Ticker"] == "BTC":
+                ret_cr += r * b_pct
+            else:
+                ret_cr += r * a_pct
+                
     ret_g = get_ret(b_inds, "GC=F") if alloc["Gold"] > 0 else 0.0
     ret_b = get_ret(b_inds, "TLT") if alloc["Bonds"] > 0 else 0.0
     
