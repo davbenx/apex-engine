@@ -52,7 +52,16 @@ if len(eq_history) > 1:
     end_val = df_eq['value'].iloc[-1]
     perf_pct = ((end_val / start_val) - 1) * 100
     
-    st.metric(label="Valore Portafoglio Base (Partenza $100.000)", value=f"${end_val:,.2f}", delta=f"{perf_pct:.2f}% dal lancio")
+    peak = df_eq['value'].cummax()
+    drawdown = ((df_eq['value'] - peak) / peak) * 100
+    current_dd = drawdown.iloc[-1]
+    max_dd = drawdown.min()
+    
+    m1, m2, m3 = st.columns(3)
+    m1.metric(label="Valore Attuale (Base $100k)", value=f"${end_val:,.0f}", delta=f"{perf_pct:.2f}% dal lancio")
+    m2.metric(label="Drawdown Attuale", value=f"{current_dd:.2f}%", delta="Distanza dal picco massimo", delta_color="inverse")
+    m3.metric(label="Max Drawdown", value=f"{max_dd:.2f}%", delta="Peggior caduta dal lancio", delta_color="off")
+    
     st.line_chart(df_eq['value'], use_container_width=True, color="#00ff00")
 elif len(eq_history) == 1:
     st.info("📊 Tracking avviato. Il grafico dell'Equity Curve apparirà domani con il primo aggiornamento dei prezzi.")
