@@ -47,6 +47,29 @@ with st.expander("📖 Regole Operative (Come usare questa Dashboard)", expanded
 # --- EQUITY CURVE ---
 st.header("📈 Performance Live")
 @st.cache_data(ttl=60)
+
+@st.cache_data(ttl=3600)
+def load_benchmark():
+    import urllib.request
+    import json
+    import pandas as pd
+    import datetime
+    
+    url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=5y"
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+    try:
+        res = urllib.request.urlopen(req).read().decode()
+        data = json.loads(res)['chart']['result'][0]
+        timestamps = data['timestamp']
+        closes = data['indicators']['quote'][0]['close']
+        
+        dates = [datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d') for ts in timestamps]
+        df = pd.DataFrame({'date': dates, 'SPY': closes})
+        df['date'] = pd.to_datetime(df['date'])
+        df.set_index('date', inplace=True)
+        return df
+    except:
+        return pd.DataFrame()
 def load_equity():
     import urllib.request
     import json
@@ -180,3 +203,25 @@ with col_cr:
             st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata.")
+    # S&P 500 Benchmark Comparison
+    df_spy = load_benchmark()
+    if not df_spy.empty:
+        df_spy = df_spy[df_spy.index >= df_eq.index[0]]
+        if not df_spy.empty:
+            start_val_spy = df_spy['SPY'].iloc[0]
+            our_start_val = df_eq['value'].iloc[0]
+            df_spy['Normalized'] = (df_spy['SPY'] / start_val_spy) * our_start_val
+            
+            fig.add_trace(go.Scatter(
+                x=df_spy.index,
+                y=df_spy['Normalized'],
+                mode='lines',
+                line=dict(color='rgba(255, 255, 255, 0.4)', width=2, dash='dot'),
+                name='S&P 500 (Benchmark)',
+                hoverinfo='skip'
+            ))
+            
+            # Calcolo sovraperformance
+            spy_end = df_spy['SPY'].iloc[-1]
+            spy_perf = ((spy_end / start_val_spy) - 1) * 100
+
