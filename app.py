@@ -52,11 +52,12 @@ is_bull_g = alloc['Gold'] > 0
 is_bull_b = alloc['Bonds'] > 0
 
 
+ts_date = data.get('timestamp', '').split(' ')[0] or datetime.datetime.now().strftime('%Y-%m-%d')
 macro_dates = data.get("macro_dates", {})
-d_eq = macro_dates.get("Equities", "-")
-d_cr = macro_dates.get("Crypto", "-")
-d_g = macro_dates.get("Gold", "-")
-d_b = macro_dates.get("Bonds", "-")
+d_eq = macro_dates.get("Equities", ts_date)
+d_cr = macro_dates.get("Crypto", ts_date)
+d_g = macro_dates.get("Gold", ts_date)
+d_b = macro_dates.get("Bonds", ts_date)
 
 
 def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
