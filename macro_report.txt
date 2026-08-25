@@ -1,5 +1,0 @@
-                                  Strategia  CAGR_%  Max_DD_%
-        1. Attuale (70-10-10-10 con Filtro)   14.97    -15.25
-             2. Aggressiva (80 Eq - 20 BTC)   23.23    -18.94
-  3. Dual Momentum Estremo (100% nel Top 1)   63.68    -59.71
-4. Dual Momentum Bilanciato (50% nei Top 2)   37.42    -39.00
