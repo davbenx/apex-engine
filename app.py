@@ -258,24 +258,16 @@ st.divider()
 
 # --- POSIZIONI APERTE (IL MIO PORTAFOGLIO) ---
 st.header("💼 Il Mio Portafoglio")
-
-
 def format_price(x):
-    if x >= 1000:
-        return f"{x:,.2f}"
-    elif x >= 1:
-        return f"{x:,.4f}"
-    elif x >= 0.01:
-        return f"{x:,.6f}"
-    else:
-        return f"{x:,.8f}"
-
+    if x >= 1000: return f"{x:,.2f}"
+    elif x >= 1: return f"{x:,.4f}"
+    elif x >= 0.01: return f"{x:,.6f}"
+    else: return f"{x:,.8f}"
 
 def load_portfolio():
     import urllib.request
     try:
-        req = urllib.request.Request(
-            "https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
+        req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
         return json.loads(urllib.request.urlopen(req).read().decode())
     except:
         import os
@@ -284,12 +276,14 @@ def load_portfolio():
                 return json.load(f)
         return None
 
-
 pf = load_portfolio()
 
-if pf and "open_positions" in pf and pf["open_positions"]:
-    op_eq = []
-    op_cr = []
+op_eq = []
+op_cr = []
+num_eq = 0
+num_cr = 0
+
+if pf and "open_positions" in pf:
     for ticker, info in pf["open_positions"].items():
         row = {
             "Ticker": ticker,
@@ -299,46 +293,67 @@ if pf and "open_positions" in pf and pf["open_positions"]:
         }
         if info.get("is_crypto", False):
             op_cr.append(row)
+            num_cr += 1
         else:
             op_eq.append(row)
+            num_eq += 1
 
-    col_az, col_cr = st.columns([2, 1])
-    with col_az:
-        st.subheader("📈 Azioni in Portafoglio")
-        if op_eq:
-            df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Size Allocata"] = single_eq
-            st.dataframe(df_op_eq.style.format({"Prezzo Ingresso ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}",
-                         "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
-        else:
-            st.info("Nessuna azione in portafoglio.")
+# Calcolo del Cash Reale (Cash Strategico + Liquidità Transitoria da slot vuoti)
+real_cash = cash_cap
+if alloc['Equities'] > 0:
+    real_cash += (20 - num_eq) * single_eq
+if alloc['Crypto'] > 0:
+    # Approssimazione: se mancano crypto, aggiungiamo il budget medio (5%)
+    real_cash += (3 - num_cr) * (capitale * 0.05)
+    
+# --- RIGA 1: ASSET RIFUGIO & LIQUIDITÀ ---
+st.markdown("### 🏦 Asset Strategici & Liquidità")
+col_c, col_g, col_b = st.columns(3)
 
-    with col_cr:
-        st.subheader("🪙 Crypto in Portafoglio")
-        if op_cr:
-            df_op_cr = pd.DataFrame(op_cr)
-            budgets = []
-            has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
-            num_cr = len(op_cr)
-            for _, r in df_op_cr.iterrows():
-                if has_btc:
-                    if num_cr == 1:
-                        budgets.append(capitale * 0.10)
-                    elif num_cr == 2:
-                        budgets.append(
-                            capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
-                    else:
-                        budgets.append(capitale * 0.05)
-                else:
-                    budgets.append(capitale * 0.05)
-            df_op_cr["Size Allocata"] = budgets
-            st.dataframe(df_op_cr.style.format({"Prezzo Ingresso ($)": format_price, "Stop Loss ($)": format_price,
-                         "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
-        else:
-            st.info("Nessuna crypto in portafoglio.")
-else:
-    st.info(
-        "Nessuna posizione aperta. Il portafoglio è liquido o in attesa della rotazione.")
+with col_c:
+    st.info(f"**💵 Cash / Monetario**\n\nSize Allocata: **{real_cash:,.0f}**\n\n*(Include liquidità transitoria per stop loss colpiti)*")
+    
+with col_g:
+    if alloc['Gold'] > 0:
+        st.success(f"**🥇 Oro (GLD)**\n\nSize Allocata: **{gold_cap:,.0f}**")
+    else:
+        st.error(f"**🥇 Oro (GLD)**\n\nNon in portafoglio (Semaforo Rosso)")
+        
+with col_b:
+    if alloc['Bonds'] > 0:
+        st.success(f"**🛡️ Bond (TLT)**\n\nSize Allocata: **{bond_cap:,.0f}**")
+    else:
+        st.error(f"**🛡️ Bond (TLT)**\n\nNon in portafoglio (Semaforo Rosso)")
+
+st.write("") # Spazio
+
+# --- RIGA 2: POSIZIONI A RISCHIO ---
+col_az, col_cr = st.columns([2, 1])
+with col_az:
+    st.subheader(f"📈 Azioni in Portafoglio ({num_eq}/20)")
+    if op_eq:
+        df_op_eq = pd.DataFrame(op_eq)
+        df_op_eq["Size Allocata"] = single_eq
+        st.dataframe(df_op_eq.style.format({"Prezzo Ingresso ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}", "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
+    else:
+        st.info("Nessuna azione in portafoglio.")
+        
+with col_cr:
+    st.subheader(f"🪙 Crypto in Portafoglio ({num_cr}/3)")
+    if op_cr:
+        df_op_cr = pd.DataFrame(op_cr)
+        budgets = []
+        has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
+        for _, r in df_op_cr.iterrows():
+            if has_btc:
+                if num_cr == 1: budgets.append(capitale * 0.10)
+                elif num_cr == 2: budgets.append(capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
+                else: budgets.append(capitale * 0.05)
+            else: budgets.append(capitale * 0.05)
+        df_op_cr["Size Allocata"] = budgets
+        st.dataframe(df_op_cr.style.format({"Prezzo Ingresso ($)": format_price, "Stop Loss ($)": format_price, "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
+    else:
+        st.info("Nessuna crypto in portafoglio.")
 
 with st.expander("🔮 Radar (Possibili ingressi alla Prossima Rotazione)", expanded=False):
     st.markdown("Questa tabella mostra i titoli più forti **Oggi**. Verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).")
