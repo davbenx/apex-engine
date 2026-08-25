@@ -581,16 +581,15 @@ with tab_radar:
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
 
-                df_eq["Stato"] = df_eq["Ticker"].apply(
-                    lambda t: "⭐ In Portafoglio" if t in held_tickers else "🆕 Candidato")
+                df_eq["Pos"] = df_eq["Ticker"].apply(
+                    lambda t: "⭐" if t in held_tickers else "🆕")
 
-                # Reorder columns to put Stato near Ticker
                 cols = ["Pos", "Ticker", "Prezzo ($)", "Stop Loss ($)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
                 st.dataframe(
                     df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
-                        style_radar_status, subset=['Pos']),
+                        style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None),
                     use_container_width=True,
                     hide_index=True
                 )
@@ -609,14 +608,14 @@ with tab_radar:
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
 
-                df_c["Stato"] = df_c["Ticker"].apply(
-                    lambda t: "⭐ In Portafoglio" if t in held_tickers else "🆕 Candidato")
+                df_c["Pos"] = df_c["Ticker"].apply(
+                    lambda t: "⭐" if t in held_tickers else "🆕")
                 cols = ["Pos", "Ticker", "Prezzo ($)", "Stop Loss ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
                     df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
-                        style_radar_status, subset=['Pos']),
+                        style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None),
                     use_container_width=True,
                     hide_index=True
                 )
