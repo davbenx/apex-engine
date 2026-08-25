@@ -99,7 +99,7 @@ if len(eq_history) > 1:
     max_dd = drawdown.min()
     
     m1, m2, m3 = st.columns(3)
-    m1.metric(label="Valore Attuale (Base $100k)", value=f"${end_val:,.0f}", delta=f"{perf_pct:.2f}% dal lancio")
+    m1.metric(label="Valore Attuale (Base 100k)", value=f"{end_val:,.0f}", delta=f"{perf_pct:.2f}% dal lancio")
     m2.metric(label="Drawdown Attuale", value=f"{current_dd:.2f}%", delta="Distanza dal picco massimo", delta_color="inverse")
     m3.metric(label="Max Drawdown", value=f"{max_dd:.2f}%", delta="Peggior caduta dal lancio", delta_color="off")
     
@@ -190,11 +190,11 @@ with c2:
         btc_stop = None
         for c in data.get("crypto_top", []):
             if c["Ticker"] == "BTC":
-                btc_stop = c["Stop Loss ($)"]
+                btc_stop = c["Stop Loss"]
                 break
         
         if btc_stop:
-            st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Stop BTC: ${btc_stop:,.0f})*")
+            st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Stop BTC: {btc_stop:,.0f})*")
         else:
             st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**")
     else: 
@@ -234,8 +234,8 @@ with col_az:
         if top20:
             df_eq = pd.DataFrame(top20)
             if "Momentum Score" in df_eq.columns: df_eq = df_eq.drop(columns=["Momentum Score"])
-            df_eq["Budget ($)"] = single_eq
-            df_eq = df_eq.rename(columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss", "Budget ($)": "Budget"})
+            df_eq["Budget"] = single_eq
+            df_eq = df_eq.rename(columns={"Prezzo": "Prezzo", "Stop Loss": "Stop Loss", "Budget": "Budget"})
             st.dataframe(df_eq.style.format({"Prezzo": "{:.2f}", "Stop Loss": "{:.2f}", "Budget": "{:,.0f}"}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata per prevenire acquisti.")
@@ -265,7 +265,7 @@ with col_cr:
                     budgets.append(capitale * 0.05)
                     
             df_c["Budget"] = budgets
-            df_c = df_c.rename(columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
+            df_c = df_c.rename(columns={"Prezzo": "Prezzo", "Stop Loss": "Stop Loss"})
             
             st.dataframe(df_c.style.format({"Prezzo": format_price, "Stop Loss": format_price, "Budget": "{:,.0f}"}), use_container_width=True, hide_index=True)
     else:
