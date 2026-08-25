@@ -1,3 +1,0 @@
-               Versione  CAGR_%  Max_DD_%
-    Vecchia 70-10-10-10     inf     -0.59
-Nuova Dual Mom Hard-Cap     inf     -3.58
