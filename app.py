@@ -388,14 +388,29 @@ with tab_perf:
         avg_loss = sum(t["profit_pct"]
                        for t in losses) / len(losses) if losses else 0.0
 
-        expectancy = (win_rate / 100 * avg_win) + \
-            ((1 - win_rate / 100) * avg_loss)
+        gross_profit = sum(t["profit_pct"] for t in wins)
+        gross_loss = abs(sum(t["profit_pct"] for t in losses))
 
+        payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
+        profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
+        expectancy = (win_rate / 100 * avg_win) + \
+            (1 - win_rate / 100) * avg_loss
+
+        st.markdown("##### 🎯 Vantaggio Matematico (Edge)")
         rm1, rm2, rm3, rm4 = st.columns(4)
         rm1.metric("Win Rate", f"{win_rate:.1f}%")
-        rm2.metric("Expectancy per Trade", f"{expectancy:.2f}%")
-        rm3.metric("Trade Chiusi", f"{len(hist)}")
-        rm4.metric("Posizioni Aperte", f"{len(open_pos)}")
+        rm2.metric("Payoff Ratio (R:R)", f"{payoff_ratio:.2f}x")
+        rm3.metric("Profit Factor", f"{profit_factor:.2f}")
+        rm4.metric("Expectancy", f"{expectancy:+.2f}%")
+
+        st.write("")
+
+        st.markdown("##### ⚙️ Statistiche Operative")
+        om1, om2, om3, om4 = st.columns(4)
+        om1.metric("Trade Chiusi", f"{len(hist)}")
+        om2.metric("Vincita Media", f"{avg_win:+.2f}%")
+        om3.metric("Perdita Media", f"{avg_loss:+.2f}%")
+        om4.metric("Posizioni Aperte", f"{len(open_pos)}")
 
 with tab_radar:
     st.markdown("### 🔮 Radar (Prossimi Ingressi)")
