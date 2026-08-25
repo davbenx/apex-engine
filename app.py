@@ -125,7 +125,7 @@ with c2:
                 break
         
         if btc_stop:
-            st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Stop BTC: ${btc_stop:,.0f})*")
+            st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Stop BTC: {btc_stop:,.0f})*")
         else:
             st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**")
     else: 
