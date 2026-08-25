@@ -1,0 +1,19 @@
+name: Run Tax Backtest
+on:
+  workflow_dispatch:
+jobs:
+  run-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: pip install pandas numpy yfinance
+      - run: python research/apex_backtester.py
+      - run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add tax_report.txt
+          git commit -m "Add tax report"
+          git push
