@@ -124,7 +124,7 @@ macro = {}
 for t in b_ticks:
     if b_data[t].empty: continue
     df = b_data[t].resample('D').last().ffill()
-    df_m = df.resample('M').last()
+    df_m = df.resample('ME').last()
     
     price = df['Close'].iloc[-1]
     try: ma200 = df['Close'].rolling(200).mean().iloc[-1]
@@ -282,10 +282,10 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
 # Chiamata al tracker
 
 # Aggiorna l'Equity Curve OGNI GIORNO
-update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+update_equity_curve(output, calc_indicators(b_data), calc_indicators(eq_data), calc_indicators(cr_data))
 
 # Aggiorna il Portfolio Logger
-action_log = update_portfolio(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+action_log = update_portfolio(output, calc_indicators(b_data), calc_indicators(eq_data), calc_indicators(cr_data))
 
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
@@ -295,7 +295,7 @@ print("Apex Backend elaborato con successo!")
 # ==============================
 # TRADE LOGGER & PORTFOLIO STATE
 # ==============================
-def update_portfolio(output, b_inds, cr_inds, eq_inds):
+def update_portfolio(output, calc_indicators(b_data), cr_inds, eq_inds):
     import os
     import json
     import datetime
