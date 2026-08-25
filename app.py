@@ -285,11 +285,15 @@ num_cr = 0
 
 if pf and "open_positions" in pf:
     for ticker, info in pf["open_positions"].items():
+        curr_p = info.get("current_price", info["entry_price"])
+        pnl_pct = (curr_p / info["entry_price"] - 1.0) * 100 if info["entry_price"] > 0 else 0
+        
         row = {
             "Ticker": ticker,
-            "Prezzo Ingresso ($)": info["entry_price"],
+            "Ingresso ($)": info["entry_price"],
+            "Attuale ($)": curr_p,
             "Stop Loss ($)": info["stop_loss"],
-            "Data Ingresso": info["entry_date"]
+            "P&L (%)": pnl_pct
         }
         if info.get("is_crypto", False):
             op_cr.append(row)
@@ -307,39 +311,42 @@ if alloc['Crypto'] > 0:
     real_cash += (3 - num_cr) * (capitale * 0.05)
     
 # --- RIGA 1: ASSET RIFUGIO & LIQUIDITÀ ---
-st.markdown("### 🏦 Asset Strategici & Liquidità")
-col_c, col_g, col_b = st.columns(3)
-
-with col_c:
-    st.info(f"**💵 Cash / Monetario**\n\nSize Allocata: **{real_cash:,.0f}**\n\n*(Include liquidità transitoria per stop loss colpiti)*")
-    
-with col_g:
-    if alloc['Gold'] > 0:
-        st.success(f"**🥇 Oro (GLD)**\n\nSize Allocata: **{gold_cap:,.0f}**")
-    else:
-        st.error(f"**🥇 Oro (GLD)**\n\nNon in portafoglio (Semaforo Rosso)")
-        
-with col_b:
-    if alloc['Bonds'] > 0:
-        st.success(f"**🛡️ Bond (TLT)**\n\nSize Allocata: **{bond_cap:,.0f}**")
-    else:
-        st.error(f"**🛡️ Bond (TLT)**\n\nNon in portafoglio (Semaforo Rosso)")
-
-st.write("") # Spazio
+st.markdown("### 🏦 Liquidità & Coperture")
+c1, c2, c3 = st.columns(3)
+c1.metric("💵 Cash Totale", f"${real_cash:,.0f}")
+if alloc['Gold'] > 0: c2.metric("🥇 Oro (GLD)", f"${gold_cap:,.0f}")
+if alloc['Bonds'] > 0: c3.metric("🛡️ Bond (TLT)", f"${bond_cap:,.0f}")
+st.write("") 
 
 # --- RIGA 2: POSIZIONI A RISCHIO ---
 col_az, col_cr = st.columns([2, 1])
+
+def color_pnl(val):
+    color = '#00FF00' if val > 0 else '#FF0000' if val < 0 else 'gray'
+    return f'color: {color}; font-weight: bold;'
+
 with col_az:
-    st.subheader(f"📈 Azioni in Portafoglio ({num_eq}/20)")
+    st.markdown(f"**📈 Azioni ({num_eq}/20)**")
     if op_eq:
         df_op_eq = pd.DataFrame(op_eq)
-        df_op_eq["Size Allocata"] = single_eq
-        st.dataframe(df_op_eq.style.format({"Prezzo Ingresso ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}", "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
+        df_op_eq["Size ($)"] = single_eq
+        df_op_eq["P&L ($)"] = (df_op_eq["P&L (%)"] / 100) * df_op_eq["Size ($)"]
+        
+        df_eq_styled = df_op_eq.style.format({
+            "Ingresso ($)": "{:.2f}", 
+            "Attuale ($)": "{:.2f}",
+            "Stop Loss ($)": "{:.2f}", 
+            "Size ($)": "{:,.0f}",
+            "P&L (%)": "{:+.2f}%",
+            "P&L ($)": "{:+,.0f}"
+        }).map(color_pnl, subset=['P&L (%)', 'P&L ($)'])
+        
+        st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
     else:
-        st.info("Nessuna azione in portafoglio.")
+        st.caption("Nessuna azione.")
         
 with col_cr:
-    st.subheader(f"🪙 Crypto in Portafoglio ({num_cr}/3)")
+    st.markdown(f"**🪙 Crypto ({num_cr}/3)**")
     if op_cr:
         df_op_cr = pd.DataFrame(op_cr)
         budgets = []
@@ -350,10 +357,21 @@ with col_cr:
                 elif num_cr == 2: budgets.append(capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
                 else: budgets.append(capitale * 0.05)
             else: budgets.append(capitale * 0.05)
-        df_op_cr["Size Allocata"] = budgets
-        st.dataframe(df_op_cr.style.format({"Prezzo Ingresso ($)": format_price, "Stop Loss ($)": format_price, "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
+        df_op_cr["Size ($)"] = budgets
+        df_op_cr["P&L ($)"] = (df_op_cr["P&L (%)"] / 100) * df_op_cr["Size ($)"]
+        
+        df_cr_styled = df_op_cr.style.format({
+            "Ingresso ($)": format_price, 
+            "Attuale ($)": format_price,
+            "Stop Loss ($)": format_price, 
+            "Size ($)": "{:,.0f}",
+            "P&L (%)": "{:+.2f}%",
+            "P&L ($)": "{:+,.0f}"
+        }).map(color_pnl, subset=['P&L (%)', 'P&L ($)'])
+        
+        st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
     else:
-        st.info("Nessuna crypto in portafoglio.")
+        st.caption("Nessuna crypto.")
 
 with st.expander("🔮 Radar (Possibili ingressi alla Prossima Rotazione)", expanded=False):
     st.markdown("Questa tabella mostra i titoli più forti **Oggi**. Verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).")
