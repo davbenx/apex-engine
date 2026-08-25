@@ -12,26 +12,45 @@ st.set_page_config(page_title="Apex Multi-Asset", page_icon="🦅", layout="wide
 # --- CUSTOM THEME & POLISH ---
 st.markdown("""
 <style>
-    /* Metric styling */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    html, body, [class*="css"], .stApp {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        letter-spacing: -0.01em;
+    }
+
+    /* Tabular numbers for financial metrics and tables */
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"], .stDataFrame, div[data-testid="stTable"], table {
+        font-family: 'JetBrains Mono', monospace !important;
+        font-variant-numeric: tabular-nums !important;
+    }
+
     [data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
+        font-size: 1.45rem !important;
         font-weight: 700 !important;
     }
+    
     [data-testid="stMetricLabel"] {
-        font-size: 0.85rem !important;
+        font-size: 0.8rem !important;
         color: #9CA3AF !important;
+        font-family: 'Inter', sans-serif !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
+
     /* Tab styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .stTabs [data-baseweb="tab"] {
-        padding: 8px 16px;
+        padding: 8px 18px;
         border-radius: 8px 8px 0px 0px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13.5px;
     }
-    /* Smooth transitions */
+    
+    /* Clean cards */
     div[style*="border-radius"] {
         transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
@@ -227,12 +246,12 @@ if pf and "open_positions" in pf:
 # TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
 with tab_pf:
-    c_inp, c_space = st.columns([1, 2])
+    c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         capitale = st.number_input(
-            "💰 Inserisci Capitale Broker Reale", min_value=1000.0, value=100000.0, step=1000.0)
-    st.caption(
-        "Tutte le size monetarie e i P&L vengono ricalcolati istantaneamente sul capitale inserito.")
+            "💰 Capitale Broker Reale", min_value=1000.0, value=100000.0, step=1000.0)
+        st.caption(
+            "Le size e le metriche si adattano istantaneamente al capitale inserito.")
 
     capitale_azionario = capitale * (alloc['Equities'] / 100)
     single_eq = capitale_azionario / 20 if alloc['Equities'] > 0 else 0
@@ -275,42 +294,41 @@ with tab_pf:
     tot_pnl_pct = (tot_pnl_usd / tot_invested_usd *
                    100) if tot_invested_usd > 0 else 0.0
 
+    with c_pnl:
+        if len(op_eq) + len(op_cr) > 0:
+            pnl_sign = "+" if tot_pnl_usd >= 0 else ""
+            pnl_col = "#10B981" if tot_pnl_usd >= 0 else "#EF4444"
+            st.markdown(f'''
+            <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 8px 14px; margin-top: 4px;">
+                <div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase;">P&L Galleggiante Aperto</div>
+                <div style="font-size: 18px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">
+                    {pnl_sign}{tot_pnl_usd:,.0f} <span style="font-size: 13px; font-weight: 600;">({pnl_sign}{tot_pnl_pct:.2f}%)</span>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+
     st.write("")
 
-    # Liquidità & Asset Cards
-    def make_asset_card(icon, label, amount, subtext, border_col, is_active=True, is_pnl=False, pnl_pct=0.0):
-        opacity = "1" if is_active else "0.5"
-        if is_pnl:
-            pnl_color = "#10B981" if amount >= 0 else "#EF4444"
-            sign = "+" if amount >= 0 else ""
-            amt_str = f"{sign}{amount:,.0f} ({sign}{pnl_pct:.2f}%)"
-            return (
-                f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 12px 16px; opacity: {opacity};">'
-                f'<div style="color: #9CA3AF; font-size: 12px; font-weight: 600;">{icon} {label}</div>'
-                f'<div style="font-size: 19px; font-weight: 700; color: {pnl_color}; margin: 4px 0;">{amt_str}</div>'
-                f'<div style="color: #6B7280; font-size: 11px;">{subtext}</div>'
-                f'</div>'
-            )
-        else:
-            return (
-                f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 12px 16px; opacity: {opacity};">'
-                f'<div style="color: #9CA3AF; font-size: 12px; font-weight: 600;">{icon} {label}</div>'
-                f'<div style="font-size: 19px; font-weight: 700; margin: 4px 0;">{amount:,.0f}</div>'
-                f'<div style="color: #6B7280; font-size: 11px;">{subtext}</div>'
-                f'</div>'
-            )
+    # Liquidità & Coperture Cards (3 pure asset buckets)
+    def make_asset_card(icon, label, amount, subtext, border_col, is_active=True):
+        opacity = "1" if is_active else "0.4"
+        return (
+            f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity};">'
+            f'<div style="color: #9CA3AF; font-size: 11px; font-weight: 600;">{icon} {label}</div>'
+            f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{amount:,.0f}</div>'
+            f'<div style="color: #6B7280; font-size: 10.5px;">{subtext}</div>'
+            f'</div>'
+        )
 
     card_cash = make_asset_card("💵", "CASH / FONDO MONETARIO", real_cash,
                                 "Liquidità strategica + transitoria", "#3B82F6", True)
-    card_pnl = make_asset_card("📊", "P&L NON REALIZZATO", tot_pnl_usd, f"Su {len(op_eq)+len(op_cr)} posizioni aperte",
-                               "#10B981" if tot_pnl_usd >= 0 else "#EF4444", len(op_eq)+len(op_cr) > 0, is_pnl=True, pnl_pct=tot_pnl_pct)
     card_gold = make_asset_card("🥇", "ORO (GLD)", gold_cap, "Copertura Macro",
                                 "#F59E0B" if alloc['Gold'] > 0 else "#4B5563", alloc['Gold'] > 0)
     card_bond = make_asset_card("🛡️", "BOND (TLT)", bond_cap, "Copertura Tassi",
                                 "#8B5CF6" if alloc['Bonds'] > 0 else "#4B5563", alloc['Bonds'] > 0)
 
     st.html(
-        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px;">{card_cash}{card_pnl}{card_gold}{card_bond}</div>')
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_gold}{card_bond}</div>')
 
     def color_pnl(val):
         color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
@@ -318,21 +336,21 @@ with tab_pf:
 
     def color_stop_dist(val):
         if val > -5.0:
-            return 'color: #EF4444; font-weight: 700;'  # Alert: less than 5% from stop
+            return 'color: #EF4444; font-weight: 700;'
         elif val > -10.0:
-            return 'color: #F59E0B; font-weight: 600;'  # Warning: between 5% and 10%
+            return 'color: #F59E0B; font-weight: 600;'
         else:
-            return 'color: #9CA3AF;'  # Safe
+            return 'color: #9CA3AF;'
 
     col_az, col_cr = st.columns([2, 1])
 
     with col_az:
-        st.markdown(f"""
+        st.markdown(f'''
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 700; font-size: 15px;">📈 Azioni in Portafoglio</span>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700;">{num_eq} / 20</span>
+            <span style="font-weight: 700; font-size: 14.5px;">📈 Azioni in Portafoglio</span>
+            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / 20</span>
         </div>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
@@ -357,12 +375,12 @@ with tab_pf:
                 "Nessuna azione in portafoglio. In attesa del ricalcolo del venerdì.")
 
     with col_cr:
-        st.markdown(f"""
+        st.markdown(f'''
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 700; font-size: 15px;">🪙 Crypto in Portafoglio</span>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 700;">{num_cr} / 3</span>
+            <span style="font-weight: 700; font-size: 14.5px;">🪙 Crypto in Portafoglio</span>
+            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr} / 3</span>
         </div>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
 
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
@@ -397,8 +415,6 @@ with tab_pf:
                          hide_index=True)
         else:
             st.info("Nessuna crypto in portafoglio.")
-
-
 # ==============================================================================
 # TAB 2: METRICHE & GRAFICO
 # ==============================================================================
@@ -569,12 +585,12 @@ with tab_radar:
                     lambda t: "⭐ In Portafoglio" if t in held_tickers else "🆕 Candidato")
 
                 # Reorder columns to put Stato near Ticker
-                cols = ["Ticker", "Stato", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Ticker", "Prezzo ($)", "Stop Loss ($)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
                 st.dataframe(
                     df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
-                        style_radar_status, subset=['Stato']),
+                        style_radar_status, subset=['Pos']),
                     use_container_width=True,
                     hide_index=True
                 )
@@ -595,12 +611,12 @@ with tab_radar:
 
                 df_c["Stato"] = df_c["Ticker"].apply(
                     lambda t: "⭐ In Portafoglio" if t in held_tickers else "🆕 Candidato")
-                cols = ["Ticker", "Stato", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Ticker", "Prezzo ($)", "Stop Loss ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
                     df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
-                        style_radar_status, subset=['Stato']),
+                        style_radar_status, subset=['Pos']),
                     use_container_width=True,
                     hide_index=True
                 )
