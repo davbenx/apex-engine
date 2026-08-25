@@ -170,7 +170,16 @@ eq_cap = capitale * (alloc["Equities"] / 100.0)
 single_eq = eq_cap / 20 if alloc["Equities"] > 0 else 0
 
 btc_cap = capitale * (alloc["Crypto"] / 100.0)
-single_cr = 0 # Gestito dinamicamente
+cr_list = data.get("crypto_top", [])
+if len(cr_list) == 1:
+    single_cr_text = f"{capitale * 0.10:,.0f}"
+elif len(cr_list) == 2:
+    single_cr_text = f"BTC: {capitale * 0.10:,.0f} | Alt: {capitale * 0.05:,.0f}"
+elif len(cr_list) >= 3:
+    single_cr_text = f"BTC: {capitale * 0.05:,.0f} | Alts: {capitale * 0.05:,.0f}"
+else:
+    single_cr_text = "0"
+
 
 gold_cap = capitale * (alloc["Gold"] / 100.0)
 bond_cap = capitale * (alloc["Bonds"] / 100.0)
@@ -239,7 +248,7 @@ with col_az:
 
 with col_cr:
     st.subheader("🪙 Top 3 Crypto")
-    st.caption(f"Size per singola posizione: **{single_cr:,.0f}**")
+    st.caption(f"Size allocazione: **{single_cr_text}**")
     if is_bull_cr:
         cr_top = data.get("crypto_top", [])
         if cr_top:
