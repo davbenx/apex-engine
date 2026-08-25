@@ -275,7 +275,8 @@ if allocations["Crypto"] > 0:
         quotes = json.loads(res_y)['finance']['result'][0]['quotes']
 
         BLACKLIST = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC',
-                     'WBETH', 'WETH', 'AETHWETH', 'BTCB', 'WEETH', 'USDE', 'USDG', 'USDS', 'CBBTC']
+                     'WBETH', 'WETH', 'AETHWETH', 'BTCB', 'WEETH', 'USDE', 'USDG', 'USDS', 'CBBTC',
+                     'XAUT', 'PAXG', 'KAG', 'KAU', 'EURT', 'EURC', 'PYUSD', 'BUSD', 'USDD', 'FRAX']
 
         c_ticks = []
         for q in quotes:
