@@ -61,9 +61,10 @@ class ApexBacktester:
             self.data = pd.DataFrame({self.tickers[0]: df['Close']}).ffill().dropna()
         print("Dati pronti.")
 
-    def run(self, top_n=3, mom_period=90):
+    def run(self, top_n=3, mom_period=90, skip_fetch=False):
         print("Avvio simulazione...")
-        self.fetch_data()
+        if not skip_fetch:
+            self.fetch_data()
         
         # Calcolo indicatori vettoriali
         df_m = self.data.resample('M').last()
@@ -151,14 +152,26 @@ class ApexBacktester:
         print(f"Tasse Totali Versate: ${self.fisco.tasse_pagate:,.2f}")
 
 if __name__ == "__main__":
-    # Test su un micro-universo (per evitare ban da Yahoo, proxy settoriale)
     test_tickers = ["AAPL", "MSFT", "NVDA", "JPM", "V", "JNJ", "UNH", "XOM", "PG", "MA", "HD", "CVX", "ABBV", "MRK", "META", "AMZN", "GOOGL", "SPY", "GLD", "TLT"]
-    
     engine = ApexBacktester(tickers=test_tickers, start_date="2010-01-01")
-    eq = engine.run(top_n=2, mom_period=90)
-    engine.report(eq)
-with open("tax_report.txt", "w") as out:
-    cagr = (eq['Value'].iloc[-1] / engine.capital) ** (12 / len(eq)) - 1
-    max_dd = ((eq['Value'] - eq['Value'].cummax()) / eq['Value'].cummax()).min()
-    out.write(f"Capitale Finale: ${eq['Value'].iloc[-1]:.2f}\nCAGR Netto: {cagr*100:.2f}%\nMax Drawdown: {max_dd*100:.2f}%\nTasse: ${engine.fisco.tasse_pagate:.2f}\n")
-
+    engine.fetch_data()
+    
+    results = []
+    print("Avvio Parameter Sweep Istituzionale...")
+    for top in [2, 3, 5]:
+        for mom in [30, 60, 90, 130, 200]:
+            engine.cash = engine.capital
+            engine.positions = {}
+            engine.history = []
+            engine.fisco = ZainettoFiscale()
+            try:
+                eq = engine.run(top_n=top, mom_period=mom, skip_fetch=True)
+                cagr = (eq['Value'].iloc[-1] / engine.capital) ** (12 / len(eq)) - 1
+                max_dd = ((eq['Value'] - eq['Value'].cummax()) / eq['Value'].cummax()).min()
+                results.append({'Top_N': top, 'Mom_Days': mom, 'CAGR_%': round(cagr*100, 2), 'Max_DD_%': round(max_dd*100, 2), 'Tasse_$': int(engine.fisco.tasse_pagate)})
+            except: pass
+            
+    import pandas as pd
+    res_df = pd.DataFrame(results).sort_values(by='CAGR_%', ascending=False)
+    with open("sweep_report.txt", "w") as f:
+        f.write(res_df.to_string(index=False))
