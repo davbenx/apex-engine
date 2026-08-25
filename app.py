@@ -85,46 +85,54 @@ else:
 
 st.divider()
 
+st.divider()
+
 # --- COCKPIT ---
-st.header("🎛️ Cockpit Allocazione")
+st.header("🎛️ Allocazione Portafoglio (Waterfall)")
 capitale = st.number_input("Imposta il Capitale Totale ($ o €)", min_value=1000, value=100000, step=1000, format="%d")
 
-eq_cap = capitale * 0.70; single_eq = eq_cap / 20
-btc_cap = capitale * 0.10; single_cr = btc_cap / 3
-gold_cap = capitale * 0.10
-bond_cap = capitale * 0.10
+alloc = data.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 
-macro = data.get("macro", {})
-is_bull_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
-is_bull_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
-is_bull_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
-is_bull_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
+is_bull_eq = alloc.get("Equities", 0) > 0
+is_bull_cr = alloc.get("Crypto", 0) > 0
+is_bull_g = alloc.get("Gold", 0) > 0
+is_bull_b = alloc.get("Bonds", 0) > 0
 
-c1, c2, c3, c4 = st.columns(4)
+eq_cap = capitale * (alloc["Equities"] / 100.0)
+single_eq = eq_cap / 20 if alloc["Equities"] > 0 else 0
+
+btc_cap = capitale * (alloc["Crypto"] / 100.0)
+single_cr = btc_cap / 3 if alloc["Crypto"] > 0 else 0
+
+gold_cap = capitale * (alloc["Gold"] / 100.0)
+bond_cap = capitale * (alloc["Bonds"] / 100.0)
+cash_cap = capitale * (alloc["Cash"] / 100.0)
+
+c1, c2, c3, c4, c5 = st.columns(5)
 
 with c1:
-    st.markdown("### 📈 Azionario `70%`")
-    if is_bull_eq: st.success(f"**🟢 INVESTITO**\n\nBudget: **{eq_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO (IB01)**\n\nBudget: **{eq_cap:,.0f}**")
+    st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
+    if is_bull_eq: st.success(f"**🟢 RISK-ON**\n\nBudget: **{eq_cap:,.0f}**")
+    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{eq_cap:,.0f}**")
 
 with c2:
-    st.markdown("### 🪙 Crypto `10%`")
-    if is_bull_cr:
-        btc_hh = macro.get("BTC-USD", {}).get("highest_high_60", 0)
-        btc_a = macro.get("BTC-USD", {}).get("atr", 0)
-        st.success(f"**🟢 INVESTITO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Stop BTC: ${btc_hh-(2.0*btc_a):,.0f})*")
-    else:
-        st.error(f"**🔴 LIQUIDO (USDT)**\n\nBudget: **{btc_cap:,.0f}**")
+    st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
+    if is_bull_cr: st.success(f"**🟢 RISK-ON**\n\nBudget: **{btc_cap:,.0f}**")
+    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{btc_cap:,.0f}**")
 
 with c3:
-    st.markdown("### 🥇 Oro `10%`")
-    if is_bull_g: st.success(f"**🟢 INVESTITO**\n\nBudget: **{gold_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO (IB01)**\n\nBudget: **{gold_cap:,.0f}**")
+    st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
+    if is_bull_g: st.success(f"**🟢 RISK-ON**\n\nBudget: **{gold_cap:,.0f}**")
+    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{gold_cap:,.0f}**")
 
 with c4:
-    st.markdown("### 🛡️ Bond `10%`")
-    if is_bull_b: st.success(f"**🟢 INVESTITO**\n\nBudget: **{bond_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO (IB01)**\n\nBudget: **{bond_cap:,.0f}**")
+    st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
+    if is_bull_b: st.success(f"**🟢 RISK-ON**\n\nBudget: **{bond_cap:,.0f}**")
+    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{bond_cap:,.0f}**")
+    
+with c5:
+    st.markdown(f"### 💵 Cash `{alloc['Cash']}%`")
+    st.info(f"**⚪ PARACADUTE**\n\nBudget: **{cash_cap:,.0f}**")
 
 st.divider()
 
@@ -161,20 +169,3 @@ with col_cr:
             st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata.")
-
-st.subheader("🎛️ Allocazione Portafoglio (Waterfall)")
-alloc = data.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
-
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("📈 Azionario", f"{alloc['Equities']}%")
-c2.metric("🪙 Crypto", f"{alloc['Crypto']}%")
-c3.metric("🥇 Oro", f"{alloc['Gold']}%")
-c4.metric("🛡️ Bond (TLT)", f"{alloc['Bonds']}%")
-c5.metric("💵 Cash", f"{alloc['Cash']}%")
-
-is_bull_eq = alloc["Equities"] > 0
-is_bull_cr = alloc["Crypto"] > 0
-
-capitale = 100000
-st.caption(f"Capitale di base ipotetico: **${capitale:,.0f}**")
-
