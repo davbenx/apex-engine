@@ -175,8 +175,9 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
         
     # Calcolo ritorni giornalieri
     def get_ret(inds, sym):
-        if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 1:
-            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-2]) - 1.0
+        if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 5:
+            # Ritorno a 5 giorni di borsa (esattamente 1 settimana: da Venerdì scorso a questo Venerdì)
+            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-6]) - 1.0
         return 0.0
 
     macro = data_dict.get("macro", {})
@@ -209,7 +210,11 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
     print(f"Equity Curve aggiornata: {new_value}")
 
 # Chiamata al tracker
-update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+
+# Aggiorna l'Equity Curve SOLO il Venerdì
+if datetime.datetime.now().weekday() == 4:
+    update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
+
 
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
