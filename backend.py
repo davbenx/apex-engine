@@ -173,8 +173,6 @@ if capital > 0:
 
 output["allocations"] = allocations
 
-bull_eq = allocations["Equities"] > 0
-bull_cr = allocations["Crypto"] > 0
 
 import time
 import random
@@ -331,31 +329,15 @@ if empty_slots > 0:
 
 output["allocations"] = allocations
 
-bull_eq = allocations["Equities"] > 0
-bull_cr = allocations["Crypto"] > 0
 
-    ret_eq = 0.0
-    if bull_eq and "top20" in data_dict and data_dict["top20"]:
-        rets = [get_ret(eq_inds, row["Ticker"]) for row in data_dict["top20"]]
         ret_eq = sum(rets) / len(rets) if rets else 0.0
         
-    ret_cr = 0.0
-    if bull_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
-        rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
         ret_cr = sum(rets) / len(rets) if rets else 0.0
         
-    ret_g = get_ret(b_inds, "GC=F") if bull_g else 0.0
-    ret_b = get_ret(b_inds, "IEF") if bull_b else 0.0
     
     # Ritorno Totale Portafoglio
-    tot_ret = (0.70 * ret_eq) + (0.10 * ret_cr) + (0.10 * ret_g) + (0.10 * ret_b)
     
-    new_value = last_value * (1.0 + tot_ret)
-    eq_data["history"].append({"date": today_str, "value": round(new_value, 2)})
     
-    with open(eq_file, 'w') as f:
-        json.dump(eq_data, f, indent=4)
-    print(f"Equity Curve aggiornata: {new_value}")
 
 # Chiamata al tracker
 
@@ -363,6 +345,55 @@ bull_cr = allocations["Crypto"] > 0
 if datetime.datetime.now().weekday() == 4:
     update_equity_curve(output, b_inds, calc_indicators(eq_data), calc_indicators(cr_data))
 
+
+
+def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
+    import json
+    import os
+    import datetime
+    
+    eq_file = 'equity.json'
+    if os.path.exists(eq_file):
+        with open(eq_file, 'r') as f:
+            eq_data = json.load(f)
+    else:
+        eq_data = {"history": [{"date": "2024-01-01", "value": 100000.0}]}
+        
+    last_value = eq_data["history"][-1]["value"]
+    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    if eq_data["history"][-1]["date"] == today_str:
+        return
+        
+    def get_ret(inds, ticker):
+        try:
+            return float(inds['Close'][ticker].pct_change().iloc[-1])
+        except:
+            return 0.0
+
+    alloc = data_dict.get("allocations", {"Equities":0,"Crypto":0,"Gold":0,"Bonds":0,"Cash":100})
+    
+    ret_eq = 0.0
+    if alloc["Equities"] > 0 and "top20" in data_dict and data_dict["top20"]:
+        rets = [get_ret(eq_inds, row["Ticker"]) for row in data_dict["top20"]]
+        ret_eq = sum(rets) / len(rets) if rets else 0.0
+        
+    ret_cr = 0.0
+    if alloc["Crypto"] > 0 and "crypto_top" in data_dict and data_dict["crypto_top"]:
+        rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
+        ret_cr = sum(rets) / len(rets) if rets else 0.0
+        
+    ret_g = get_ret(b_inds, "GC=F") if alloc["Gold"] > 0 else 0.0
+    ret_b = get_ret(b_inds, "TLT") if alloc["Bonds"] > 0 else 0.0
+    
+    tot_ret = ( (alloc["Equities"]/100.0) * ret_eq ) + ( (alloc["Crypto"]/100.0) * ret_cr ) + ( (alloc["Gold"]/100.0) * ret_g ) + ( (alloc["Bonds"]/100.0) * ret_b )
+    
+    new_value = last_value * (1.0 + tot_ret)
+    eq_data["history"].append({"date": today_str, "value": round(new_value, 2)})
+    
+    with open(eq_file, 'w') as f:
+        json.dump(eq_data, f, indent=4)
+    print(f"Equity Curve aggiornata: {new_value}")
 
 with open('apex_data.json', 'w') as f:
     json.dump(output, f, indent=4)
@@ -410,14 +441,12 @@ def send_telegram_alert(data_dict):
 
         
         msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
-        if bull_eq and "top20" in data_dict and data_dict["top20"]:
             for i, row in enumerate(data_dict["top20"]):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
             msg += "Semaforo Rosso - Azionario disattivato.\n"
             
         msg += "\n🪙 *TOP 3 CRYPTO*\n"
-        if bull_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
             for i, row in enumerate(data_dict["crypto_top"]):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
         else:
