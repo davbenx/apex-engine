@@ -58,19 +58,29 @@ d_cr = macro_dates.get("Crypto", "-")
 d_g = macro_dates.get("Gold", "-")
 d_b = macro_dates.get("Bonds", "-")
 
-c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric(f"📈 Azioni ({alloc['Equities']}%)",
-          "🟢 ON" if is_bull_eq else "🔴 OFF", f"dal {d_eq}", delta_color="off")
-c2.metric(f"🪙 Crypto ({alloc['Crypto']}%)",
-          "🟢 ON" if is_bull_cr else "🔴 OFF", f"dal {d_cr}", delta_color="off")
-c3.metric(f"🥇 Oro ({alloc['Gold']}%)",
-          "🟢 ON" if is_bull_g else "🔴 OFF", f"dal {d_g}", delta_color="off")
-c4.metric(f"🛡️ Bond ({alloc['Bonds']}%)",
-          "🟢 ON" if is_bull_b else "🔴 OFF", f"dal {d_b}", delta_color="off")
-c5.metric(f"⚪ Cash ({alloc['Cash']}%)", "🟢 ON" if alloc['Cash']
-          > 0 else "⚪ STBY", "Asset Rifugio", delta_color="off")
+
+def get_color(is_active):
+    return "#00FF00" if is_active else "#FF4B4B"
 
 
+def get_icon(is_active):
+    return "🟢 ON" if is_active else "🔴 OFF"
+
+
+html = f'''
+<div style="display: flex; justify-content: space-between; align-items: center; background-color: rgba(128,128,128,0.12); padding: 10px 18px; border-radius: 8px; font-size: 14px; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; border: 1px solid rgba(128,128,128,0.2);">
+    <div><strong>📈 Azioni ({alloc['Equities']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_eq)}; font-weight:bold;">{get_icon(is_bull_eq)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_eq})</span></div>
+    <div style="color: gray;">|</div>
+    <div><strong>🪙 Crypto ({alloc['Crypto']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_cr)}; font-weight:bold;">{get_icon(is_bull_cr)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_cr})</span></div>
+    <div style="color: gray;">|</div>
+    <div><strong>🥇 Oro ({alloc['Gold']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_g)}; font-weight:bold;">{get_icon(is_bull_g)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_g})</span></div>
+    <div style="color: gray;">|</div>
+    <div><strong>🛡️ Bond ({alloc['Bonds']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_b)}; font-weight:bold;">{get_icon(is_bull_b)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_b})</span></div>
+    <div style="color: gray;">|</div>
+    <div><strong>⚪ Cash ({alloc['Cash']}%)</strong> &nbsp;<span style="color: {'#00FF00' if alloc['Cash'] > 0 else 'gray'}; font-weight:bold;">{'🟢 ON' if alloc['Cash'] > 0 else '⚪ STBY'}</span></div>
+</div>
+'''
+st.markdown(html, unsafe_allow_html=True)
 st.divider()
 
 
