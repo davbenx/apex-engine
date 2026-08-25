@@ -152,8 +152,13 @@ class ApexBacktester:
 
 if __name__ == "__main__":
     # Test su un micro-universo (per evitare ban da Yahoo, proxy settoriale)
-    test_tickers = ["QQQ", "SPY", "GLD", "TLT", "XLV", "XLF"]
+    test_tickers = ["AAPL", "MSFT", "NVDA", "JPM", "V", "JNJ", "UNH", "XOM", "PG", "MA", "HD", "CVX", "ABBV", "MRK", "META", "AMZN", "GOOGL", "SPY", "GLD", "TLT"]
     
     engine = ApexBacktester(tickers=test_tickers, start_date="2010-01-01")
     eq = engine.run(top_n=2, mom_period=90)
     engine.report(eq)
+with open("tax_report.txt", "w") as out:
+    cagr = (eq['Value'].iloc[-1] / engine.capital) ** (12 / len(eq)) - 1
+    max_dd = ((eq['Value'] - eq['Value'].cummax()) / eq['Value'].cummax()).min()
+    out.write(f"Capitale Finale: ${eq['Value'].iloc[-1]:.2f}\nCAGR Netto: {cagr*100:.2f}%\nMax Drawdown: {max_dd*100:.2f}%\nTasse: ${engine.fisco.tasse_pagate:.2f}\n")
+
