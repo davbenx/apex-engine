@@ -435,6 +435,14 @@ def send_telegram_alert(data_dict, action_log):
         msg = f"🦅 *APEX ENGINE UPDATE* 🦅\n"
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
         
+        if action_log:
+            msg += "🚨 *AZIONI DA ESEGUIRE SUL BROKER* 🚨\n"
+            for alert in action_log:
+                msg += f"• {alert}\n"
+            msg += "\n"
+        else:
+            msg += "✅ *NESSUNA AZIONE*: Il portafoglio è allineato.\n\n"
+            
         msg += "🎛️ *COCKPIT MACRO*\n"
         
         eq_icon = "🟢" if data_dict['allocations']['Equities'] > 0 else "🔴"
