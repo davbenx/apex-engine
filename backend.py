@@ -329,7 +329,7 @@ def send_telegram_alert(data_dict):
         msg += f"{b_icon} Bond: {data_dict['allocations']['Bonds']}%\n"
         msg += f"{c_icon} Cash: {data_dict['allocations']['Cash']}%\n\n"
         
-        msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
+        msg += "📋 *TOP 20 AZIONI*\n"
         if data_dict['allocations']['Equities'] > 0:
             for i, row in enumerate(data_dict["top20"]):
                 msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
