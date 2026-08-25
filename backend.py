@@ -364,11 +364,12 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
         is_crypto = pos.get("is_crypto", False)
         inds = cr_inds if is_crypto else eq_inds
         sym = ticker + "-USD" if is_crypto else ticker
-        
+
         if inds and sym in inds['c'].columns:
-            low_price = float(inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
+            low_price = float(
+                inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
             close_price = float(inds['c'][sym].iloc[-1])
-            
+
             # Aggiornamento Trailing Stop (solo a salire, SOLO IL VENERDI)
             if today.weekday() == 4:
                 try:
@@ -378,16 +379,17 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                         pos["stop_loss"] = new_stop
                 except:
                     pass
-                    
+
             # Stop loss hit
             if low_price < pos["stop_loss"]:
-                open_price = float(inds['open'][sym].iloc[-1]) if 'open' in inds else float(inds['c'][sym].iloc[-1])
-                
+                open_price = float(
+                    inds['open'][sym].iloc[-1]) if 'open' in inds else float(inds['c'][sym].iloc[-1])
+
                 if open_price < pos["stop_loss"]:
                     exit_price = open_price
                 else:
                     exit_price = pos["stop_loss"]
-                    
+
                 profit_pct = (exit_price / pos["entry_price"]) - 1.0
                 pf["trade_history"].append({
                     "ticker": ticker,
@@ -398,16 +400,17 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                     "profit_pct": round(profit_pct * 100, 2),
                     "reason": "Stop Loss"
                 })
-                action_log.append(f"🔴 STOP LOSS: {ticker} venduto a {exit_price:.2f} ({round(profit_pct*100,2)}%)")
+                action_log.append(
+                    f"🔴 STOP LOSS: {ticker} venduto a {exit_price:.2f} ({round(profit_pct*100, 2)}%)")
                 sold_keys.append(ticker)
-                
+
     for k in sold_keys:
         del pf["open_positions"][k]
-        
+
     # 2. Weekly Actions (Macro Shifts & Deploying Cash)
     if today.weekday() == 4:
         alloc = output["allocations"]
-        
+
         # Sell assets if their macro engine is OFF
         forced_sells = []
         for ticker, pos in list(pf["open_positions"].items()):
@@ -416,14 +419,15 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                 forced_sells.append(ticker)
             elif not is_crypto and alloc["Equities"] == 0:
                 forced_sells.append(ticker)
-                
+
         for ticker in forced_sells:
             pos = pf["open_positions"][ticker]
             is_crypto = pos.get("is_crypto", False)
             inds = cr_inds if is_crypto else eq_inds
             sym = ticker + "-USD" if is_crypto else ticker
-            close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
-            
+            close_price = float(
+                inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
+
             profit_pct = (close_price / pos["entry_price"]) - 1.0
             pf["trade_history"].append({
                 "ticker": ticker,
@@ -434,12 +438,14 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                 "profit_pct": round(profit_pct * 100, 2),
                 "reason": "Macro Bear"
             })
-            action_log.append(f"🔴 MACRO BEAR: {ticker} liquidato a {close_price:.2f} ({round(profit_pct*100,2)}%)")
+            action_log.append(
+                f"🔴 MACRO BEAR: {ticker} liquidato a {close_price:.2f} ({round(profit_pct*100, 2)}%)")
             del pf["open_positions"][ticker]
 
         # Buy missing assets to deploy cash (if Macro is ON)
         if alloc["Equities"] > 0:
-            current_eq = len([k for k, v in pf["open_positions"].items() if not v.get("is_crypto", False)])
+            current_eq = len(
+                [k for k, v in pf["open_positions"].items() if not v.get("is_crypto", False)])
             to_buy = 20 - current_eq
             if to_buy > 0:
                 for row in output.get("top20", []):
@@ -451,10 +457,12 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                             "stop_loss": row["Stop Loss ($)"],
                             "is_crypto": False
                         }
-                        action_log.append(f"🟢 ACQUISTO SETTIMANALE (Reinvestimento Cash): {ticker} a {row['Prezzo ($)']}")
+                        action_log.append(
+                            f"🟢 ACQUISTO SETTIMANALE (Reinvestimento Cash): {ticker} a {row['Prezzo ($)']}")
                         to_buy -= 1
-                        if to_buy == 0: break
-                        
+                        if to_buy == 0:
+                            break
+
         if alloc["Crypto"] > 0:
             # We don't dynamically add crypto based on count, we just buy the top 3 if missing
             for row in output.get("crypto_top", []):
@@ -466,7 +474,8 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                         "stop_loss": row["Stop Loss ($)"],
                         "is_crypto": True
                     }
-                    action_log.append(f"🟢 ACQUISTO SETTIMANALE CRYPTO: {ticker} a {row['Prezzo ($)']}")
+                    action_log.append(
+                        f"🟢 ACQUISTO SETTIMANALE CRYPTO: {ticker} a {row['Prezzo ($)']}")
 
     # 3. Monthly Rotation (Sell underperformers that dropped out of rankings)
     if is_rotation:
@@ -475,15 +484,16 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
             desired[row["Ticker"]] = True
         for row in output.get("crypto_top", []):
             desired[row["Ticker"]] = True
-            
+
         sold_rot = []
         for ticker, pos in list(pf["open_positions"].items()):
             if ticker not in desired:
                 is_crypto = pos.get("is_crypto", False)
                 inds = cr_inds if is_crypto else eq_inds
                 sym = ticker + "-USD" if is_crypto else ticker
-                close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
-                
+                close_price = float(
+                    inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
+
                 profit_pct = (close_price / pos["entry_price"]) - 1.0
                 pf["trade_history"].append({
                     "ticker": ticker,
@@ -494,16 +504,17 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                     "profit_pct": round(profit_pct * 100, 2),
                     "reason": "Rotazione"
                 })
-                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} chiuso a {close_price:.2f} ({round(profit_pct*100,2)}%)")
+                action_log.append(
+                    f"🔄 ROTAZIONE (VENDITA): {ticker} chiuso a {close_price:.2f} ({round(profit_pct*100, 2)}%)")
                 sold_rot.append(ticker)
-                
+
         for k in sold_rot:
             del pf["open_positions"][k]
-            
+
     with open(pf_file, 'w') as f:
         json.dump(pf, f, indent=4)
 
-    return final_alerts
+    return action_log
 
 
 # ==============================
@@ -521,7 +532,6 @@ action_log = update_portfolio(output, calc_indicators(
 
 
 def send_telegram_alert(data_dict, action_log):
-
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
@@ -540,16 +550,16 @@ def send_telegram_alert(data_dict, action_log):
         msg = f"🦅 *APEX ENGINE UPDATE* 🦅\n"
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
 
+        # 1. Action Log (if any weekly actions or macro actions triggered)
         if action_log:
-            msg += "🚨 *AZIONI DA ESEGUIRE SUL BROKER* 🚨\n"
-            for alert in action_log:
-                msg += f"• {alert}\n"
+            msg += "🚀 *AZIONI DA ESEGUIRE OGGI*\n"
+            for log in action_log:
+                if "ACQUISTO" in log or "VENDITA" in log or "BEAR" in log:
+                    msg += f"• {log}\n"
             msg += "\n"
-        else:
-            msg += "✅ *NESSUNA AZIONE*: Il portafoglio è allineato.\n\n"
 
+        # 2. Macro Cockpit
         msg += "🎛️ *COCKPIT MACRO*\n"
-
         eq_icon = "🟢" if data_dict['allocations']['Equities'] > 0 else "🔴"
         cr_icon = "🟢" if data_dict['allocations']['Crypto'] > 0 else "🔴"
         g_icon = "🟢" if data_dict['allocations']['Gold'] > 0 else "🔴"
@@ -561,6 +571,7 @@ def send_telegram_alert(data_dict, action_log):
         msg += f"{b_icon} Bond: {data_dict['allocations']['Bonds']}%\n"
         msg += f"⚪ Cash: {data_dict['allocations']['Cash']}%\n\n"
 
+        # 3. Portfolio Stops
         pf_file = 'portfolio.json'
         if os.path.exists(pf_file):
             with open(pf_file, 'r') as f:
@@ -574,23 +585,14 @@ def send_telegram_alert(data_dict, action_log):
             else:
                 msg += "Nessuna posizione aperta.\n"
 
+        # 4. Rotation Radar (Only on last Friday)
         today = datetime.datetime.now()
         is_rotation = today.weekday() == 4 and (
             today + datetime.timedelta(days=7)).month != today.month
 
         if is_rotation:
-            msg += "\n🔄 *ROTAZIONE (NUOVI ACQUISTI)*\n"
-            msg += "Azioni:\n"
-            if data_dict['allocations']['Equities'] > 0:
-                # Mostro solo le prime 5 per brevità
-                for row in data_dict["top20"][:5]:
-                    msg += f"• {row['Ticker']} (Stop: {fmt(row['Stop Loss ($)'])})\n"
-                msg += "... (vedi Dashboard per le 20 complete)\n"
-
-            msg += "\nCrypto:\n"
-            if data_dict['allocations']['Crypto'] > 0:
-                for row in data_dict["crypto_top"]:
-                    msg += f"• {row['Ticker']} (Stop: {fmt(row['Stop Loss ($)'])})\n"
+            msg += "\n🔄 *RADAR ROTAZIONE MENSILE*\n"
+            msg += "Controlla la Dashboard per rimpiazzare le vendite.\n"
 
         msg += "\n💡 _Vai sulla Dashboard per operare._"
 
@@ -606,8 +608,6 @@ def send_telegram_alert(data_dict, action_log):
         print("Alert Telegram inviato con successo nel Canale!")
     except Exception as e:
         print(f"Errore nell'invio Telegram: {e}")
-
-# Invia la notifica alla fine dello script
 
 
 # Invia Telegram solo il Venerdì
