@@ -400,17 +400,12 @@ def send_telegram_alert(data_dict):
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
         
         msg += "🎛️ *COCKPIT MACRO*\n"
-        msg += f"📈 Azionario: {data_dict['allocations']['Equities']}%
-"
-        msg += f"🪙 Crypto: {data_dict['allocations']['Crypto']}%
-"
-        msg += f"🥇 Oro: {data_dict['allocations']['Gold']}%
-"
-        msg += f"🛡️ Bond (TLT): {data_dict['allocations']['Bonds']}%
-"
-        msg += f"💵 Cash: {data_dict['allocations']['Cash']}%
+        msg += f"📈 Azionario: {data_dict['allocations']['Equities']}%\n"
+        msg += f"🪙 Crypto: {data_dict['allocations']['Crypto']}%\n"
+        msg += f"🥇 Oro: {data_dict['allocations']['Gold']}%\n"
+        msg += f"🛡️ Bond (TLT): {data_dict['allocations']['Bonds']}%\n"
+        msg += f"💵 Cash: {data_dict['allocations']['Cash']}%\n\n"
 
-"
 
         
         msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
