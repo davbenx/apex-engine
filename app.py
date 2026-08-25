@@ -10,9 +10,18 @@ st.markdown("##### Il tuo portafoglio sistematico a guida autonoma.")
 
 @st.cache_data(ttl=60)
 def load_data():
-    if os.path.exists('apex_data.json'):
-        with open('apex_data.json', 'r') as f:
-            return json.load(f)
+    import urllib.request
+    import json
+    # Prova prima a scaricare il file aggiornato dal Cloud (GitHub)
+    url = f"https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json?token={urllib.request.urlopen('https://api.github.com/repos/davbenx/apex-engine/commits/main').read().hex()[:10]}" # Cache buster
+    try:
+        req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json")
+        return json.loads(urllib.request.urlopen(req).read().decode())
+    except:
+        # Fallback locale se internet è giù
+        if os.path.exists('apex_data.json'):
+            with open('apex_data.json', 'r') as f:
+                return json.load(f)
     return None
 
 data = load_data()
@@ -37,9 +46,15 @@ with st.expander("📖 Regole Operative (Come usare questa Dashboard)", expanded
 st.header("📈 Performance Live")
 @st.cache_data(ttl=60)
 def load_equity():
-    if os.path.exists('equity.json'):
-        with open('equity.json', 'r') as f:
-            return json.load(f).get("history", [])
+    import urllib.request
+    import json
+    try:
+        req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/equity.json")
+        return json.loads(urllib.request.urlopen(req).read().decode()).get("history", [])
+    except:
+        if os.path.exists('equity.json'):
+            with open('equity.json', 'r') as f:
+                return json.load(f).get("history", [])
     return []
 
 eq_history = load_equity()
