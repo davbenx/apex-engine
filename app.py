@@ -170,15 +170,7 @@ eq_cap = capitale * (alloc["Equities"] / 100.0)
 single_eq = eq_cap / 20 if alloc["Equities"] > 0 else 0
 
 btc_cap = capitale * (alloc["Crypto"] / 100.0)
-cr_list = data.get("crypto_top", [])
-if len(cr_list) == 1:
-    single_cr_text = f"{capitale * 0.10:,.0f}"
-elif len(cr_list) == 2:
-    single_cr_text = f"BTC: {capitale * 0.10:,.0f} | Alt: {capitale * 0.05:,.0f}"
-elif len(cr_list) >= 3:
-    single_cr_text = f"BTC: {capitale * 0.05:,.0f} | Alts: {capitale * 0.05:,.0f}"
-else:
-    single_cr_text = "0"
+cr_list = data.get('crypto_top', [])
 
 
 gold_cap = capitale * (alloc["Gold"] / 100.0)
@@ -236,25 +228,44 @@ col_az, col_cr = st.columns([2, 1])
 
 with col_az:
     st.subheader("📈 Top 20 Azioni")
-    st.caption(f"Size per singola posizione: **{single_eq:,.0f}**")
+    
     if is_bull_eq:
         top20 = data.get("top20", [])
         if top20:
             df_eq = pd.DataFrame(top20)
             if "Momentum Score" in df_eq.columns: df_eq = df_eq.drop(columns=["Momentum Score"])
-            st.dataframe(df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}), use_container_width=True, hide_index=True)
+            df_eq["Budget ($)"] = single_eq
+            st.dataframe(df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}", "Budget ($)": "{:,.0f}"}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata per prevenire acquisti.")
 
 with col_cr:
     st.subheader("🪙 Top 3 Crypto")
-    st.caption(f"Size allocazione: **{single_cr_text}**")
+    
     if is_bull_cr:
         cr_top = data.get("crypto_top", [])
         if cr_top:
             df_c = pd.DataFrame(cr_top)
             if "Momentum Score" in df_c.columns: df_c = df_c.drop(columns=["Momentum Score"])
-            st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
+            
+            budgets = []
+            has_btc = any(r['Ticker'] == 'BTC' for r in cr_top)
+            num_cr = len(cr_top)
+            
+            for _, r in df_c.iterrows():
+                if has_btc:
+                    if num_cr == 1:
+                        budgets.append(capitale * 0.10)
+                    elif num_cr == 2:
+                        budgets.append(capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
+                    else:
+                        budgets.append(capitale * 0.05)
+                else:
+                    budgets.append(capitale * 0.05)
+                    
+            df_c["Budget ($)"] = budgets
+            
+            st.dataframe(df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price, "Budget ($)": "{:,.0f}"}), use_container_width=True, hide_index=True)
     else:
         st.info("Semaforo Rosso. Tabella disattivata.")
 
