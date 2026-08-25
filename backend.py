@@ -328,6 +328,16 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
             low_price = float(inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
             close_price = float(inds['c'][sym].iloc[-1])
             
+            # Aggiornamento Trailing Stop (solo a salire)
+            try:
+                atr = float(inds['atr'][sym].iloc[-1])
+                # Usa un moltiplicatore coerente (es. 2.0 ATR)
+                new_stop = close_price - (atr * 2.0)
+                if new_stop > pos["stop_loss"]:
+                    pos["stop_loss"] = new_stop
+            except:
+                pass
+                
             # Stop loss hit
             if low_price < pos["stop_loss"]:
                 profit_pct = (close_price / pos["entry_price"]) - 1.0
@@ -387,8 +397,7 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
                     "is_crypto": info["is_cr"]
                 }
                 action_log.append(f"🟢 ROTAZIONE (ACQUISTO): {ticker} a {info['price']}")
-            else:
-                pf["open_positions"][ticker]["stop_loss"] = info["stop"]
+            # Lo stop_loss viene ora aggiornato giornalmente sopra.
                 
     pf["pending_alerts"].extend(action_log)
     
