@@ -256,92 +256,93 @@ with c5:
 
 st.divider()
 
-# --- TABELLE OPERATIVE ---
-st.header("📋 Liste Operative")
-
-
+# --- POSIZIONI APERTE (IL MIO PORTAFOGLIO) ---
+st.header("💼 Il Mio Portafoglio (Posizioni Reali)")
 def format_price(x):
-    if x >= 1000:
-        return f"{x:,.2f}"
-    elif x >= 1:
-        return f"{x:,.4f}"
-    elif x >= 0.01:
-        return f"{x:,.6f}"
-    else:
-        return f"{x:,.8f}"
+    if x >= 1000: return f"{x:,.2f}"
+    elif x >= 1: return f"{x:,.4f}"
+    elif x >= 0.01: return f"{x:,.6f}"
+    else: return f"{x:,.8f}"
 
+def load_portfolio():
+    import urllib.request
+    try:
+        req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
+        return json.loads(urllib.request.urlopen(req).read().decode())
+    except:
+        import os
+        if os.path.exists('portfolio.json'):
+            with open('portfolio.json', 'r') as f:
+                return json.load(f)
+        return None
 
-col_az, col_cr = st.columns([2, 1])
+pf = load_portfolio()
 
-with col_az:
-    st.subheader("📈 Top 20 Azioni")
-
-    if is_bull_eq:
-        top20 = data.get("top20", [])
-        if top20:
-            df_eq = pd.DataFrame(top20)
-            if "Momentum Score" in df_eq.columns:
-                df_eq = df_eq.drop(columns=["Momentum Score"])
-            df_eq["Budget"] = single_eq
-            df_eq = df_eq.rename(
-                columns={
-                    "Prezzo ($)": "Prezzo",
-                    "Stop Loss ($)": "Stop Loss",
-                    "Budget ($)": "Budget"})
-            st.dataframe(
-                df_eq.style.format(
-                    {
-                        "Prezzo": "{:.2f}",
-                        "Stop Loss": "{:.2f}",
-                        "Budget": "{:,.0f}"}),
-                use_container_width=True,
-                hide_index=True)
-    else:
-        st.info("Semaforo Rosso. Tabella disattivata per prevenire acquisti.")
-
-with col_cr:
-    st.subheader("🪙 Top 3 Crypto")
-
-    if is_bull_cr:
-        cr_top = data.get("crypto_top", [])
-        if cr_top:
-            df_c = pd.DataFrame(cr_top)
-            if "Momentum Score" in df_c.columns:
-                df_c = df_c.drop(columns=["Momentum Score"])
-
+if pf and "open_positions" in pf and pf["open_positions"]:
+    op_eq = []
+    op_cr = []
+    for ticker, info in pf["open_positions"].items():
+        row = {
+            "Ticker": ticker,
+            "Prezzo Ingresso": info["entry_price"],
+            "Stop Loss (Trailing)": info["stop_loss"],
+            "Data Ingresso": info["entry_date"]
+        }
+        if info.get("is_crypto", False):
+            op_cr.append(row)
+        else:
+            op_eq.append(row)
+            
+    col_az, col_cr = st.columns([2, 1])
+    with col_az:
+        st.subheader("📈 Azioni in Portafoglio")
+        if op_eq:
+            df_op_eq = pd.DataFrame(op_eq)
+            df_op_eq["Budget Ribilanciamento"] = single_eq
+            st.dataframe(df_op_eq.style.format({"Prezzo Ingresso": "{:.2f}", "Stop Loss (Trailing)": "{:.2f}", "Budget Ribilanciamento": "{:,.0f}"}), use_container_width=True, hide_index=True)
+        else:
+            st.info("Nessuna azione in portafoglio.")
+            
+    with col_cr:
+        st.subheader("🪙 Crypto in Portafoglio")
+        if op_cr:
+            df_op_cr = pd.DataFrame(op_cr)
             budgets = []
-            has_btc = any(r['Ticker'] == 'BTC' for r in cr_top)
-            num_cr = len(cr_top)
-
-            for _, r in df_c.iterrows():
+            has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
+            num_cr = len(op_cr)
+            for _, r in df_op_cr.iterrows():
                 if has_btc:
-                    if num_cr == 1:
-                        budgets.append(capitale * 0.10)
-                    elif num_cr == 2:
-                        budgets.append(
-                            capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
-                    else:
-                        budgets.append(capitale * 0.05)
-                else:
-                    budgets.append(capitale * 0.05)
+                    if num_cr == 1: budgets.append(capitale * 0.10)
+                    elif num_cr == 2: budgets.append(capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
+                    else: budgets.append(capitale * 0.05)
+                else: budgets.append(capitale * 0.05)
+            df_op_cr["Budget Ribilanciamento"] = budgets
+            st.dataframe(df_op_cr.style.format({"Prezzo Ingresso": format_price, "Stop Loss (Trailing)": format_price, "Budget Ribilanciamento": "{:,.0f}"}), use_container_width=True, hide_index=True)
+        else:
+            st.info("Nessuna crypto in portafoglio.")
+else:
+    st.info("Nessuna posizione aperta. Il portafoglio è liquido o in attesa della rotazione.")
 
-            df_c["Budget"] = budgets
-            df_c = df_c.rename(
-                columns={
-                    "Prezzo ($)": "Prezzo",
-                    "Stop Loss ($)": "Stop Loss",
-                    "Budget ($)": "Budget"})
+with st.expander("🔮 Radar (Possibili ingressi alla Prossima Rotazione)", expanded=False):
+    st.markdown("Questa tabella mostra i titoli più forti **Oggi**. Verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).")
+    rc1, rc2 = st.columns([2, 1])
+    with rc1:
+        if is_bull_eq:
+            top20 = data.get("top20", [])
+            if top20:
+                df_eq = pd.DataFrame(top20)
+                if "Momentum Score" in df_eq.columns: df_eq = df_eq.drop(columns=["Momentum Score"])
+                df_eq = df_eq.rename(columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
+                st.dataframe(df_eq.style.format({"Prezzo": "{:.2f}", "Stop Loss": "{:.2f}"}), use_container_width=True, hide_index=True)
+    with rc2:
+        if is_bull_cr:
+            cr_top = data.get("crypto_top", [])
+            if cr_top:
+                df_c = pd.DataFrame(cr_top)
+                if "Momentum Score" in df_c.columns: df_c = df_c.drop(columns=["Momentum Score"])
+                df_c = df_c.rename(columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
+                st.dataframe(df_c.style.format({"Prezzo": format_price, "Stop Loss": format_price}), use_container_width=True, hide_index=True)
 
-            st.dataframe(
-                df_c.style.format(
-                    {
-                        "Prezzo": format_price,
-                        "Stop Loss": format_price,
-                        "Budget": "{:,.0f}"}),
-                use_container_width=True,
-                hide_index=True)
-    else:
-        st.info("Semaforo Rosso. Tabella disattivata.")
 
 
 st.divider()
