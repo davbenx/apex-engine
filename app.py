@@ -113,7 +113,7 @@ c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
     if is_bull_eq: st.success(f"**🟢 ATTIVO**\n\nBudget: **{eq_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{eq_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{eq_cap:,.0f}**")
 
 with c2:
     st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
@@ -129,20 +129,20 @@ with c2:
         else:
             st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**")
     else: 
-        st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{btc_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
+        st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{btc_cap:,.0f}**")
 
 with c3:
     st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
     if is_bull_g: st.success(f"**🟢 ATTIVO**\n\nBudget: **{gold_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{gold_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{gold_cap:,.0f}**")
 
 with c4:
-    st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
+    st.markdown(f"### 🛡️ Obbligazioni `{alloc['Bonds']}%`")
     if is_bull_b: st.success(f"**🟢 ATTIVO**\n\nBudget: **{bond_cap:,.0f}**")
-    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{bond_cap:,.0f}**\n\n*(Vendi e sposta in Monetario)*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{bond_cap:,.0f}**")
     
 with c5:
-    st.markdown(f"### 💵 Cash / Monetario `{alloc['Cash']}%`")
+    st.markdown(f"### 💵 Monetario `{alloc['Cash']}%`")
     st.info(f"**⚪ FONDO MONETARIO**\n\nBudget: **{cash_cap:,.0f}**")
 
 st.divider()
