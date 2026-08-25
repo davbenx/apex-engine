@@ -350,7 +350,6 @@ st.divider()
 with st.expander("📊 Metriche di Rischio & Trade Log", expanded=False):
     # pf is loaded above
     if pf:
-    if pf:
         hist = pf.get("trade_history", [])
         open_pos = pf.get("open_positions", {})
 
