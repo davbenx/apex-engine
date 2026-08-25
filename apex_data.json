@@ -1,8 +1,155 @@
 {
-    "macro": {},
-    "top20": [],
+    "macro": {
+        "SPY": {
+            "price": 763.469970703125,
+            "ma200": 719.0165017700195,
+            "mom": 0.11294622599708526
+        },
+        "BTC-USD": {
+            "price": 80605.8515625,
+            "ma200": 69130.0381640625,
+            "mom": 0.20314676629968975
+        },
+        "GC=F": {
+            "price": 4696.0,
+            "ma200": 4542.124494628906,
+            "mom": -0.10218908326163845
+        },
+        "TLT": {
+            "price": 82.55999755859375,
+            "ma200": 85.81530014038086,
+            "mom": -0.09094915397474068
+        },
+        "SHV": {
+            "price": 110.31999969482422,
+            "ma200": 110.23409969329833,
+            "mom": -0.0006341126479867398
+        }
+    },
+    "top20": [
+        {
+            "Ticker": "HUM",
+            "Prezzo ($)": 386.61,
+            "Momentum Score": 33.78,
+            "Stop Loss ($)": 385.22
+        },
+        {
+            "Ticker": "MPC",
+            "Prezzo ($)": 362.52,
+            "Momentum Score": 32.0,
+            "Stop Loss ($)": 335.58
+        },
+        {
+            "Ticker": "CRL",
+            "Prezzo ($)": 298.58,
+            "Momentum Score": 29.12,
+            "Stop Loss ($)": 267.61
+        },
+        {
+            "Ticker": "VLO",
+            "Prezzo ($)": 346.0,
+            "Momentum Score": 26.92,
+            "Stop Loss ($)": 319.11
+        },
+        {
+            "Ticker": "STT",
+            "Prezzo ($)": 190.92,
+            "Momentum Score": 23.08,
+            "Stop Loss ($)": 180.95
+        },
+        {
+            "Ticker": "PSX",
+            "Prezzo ($)": 241.96,
+            "Momentum Score": 21.52,
+            "Stop Loss ($)": 226.1
+        },
+        {
+            "Ticker": "EXPE",
+            "Prezzo ($)": 339.13,
+            "Momentum Score": 20.96,
+            "Stop Loss ($)": 301.89
+        },
+        {
+            "Ticker": "IQV",
+            "Prezzo ($)": 260.24,
+            "Momentum Score": 20.26,
+            "Stop Loss ($)": 235.68
+        },
+        {
+            "Ticker": "BNY",
+            "Prezzo ($)": 162.14,
+            "Momentum Score": 19.07,
+            "Stop Loss ($)": 154.83
+        },
+        {
+            "Ticker": "TGT",
+            "Prezzo ($)": 169.89,
+            "Momentum Score": 18.93,
+            "Stop Loss ($)": 156.37
+        },
+        {
+            "Ticker": "CNC",
+            "Prezzo ($)": 65.65,
+            "Momentum Score": 17.52,
+            "Stop Loss ($)": 61.59
+        },
+        {
+            "Ticker": "XYZ",
+            "Prezzo ($)": 81.38,
+            "Momentum Score": 17.44,
+            "Stop Loss ($)": 76.93
+        },
+        {
+            "Ticker": "APA",
+            "Prezzo ($)": 42.96,
+            "Momentum Score": 17.15,
+            "Stop Loss ($)": 40.04
+        },
+        {
+            "Ticker": "FDS",
+            "Prezzo ($)": 305.31,
+            "Momentum Score": 16.53,
+            "Stop Loss ($)": 269.27
+        },
+        {
+            "Ticker": "AIZ",
+            "Prezzo ($)": 287.81,
+            "Momentum Score": 15.2,
+            "Stop Loss ($)": 283.92
+        },
+        {
+            "Ticker": "ADP",
+            "Prezzo ($)": 283.01,
+            "Momentum Score": 13.99,
+            "Stop Loss ($)": 262.35
+        },
+        {
+            "Ticker": "NWS",
+            "Prezzo ($)": 35.05,
+            "Momentum Score": 13.86,
+            "Stop Loss ($)": 32.37
+        },
+        {
+            "Ticker": "PAYX",
+            "Prezzo ($)": 126.01,
+            "Momentum Score": 13.84,
+            "Stop Loss ($)": 115.9
+        },
+        {
+            "Ticker": "NWSA",
+            "Prezzo ($)": 30.76,
+            "Momentum Score": 13.79,
+            "Stop Loss ($)": 28.34
+        },
+        {
+            "Ticker": "CSX",
+            "Prezzo ($)": 51.44,
+            "Momentum Score": 13.74,
+            "Stop Loss ($)": 50.27
+        }
+    ],
     "crypto_top": [],
-    "timestamp": "25 Aug 2026, 05:18 (UTC)",
+    "timestamp": "25 Aug 2026, 05:27 (UTC)",
     "allocations": {
         "Equities": 70,
         "Crypto": 15,
