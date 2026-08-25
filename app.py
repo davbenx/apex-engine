@@ -59,28 +59,52 @@ d_g = macro_dates.get("Gold", "-")
 d_b = macro_dates.get("Bonds", "-")
 
 
-def get_color(is_active):
-    return "#00FF00" if is_active else "#FF4B4B"
+def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
+    if is_cash:
+        border_color = "#3B82F6" if alloc_pct > 0 else "#6B7280"
+        bg_color = "rgba(59, 130, 246, 0.08)" if alloc_pct > 0 else "rgba(107, 114, 128, 0.06)"
+        badge_bg = "#1E40AF" if alloc_pct > 0 else "#374151"
+        status_text = "🟢 ATTIVO" if alloc_pct > 0 else "⚪ STBY"
+        status_color = "#60A5FA" if alloc_pct > 0 else "#9CA3AF"
+        date_str = "Rifugio"
+    else:
+        border_color = "#10B981" if is_active else "#EF4444"
+        bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(239, 68, 68, 0.08)"
+        badge_bg = "#065F46" if is_active else "#7F1D1D"
+        status_text = "🟢 ATTIVO" if is_active else "🔴 OFF"
+        status_color = "#34D399" if is_active else "#F87171"
+        date_str = f"dal {since_date}" if since_date and since_date != "-" else ""
+
+    return f'''
+    <div style="flex: 1 1 150px; min-width: 140px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-weight: 700; font-size: 13px; letter-spacing: 0.2px;">{icon} {name}</span>
+            <span style="background: {badge_bg}; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px;">{alloc_pct}%</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="color: {status_color}; font-weight: 700; font-size: 12px;">{status_text}</span>
+            <span style="color: #9CA3AF; font-size: 10px;">{date_str}</span>
+        </div>
+    </div>
+    '''
 
 
-def get_icon(is_active):
-    return "🟢 ON" if is_active else "🔴 OFF"
+chip_eq = make_chip("📈", "Azioni", alloc['Equities'], is_bull_eq, d_eq)
+chip_cr = make_chip("🪙", "Crypto", alloc['Crypto'], is_bull_cr, d_cr)
+chip_g = make_chip("🥇", "Oro", alloc['Gold'], is_bull_g, d_g)
+chip_b = make_chip("🛡️", "Bond", alloc['Bonds'], is_bull_b, d_b)
+chip_c = make_chip("💵", "Cash", alloc['Cash'], True, "", is_cash=True)
 
-
-html = f'''
-<div style="display: flex; justify-content: space-between; align-items: center; background-color: rgba(128,128,128,0.12); padding: 10px 18px; border-radius: 8px; font-size: 14px; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; border: 1px solid rgba(128,128,128,0.2);">
-    <div><strong>📈 Azioni ({alloc['Equities']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_eq)}; font-weight:bold;">{get_icon(is_bull_eq)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_eq})</span></div>
-    <div style="color: gray;">|</div>
-    <div><strong>🪙 Crypto ({alloc['Crypto']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_cr)}; font-weight:bold;">{get_icon(is_bull_cr)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_cr})</span></div>
-    <div style="color: gray;">|</div>
-    <div><strong>🥇 Oro ({alloc['Gold']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_g)}; font-weight:bold;">{get_icon(is_bull_g)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_g})</span></div>
-    <div style="color: gray;">|</div>
-    <div><strong>🛡️ Bond ({alloc['Bonds']}%)</strong> &nbsp;<span style="color: {get_color(is_bull_b)}; font-weight:bold;">{get_icon(is_bull_b)}</span> <span style="color: gray; font-size: 0.85em;">(dal {d_b})</span></div>
-    <div style="color: gray;">|</div>
-    <div><strong>⚪ Cash ({alloc['Cash']}%)</strong> &nbsp;<span style="color: {'#00FF00' if alloc['Cash'] > 0 else 'gray'}; font-weight:bold;">{'🟢 ON' if alloc['Cash'] > 0 else '⚪ STBY'}</span></div>
+chips_html = f'''
+<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+    {chip_eq}
+    {chip_cr}
+    {chip_g}
+    {chip_b}
+    {chip_c}
 </div>
 '''
-st.markdown(html, unsafe_allow_html=True)
+st.markdown(chips_html, unsafe_allow_html=True)
 st.divider()
 
 
