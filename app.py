@@ -60,23 +60,30 @@ gold_cap = capitale * (alloc['Gold'] / 100)
 bond_cap = capitale * (alloc['Bonds'] / 100)
 cash_cap = capitale * (alloc['Cash'] / 100)
 
+
+macro_dates = data.get("macro_dates", {})
+d_eq = macro_dates.get("Equities", "-")
+d_cr = macro_dates.get("Crypto", "-")
+d_g = macro_dates.get("Gold", "-")
+d_b = macro_dates.get("Bonds", "-")
+
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
-    if is_bull_eq: st.success("**🟢 ATTIVO**")
-    else: st.error("**🔴 DISATTIVATO**")
+    if is_bull_eq: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_eq})*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_eq})*")
 with c2:
     st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
-    if is_bull_cr: st.success("**🟢 ATTIVO**")
-    else: st.error("**🔴 DISATTIVATO**")
+    if is_bull_cr: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_cr})*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_cr})*")
 with c3:
     st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
-    if is_bull_g: st.success("**🟢 ATTIVO**")
-    else: st.error("**🔴 DISATTIVATO**")
+    if is_bull_g: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_g})*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_g})*")
 with c4:
     st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
-    if is_bull_b: st.success("**🟢 ATTIVO**")
-    else: st.error("**🔴 DISATTIVATO**")
+    if is_bull_b: st.success(f"**🟢 ATTIVO**\n\n*(dal {d_b})*")
+    else: st.error(f"**🔴 DISATTIVATO**\n\n*(dal {d_b})*")
 with c5:
     st.markdown(f"### ⚪ Cash `{alloc['Cash']}%`")
     st.info("**⚪ RIFUGIO**")
@@ -124,6 +131,7 @@ if pf and "open_positions" in pf:
         
         row = {
             "Ticker": ticker,
+            "Data Ingresso": info.get("entry_date", "-"),
             "Ingresso ($)": info["entry_price"],
             "Attuale ($)": curr_p,
             "Stop Loss ($)": info["stop_loss"],
