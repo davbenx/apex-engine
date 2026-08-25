@@ -293,8 +293,8 @@ if pf and "open_positions" in pf and pf["open_positions"]:
     for ticker, info in pf["open_positions"].items():
         row = {
             "Ticker": ticker,
-            "Prezzo Ingresso": info["entry_price"],
-            "Stop Loss (Trailing)": info["stop_loss"],
+            "Prezzo Ingresso ($)": info["entry_price"],
+            "Stop Loss ($)": info["stop_loss"],
             "Data Ingresso": info["entry_date"]
         }
         if info.get("is_crypto", False):
@@ -308,7 +308,7 @@ if pf and "open_positions" in pf and pf["open_positions"]:
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
             df_op_eq["Size Allocata"] = single_eq
-            st.dataframe(df_op_eq.style.format({"Prezzo Ingresso": "{:.2f}", "Stop Loss (Trailing)": "{:.2f}",
+            st.dataframe(df_op_eq.style.format({"Prezzo Ingresso ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}",
                          "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
         else:
             st.info("Nessuna azione in portafoglio.")
@@ -332,7 +332,7 @@ if pf and "open_positions" in pf and pf["open_positions"]:
                 else:
                     budgets.append(capitale * 0.05)
             df_op_cr["Size Allocata"] = budgets
-            st.dataframe(df_op_cr.style.format({"Prezzo Ingresso": format_price, "Stop Loss (Trailing)": format_price,
+            st.dataframe(df_op_cr.style.format({"Prezzo Ingresso ($)": format_price, "Stop Loss ($)": format_price,
                          "Size Allocata": "{:,.0f}"}), use_container_width=True, hide_index=True)
         else:
             st.info("Nessuna crypto in portafoglio.")
@@ -350,10 +350,8 @@ with st.expander("🔮 Radar (Possibili ingressi alla Prossima Rotazione)", expa
                 df_eq = pd.DataFrame(top20)
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
-                df_eq = df_eq.rename(
-                    columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
                 st.dataframe(df_eq.style.format(
-                    {"Prezzo": "{:.2f}", "Stop Loss": "{:.2f}"}), use_container_width=True, hide_index=True)
+                    {"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}), use_container_width=True, hide_index=True)
     with rc2:
         if is_bull_cr:
             cr_top = data.get("crypto_top", [])
@@ -361,10 +359,8 @@ with st.expander("🔮 Radar (Possibili ingressi alla Prossima Rotazione)", expa
                 df_c = pd.DataFrame(cr_top)
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
-                df_c = df_c.rename(
-                    columns={"Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
                 st.dataframe(df_c.style.format(
-                    {"Prezzo": format_price, "Stop Loss": format_price}), use_container_width=True, hide_index=True)
+                    {"Prezzo ($)": format_price, "Stop Loss ($)": format_price}), use_container_width=True, hide_index=True)
 
 
 st.divider()
