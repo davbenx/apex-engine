@@ -46,26 +46,10 @@ st.caption("⏳ **Prossimo Ricalcolo:** 01:30")
 st.markdown("### 🎛️ Motori Macro (Cockpit)")
 alloc = data['allocations']
 
-with st.sidebar:
-    st.markdown("### ⚙️ Impostazioni")
-    capitale = st.number_input(
-        "💰 Capitale Broker", min_value=1000.0, value=100000.0, step=1000.0)
-    st.caption(
-        "Modifica il capitale reale per ricalcolare tutte le size operative della dashboard.")
-
-
 is_bull_eq = alloc['Equities'] > 0
 is_bull_cr = alloc['Crypto'] > 0
 is_bull_g = alloc['Gold'] > 0
 is_bull_b = alloc['Bonds'] > 0
-
-capitale_azionario = capitale * (alloc['Equities'] / 100)
-single_eq = capitale_azionario / 20 if alloc['Equities'] > 0 else 0
-
-crypto_cap = capitale * (alloc['Crypto'] / 100)
-gold_cap = capitale * (alloc['Gold'] / 100)
-bond_cap = capitale * (alloc['Bonds'] / 100)
-cash_cap = capitale * (alloc['Cash'] / 100)
 
 
 macro_dates = data.get("macro_dates", {})
@@ -167,16 +151,28 @@ if pf and "open_positions" in pf:
             op_eq.append(row)
             num_eq += 1
 
-# Calcolo del Cash Reale (Cash Strategico + Liquidità Transitoria da slot vuoti)
-real_cash = cash_cap
-if alloc['Equities'] > 0:
-    real_cash += (20 - num_eq) * single_eq
-if alloc['Crypto'] > 0:
-    # Approssimazione: se mancano crypto, aggiungiamo il budget medio (5%)
-    real_cash += (3 - num_cr) * (capitale * 0.05)
-
-
 with tab_pf:
+    c_inp, c_space = st.columns([1, 2])
+    with c_inp:
+        capitale = st.number_input(
+            "💰 Inserisci Capitale Broker Reale", min_value=1000.0, value=100000.0, step=1000.0)
+    st.caption(
+        "Le size qui sotto sono calcolate matematicamente sul capitale inserito.")
+
+    capitale_azionario = capitale * (alloc['Equities'] / 100)
+    single_eq = capitale_azionario / 20 if alloc['Equities'] > 0 else 0
+    crypto_cap = capitale * (alloc['Crypto'] / 100)
+    gold_cap = capitale * (alloc['Gold'] / 100)
+    bond_cap = capitale * (alloc['Bonds'] / 100)
+    cash_cap = capitale * (alloc['Cash'] / 100)
+
+    # Calcolo del Cash Reale (Cash Strategico + Liquidità Transitoria da slot vuoti)
+    real_cash = cash_cap
+    if alloc['Equities'] > 0:
+        real_cash += (20 - num_eq) * single_eq
+    if alloc['Crypto'] > 0:
+        real_cash += (3 - num_cr) * (capitale * 0.05)
+
     # --- RIGA 1: ASSET RIFUGIO & LIQUIDITÀ ---
     st.markdown("### 🏦 Liquidità & Coperture")
     c1, c2, c3 = st.columns(3)
