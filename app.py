@@ -313,9 +313,9 @@ if alloc['Crypto'] > 0:
 # --- RIGA 1: ASSET RIFUGIO & LIQUIDITÀ ---
 st.markdown("### 🏦 Liquidità & Coperture")
 c1, c2, c3 = st.columns(3)
-c1.metric("💵 Cash Totale", f"${real_cash:,.0f}")
-if alloc['Gold'] > 0: c2.metric("🥇 Oro (GLD)", f"${gold_cap:,.0f}")
-if alloc['Bonds'] > 0: c3.metric("🛡️ Bond (TLT)", f"${bond_cap:,.0f}")
+c1.metric("💵 Cash Totale", f"{real_cash:,.0f}")
+if alloc['Gold'] > 0: c2.metric("🥇 Oro (GLD)", f"{gold_cap:,.0f}")
+if alloc['Bonds'] > 0: c3.metric("🛡️ Bond (TLT)", f"{bond_cap:,.0f}")
 st.write("") 
 
 # --- RIGA 2: POSIZIONI A RISCHIO ---
@@ -329,16 +329,16 @@ with col_az:
     st.markdown(f"**📈 Azioni ({num_eq}/20)**")
     if op_eq:
         df_op_eq = pd.DataFrame(op_eq)
-        df_op_eq["Size ($)"] = single_eq
-        df_op_eq["P&L ($)"] = (df_op_eq["P&L (%)"] / 100) * df_op_eq["Size ($)"]
+        df_op_eq["Size"] = single_eq
+        df_op_eq["P&L Monetario"] = (df_op_eq["P&L (%)"] / 100) * df_op_eq["Size"]
         
         df_eq_styled = df_op_eq.style.format({
             "Ingresso ($)": "{:.2f}", 
             "Attuale ($)": "{:.2f}",
             "Stop Loss ($)": "{:.2f}", 
-            "Size ($)": "{:,.0f}",
+            "Size": "{:,.0f}",
             "P&L (%)": "{:+.2f}%",
-            "P&L ($)": "{:+,.0f}"
+            "P&L Monetario": "{:+,.0f}"
         }).map(color_pnl, subset=['P&L (%)', 'P&L ($)'])
         
         st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
@@ -357,16 +357,16 @@ with col_cr:
                 elif num_cr == 2: budgets.append(capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
                 else: budgets.append(capitale * 0.05)
             else: budgets.append(capitale * 0.05)
-        df_op_cr["Size ($)"] = budgets
-        df_op_cr["P&L ($)"] = (df_op_cr["P&L (%)"] / 100) * df_op_cr["Size ($)"]
+        df_op_cr["Size"] = budgets
+        df_op_cr["P&L Monetario"] = (df_op_cr["P&L (%)"] / 100) * df_op_cr["Size"]
         
         df_cr_styled = df_op_cr.style.format({
             "Ingresso ($)": format_price, 
             "Attuale ($)": format_price,
             "Stop Loss ($)": format_price, 
-            "Size ($)": "{:,.0f}",
+            "Size": "{:,.0f}",
             "P&L (%)": "{:+.2f}%",
-            "P&L ($)": "{:+,.0f}"
+            "P&L Monetario": "{:+,.0f}"
         }).map(color_pnl, subset=['P&L (%)', 'P&L ($)'])
         
         st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
