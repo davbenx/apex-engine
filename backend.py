@@ -208,8 +208,7 @@ if capital > 0:
 
 output["allocations"] = allocations
 
-import os
-import datetime
+
 today_str = datetime.datetime.now().strftime("%Y-%m-%d")
 macro_dates = {}
 macro_events = []
@@ -228,14 +227,15 @@ old_dates = old_data.get("macro_dates", {}) if old_data else {}
 for engine in ["Equities", "Crypto", "Gold", "Bonds"]:
     was_active = old_alloc.get(engine, 0) > 0
     is_active = allocations.get(engine, 0) > 0
-    
+
     if was_active == is_active and engine in old_dates:
         macro_dates[engine] = old_dates[engine]
     else:
         macro_dates[engine] = today_str
-        if old_data is not None: # Not the first run
+        if old_data is not None:  # Not the first run
             stato_nuovo = "🟢 ATTIVATO" if is_active else "🔴 DISATTIVATO"
-            macro_events.append(f"⚠️ MACRO REGIME: Il motore {engine} è passato a {stato_nuovo}")
+            macro_events.append(
+                f"⚠️ MACRO REGIME: Il motore {engine} è passato a {stato_nuovo}")
 
 output["macro_dates"] = macro_dates
 output["macro_events"] = macro_events
@@ -401,7 +401,8 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
             low_price = float(
                 inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
             close_price = float(inds['c'][sym].iloc[-1])
-            pos["current_price"] = close_price  # Salva il prezzo attuale per la dashboard
+            # Salva il prezzo attuale per la dashboard
+            pos["current_price"] = close_price
 
             # Aggiornamento Trailing Stop (solo a salire, SOLO IL VENERDI)
             if today.weekday() == 4:
@@ -590,7 +591,7 @@ def send_telegram_alert(data_dict, action_log):
             for ev in macro_evs:
                 msg += f"• {ev}\n"
             msg += "\n"
-            
+
         if action_log:
             msg += "🚀 *AZIONI DA ESEGUIRE OGGI*\n"
             for log in action_log:
