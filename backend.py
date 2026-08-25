@@ -184,16 +184,16 @@ def send_telegram_alert(data_dict):
         msg += f"🥇 Oro: {'🟢 INVESTITO' if is_g else '🔴 LIQUIDO'}\n"
         msg += f"🛡️ Bond: {'🟢 INVESTITO' if is_b else '🔴 LIQUIDO'}\n\n"
         
-        msg += "📋 *TOP 5 AZIONI (S&P 500)*\n"
+        msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
         if is_eq and "top20" in data_dict and data_dict["top20"]:
-            for i, row in enumerate(data_dict["top20"][:5]):
+            for i, row in enumerate(data_dict["top20"]):
                 msg += f"{i+1}. {row['Ticker']} (Mom: {row['Momentum Score']} | Stop: ${row['Stop Loss ($)']})\n"
         else:
             msg += "Semaforo Rosso - Azionario disattivato.\n"
             
         msg += "\n🪙 *TOP 3 CRYPTO*\n"
         if is_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
-            for i, row in enumerate(data_dict["crypto_top"][:3]):
+            for i, row in enumerate(data_dict["crypto_top"]):
                 msg += f"{i+1}. {row['Ticker']} (Mom: {row['Momentum Score']} | Stop: ${row['Stop Loss ($)']})\n"
         else:
             msg += "Semaforo Rosso - Crypto disattivate.\n"
