@@ -110,27 +110,27 @@ c1, c2, c3, c4, c5 = st.columns(5)
 
 with c1:
     st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
-    if is_bull_eq: st.success(f"**🟢 RISK-ON**\n\nBudget: **{eq_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{eq_cap:,.0f}**")
+    if is_bull_eq: st.success(f"**🟢 ATTIVO**\n\nBudget: **{eq_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{eq_cap:,.0f}**")
 
 with c2:
     st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
-    if is_bull_cr: st.success(f"**🟢 RISK-ON**\n\nBudget: **{btc_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{btc_cap:,.0f}**")
+    if is_bull_cr: st.success(f"**🟢 ATTIVO**\n\nBudget: **{btc_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{btc_cap:,.0f}**")
 
 with c3:
     st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
-    if is_bull_g: st.success(f"**🟢 RISK-ON**\n\nBudget: **{gold_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{gold_cap:,.0f}**")
+    if is_bull_g: st.success(f"**🟢 ATTIVO**\n\nBudget: **{gold_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{gold_cap:,.0f}**")
 
 with c4:
     st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
-    if is_bull_b: st.success(f"**🟢 RISK-ON**\n\nBudget: **{bond_cap:,.0f}**")
-    else: st.error(f"**🔴 LIQUIDO**\n\nBudget: **{bond_cap:,.0f}**")
+    if is_bull_b: st.success(f"**🟢 ATTIVO**\n\nBudget: **{bond_cap:,.0f}**")
+    else: st.error(f"**🔴 DISATTIVATO**\n\nBudget: **{bond_cap:,.0f}**")
     
 with c5:
     st.markdown(f"### 💵 Cash `{alloc['Cash']}%`")
-    st.info(f"**⚪ PARACADUTE**\n\nBudget: **{cash_cap:,.0f}**")
+    st.info(f"**⚪ LIQUIDITÀ (Riserva)**\n\nBudget: **{cash_cap:,.0f}**")
 
 st.divider()
 
