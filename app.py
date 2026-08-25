@@ -282,18 +282,8 @@ st.divider()
 
 # --- METRICHE DI RISCHIO E TRADE LOG ---
 with st.expander("📊 Metriche di Rischio & Trade Log", expanded=False):
-    def load_portfolio():
-        try:
-            req = urllib.request.Request("https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
-            return json.loads(urllib.request.urlopen(req).read().decode())
-        except:
-            import os
-            if os.path.exists('portfolio.json'):
-                with open('portfolio.json', 'r') as f:
-                    return json.load(f)
-            return None
-
-    pf = load_portfolio()
+    # pf is loaded above
+    if pf:
     if pf:
         hist = pf.get("trade_history", [])
         open_pos = pf.get("open_positions", {})
