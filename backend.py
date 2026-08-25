@@ -458,29 +458,45 @@ def send_telegram_alert(data_dict, action_log):
         cr_icon = "🟢" if data_dict['allocations']['Crypto'] > 0 else "🔴"
         g_icon = "🟢" if data_dict['allocations']['Gold'] > 0 else "🔴"
         b_icon = "🟢" if data_dict['allocations']['Bonds'] > 0 else "🔴"
-        c_icon = "⚪"
         
         msg += f"{eq_icon} Azionario: {data_dict['allocations']['Equities']}%\n"
         msg += f"{cr_icon} Crypto: {data_dict['allocations']['Crypto']}%\n"
         msg += f"{g_icon} Oro: {data_dict['allocations']['Gold']}%\n"
         msg += f"{b_icon} Bond: {data_dict['allocations']['Bonds']}%\n"
-        msg += f"{c_icon} Cash: {data_dict['allocations']['Cash']}%\n\n"
+        msg += f"⚪ Cash: {data_dict['allocations']['Cash']}%\n\n"
         
-        msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
-        if data_dict['allocations']['Equities'] > 0:
-            for i, row in enumerate(data_dict["top20"]):
-                msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
-        else:
-            msg += "Semaforo Rosso - Azionario disattivato.\n"
+        import os
+        pf_file = 'portfolio.json'
+        if os.path.exists(pf_file):
+            with open(pf_file, 'r') as f:
+                pf = json.load(f)
             
-        msg += "\n🪙 *TOP 3 CRYPTO*\n"
-        if data_dict['allocations']['Crypto'] > 0:
-            for i, row in enumerate(data_dict["crypto_top"]):
-                msg += f"{i+1}. {row['Ticker']} (Stop: ${fmt(row['Stop Loss ($)'])})\n"
-        else:
-            msg += "Semaforo Rosso - Crypto disattivate.\n"
+            msg += "💼 *IL TUO PORTAFOGLIO (AGGIORNA STOP)*\n"
+            open_pos = pf.get("open_positions", {})
+            if open_pos:
+                for ticker, info in open_pos.items():
+                    msg += f"• {ticker} (Nuovo Stop: {fmt(info['stop_loss'])})\n"
+            else:
+                msg += "Nessuna posizione aperta.\n"
+        
+        import datetime
+        today = datetime.datetime.now()
+        is_rotation = today.weekday() == 4 and (today + datetime.timedelta(days=7)).month != today.month
+        
+        if is_rotation:
+            msg += "\n🔄 *RADAR ROTAZIONE (NUOVI TARGET)*\n"
+            msg += "Azioni:\n"
+            if data_dict['allocations']['Equities'] > 0:
+                for row in data_dict["top20"][:5]: # Mostro solo le prime 5 per brevità
+                    msg += f"• {row['Ticker']} (Stop: {fmt(row['Stop Loss ($)'])})\n"
+                msg += "... (vedi Dashboard per le 20 complete)\n"
             
-        msg += "\n💡 _Vai sulla Dashboard per la lista completa._"
+            msg += "\nCrypto:\n"
+            if data_dict['allocations']['Crypto'] > 0:
+                for row in data_dict["crypto_top"]:
+                    msg += f"• {row['Ticker']} (Stop: {fmt(row['Stop Loss ($)'])})\n"
+            
+        msg += "\n💡 _Vai sulla Dashboard per operare._"
         
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         data = urllib.parse.urlencode({
