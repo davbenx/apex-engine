@@ -6,14 +6,14 @@
             "mom": 0.11294622599708526
         },
         "BTC-USD": {
-            "price": 80724.8125,
-            "ma200": 69130.63296875,
-            "mom": 0.20492241241587927
+            "price": 80820.0390625,
+            "ma200": 69131.1091015625,
+            "mom": 0.20634379223529442
         },
         "GC=F": {
-            "price": 4698.10009765625,
-            "ma200": 4542.134995117188,
-            "mom": -0.10178757333787403
+            "price": 4702.39990234375,
+            "ma200": 4542.156494140625,
+            "mom": -0.10096550954139183
         },
         "TLT": {
             "price": 82.55999755859375,
@@ -151,24 +151,24 @@
     "crypto_top": [
         {
             "Ticker": "ZEC",
-            "Prezzo ($)": 852.96002197,
-            "Momentum Score": 12.13,
+            "Prezzo ($)": 851.65002441,
+            "Momentum Score": 12.06,
             "Stop Loss ($)": 799.45745203
         },
         {
-            "Ticker": "OKB",
-            "Prezzo ($)": 117.86290741,
-            "Momentum Score": 11.5,
-            "Stop Loss ($)": 112.28074654
+            "Ticker": "LINK",
+            "Prezzo ($)": 11.80099964,
+            "Momentum Score": 8.53,
+            "Stop Loss ($)": 11.75262074
         },
         {
-            "Ticker": "LINK",
-            "Prezzo ($)": 11.77400017,
-            "Momentum Score": 8.42,
-            "Stop Loss ($)": 11.75262074
+            "Ticker": "ETH",
+            "Prezzo ($)": 2510.30004883,
+            "Momentum Score": 7.39,
+            "Stop Loss ($)": 2381.79047389
         }
     ],
-    "timestamp": "25 Aug 2026, 05:43 (UTC)",
+    "timestamp": "25 Aug 2026, 06:18 (UTC)",
     "allocations": {
         "Equities": 70,
         "Crypto": 15,
