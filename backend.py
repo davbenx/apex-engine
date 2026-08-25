@@ -307,7 +307,10 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
         with open(pf_file, 'r') as f:
             pf = json.load(f)
     else:
-        pf = {"open_positions": {}, "trade_history": []}
+        pf = {"open_positions": {}, "trade_history": [], "pending_alerts": []}
+        
+    if "pending_alerts" not in pf:
+        pf["pending_alerts"] = []
         
     today = datetime.datetime.now()
     is_rotation = today.weekday() == 4 and (today + datetime.timedelta(days=7)).month != today.month
@@ -388,10 +391,18 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
             else:
                 pf["open_positions"][ticker]["stop_loss"] = info["stop"]
                 
+    pf["pending_alerts"].extend(action_log)
+    
+    # We will return the accumulated alerts ONLY if today is Friday
+    final_alerts = []
+    if today.weekday() == 4:
+        final_alerts = pf["pending_alerts"].copy()
+        pf["pending_alerts"] = [] # Clear after sending
+        
     with open(pf_file, 'w') as f:
         json.dump(pf, f, indent=4)
         
-    return action_log
+    return final_alerts
 
 # ==============================
 # ==============================
@@ -470,6 +481,7 @@ import datetime
 is_friday = datetime.datetime.now().weekday() == 4
 is_manual = os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
 if is_friday or is_manual:
+    if datetime.datetime.now().weekday() == 4:
     send_telegram_alert(output, action_log)
 else:
     print("Nessun alert Telegram oggi (non è Venerdì).")
