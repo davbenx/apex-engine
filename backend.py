@@ -195,6 +195,8 @@ if allocations["Crypto"] > 0:
         
         BLACKLIST = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI']
         c_ticks = [d['symbol'].upper() + '-USD' for d in cg_data if d['symbol'].upper() in kr_syms and d['symbol'].upper() not in BLACKLIST][:30]
+        if not c_ticks:
+            raise Exception("Nessuna crypto trending trovata")
     except Exception:
         c_ticks = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
     
@@ -295,11 +297,18 @@ def send_telegram_alert(data_dict):
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
         
         msg += "🎛️ *COCKPIT MACRO*\n"
-        msg += f"📈 Azionario: {data_dict['allocations']['Equities']}%\n"
-        msg += f"🪙 Crypto: {data_dict['allocations']['Crypto']}%\n"
-        msg += f"🥇 Oro: {data_dict['allocations']['Gold']}%\n"
-        msg += f"🛡️ Bond (TLT): {data_dict['allocations']['Bonds']}%\n"
-        msg += f"💵 Cash: {data_dict['allocations']['Cash']}%\n\n"
+        
+        eq_icon = "🟢" if data_dict['allocations']['Equities'] > 0 else "🔴"
+        cr_icon = "🟢" if data_dict['allocations']['Crypto'] > 0 else "🔴"
+        g_icon = "🟢" if data_dict['allocations']['Gold'] > 0 else "🔴"
+        b_icon = "🟢" if data_dict['allocations']['Bonds'] > 0 else "🔴"
+        c_icon = "⚪"
+        
+        msg += f"{eq_icon} Azionario: {data_dict['allocations']['Equities']}%\n"
+        msg += f"{cr_icon} Crypto: {data_dict['allocations']['Crypto']}%\n"
+        msg += f"{g_icon} Oro: {data_dict['allocations']['Gold']}%\n"
+        msg += f"{b_icon} Bond: {data_dict['allocations']['Bonds']}%\n"
+        msg += f"{c_icon} Cash: {data_dict['allocations']['Cash']}%\n\n"
         
         msg += "📋 *TOP 20 AZIONI (S&P 500)*\n"
         if data_dict['allocations']['Equities'] > 0:
