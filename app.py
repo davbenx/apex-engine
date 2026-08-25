@@ -90,11 +90,12 @@ with c5:
 st.divider()
 
 
-tab_pf, tab_perf, tab_radar, tab_log = st.tabs([
-    "💼 Portafoglio & Allocazione",
-    "📈 Grafico & Metriche",
-    "🔮 Radar Rotazione",
-    "📚 Trade Log & Regole"
+tab_pf, tab_perf, tab_radar, tab_log, tab_guide = st.tabs([
+    "💼 Portafoglio",
+    "📈 Metriche",
+    "🔮 Radar",
+    "📜 Trade Log",
+    "📖 Guida"
 ])
 
 
@@ -421,36 +422,61 @@ with tab_radar:
 
 
 with tab_log:
-    st.markdown("### 📚 Strategia e Regole")
+    st.markdown("### 📜 Registro Operazioni Chiuse")
+    if pf:
+        hist = pf.get("trade_history", [])
+        if hist:
+            df_hist = pd.DataFrame(hist)
+            df_hist = df_hist.sort_values("exit_date", ascending=False)
+            st.dataframe(df_hist, use_container_width=True)
+        else:
+            st.info("Nessuna operazione chiusa registrata.")
+    else:
+        st.info("Portfolio Logger non ancora inizializzato.")
+
+with tab_guide:
+    st.markdown("### 📖 Regole Operative (Come usare la Dashboard)")
     st.markdown('''
-    ### Apex Multi-Asset Engine
+    - **📅 Rotazione Mensile:** L'ultimo venerdì del mese, controlla le Tabelle Operative. Vendi chi è uscito dalla Top, compra chi è entrato.
+    - **🛡️ Gestione Cockpit:**
+        - Se un motore è **🟢 ATTIVO**, mantieni l'investimento nei rispettivi asset e aggiorna i Trailing Stop sul broker.
+        - Se un motore diventa **🔴 DISATTIVATO**, vendi tutto il comparto lunedì mattina.
+    - **💵 Liquidità (Fondo Monetario):** Il capitale parcheggiato in "Cash / Monetario" non va tenuto sul conto corrente, ma investito in ETF Monetari (es. XEON o IB01) per generare una rendita risk-free.
+    - **⚡ Automazione:** Se durante la settimana il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Sposta i soldi nel Fondo Monetario fino alla rotazione successiva.
+    ''')
+
+    st.divider()
+
+    st.markdown("### 🧠 Documentazione Strategia e Backtest")
+    st.markdown('''
+    #### Apex Multi-Asset Engine
     Apex è un motore quantitativo a guida autonoma progettato per generare **Alpha assoluto**, battendo l'S&P 500 nel lungo termine e proteggendo al contempo il capitale dai crolli di mercato (Drawdown).
     L'approccio è sistematico al 100%, eliminando le emozioni e la discrezionalità umana.
 
-    #### 1. Il Motore Macro (Waterfall Allocation)
+    **1. Il Motore Macro (Waterfall Allocation)**
     È il cuore difensivo della strategia. Misura il trend strutturale del mercato.
     - Se l'S&P 500 è in trend rialzista (sopra la sua media mobile a 200 giorni), il sistema alloca il capitale sugli asset di rischio (Azioni e Crypto).
     - Se l'S&P 500 crolla, il sistema attiva il protocollo *Waterfall*: sposta i fondi prima sull'Oro (GLD). Se anche l'Oro è negativo, si rifugia nei Titoli di Stato a lungo termine (TLT). Se c'è un crollo sistemico, parcheggia tutto nel Fondo Monetario (Risk-Free).
 
-    #### 2. Il Motore Azionario (Momentum Cross-Sectional)
+    **2. Il Motore Azionario (Momentum Cross-Sectional)**
     Quando il semaforo Macro è verde, non compriamo l'intero indice, ma applichiamo una selezione *Momentum*.
     - Il motore analizza tutti i 500 titoli dell'S&P 500 e calcola il Rate of Change (ROC) a 130 giorni.
     - Seleziona solo i **20 migliori titoli** (equi-pesati al 5% ciascuno) che stanno sovraperformando il mercato.
     - Questo genera l'extra-rendimento (Alpha) necessario per battere i benchmark passivi.
 
-    #### 3. Il Motore Crypto
+    **3. Il Motore Crypto**
     Un satellite ad alto rendimento, attivato solo se il Bitcoin è in trend rialzista (sopra la sua MA200).
     - Alloca fino al 10% del capitale.
     - Cerca le migliori altcoin tradabili come contratti Perpetual (Futures) su Kraken.
     - Applica una formula dinamica 10-5-5: se c'è solo BTC in trend, prende il 10%. Se emergono altcoin forti, scala dinamicamente per includerle senza aumentare il rischio complessivo.
 
-    #### 4. Gestione del Rischio (Trailing Stop)
+    **4. Gestione del Rischio (Trailing Stop)**
     Ogni singola operazione (sia Azionaria che Crypto) è protetta da un **Trailing Stop Loss Dinamico**.
     - Lo stop viene calcolato matematicamente usando l'**Average True Range (ATR)** moltiplicato per 2 (o 3).
     - Questo stop si "alza" man mano che il prezzo sale, bloccando i profitti.
     - Se il prezzo inverte e tocca lo Stop Loss, la posizione viene liquidata istantaneamente e il capitale parcheggiato nel Fondo Monetario fino alla prossima rotazione, senza pietà.
 
-    #### 5. Backtest e Obiettivi
+    **5. Backtest e Obiettivi**
     I backtest eseguiti sulle decadi passate (incluse le crisi del 2008 e del 2020) dimostrano che questa combinazione di Momentum + Macro + ATR Trailing Stop è in grado di:
     - **Tagliare i Drawdown** dell'indice azionario di oltre il 50%.
     - **Aumentare il CAGR** (Tasso di crescita annuo composto) spingendo sull'acceleratore nei mercati Toro.
