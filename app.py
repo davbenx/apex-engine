@@ -52,7 +52,8 @@ is_bull_g = alloc['Gold'] > 0
 is_bull_b = alloc['Bonds'] > 0
 
 
-ts_date = data.get('timestamp', '').split(' ')[0] or datetime.datetime.now().strftime('%Y-%m-%d')
+raw_ts = data.get('timestamp', '')
+ts_date = raw_ts.split(',')[0].strip() if ',' in raw_ts else (raw_ts.split(' ')[0] if raw_ts else datetime.datetime.now().strftime('%Y-%m-%d'))
 macro_dates = data.get("macro_dates", {})
 d_eq = macro_dates.get("Equities", ts_date)
 d_cr = macro_dates.get("Crypto", ts_date)
