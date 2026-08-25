@@ -34,7 +34,7 @@ with st.expander("📖 Regole Operative (Come usare questa Dashboard)", expanded
 
 
 # --- EQUITY CURVE ---
-st.header("📈 Performance Live (Equity Curve)")
+st.header("📈 Performance Live")
 @st.cache_data(ttl=60)
 def load_equity():
     if os.path.exists('equity.json'):
