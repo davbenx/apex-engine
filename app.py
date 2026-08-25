@@ -44,6 +44,45 @@ st.caption("⏳ **Prossimo Ricalcolo:** 01:30")
 
 
 st.markdown("### 🎛️ Motori Macro (Cockpit)")
+alloc = data['allocations']
+capitale = 100000
+
+is_bull_eq = alloc['Equities'] > 0
+is_bull_cr = alloc['Crypto'] > 0
+is_bull_g = alloc['Gold'] > 0
+is_bull_b = alloc['Bonds'] > 0
+
+capitale_azionario = capitale * (alloc['Equities'] / 100)
+single_eq = capitale_azionario / 20 if alloc['Equities'] > 0 else 0
+
+crypto_cap = capitale * (alloc['Crypto'] / 100)
+gold_cap = capitale * (alloc['Gold'] / 100)
+bond_cap = capitale * (alloc['Bonds'] / 100)
+cash_cap = capitale * (alloc['Cash'] / 100)
+
+c1, c2, c3, c4, c5 = st.columns(5)
+with c1:
+    st.markdown(f"### 📈 Azioni `{alloc['Equities']}%`")
+    if is_bull_eq: st.success("**🟢 ATTIVO**")
+    else: st.error("**🔴 DISATTIVATO**")
+with c2:
+    st.markdown(f"### 🪙 Crypto `{alloc['Crypto']}%`")
+    if is_bull_cr: st.success("**🟢 ATTIVO**")
+    else: st.error("**🔴 DISATTIVATO**")
+with c3:
+    st.markdown(f"### 🥇 Oro `{alloc['Gold']}%`")
+    if is_bull_g: st.success("**🟢 ATTIVO**")
+    else: st.error("**🔴 DISATTIVATO**")
+with c4:
+    st.markdown(f"### 🛡️ Bond `{alloc['Bonds']}%`")
+    if is_bull_b: st.success("**🟢 ATTIVO**")
+    else: st.error("**🔴 DISATTIVATO**")
+with c5:
+    st.markdown(f"### ⚪ Cash `{alloc['Cash']}%`")
+    st.info("**⚪ RIFUGIO**")
+
+st.divider()
+
 
 
 tab_pf, tab_perf, tab_radar, tab_log = st.tabs([
