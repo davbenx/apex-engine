@@ -233,27 +233,23 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
             return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-6]) - 1.0
         return 0.0
 
-    macro = data_dict.get("macro", {})
-    bull_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
-    bull_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
-    bull_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
-    bull_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
+    alloc = data_dict.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 
     ret_eq = 0.0
-    if bull_eq and "top20" in data_dict and data_dict["top20"]:
+    if alloc["Equities"] > 0 and "top20" in data_dict and data_dict["top20"]:
         rets = [get_ret(eq_inds, row["Ticker"]) for row in data_dict["top20"]]
         ret_eq = sum(rets) / len(rets) if rets else 0.0
         
     ret_cr = 0.0
-    if bull_cr and "crypto_top" in data_dict and data_dict["crypto_top"]:
+    if alloc["Crypto"] > 0 and "crypto_top" in data_dict and data_dict["crypto_top"]:
         rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
         ret_cr = sum(rets) / len(rets) if rets else 0.0
         
-    ret_g = get_ret(b_inds, "GC=F") if bull_g else 0.0
-    ret_b = get_ret(b_inds, "IEF") if bull_b else 0.0
+    ret_g = get_ret(b_inds, "GC=F") if alloc["Gold"] > 0 else 0.0
+    ret_b = get_ret(b_inds, "TLT") if alloc["Bonds"] > 0 else 0.0
     
-    # Ritorno Totale Portafoglio
-    tot_ret = (0.70 * ret_eq) + (0.10 * ret_cr) + (0.10 * ret_g) + (0.10 * ret_b)
+    # Ritorno Totale Portafoglio dinamico pesato per le allocations
+    tot_ret = ((alloc["Equities"]/100.0) * ret_eq) + ((alloc["Crypto"]/100.0) * ret_cr) + ((alloc["Gold"]/100.0) * ret_g) + ((alloc["Bonds"]/100.0) * ret_b)
     
     new_value = last_value * (1.0 + tot_ret)
     eq_data["history"].append({"date": today_str, "value": round(new_value, 2)})
@@ -288,13 +284,6 @@ def send_telegram_alert(data_dict):
         return
         
     try:
-        macro = data_dict.get("macro", {})
-        is_eq = macro.get("RSP", {}).get("price", 0) > macro.get("RSP", {}).get("ma200", 0)
-        is_cr = macro.get("BTC-USD", {}).get("price", 0) > macro.get("BTC-USD", {}).get("ma200", 0)
-        is_g = macro.get("GC=F", {}).get("price", 0) > macro.get("GC=F", {}).get("ma200", 0)
-        is_b = macro.get("IEF", {}).get("price", 0) > macro.get("IEF", {}).get("ma200", 0)
-        
-        
         def fmt(val):
             try:
                 v = float(val)
