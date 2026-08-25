@@ -189,22 +189,28 @@ else:
 if allocations["Crypto"] > 0:
     print("Elaborazione Crypto...")
     try:
+        # Recupera i ticker tradabili su Kraken Futures (Perp)
+        req_k = urllib.request.Request('https://futures.kraken.com/derivatives/api/v3/instruments', headers={'User-Agent': 'Mozilla/5.0'})
+        kr_data = json.loads(urllib.request.urlopen(req_k).read().decode())['instruments']
+        kr_syms = [d['symbol'].upper() for d in kr_data if d['tradeable'] and 'PI_XBT' not in d['symbol']]
+        
+        # Recupera le Top 100 Crypto per Market Cap da Yahoo
         url = "https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=false&lang=en-US&region=US&scrIds=all_cryptocurrencies_us&start=0&count=100"
         req_y = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         res_y = urllib.request.urlopen(req_y).read().decode()
         quotes = json.loads(res_y)['finance']['result'][0]['quotes']
         
-        # Filtriamo le stablecoin e token wrapped/anomali
         BLACKLIST = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC', 'WBETH', 'WETH', 'AETHWETH', 'BTCB', 'WEETH', 'USDE', 'USDG', 'USDS', 'CBBTC']
         
         c_ticks = []
         for q in quotes:
             sym = q['symbol']
             base = sym.replace('-USD', '')
-            if base not in BLACKLIST and not any(char.isdigit() for char in base):
+            # Aggiungi solo se non è in blacklist e SE ESISTE SU KRAKEN FUTURES
+            if base not in BLACKLIST and not any(char.isdigit() for char in base) and base in kr_syms:
                 c_ticks.append(sym)
                 
-        c_ticks = c_ticks[:30] # Prendiamo le prime 30 cripto reali per Market Cap
+        c_ticks = c_ticks[:30]
         
     except Exception as e:
         print("Errore nel recupero lista crypto:", e)
