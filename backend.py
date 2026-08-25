@@ -84,19 +84,23 @@ def process_engine(df_dict, roc_period, atr_multiplier, gap_limit, is_crypto=Fal
     
     results = []
     for sym in inds['c'].columns:
-        c = float(inds['c'][sym].iloc[-1])
-        m150 = float(inds['m150'][sym].iloc[-1]) if pd.notna(inds['m150'][sym].iloc[-1]) else 0
-        sc = float(inds['score'][sym].iloc[-1]) if pd.notna(inds['score'][sym].iloc[-1]) else -99
-        a = float(inds['atr'][sym].iloc[-1]) if pd.notna(inds['atr'][sym].iloc[-1]) else 0
-        hh = float(inds['hh60'][sym].iloc[-1]) if pd.notna(inds['hh60'][sym].iloc[-1]) else c
-        g_max = float(inds['g_max'][sym].iloc[-1]) if pd.notna(inds['g_max'][sym].iloc[-1]) else 0
-        g_min = float(inds['g_min'][sym].iloc[-1]) if pd.notna(inds['g_min'][sym].iloc[-1]) else 0
+        # REGOLA: Se non ci sono almeno 150 giorni di storico per la media mobile, scarta e prendi la successiva
+        if pd.isna(inds['m150'][sym].iloc[-1]):
+            continue
+            
+        c = float(inds['c'].iloc[-1][sym])
+        m150 = float(inds['m150'].iloc[-1][sym])
+        sc = float(inds['score'].iloc[-1][sym]) if pd.notna(inds['score'].iloc[-1][sym]) else -99
+        a = float(inds['atr'].iloc[-1][sym]) if pd.notna(inds['atr'].iloc[-1][sym]) else 0
+        hh = float(inds['hh60'].iloc[-1][sym]) if pd.notna(inds['hh60'].iloc[-1][sym]) else c
+        g_max = float(inds['g_max'].iloc[-1][sym]) if pd.notna(inds['g_max'].iloc[-1][sym]) else 0
+        g_min = float(inds['g_min'].iloc[-1][sym]) if pd.notna(inds['g_min'].iloc[-1][sym]) else 0
         
         if sym == 'BTC-USD': sc *= 1.25 # Tax bonus
         
         trail_stop = hh - (atr_multiplier * a)
         
-        # FILTRO DI FERRO ANTI-GHOST E ANTI-API VUOTE: c > 0.000001
+        # Filtro di ammissione
         if c > 0.000001 and c > m150 and sc > 0 and g_max < gap_limit and g_min > -gap_limit and c > trail_stop:
             res_sym = sym.replace('-USD', '') if is_crypto else sym
             results.append({
@@ -185,23 +189,32 @@ else:
 if allocations["Crypto"] > 0:
     print("Elaborazione Crypto...")
     try:
-        req_k = urllib.request.Request('https://futures.kraken.com/derivatives/api/v3/instruments', headers={'User-Agent': 'Mozilla/5.0'})
-        kr_data = json.loads(urllib.request.urlopen(req_k).read().decode())['instruments']
-        kr_syms = [d['symbol'].upper() for d in kr_data if d['tradeable'] and 'PI_XBT' not in d['symbol']]
+        url = "https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=false&lang=en-US&region=US&scrIds=all_cryptocurrencies_us&start=0&count=100"
+        req_y = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        res_y = urllib.request.urlopen(req_y).read().decode()
+        quotes = json.loads(res_y)['finance']['result'][0]['quotes']
         
-        req_cg = urllib.request.Request('https://api.coingecko.com/api/v3/search/trending', headers={'User-Agent': 'Mozilla/5.0'})
-        cg_data = json.loads(urllib.request.urlopen(req_cg).read().decode())['coins']
-        cg_data = [c['item'] for c in cg_data]
+        # Filtriamo le stablecoin e token wrapped/anomali
+        BLACKLIST = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC', 'WBETH', 'WETH', 'AETHWETH', 'BTCB', 'WEETH', 'USDE', 'USDG', 'USDS', 'CBBTC']
         
-        BLACKLIST = ['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI']
-        c_ticks = [d['symbol'].upper() + '-USD' for d in cg_data if d['symbol'].upper() in kr_syms and d['symbol'].upper() not in BLACKLIST][:30]
-        if not c_ticks:
-            raise Exception("Nessuna crypto trending trovata")
-    except Exception:
-        c_ticks = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
+        c_ticks = []
+        for q in quotes:
+            sym = q['symbol']
+            base = sym.replace('-USD', '')
+            if base not in BLACKLIST and not any(char.isdigit() for char in base):
+                c_ticks.append(sym)
+                
+        c_ticks = c_ticks[:30] # Prendiamo le prime 30 cripto reali per Market Cap
+        
+    except Exception as e:
+        print("Errore nel recupero lista crypto:", e)
+        c_ticks = []
     
-    cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
-    output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+    if c_ticks:
+        cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
+        output["crypto_top"] = process_engine(cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+    else:
+        output["crypto_top"] = []
 else:
     output["crypto_top"] = []
     cr_data = {}
