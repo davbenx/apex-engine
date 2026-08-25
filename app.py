@@ -138,6 +138,11 @@ if len(eq_history) > 1:
                 name='S&P 500 (Benchmark)'
             ))
             
+    # Demarcazione tra Backtest (Dati Simulati) e Live Trading
+    fig.add_vline(x='2026-08-25', line_dash="dash", line_color="#FFB000", 
+                  annotation_text=" INIZIO TRADING LIVE ➔ ", annotation_position="top right",
+                  annotation_font_color="#FFB000", opacity=0.8)
+                  
     fig.update_layout(
         template='plotly_dark',
         xaxis_rangeslider_visible=False,
