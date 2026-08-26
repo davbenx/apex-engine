@@ -189,7 +189,7 @@ with col_meta:
         </div>
         <div style="opacity: 0.75; font-size: 11.5px; line-height: 1.4;">
             🕒 <strong>Aggiornato:</strong> {last_update}<br>
-            ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
+            ⏳ <strong>Ricalcolo:</strong> Lun-Ven 23:00 UTC
         </div>
     </div>
     """)
