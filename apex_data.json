@@ -6,14 +6,14 @@
             "mom": 0.11650313276852753
         },
         "BTC-USD": {
-            "price": 79026.53125,
-            "ma200": 69176.600234375,
-            "mom": 0.17957336449197547
+            "price": 78901.0703125,
+            "ma200": 69175.9729296875,
+            "mom": 0.17770069745448347
         },
         "GC=F": {
-            "price": 4699.5,
-            "ma200": 4540.576494140625,
-            "mom": -0.10151993117292801
+            "price": 4697.60009765625,
+            "ma200": 4540.566994628906,
+            "mom": -0.10188316649340412
         },
         "TLT": {
             "price": 83.47000122070312,
@@ -26,6 +26,20 @@
             "mom": -0.0004529672256027295
         }
     },
+    "allocations": {
+        "Equities": 70,
+        "Crypto": 15,
+        "Gold": 10,
+        "Bonds": 0,
+        "Cash": 5
+    },
+    "macro_dates": {
+        "Equities": "2026-08-26",
+        "Crypto": "2026-08-26",
+        "Gold": "2026-08-26",
+        "Bonds": "2026-08-26"
+    },
+    "macro_events": [],
     "top20": [
         {
             "Ticker": "HUM",
@@ -151,36 +165,22 @@
     "crypto_top": [
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2464.64990234,
-            "Momentum Score": 6.86,
-            "Stop Loss ($)": 2382.36392163
+            "Prezzo ($)": 2461.22,
+            "Momentum Score": 6.8,
+            "Stop Loss ($)": 2382.36
         },
         {
             "Ticker": "XMR",
-            "Prezzo ($)": 443.20880127,
-            "Momentum Score": 5.95,
-            "Stop Loss ($)": 424.9860855
+            "Prezzo ($)": 443.6,
+            "Momentum Score": 5.98,
+            "Stop Loss ($)": 424.99
         },
         {
             "Ticker": "SOL",
-            "Prezzo ($)": 97.04000092,
-            "Momentum Score": 5.22,
-            "Stop Loss ($)": 94.92776446
+            "Prezzo ($)": 96.9,
+            "Momentum Score": 5.17,
+            "Stop Loss ($)": 94.93
         }
     ],
-    "timestamp": "26 Aug 2026, 04:32 (UTC)",
-    "allocations": {
-        "Equities": 70,
-        "Crypto": 15,
-        "Gold": 10,
-        "Bonds": 0,
-        "Cash": 5
-    },
-    "macro_dates": {
-        "Equities": "2026-08-26",
-        "Crypto": "2026-08-26",
-        "Gold": "2026-08-26",
-        "Bonds": "2026-08-26"
-    },
-    "macro_events": []
+    "timestamp": "26 Aug 2026, 06:45 (UTC)"
 }
