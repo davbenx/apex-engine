@@ -354,8 +354,18 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds):
                                                       ret_cr) + ((alloc["Gold"]/100.0) * ret_g) + ((alloc["Bonds"]/100.0) * ret_b)
 
     new_value = last_value * (1.0 + tot_ret)
-    eq_data["history"].append(
-        {"date": today_str, "value": round(new_value, 2)})
+    open_val = round(last_value, 2)
+    close_val = round(new_value, 2)
+    high_val = round(max(open_val, close_val) * 1.002, 2)
+    low_val = round(min(open_val, close_val) * 0.998, 2)
+    eq_data["history"].append({
+        "date": today_str,
+        "open": open_val,
+        "high": high_val,
+        "low": low_val,
+        "close": close_val,
+        "value": close_val
+    })
 
     with open(eq_file, 'w') as f:
         json.dump(eq_data, f, indent=4)
