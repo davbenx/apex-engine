@@ -33,17 +33,16 @@ MAX_EQUITIES_ALLOCATION = 70
 MAX_CRYPTO_ALLOCATION = 15
 MAX_GOLD_ALLOCATION = 10
 
-# Quantitative Screening Parameters
-EQUITIES_ROC_PERIOD = 130
-CRYPTO_ROC_PERIOD = 90
+# Quantitative Screening Parameters (Weekly Base)
+EQUITIES_ROC_PERIOD = 26        # 26 settimane (~6 mesi)
+CRYPTO_ROC_PERIOD = 13          # 13 settimane (~3 mesi)
 EQUITIES_GAP_LIMIT = 15.0
 CRYPTO_GAP_LIMIT = 40.0
 ATR_STOP_MULTIPLIER = 3.0
-ATR_ALPHA = 1 / 60
-MA_LONG_PERIOD = 200
-MA_MID_PERIOD = 150
-HH_PERIOD = 60
-GAP_PERIOD = 90
+MA_LONG_PERIOD = 40             # 40 settimane (~200 giorni / 10 mesi)
+MA_MID_PERIOD = 30              # 30 settimane (~150 giorni / 7 mesi)
+HH_PERIOD = 12                  # 12 settimane (~60 giorni / 3 mesi)
+GAP_PERIOD = 18                 # 18 settimane (~90 giorni)
 
 # Persistence File Names
 APEX_DATA_FILE = 'apex_data.json'
@@ -68,25 +67,28 @@ HTTP_TIMEOUT = 10
 # ATOMIC I/O & FORMATTING UTILITIES
 # ==============================================================================
 def save_json_atomic(filepath, data, indent=4):
-    """Safely writes JSON to a temporary file first, then atomically replaces target."""
-    tmp_path = f"{filepath}.tmp"
-    with open(tmp_path, 'w', encoding='utf-8') as f:
+    """Writes JSON data to a temporary file before atomic rename to prevent corruption."""
+    temp_file = f"{filepath}.tmp"
+    with open(temp_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=indent)
-    os.replace(tmp_path, filepath)
+    os.replace(temp_file, filepath)
 
 
 def load_json_safe(filepath, default=None):
-    """Loads JSON file with error resilience."""
-    if default is None:
-        default = {}
+    """Reads JSON data with error handling and fallback defaults."""
     if not os.path.exists(filepath):
-        return default
+        return default if default is not None else {}
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        print(f"[!] Errore lettura {filepath} ({e}). Utilizzo default.")
-        return default
+        print(f"[!] Errore lettura {filepath}: {e}")
+        return default if default is not None else {}
+
+
+def format_currency(val):
+    """Formats numeric value to currency string without hardcoded symbols."""
+    return f"{val:,.0f}"
 
 
 def fmt_usd(price):
@@ -111,62 +113,54 @@ def is_rebalancing_schedule(dt=None):
 
 
 # ==============================================================================
-# DATA INGESTION & NETWORK UTILITIES
+# DATA INGESTION & UNIVERSE DISCOVERY
 # ==============================================================================
 def get_sp500_tickers():
-    """Fetches the latest list of S&P 500 tickers from Wikipedia."""
+    """Fetches constituent tickers of S&P 500 from Wikipedia with clean formatting."""
     try:
         url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
         req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as response:
-            tables = pd.read_html(response.read())
-            return [t.replace('.', '-') for t in tables[0]['Symbol'].tolist()]
+        html = urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode('utf-8')
+        df = pd.read_html(html)[0]
+        return [t.replace('.', '-') for t in df['Symbol'].tolist()]
     except Exception as e:
-        print(f"[!] Errore recupero lista S&P 500 ({e}). Utilizzo fallback...")
-        return ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META', 'GOOGL', 'TSLA', 'JPM', 'LLY', 'AVGO']
+        print(f"[!] Errore recupero lista S&P 500 ({e}). Uso fallback minimizzato.")
+        return ['AAPL', 'NVDA', 'MSFT', 'AMZN', 'GOOGL', 'META', 'TSLA', 'AVGO', 'COST', 'AMD']
 
 
-def fetch_single_ticker(symbol, period="2y", retries=3):
-    """Fetches OHLC daily history for a single ticker via Yahoo Finance API."""
-    url = f'https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?range={period}&interval=1d'
-    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-    time.sleep(random.uniform(0.05, 0.25))
+def fetch_yahoo_history(ticker, period='2y', interval='1d'):
+    """Retrieves OHLC price series from Yahoo Finance Chart API."""
+    try:
+        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?range={period}&interval={interval}"
+        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+        res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
+        result = res['chart']['result'][0]
+        timestamps = pd.to_datetime(result['timestamp'], unit='s')
+        quote = result['indicators']['quote'][0]
 
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as response:
-                payload = json.loads(response.read().decode())
-                result = payload.get('chart', {}).get('result')
-                if not result:
-                    return symbol, None
-                data = result[0]
-                timestamps = pd.to_datetime(data['timestamp'], unit='s')
-                quote = data['indicators']['quote'][0]
-
-                df = pd.DataFrame({
-                    'Open': quote.get('open', []),
-                    'High': quote.get('high', []),
-                    'Low': quote.get('low', []),
-                    'Close': quote.get('close', [])
-                }, index=timestamps).ffill().dropna()
-
-                df = df[~df.index.duplicated(keep='first')]
-                if not df.empty:
-                    return symbol, df
-        except Exception:
-            time.sleep(0.4 * (attempt + 1))
-    return symbol, None
+        df = pd.DataFrame({
+            'Open': quote['open'],
+            'High': quote['high'],
+            'Low': quote['low'],
+            'Close': quote['close']
+        }, index=timestamps).ffill().dropna()
+        return ticker, df
+    except Exception:
+        return ticker, pd.DataFrame()
 
 
-def fetch_bulk_parallel(tickers, max_workers=MAX_WORKERS_DEFAULT):
-    """Fetches multiple tickers in parallel with a managed ThreadPoolExecutor."""
+def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asset"):
+    """Downloads historical data concurrently using ThreadPoolExecutor."""
     results = {}
+    print(f"[*] Inizio download {desc} ({len(tickers)} strumenti)...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(fetch_single_ticker, sym): sym for sym in tickers}
+        futures = {executor.submit(fetch_yahoo_history, sym): sym for sym in tickers}
         for future in as_completed(futures):
             sym, df = future.result()
-            if df is not None and not df.empty:
+            if not df.empty and len(df) >= 30:
                 results[sym] = df
+            time.sleep(random.uniform(0.05, 0.15))
+    print(f"[+] Download {desc} completato: {len(results)}/{len(tickers)} validi.")
     return results
 
 
@@ -204,21 +198,44 @@ def get_tradable_crypto_universe():
 
 
 # ==============================================================================
-# QUANTITATIVE INDICATOR ENGINE
+# QUANTITATIVE INDICATOR ENGINE (WEEKLY BASE)
 # ==============================================================================
-def calc_indicators(df_dict, roc_period=130):
-    """Calculates ROC momentum, 150/200 MA, ATR(60), Highest High(60), and Gap volatility."""
+def calc_indicators(df_dict, roc_period=EQUITIES_ROC_PERIOD):
+    """Calculates weekly indicators: ROC momentum (26w/13w), SMA 30/40w, ATR(12w), Highest High(12w), and Gap volatility."""
     if not df_dict:
         return None
 
-    closes = pd.DataFrame({k: v['Close'] for k, v in df_dict.items()}).ffill()
-    highs = pd.DataFrame({k: v['High'] for k, v in df_dict.items()}).ffill()
-    lows = pd.DataFrame({k: v['Low'] for k, v in df_dict.items()}).ffill()
-    opens = pd.DataFrame({k: v['Open'] for k, v in df_dict.items()}).ffill()
+    weekly_closes = {}
+    weekly_highs = {}
+    weekly_lows = {}
+    weekly_opens = {}
+
+    for k, v in df_dict.items():
+        if v.empty:
+            continue
+        v_w = v.resample('W-FRI').agg({
+            'Open': 'first',
+            'High': 'max',
+            'Low': 'min',
+            'Close': 'last'
+        }).dropna()
+        if not v_w.empty:
+            weekly_closes[k] = v_w['Close']
+            weekly_highs[k] = v_w['High']
+            weekly_lows[k] = v_w['Low']
+            weekly_opens[k] = v_w['Open']
+
+    if not weekly_closes:
+        return None
+
+    closes = pd.DataFrame(weekly_closes).ffill()
+    highs = pd.DataFrame(weekly_highs).ffill()
+    lows = pd.DataFrame(weekly_lows).ffill()
+    opens = pd.DataFrame(weekly_opens).ffill()
     prev_closes = closes.shift(1)
 
-    ma200 = closes.rolling(window=MA_LONG_PERIOD, min_periods=100).mean()
-    ma150 = closes.rolling(window=MA_MID_PERIOD, min_periods=75).mean()
+    ma200 = closes.rolling(window=MA_LONG_PERIOD, min_periods=20).mean()
+    ma150 = closes.rolling(window=MA_MID_PERIOD, min_periods=15).mean()
 
     hl = highs - lows
     hp = (highs - prev_closes).abs()
@@ -226,9 +243,9 @@ def calc_indicators(df_dict, roc_period=130):
     tr = pd.DataFrame(np.maximum(hl.values, np.maximum(hp.values, lp.values)),
                       index=closes.index, columns=closes.columns)
 
-    atr = tr.ewm(alpha=ATR_ALPHA, adjust=False).mean()
+    atr = tr.rolling(window=HH_PERIOD, min_periods=6).mean()
     score = (closes.pct_change(periods=roc_period) * 100) / ((atr / closes) * 100 + 1e-6)
-    highest_high_60 = highs.rolling(window=HH_PERIOD, min_periods=30).max()
+    highest_high_60 = highs.rolling(window=HH_PERIOD, min_periods=6).max()
 
     gaps = ((closes - prev_closes) / prev_closes) * 100
     gap_max = gaps.rolling(window=GAP_PERIOD, min_periods=1).max()
@@ -243,7 +260,7 @@ def calc_indicators(df_dict, roc_period=130):
 
 
 def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
-    """Filters, scores, and ranks asset universe based on quantitative criteria."""
+    """Filters, scores, and ranks asset universe based on weekly quantitative criteria."""
     if not inds or inds['c'].empty:
         return []
 
@@ -280,15 +297,16 @@ def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
 # MACRO ENGINE & WATERFALL ALLOCATION
 # ==============================================================================
 def calculate_macro_allocation(b_data):
-    """Computes regime metrics and resolves optimal capital distribution via fixed-hierarchy Waterfall."""
+    """Computes regime metrics and resolves optimal capital distribution via fixed-hierarchy Waterfall using weekly trend."""
     macro = {}
     for t in BENCHMARK_TICKERS:
         if t not in b_data or b_data[t].empty:
             continue
         df = b_data[t]
+        df_w = df.resample('W-FRI').agg({'Close': 'last'}).dropna()
         price = float(df['Close'].iloc[-1])
-        ma200 = float(df['Close'].rolling(MA_LONG_PERIOD, min_periods=100).mean().iloc[-1]) if len(df) >= 100 else price
-        macro[t] = {'price': price, 'ma200': ma200}
+        ma40 = float(df_w['Close'].rolling(MA_LONG_PERIOD, min_periods=20).mean().iloc[-1]) if len(df_w) >= 20 else price
+        macro[t] = {'price': price, 'ma200': ma40}
 
     allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
     eq_bench = "RSP" if "RSP" in macro else "SPY"
