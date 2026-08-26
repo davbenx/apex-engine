@@ -817,23 +817,57 @@ with tab_guide:
 
     st.divider()
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">🧠 Documentazione Strategica</div>')
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 12px;">🧠 Documentazione Strategica</div>')
     st_html('''
-    <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
-        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin: 10px 0 4px 0;">🎯 Obiettivo</div>
-        <div>Crescita del capitale nei mercati positivi e protezione totale durante i ribassi, eliminando ogni componente emotiva.</div>
+    <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">🎯 Obiettivo Primario</div>
+        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Crescita costante del capitale nei mercati rialzisti e protezione totale durante i ribassi, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
+    </div>
 
-        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin: 14px 0 4px 0;">⚙️ Il Sistema</div>
-        <div><strong>Distribuzione del Capitale:</strong> I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:</div>
-        <ul style="margin: 6px 0 12px 18px; padding: 0;">
-            <li><strong>Azioni:</strong> fino al 70%, motore primario di crescita.</li>
-            <li><strong>Criptovalute:</strong> fino al 15%, comparto ad alto rendimento.</li>
-            <li><strong>Oro:</strong> fino al 10%, protezione contro inflazione e incertezza.</li>
-            <li><strong>Obbligazioni:</strong> titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.</li>
-            <li><strong>Monetario:</strong> rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.</li>
-        </ul>
+    <div style="font-size: 13px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0;">⚙️ Il Sistema — Distribuzione del Capitale</div>
+    <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 10px;">I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:</div>
 
-        <div><strong>Selezione dei Titoli:</strong> Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px;">
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 13px;">📈 Azioni</span>
+                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 70%</span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Motore primario di crescita del capitale.</div>
+        </div>
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 13px;">🪙 Criptovalute</span>
+                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 15%</span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Comparto asimmetrico ad alto rendimento.</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid #F59E0B; border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 13px;">🥇 Oro</span>
+                <span style="background: #78350F; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 10%</span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Protezione contro inflazione e incertezza.</div>
+        </div>
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid #8B5CF6; border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 13px;">🛡️ Obbligazioni</span>
+                <span style="background: #5B21B6; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 100%</span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Titoli di stato sicuri nei rallentamenti economici.</div>
+        </div>
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid #3B82F6; border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-weight: 700; font-size: 13px;">💵 Monetario</span>
+                <span style="background: #1E40AF; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 100%</span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Rifugio sicuro e liquidità in attesa di trend.</div>
+        </div>
+    </div>
+
+    <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">⚡ Selezione dei Titoli ad Alto Momentum</div>
+        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Tra centinaia di titoli quotati, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi, mantenendo in portafoglio solo la forza relativa leader di mercato.</div>
     </div>
     ''')
 
