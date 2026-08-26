@@ -485,10 +485,10 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                     "exit_price": exit_price,
                     "profit_pct": round(profit_pct * 100, 2),
                     "weight": pos.get("weight", EQUITY_POSITION_WEIGHT),
-                    "reason": "Stop Loss"
+                    "reason": "🛡️ Trailing Stop"
                 })
                 p_fmt = fmt_usd(exit_price)
-                action_log.append(f"🔴 STOP LOSS (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
+                action_log.append(f"🔴 STOP LOSS (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
                 sold_keys.append(ticker)
 
     for k in sold_keys:
@@ -531,10 +531,10 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                     "exit_price": close_price,
                     "profit_pct": round(profit_pct * 100, 2),
                     "weight": pos.get("weight", EQUITY_POSITION_WEIGHT),
-                    "reason": "Rotazione"
+                    "reason": "🔄 Rotazione Mensile"
                 })
                 p_fmt = fmt_usd(close_price)
-                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
+                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
                 sold_rot.append(ticker)
 
         for k in sold_rot:
@@ -567,10 +567,10 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 "exit_price": close_price,
                 "profit_pct": round(profit_pct * 100, 2),
                 "weight": pos.get("weight", EQUITY_POSITION_WEIGHT),
-                "reason": "Macro Bear"
+                "reason": "⚠️ Regime Ribassista"
             })
             p_fmt = fmt_usd(close_price)
-            action_log.append(f"🔴 CAMBIO REGIME (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
+            action_log.append(f"🔴 CAMBIO REGIME (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
             del pf["open_positions"][ticker]
 
         # Buy equities to deploy cash
