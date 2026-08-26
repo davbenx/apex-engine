@@ -880,28 +880,22 @@ with tab_guide:
 
     st.markdown("#### 🧠 Documentazione Strategica")
     st.markdown('''
-    **Obiettivi del sistema**
-    L'algoritmo è progettato per generare profitti costanti nel lungo termine, azzerando le decisioni emotive.  
-    Il sistema spinge sull'acceleratore e massimizza la crescita quando l'economia è positiva. Al contrario, quando i mercati crollano, l'algoritmo tira il freno a mano e sposta i fondi su beni rifugio per proteggere il capitale, riducendo drasticamente le perdite.
+    ##### Obiettivo
+    Crescita del capitale nei mercati positivi e protezione totale durante i ribassi, eliminando ogni componente emotiva.
+
+    ##### I Tre Pilastri del Sistema
+    1. **Distribuzione del Capitale:** I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:
+       * **Azioni:** fino al 70%, motore primario di crescita.
+       * **Criptovalute:** fino al 15%, comparto ad alto rendimento.
+       * **Oro:** fino al 10%, protezione contro inflazione e incertezza.
+       * **Obbligazioni:** titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.
+       * **Liquidità:** rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.
+    2. **Selezione dei Titoli:** Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.
+    3. **Protezione dei Profitti:** Ogni investimento ha un livello di vendita automatica che sale insieme al prezzo per blindare i guadagni e taglia subito le perdite se il mercato scende.
 
     ---
 
-    ##### COME FUNZIONA LA STRATEGIA
-    Il sistema lavora in totale autonomia a mercati chiusi, seguendo tre pilastri:
-
-    *   **Distribuzione a Cascata:** Il capitale viene versato automaticamente dall'investimento più redditizio a quello più difensivo. Un settore riceve soldi solo se il suo andamento generale è sano e in crescita.
-        *   **Azioni (Massimo 70%):** Il motore principale. Si accende solo se le borse globali sono positive.
-        *   **Criptovalute (Massimo 15%):** Settore ad alto rendimento. Si accende solo se il mercato digitale è positivo.
-        *   **Oro (Massimo 10%):** Scudo contro l'inflazione e l'incertezza.
-        *   **Obbligazioni:** Titoli di stato sicuri. Assorbono tutto lo spazio lasciato libero dagli investimenti precedenti quando l'economia frena.
-        *   **Liquidità:** Il rifugio totale. Parcheggia l'intero capitale al sicuro durante i grandi crolli mondiali.
-    *   **Selezione dei Migliori:** Quando il sistema decide di investire in azioni o criptovalute, non sceglie a caso. Misura l'accelerazione dei prezzi degli ultimi sei mesi e acquista esclusivamente i titoli più veloci e forti del mercato.
-    *   **Protezione Automatica:** Ogni singolo investimento è protetto da un livello di sicurezza matematico. Questo limite sale man mano che l'investimento genera profitti per blindare i guadagni, ma non scende mai. Se il prezzo crolla, l'investimento viene venduto automaticamente prima che la perdita diventi grave.
-    
-    ---
-
-    > ⚠️ **DISCLAIMER & AVVERTENZE LEGALI (ESCLUSIONE DI RESPONSABILITÀ)**  
-    > Le informazioni, i dati, i segnali e i risultati presentati in questa dashboard hanno scopo **esclusivamente informativo e di ricerca statistico-quantitativa**. 
-    > L'Applicazione **non costituisce prestazione di un servizio di consulenza in materia di investimenti** né di consulenza finanziaria personalizzata (ex art. 1, comma 5, lett. f, del T.U.F.). I portafogli, le allocazioni e gli *stop loss* generati sono il risultato di algoritmi matematici automatizzati applicati a dati storici e non tengono in considerazione il profilo di rischio, gli obiettivi di investimento o la situazione finanziaria del singolo utente. 
-    > Le performance storiche non sono indicative dei rendimenti futuri. Il trading sui mercati finanziari comporta un elevato rischio di perdita del capitale. L'utente assume la totale ed esclusiva responsabilità per qualsiasi decisione di investimento o operazione di trading effettuata sul proprio conto di intermediazione. L'autore declina ogni responsabilità per eventuali perdite o danni, diretti o indiretti, derivanti dall'utilizzo dell'Applicazione.
+    > ⚠️ **Note Legali ed Esclusione di Responsabilità**  
+    > Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.  
+    > I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.
     ''')
