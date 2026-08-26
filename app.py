@@ -434,9 +434,7 @@ with tab_pf:
 # TAB 2: METRICHE (CANDLESTICK EQUITY CURVE, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
-    col_chart_hdr, col_chart_mode = st.columns([3, 1])
-    with col_chart_hdr:
-        st.markdown("#### 🕯️ Andamento Strategia Apex (Candele Giapponesi)")
+    _, col_chart_mode = st.columns([3, 1])
     with col_chart_mode:
         timeframe = st.radio("Frequenza", ["Giornaliero", "Settimanale"], horizontal=True, label_visibility="collapsed")
 
