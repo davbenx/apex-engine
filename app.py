@@ -61,19 +61,20 @@ st.markdown("""
 
 
 @st.cache_data(ttl=60)
-def load_data():
+def fetch_json_from_github(filename):
+    url = f"https://raw.githubusercontent.com/davbenx/apex-engine/main/{filename}"
     try:
-        url = f"https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json?token={
-            urllib.request.urlopen('https://api.github.com/repos/davbenx/apex-engine/commits/main').read().hex()[
-                :10]}"
-        req = urllib.request.Request(
-            "https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json")
-        return json.loads(urllib.request.urlopen(req).read().decode())
-    except BaseException:
-        if os.path.exists('apex_data.json'):
-            with open('apex_data.json', 'r') as f:
+        buster = int(datetime.datetime.now().timestamp() // 60)
+        req = urllib.request.Request(f"{url}?t={buster}", headers={'User-Agent': 'Mozilla/5.0'})
+        return json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
+    except Exception:
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
                 return json.load(f)
     return None
+
+def load_data():
+    return fetch_json_from_github('apex_data.json')
 
 
 data = load_data()
@@ -220,16 +221,7 @@ def calculate_days(date_str):
 
 
 def load_portfolio():
-    import urllib.request
-    try:
-        req = urllib.request.Request(
-            "https://raw.githubusercontent.com/davbenx/apex-engine/main/portfolio.json")
-        return json.loads(urllib.request.urlopen(req).read().decode())
-    except BaseException:
-        if os.path.exists('portfolio.json'):
-            with open('portfolio.json', 'r') as f:
-                return json.load(f)
-        return None
+    return fetch_json_from_github('portfolio.json')
 
 
 pf = load_portfolio()
@@ -386,7 +378,7 @@ with tab_pf:
     with col_az:
         st.markdown(f'''
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 700; font-size: 14.5px;">📈 Azioni in Portafoglio</span>
+            <span style="font-size: 1.1rem; font-weight: 600;">📈 Azioni in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / 20</span>
         </div>
         ''', unsafe_allow_html=True)
@@ -416,7 +408,7 @@ with tab_pf:
     with col_cr:
         st.markdown(f'''
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 700; font-size: 14.5px;">🪙 Crypto in Portafoglio</span>
+            <span style="font-size: 1.1rem; font-weight: 600;">🪙 Crypto in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr} / 3</span>
         </div>
         ''', unsafe_allow_html=True)
@@ -487,16 +479,8 @@ with tab_perf:
 
     @st.cache_data(ttl=60)
     def load_equity():
-        try:
-            url = "https://raw.githubusercontent.com/davbenx/apex-engine/main/equity.json"
-            req = urllib.request.Request(url)
-            data = json.loads(urllib.request.urlopen(req).read().decode())
-            return data.get("history", [])
-        except BaseException:
-            if os.path.exists('equity.json'):
-                with open('equity.json', 'r') as f:
-                    return json.load(f).get("history", [])
-        return []
+        data = fetch_json_from_github('equity.json')
+        return data.get("history", []) if data else []
 
     eq_history = load_equity()
 
@@ -710,7 +694,7 @@ with tab_radar:
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
-        st.markdown("**📈 Top 20 Azioni**")
+        st.markdown("#### 📈 Top 20 Azioni")
         if is_bull_eq:
             top20 = data.get("top20", [])
             if top20:
@@ -738,7 +722,7 @@ with tab_radar:
                 "Motore Azionario OFF (Semaforo Rosso). Nessun acquisto previsto.")
 
     with rc2:
-        st.markdown("**🪙 Top 3 Crypto**")
+        st.markdown("#### 🪙 Top 3 Crypto")
         if is_bull_cr:
             cr_top = data.get("crypto_top", [])
             if cr_top:
