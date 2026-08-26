@@ -581,45 +581,6 @@ with tab_perf:
 
         df_plot = df_agg[df_agg.index >= start_dt].copy()
 
-        fig = go.Figure()
-
-        # 1. Candele Giapponesi per Strategia Apex
-        fig.add_trace(
-            go.Candlestick(
-                x=df_plot.index,
-                open=df_plot['norm_open'],
-                high=df_plot['norm_high'],
-                low=df_plot['norm_low'],
-                close=df_plot['norm_close'],
-                increasing_line_color='#10B981',
-                decreasing_line_color='#EF4444',
-                increasing_fillcolor='#10B981',
-                decreasing_fillcolor='#EF4444',
-                name='Strategia Apex'
-            )
-        )
-
-        # 2. Benchmark S&P 500 (Linea di Riferimento)
-        if not df_spy.empty:
-            start_date = df_plot.index[0]
-            df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
-            if not df_spy_aligned.empty:
-                first_spy = df_spy_aligned['close'].iloc[0]
-                if timeframe == "Settimanale" and len(df_spy_aligned) >= 5:
-                    df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna()
-                else:
-                    df_spy_plot = df_spy_aligned['close']
-                df_spy_norm = (df_spy_plot / first_spy) * 100
-
-                fig.add_trace(go.Scatter(
-                    x=df_spy_plot.index,
-                    y=df_spy_norm,
-                    mode='lines',
-                    name="S&P 500 Benchmark",
-                    line=dict(color='#9CA3AF', width=1.8, dash='dot'),
-                    opacity=0.75
-                ))
-
         IT_MONTHS = {1: 'Gen', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Mag', 6: 'Giu', 7: 'Lug', 8: 'Ago', 9: 'Set', 10: 'Ott', 11: 'Nov', 12: 'Dic'}
 
         ticks = []
@@ -642,6 +603,52 @@ with tab_perf:
             else:
                 ticks = [d for d in all_days if d.day == 1 and d.month in [1, 4, 7, 10]]
                 tick_labels = [f"{IT_MONTHS[d.month]} '{d.strftime('%y')}" for d in ticks]
+
+        fig = go.Figure()
+
+        it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_plot.index]
+
+        # 1. Candele Giapponesi per Strategia Apex
+        fig.add_trace(
+            go.Candlestick(
+                x=df_plot.index,
+                open=df_plot['norm_open'],
+                high=df_plot['norm_high'],
+                low=df_plot['norm_low'],
+                close=df_plot['norm_close'],
+                hovertext=it_dates_str,
+                hovertemplate="<b>%{hovertext}</b><br>Apertura: %{open:.2f}<br>Massimo: %{high:.2f}<br>Minimo: %{low:.2f}<br>Chiusura: %{close:.2f}<extra></extra>",
+                increasing_line_color='#10B981',
+                decreasing_line_color='#EF4444',
+                increasing_fillcolor='#10B981',
+                decreasing_fillcolor='#EF4444',
+                name='Strategia Apex'
+            )
+        )
+
+        # 2. Benchmark S&P 500 (Linea di Riferimento)
+        if not df_spy.empty:
+            start_date = df_plot.index[0]
+            df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
+            if not df_spy_aligned.empty:
+                first_spy = df_spy_aligned['close'].iloc[0]
+                if timeframe == "Settimanale" and len(df_spy_aligned) >= 5:
+                    df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna()
+                else:
+                    df_spy_plot = df_spy_aligned['close']
+                df_spy_norm = (df_spy_plot / first_spy) * 100
+
+                spy_it_dates = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_spy_plot.index]
+                fig.add_trace(go.Scatter(
+                    x=df_spy_plot.index,
+                    y=df_spy_norm,
+                    text=spy_it_dates,
+                    hovertemplate="<b>%{text}</b><br>S&P 500: %{y:.2f}<extra></extra>",
+                    mode='lines',
+                    name="S&P 500 Benchmark",
+                    line=dict(color='#9CA3AF', width=1.8, dash='dot'),
+                    opacity=0.75
+                ))
 
         fig.update_layout(
             template="plotly_dark",
