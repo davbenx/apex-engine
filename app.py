@@ -15,9 +15,21 @@ st.set_page_config(
 )
 
 # ==============================================================================
+# HTML RENDERING HELPER (PREVENTS UNRENDERED CODE BLOCKS)
+# ==============================================================================
+def st_html(html_str):
+    """Renders raw HTML safely without Markdown parser indentation issues."""
+    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
+    try:
+        st.html(cleaned)
+    except AttributeError:
+        st.markdown(cleaned, unsafe_allow_html=True)
+
+
+# ==============================================================================
 # THEME & GLOBAL STYLING
 # ==============================================================================
-st.markdown("""
+st_html("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
@@ -57,12 +69,12 @@ st.markdown("""
         font-size: 13.5px;
     }
 
-    /* Clean cards hover effect */
+    /* Clean cards transition */
     div[style*="border-radius"] {
         transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
 </style>
-""", unsafe_allow_html=True)
+""")
 
 
 # ==============================================================================
@@ -144,7 +156,7 @@ logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 75px; wi
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
-    st.markdown(f"""
+    st_html(f"""
     <div style="display: flex; align-items: center; gap: 16px; padding: 6px 0;">
         <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.18); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
             {logo_tag}
@@ -154,10 +166,10 @@ with col_title:
             <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px;">Sistema Quantitativo Multi-Asset<br><span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span></div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
 with col_meta:
-    st.markdown(f"""
+    st_html(f"""
     <div style="text-align: right; padding-top: 8px;">
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 5px;">
             <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 136, 204, 0.12); color: #0088cc; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(0, 136, 204, 0.3);">
@@ -169,7 +181,7 @@ with col_meta:
             🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
 # Macro Engine Status Chips
 alloc = data.get('allocations', {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
@@ -197,7 +209,7 @@ def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
         status_text = "🟢 ATTIVO" if is_active else "🔴 OFF"
         subtitle = f"Dal {since_date}" if is_active else f"Spento {since_date}"
 
-    opacity = "1" if (is_active or is_cash and alloc_pct > 0) else "0.55"
+    opacity = "1" if (is_active or (is_cash and alloc_pct > 0)) else "0.55"
 
     return f"""
     <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between; flex: 1 1 150px; min-width: 140px; opacity: {opacity};">
@@ -218,7 +230,7 @@ chip_g = make_chip("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0
 chip_b = make_chip("🛡️", "Bond", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
 chip_c = make_chip("💵", "Liquidità", alloc.get('Cash', 0), False, "", is_cash=True)
 
-st.markdown(f'<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px 0;">{chip_eq}{chip_cr}{chip_g}{chip_b}{chip_c}</div>', unsafe_allow_html=True)
+st_html(f'<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px 0;">{chip_eq}{chip_cr}{chip_g}{chip_b}{chip_c}</div>')
 
 
 # ==============================================================================
@@ -338,7 +350,7 @@ with tab_pf:
             pnl_pct_str = "0.00%"
             sub_text = "Nessuna posizione aperta (attesa venerdì)"
 
-        st.markdown(f"""
+        st_html(f"""
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
             <div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante Aperto</div>
             <div style="font-size: 20px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
@@ -346,7 +358,7 @@ with tab_pf:
             </div>
             <div style="opacity: 0.65; font-size: 10.5px;">{sub_text}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
     st.write("")
 
@@ -364,12 +376,12 @@ with tab_pf:
     col_az, col_cr = st.columns([2, 1])
 
     with col_az:
-        st.markdown(f"""
+        st_html(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 1.1rem; font-weight: 600;">📈 Azioni in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / 20</span>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
@@ -391,12 +403,12 @@ with tab_pf:
             st.info("Nessuna azione in portafoglio. In attesa del ricalcolo del venerdì.")
 
     with col_cr:
-        st.markdown(f"""
+        st_html(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 1.1rem; font-weight: 600;">🪙 Crypto in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr} / 3</span>
         </div>
-        """, unsafe_allow_html=True)
+        """)
 
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
@@ -551,7 +563,7 @@ with tab_perf:
         kpi_po = make_kpi_card("Rapporto Win/Loss", f"{payoff_ratio:.2f}x", "Vincita media / perdita media", c_payoff)
         kpi_dd = make_kpi_card("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica", c_dd)
 
-        st.markdown(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>', unsafe_allow_html=True)
+        st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
 
         st.markdown("#### 📜 Registro Operazioni Chiuse")
         if hist:
@@ -593,11 +605,11 @@ with tab_perf:
 # TAB 3: RADAR ROTAZIONE
 # ==============================================================================
 with tab_radar:
-    st.markdown("""
+    st_html("""
     <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px;">
         💡 <strong>Radar di Rotazione:</strong> Questi sono i titoli con il momentum più alto <strong>Oggi</strong>. I titoli già presenti in portafoglio sono marcati con ⭐, mentre i nuovi candidati verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     held_tickers = set(pf.get("open_positions", {}).keys()) if pf else set()
 
@@ -662,7 +674,7 @@ with tab_radar:
 # TAB 4: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
-    st.markdown('''
+    st_html('''
     <div style="background: rgba(0, 136, 204, 0.08); border-left: 4px solid #0088cc; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
             <div style="font-weight: 700; font-size: 14px; color: #0088cc; margin-bottom: 2px;">📢 Canale Ufficiale Notifiche Telegram</div>
@@ -672,10 +684,10 @@ with tab_guide:
             Unisciti al Canale ✈️
         </a>
     </div>
-    ''', unsafe_allow_html=True)
+    ''')
 
     st.markdown("#### 📖 Regole Operative")
-    st.markdown("""
+    st_html("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Controllo mensile</div>
@@ -690,7 +702,7 @@ with tab_guide:
             <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
 
     st.divider()
 
