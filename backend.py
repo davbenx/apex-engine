@@ -281,8 +281,52 @@ def update_macro_regimes(allocations, old_data, today_str):
 # EQUITY CURVE & PORTFOLIO TRACKING
 # ==============================================================================
 def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds, today_str):
-    """Updates daily OHLC equity curve tracking file."""
+    """Updates daily OHLC equity curve tracking based on real portfolio holdings & closed history."""
     eq_file = 'equity.json'
+    pf_file = 'portfolio.json'
+
+    pf = {"open_positions": {}, "macro_positions": {}, "trade_history": []}
+    if os.path.exists(pf_file):
+        try:
+            with open(pf_file, 'r') as f:
+                pf = json.load(f)
+        except Exception:
+            pass
+
+    # 1. Closed trades realized P&L sum
+    closed_pnl_usd = sum(
+        (t.get("profit_pct", 0.0) / 100.0) * (100000.0 * 0.05)
+        for t in pf.get("trade_history", [])
+    )
+
+    # 2. Open positions floating P&L sum
+    open_pnl_usd = 0.0
+    for ticker, pos in pf.get("open_positions", {}).items():
+        is_crypto = pos.get("is_crypto", False)
+        inds = cr_inds if is_crypto else eq_inds
+        sym = ticker + "-USD" if is_crypto else ticker
+        entry_p = pos.get("entry_price", 0.0)
+        if inds and sym in inds['c'].columns and entry_p > 0:
+            cur_p = float(inds['c'][sym].iloc[-1])
+            pnl_pct = (cur_p / entry_p - 1.0)
+            size = 100000.0 * (0.10 if ticker == "BTC" else 0.05)
+            open_pnl_usd += pnl_pct * size
+
+    # 3. Macro hedges floating P&L sum
+    alloc = data_dict.get("allocations", {})
+    for asset, sym in [("Gold", "GC=F"), ("Bonds", "TLT")]:
+        if alloc.get(asset, 0) > 0 and asset in pf.get("macro_positions", {}):
+            pos = pf["macro_positions"][asset]
+            entry_p = pos.get("entry_price", 0.0)
+            if b_inds and sym in b_inds['c'].columns and entry_p > 0:
+                cur_p = float(b_inds['c'][sym].iloc[-1])
+                pnl_pct = (cur_p / entry_p - 1.0)
+                alloc_cap = 100000.0 * (alloc.get(asset, 0) / 100.0)
+                open_pnl_usd += pnl_pct * alloc_cap
+
+    base_initial = 100000.0
+    current_portfolio_value = round(base_initial + closed_pnl_usd + open_pnl_usd, 2)
+
     if os.path.exists(eq_file):
         try:
             with open(eq_file, 'r') as f:
@@ -292,55 +336,37 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds, today_str):
     else:
         eq_data = {"history": []}
 
-    if not eq_data.get("history"):
-        yesterday_str = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        eq_data["history"] = [{"date": yesterday_str, "value": 100000.0}]
-
-    last_entry = eq_data["history"][-1]
-    last_value = last_entry["value"]
-    if last_entry["date"] == today_str:
-        return
-
-    def get_ret(inds, sym):
-        if inds and sym in inds['c'].columns and len(inds['c'][sym]) > 5:
-            return float(inds['c'][sym].iloc[-1] / inds['c'][sym].iloc[-6]) - 1.0
-        return 0.0
-
-    alloc = data_dict.get("allocations", {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
-
-    ret_eq = 0.0
-    if alloc["Equities"] > 0 and data_dict.get("top20"):
-        rets = [get_ret(eq_inds, row["Ticker"]) for row in data_dict["top20"]]
-        ret_eq = sum(rets) / len(rets) if rets else 0.0
-
-    ret_cr = 0.0
-    if alloc["Crypto"] > 0 and data_dict.get("crypto_top"):
-        rets = [get_ret(cr_inds, row["Ticker"] + "-USD") for row in data_dict["crypto_top"]]
-        ret_cr = sum(rets) / len(rets) if rets else 0.0
-
-    ret_g = get_ret(b_inds, "GC=F") if alloc["Gold"] > 0 else 0.0
-    ret_b = get_ret(b_inds, "TLT") if alloc["Bonds"] > 0 else 0.0
-
-    tot_ret = ((alloc["Equities"] / 100.0) * ret_eq) +               ((alloc["Crypto"] / 100.0) * ret_cr) +               ((alloc["Gold"] / 100.0) * ret_g) +               ((alloc["Bonds"] / 100.0) * ret_b)
-
-    new_value = last_value * (1.0 + tot_ret)
-    open_val = round(last_value, 2)
-    close_val = round(new_value, 2)
-    high_val = round(max(open_val, close_val) * 1.002, 2)
-    low_val = round(min(open_val, close_val) * 0.998, 2)
-
-    eq_data["history"].append({
-        "date": today_str,
-        "open": open_val,
-        "high": high_val,
-        "low": low_val,
-        "close": close_val,
-        "value": close_val
-    })
+    history = eq_data.setdefault("history", [])
+    if not history:
+        history.append({
+            "date": today_str,
+            "open": base_initial,
+            "high": base_initial,
+            "low": base_initial,
+            "close": current_portfolio_value,
+            "value": current_portfolio_value
+        })
+    else:
+        last_entry = history[-1]
+        if last_entry["date"] == today_str:
+            last_entry["close"] = current_portfolio_value
+            last_entry["value"] = current_portfolio_value
+            last_entry["high"] = max(last_entry.get("high", current_portfolio_value), current_portfolio_value)
+            last_entry["low"] = min(last_entry.get("low", current_portfolio_value), current_portfolio_value)
+        else:
+            prev_close = last_entry["value"]
+            history.append({
+                "date": today_str,
+                "open": prev_close,
+                "high": max(prev_close, current_portfolio_value),
+                "low": min(prev_close, current_portfolio_value),
+                "close": current_portfolio_value,
+                "value": current_portfolio_value
+            })
 
     with open(eq_file, 'w') as f:
         json.dump(eq_data, f, indent=4)
-    print(f"[+] Equity Curve aggiornata: {close_val:,.2f}")
+    print(f"[+] Equity Curve Reale aggiornata: {current_portfolio_value:,.2f}")
 
 
 def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
@@ -698,11 +724,12 @@ def main():
 
     # 4. Portfolio State & Equity Curve Tracking
     print("[4/4] Aggiornamento Portafoglio, Storico ed Equity Curve...")
-    update_equity_curve(output, b_inds, eq_inds, cr_inds, today_str)
     action_log = update_portfolio(output, b_inds, eq_inds, cr_inds, today_str)
+    update_equity_curve(output, b_inds, eq_inds, cr_inds, today_str)
 
-    # Telegram Notification (Fridays or Regime Shifts)
-    if datetime.datetime.now().weekday() == 4 or output.get("macro_events"):
+    # Telegram Notification (Fridays, Regime Shifts, or Actionable Orders)
+    has_orders = any(any(k in log for k in ("ACQUISTO", "VENDITA", "BEAR", "STOP LOSS", "HEDGE")) for log in action_log)
+    if datetime.datetime.now().weekday() == 4 or output.get("macro_events") or has_orders:
         send_telegram_alert(output, action_log)
     else:
         print("[-] Nessun alert Telegram programmato oggi (attesa venerdì o cambio regime).")
