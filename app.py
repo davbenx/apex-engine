@@ -271,20 +271,19 @@ if pf:
 
 
 # ==============================================================================
-# MAIN TABS DECLARATION
+# MAIN TABS DECLARATION (ESATTAMENTE: METRICHE, RADAR, GUIDA)
 # ==============================================================================
-tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
-    "💼 Portafoglio",
-    "📊 Metriche & Storico",
-    "📡 Radar Rotazione",
-    "📖 Guida & Strategia"
+tab_perf, tab_radar, tab_guide = st.tabs([
+    "📊 Metriche",
+    "📡 Radar",
+    "📖 Guida"
 ])
 
 
 # ==============================================================================
-# TAB 1: PORTAFOGLIO & ALLOCAZIONE
+# TAB 1: METRICHE (PORTAFOGLIO, EQUITY CURVE, STATISTICHE E STORICO)
 # ==============================================================================
-with tab_pf:
+with tab_perf:
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         capitale = st.number_input(
@@ -429,12 +428,9 @@ with tab_pf:
         else:
             st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo del venerdì.")
 
+    st.divider()
 
-# ==============================================================================
-# TAB 2: METRICHE & STORICO
-# ==============================================================================
-with tab_perf:
-    st.markdown("#### 📈 Andamento del Portafoglio")
+    st.markdown("#### 📈 Andamento dell'Equity Curve")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -602,7 +598,7 @@ with tab_perf:
 
 
 # ==============================================================================
-# TAB 3: RADAR ROTAZIONE
+# TAB 2: RADAR ROTAZIONE
 # ==============================================================================
 with tab_radar:
     st_html("""
@@ -671,7 +667,7 @@ with tab_radar:
 
 
 # ==============================================================================
-# TAB 4: GUIDA & STRATEGIA
+# TAB 3: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
     st_html('''
