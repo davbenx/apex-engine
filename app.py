@@ -267,7 +267,16 @@ if pf:
         pnl_pct = ((curr_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
         dist_stop_pct = ((stop_p / curr_p) - 1.0) * 100 if curr_p > 0 else 0.0
 
+        is_crypto = info.get("is_crypto", False)
+        if is_crypto:
+            num_cr += 1
+            pos_str = f"⭐ {num_cr}"
+        else:
+            num_eq += 1
+            pos_str = f"⭐ {num_eq}"
+
         row = {
+            "Pos": pos_str,
             "Titolo": ticker,
             "Data Ingresso": entry_formatted,
             "Ingresso ($)": info.get("entry_price", 0.0),
@@ -276,12 +285,10 @@ if pf:
             "Distanza Stop": dist_stop_pct,
             "Rendimento %": pnl_pct
         }
-        if info.get("is_crypto", False):
+        if is_crypto:
             op_cr.append(row)
-            num_cr += 1
         else:
             op_eq.append(row)
-            num_eq += 1
 
 
 # ==============================================================================
@@ -417,6 +424,9 @@ with tab_pf:
             return 'color: #F59E0B; font-weight: 600;'
         return ''
 
+    def style_pos(val):
+        return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
+
     col_az, col_cr = st.columns([2, 1])
 
     with col_az:
@@ -440,7 +450,7 @@ with tab_pf:
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
                 "Rendimento": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop'])
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
@@ -467,7 +477,7 @@ with tab_pf:
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
                 "Rendimento": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop'])
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
