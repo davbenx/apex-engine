@@ -184,11 +184,10 @@ except BaseException:
 st.write("")
 
 # --- TABS LAYOUT ---
-tab_pf, tab_perf, tab_radar, tab_log, tab_guide = st.tabs([
+tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
     "💼 Portafoglio",
     "📈 Metriche",
     "🔮 Radar",
-    "📜 Storico",
     "📖 Guida"
 ])
 
@@ -730,6 +729,42 @@ with tab_perf:
 
         st.html(
             f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px;">{card_tot}{card_o1}{card_o2}{card_o3}{card_o4}</div>')
+        st.divider()
+        st.markdown("#### 📜 Registro Operazioni Chiuse")
+        if hist:
+            df_hist = pd.DataFrame(hist)
+            df_hist = df_hist.sort_values("exit_date", ascending=False)
+
+            def color_trade_pnl(val):
+                if isinstance(val, (int, float)):
+                    color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
+                    return f'color: {color}; font-weight: 700;'
+                return ''
+
+            df_hist = df_hist.rename(columns={
+                "ticker": "Titolo",
+                "entry_date": "Data Ingresso",
+                "exit_date": "Data Uscita",
+                "entry_price": "Prezzo Ingresso",
+                "exit_price": "Prezzo Uscita",
+                "profit_pct": "Rendimento %",
+                "reason": "Motivazione"
+            })
+            if "is_crypto" in df_hist.columns:
+                df_hist = df_hist.drop(columns=["is_crypto"])
+
+            st.dataframe(
+                df_hist.style.format({
+                    "Prezzo Ingresso": "{:.2f}",
+                    "Prezzo Uscita": "{:.2f}",
+                    "Rendimento %": "{:+.2f}%"
+                }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist.columns else None),
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("Nessuna operazione chiusa registrata.")
+
 
 
 # ==============================================================================
@@ -805,49 +840,7 @@ with tab_radar:
             st.warning("Motore Crypto OFF (Semaforo Rosso).")
 
 
-# ==============================================================================
-# TAB 4: TRADE LOG
-# ==============================================================================
-with tab_log:
-    st.markdown("#### 📜 Registro Operazioni Chiuse")
-    if pf:
-        hist = pf.get("trade_history", [])
-        if hist:
-            df_hist = pd.DataFrame(hist)
-            df_hist = df_hist.sort_values("exit_date", ascending=False)
 
-            def color_trade_pnl(val):
-                if isinstance(val, (int, float)):
-                    color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
-                    return f'color: {color}; font-weight: 700;'
-                return ''
-
-            df_hist = df_hist.rename(columns={
-                "ticker": "Titolo",
-                "entry_date": "Data Ingresso",
-                "exit_date": "Data Uscita",
-                "entry_price": "Prezzo Ingresso",
-                "exit_price": "Prezzo Uscita",
-                "profit_pct": "Rendimento %",
-                "reason": "Motivazione"
-            })
-            # Drop is_crypto column if present for cleaner view
-            if "is_crypto" in df_hist.columns:
-                df_hist = df_hist.drop(columns=["is_crypto"])
-
-            st.dataframe(
-                df_hist.style.format({
-                    "Prezzo Ingresso": "{:.2f}",
-                    "Prezzo Uscita": "{:.2f}",
-                    "Rendimento %": "{:+.2f}%"
-                }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist.columns else None),
-                use_container_width=True,
-                hide_index=True
-            )
-        else:
-            st.info("Nessuna operazione chiusa registrata.")
-    else:
-        st.info("Portfolio Logger non ancora inizializzato.")
 
 
 # ==============================================================================
