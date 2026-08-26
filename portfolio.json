@@ -221,34 +221,34 @@
             "stop_loss": 264.32
         },
         "ETH": {
-            "entry_date": "2026-08-24",
-            "entry_price": 2515.28,
+            "entry_date": "2026-08-21",
+            "entry_price": 2443.16,
             "current_price": 2444.48,
             "shares": 4.690141,
             "stop_price": 1920.12,
-            "profit_pct": -2.81,
+            "profit_pct": 0.05,
             "weight": 0.05,
             "is_crypto": true,
             "stop_loss": 1920.12
         },
         "SOL": {
-            "entry_date": "2026-08-24",
-            "entry_price": 93.65,
+            "entry_date": "2026-08-21",
+            "entry_price": 96.6,
             "current_price": 96.6,
             "shares": 125.964454,
             "stop_price": 76.52,
-            "profit_pct": 3.15,
+            "profit_pct": 0.0,
             "weight": 0.05,
             "is_crypto": true,
             "stop_loss": 76.52
         },
         "BTC": {
-            "entry_date": "2026-08-24",
-            "entry_price": 78335.19,
+            "entry_date": "2026-08-21",
+            "entry_price": 78564.98,
             "current_price": 78132.21,
             "shares": 0.301194,
             "stop_price": 65104.99,
-            "profit_pct": -0.26,
+            "profit_pct": -0.55,
             "weight": 0.1,
             "is_crypto": true,
             "stop_loss": 65104.99
@@ -256,7 +256,7 @@
     },
     "macro_positions": {
         "Gold": {
-            "entry_date": "2026-08-24",
+            "entry_date": "2026-08-21",
             "entry_price": 4508.87,
             "current_price": 4669.2001953125,
             "shares": 2.2178,
