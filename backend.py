@@ -50,7 +50,7 @@ PORTFOLIO_FILE = 'portfolio.json'
 EQUITY_FILE = 'equity.json'
 
 # Benchmarks & Universes
-BENCHMARK_TICKERS = ['RSP', 'SPY', 'BTC-USD', 'GC=F', 'IEF']
+BENCHMARK_TICKERS = ['RSP', 'SPY', 'BTC-USD', 'GC=F', 'IEF', 'EURUSD=X']
 CRYPTO_FALLBACK = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
 CRYPTO_BLACKLIST = {
     'USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC',
@@ -748,6 +748,11 @@ def main():
     macro, allocations = calculate_macro_allocation(b_data)
     output["macro"] = macro
     output["allocations"] = allocations
+    
+    if 'EURUSD=X' in b_data and not b_data['EURUSD=X'].empty:
+        output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4)
+    else:
+        output['eur_usd'] = 1.0850
 
     old_data = load_json_safe(APEX_DATA_FILE, default=None)
     macro_dates, macro_events = update_macro_regimes(allocations, old_data, today_str)
