@@ -95,18 +95,20 @@ def get_logo_b64():
 
 
 logo_b64 = get_logo_b64()
-logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 38px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
+logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 55px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
     st.markdown(f'''
     <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
-            {logo_tag}
-        </div>
-        <div>
-            <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
-            <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset &bull; v1.0 Genesis</div>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
+            <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+                {logo_tag}
+            </div>
+            <div>
+                <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
+                <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset &bull; v1.0 Genesis</div>
+            </div>
         </div>
     </div>
     ''', unsafe_allow_html=True)
