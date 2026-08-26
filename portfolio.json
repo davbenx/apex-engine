@@ -8,7 +8,8 @@
             "stop_price": 336.76,
             "profit_pct": 7.27,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 336.76
         },
         "FTNT": {
             "entry_date": "2026-05-29",
@@ -18,7 +19,8 @@
             "stop_price": 135.38,
             "profit_pct": 11.37,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 135.38
         },
         "PANW": {
             "entry_date": "2026-07-03",
@@ -28,7 +30,8 @@
             "stop_price": 287.11,
             "profit_pct": -2.34,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 287.11
         },
         "MPC": {
             "entry_date": "2026-07-17",
@@ -38,7 +41,8 @@
             "stop_price": 299.28,
             "profit_pct": 13.53,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 299.28
         },
         "DDOG": {
             "entry_date": "2026-07-17",
@@ -48,7 +52,8 @@
             "stop_price": 200.32,
             "profit_pct": -13.8,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 200.32
         },
         "VLO": {
             "entry_date": "2026-07-17",
@@ -58,7 +63,8 @@
             "stop_price": 283.57,
             "profit_pct": 9.93,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 283.57
         },
         "STT": {
             "entry_date": "2026-07-17",
@@ -68,7 +74,8 @@
             "stop_price": 168.47,
             "profit_pct": 5.73,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 168.47
         },
         "PSX": {
             "entry_date": "2026-07-17",
@@ -78,7 +85,8 @@
             "stop_price": 203.68,
             "profit_pct": 14.52,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 203.68
         },
         "BNY": {
             "entry_date": "2026-07-24",
@@ -88,7 +96,8 @@
             "stop_price": 144.75,
             "profit_pct": 2.98,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 144.75
         },
         "HUM": {
             "entry_date": "2026-07-31",
@@ -98,7 +107,8 @@
             "stop_price": 344.84,
             "profit_pct": 7.1,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 344.84
         },
         "NTAP": {
             "entry_date": "2026-07-31",
@@ -108,7 +118,8 @@
             "stop_price": 163.42,
             "profit_pct": 5.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 163.42
         },
         "HPE": {
             "entry_date": "2026-07-31",
@@ -118,7 +129,8 @@
             "stop_price": 43.52,
             "profit_pct": 11.57,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 43.52
         },
         "CRWD": {
             "entry_date": "2026-08-07",
@@ -128,7 +140,8 @@
             "stop_price": 162.66,
             "profit_pct": -13.54,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 162.66
         },
         "MRNA": {
             "entry_date": "2026-08-21",
@@ -138,7 +151,8 @@
             "stop_price": 119.44,
             "profit_pct": 9.44,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 119.44
         },
         "MRVL": {
             "entry_date": "2026-08-28",
@@ -148,7 +162,8 @@
             "stop_price": 198.51,
             "profit_pct": 0.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 198.51
         },
         "CRL": {
             "entry_date": "2026-08-28",
@@ -158,7 +173,8 @@
             "stop_price": 237.34,
             "profit_pct": 0.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 237.34
         },
         "AMD": {
             "entry_date": "2026-08-28",
@@ -168,7 +184,8 @@
             "stop_price": 370.42,
             "profit_pct": 0.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 370.42
         },
         "ZBRA": {
             "entry_date": "2026-08-28",
@@ -178,7 +195,8 @@
             "stop_price": 303.11,
             "profit_pct": 0.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 303.11
         },
         "MET": {
             "entry_date": "2026-08-28",
@@ -188,7 +206,8 @@
             "stop_price": 88.83,
             "profit_pct": 0.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 88.83
         },
         "EXPE": {
             "entry_date": "2026-08-28",
@@ -198,7 +217,8 @@
             "stop_price": 264.32,
             "profit_pct": 0.0,
             "weight": 0.035,
-            "is_crypto": false
+            "is_crypto": false,
+            "stop_loss": 264.32
         },
         "ETH": {
             "entry_date": "2026-08-21",
@@ -208,7 +228,8 @@
             "stop_price": 1920.12,
             "profit_pct": -2.81,
             "weight": 0.05,
-            "is_crypto": true
+            "is_crypto": true,
+            "stop_loss": 1920.12
         },
         "SOL": {
             "entry_date": "2026-08-21",
@@ -218,7 +239,8 @@
             "stop_price": 76.52,
             "profit_pct": 3.15,
             "weight": 0.05,
-            "is_crypto": true
+            "is_crypto": true,
+            "stop_loss": 76.52
         },
         "BTC": {
             "entry_date": "2026-08-21",
@@ -228,7 +250,8 @@
             "stop_price": 65104.99,
             "profit_pct": -0.26,
             "weight": 0.1,
-            "is_crypto": true
+            "is_crypto": true,
+            "stop_loss": 65104.99
         }
     },
     "macro_positions": {},
