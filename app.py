@@ -313,21 +313,29 @@ with tab_pf:
     
     g_pnl_pct = None
     g_pnl_usd = None
-    if alloc['Gold'] > 0 and "Gold" in macro_pos:
-        g_pos = macro_pos["Gold"]
-        c_p = g_pos.get("current_price", g_pos["entry_price"])
-        g_pnl_pct = (c_p / g_pos["entry_price"] - 1.0) * 100 if g_pos["entry_price"] > 0 else 0
-        g_pnl_usd = (g_pnl_pct / 100) * gold_cap
+    if alloc['Gold'] > 0:
+        if "Gold" in macro_pos:
+            g_pos = macro_pos["Gold"]
+            c_p = g_pos.get("current_price", g_pos["entry_price"])
+            g_pnl_pct = (c_p / g_pos["entry_price"] - 1.0) * 100 if g_pos["entry_price"] > 0 else 0.0
+            g_pnl_usd = (g_pnl_pct / 100) * gold_cap
+        else:
+            g_pnl_pct = 0.0
+            g_pnl_usd = 0.0
         tot_pnl_usd += g_pnl_usd
         tot_invested_usd += gold_cap
 
     b_pnl_pct = None
     b_pnl_usd = None
-    if alloc['Bonds'] > 0 and "Bonds" in macro_pos:
-        b_pos = macro_pos["Bonds"]
-        c_p = b_pos.get("current_price", b_pos["entry_price"])
-        b_pnl_pct = (c_p / b_pos["entry_price"] - 1.0) * 100 if b_pos["entry_price"] > 0 else 0
-        b_pnl_usd = (b_pnl_pct / 100) * bond_cap
+    if alloc['Bonds'] > 0:
+        if "Bonds" in macro_pos:
+            b_pos = macro_pos["Bonds"]
+            c_p = b_pos.get("current_price", b_pos["entry_price"])
+            b_pnl_pct = (c_p / b_pos["entry_price"] - 1.0) * 100 if b_pos["entry_price"] > 0 else 0.0
+            b_pnl_usd = (b_pnl_pct / 100) * bond_cap
+        else:
+            b_pnl_pct = 0.0
+            b_pnl_usd = 0.0
         tot_pnl_usd += b_pnl_usd
         tot_invested_usd += bond_cap
 
@@ -362,23 +370,36 @@ with tab_pf:
 
     # Liquidità & Coperture Cards (3 pure asset buckets)
     def make_asset_card(icon, label, amount, subtext,
-                        border_col, is_active=True):
+                        border_col, is_active=True, pnl_pct=None, pnl_usd=None):
         opacity = "1" if is_active else "0.4"
+        pnl_html = ""
+        if is_active and pnl_pct is not None and pnl_usd is not None:
+            p_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
+            sign = "+" if pnl_pct >= 0 else ""
+            pnl_html = (
+                f"<div style='text-align: right; margin-left: 8px;'>"
+                f"<div style='color: {p_col}; font-size: 15px; font-weight: 700; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}${pnl_usd:,.0f}</div>"
+                f"<div style='color: {p_col}; font-size: 11px; font-weight: 600; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}{pnl_pct:.2f}%</div>"
+                f"</div>"
+            )
+            
         return (
-            f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity};">'
+            f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; justify-content: space-between; align-items: center;">'
+            f'<div>'
             f'<div style="opacity: 0.75; font-size: 11px; font-weight: 600;">{icon} {label}</div>'
-            f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{
-                amount:,.0f}</div>'
+            f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{amount:,.0f}</div>'
             f'<div style="opacity: 0.65; font-size: 10.5px;">{subtext}</div>'
+            f'</div>'
+            f'{pnl_html}'
             f'</div>'
         )
 
     card_cash = make_asset_card("💵", "LIQUIDITÀ / MONETARIO", real_cash,
                                 "Liquidità strategica + transitoria", "#3B82F6", True)
     card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro",
-                                "#F59E0B" if alloc['Gold'] > 0 else "#4B5563", alloc['Gold'] > 0)
+                                "#F59E0B" if alloc['Gold'] > 0 else "#4B5563", alloc['Gold'] > 0, g_pnl_pct, g_pnl_usd)
     card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi",
-                                "#8B5CF6" if alloc['Bonds'] > 0 else "#4B5563", alloc['Bonds'] > 0)
+                                "#8B5CF6" if alloc['Bonds'] > 0 else "#4B5563", alloc['Bonds'] > 0, b_pnl_pct, b_pnl_usd)
 
     st.html(
         f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_gold}{card_bond}</div>')
