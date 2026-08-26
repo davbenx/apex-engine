@@ -606,30 +606,56 @@ with tab_perf:
         payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
 
-        def make_kpi_card(title, value, subtext="", val_color=""):
-            col_attr = f'color: {val_color};' if val_color else ''
-            sub_html = f'<div style="color: #6B7280; font-size: 10.5px;">{subtext}</div>' if subtext else ''
+        def make_kpi_card(icon, title, value, subtext, badge_text, border_color, bg_color, badge_bg, val_color):
             return f"""
-            <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{title}</div>
-                <div style="font-size: 21px; font-weight: 700; {col_attr} font-family: 'JetBrains Mono', monospace; margin-bottom: 2px;">{value}</div>
-                {sub_html}
+            <div style="flex: 1 1 180px; min-width: 155px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 700; font-size: 13px; letter-spacing: 0.2px;">{icon} {title}</span>
+                    <span style="background: {badge_bg}; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">{badge_text}</span>
+                </div>
+                <div style="font-size: 22px; font-weight: 800; color: {val_color}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
+                    {value}
+                </div>
+                <div style="opacity: 0.65; font-size: 10.5px; margin-top: 2px;">{subtext}</div>
             </div>
             """
 
-        c_tot = "#10B981" if total_ret_pct >= 0 else "#EF4444"
-        c_win = "#10B981" if win_rate >= 50 else ("#3B82F6" if win_rate >= 40 else "#9CA3AF")
-        c_pf = "#10B981" if profit_factor >= 1.5 else ("#F59E0B" if profit_factor >= 1.0 else "#9CA3AF")
-        c_payoff = "#10B981" if payoff_ratio >= 2.0 else ("#F59E0B" if payoff_ratio >= 1.0 else "#9CA3AF")
-        c_dd = "#EF4444" if max_dd < -10 else "#F59E0B"
+        kpi_ret = make_kpi_card(
+            "📈", "Rendimento Netto", f"{total_ret_pct:+.2f}%", "Performance cumulativa",
+            "🟢 POSITIVO" if total_ret_pct >= 0 else "🔴 NEGATIVO",
+            "#10B981" if total_ret_pct >= 0 else "#EF4444",
+            "rgba(16, 185, 129, 0.08)" if total_ret_pct >= 0 else "rgba(239, 68, 68, 0.06)",
+            "#065F46" if total_ret_pct >= 0 else "#7F1D1D",
+            "#34D399" if total_ret_pct >= 0 else "#F87171"
+        )
+        kpi_win = make_kpi_card(
+            "🎯", "Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
+            f"{len(wins)}/{len(hist)}",
+            "#3B82F6", "rgba(59, 130, 246, 0.08)", "#1E40AF", "#60A5FA"
+        )
+        kpi_pf = make_kpi_card(
+            "⚖️", "Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
+            "ECCELLENTE" if profit_factor >= 1.5 else "STABILE",
+            "#10B981" if profit_factor >= 1.5 else "#F59E0B",
+            "rgba(16, 185, 129, 0.08)" if profit_factor >= 1.5 else "rgba(245, 158, 11, 0.08)",
+            "#065F46" if profit_factor >= 1.5 else "#78350F",
+            "#34D399" if profit_factor >= 1.5 else "#FBBF24"
+        )
+        kpi_po = make_kpi_card(
+            "💎", "Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
+            "ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO",
+            "#8B5CF6", "rgba(139, 92, 246, 0.08)", "#5B21B6", "#A78BFA"
+        )
+        kpi_dd = make_kpi_card(
+            "🛡️", "Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica",
+            "PROTETTO" if max_dd > -15 else "ATTENZIONE",
+            "#F59E0B" if max_dd > -15 else "#EF4444",
+            "rgba(245, 158, 11, 0.08)" if max_dd > -15 else "rgba(239, 68, 68, 0.06)",
+            "#78350F" if max_dd > -15 else "#7F1D1D",
+            "#FBBF24" if max_dd > -15 else "#F87171"
+        )
 
-        kpi_ret = make_kpi_card("Rendimento Netto", f"{total_ret_pct:+.2f}%", "Performance cumulativa", c_tot)
-        kpi_win = make_kpi_card("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}", c_win)
-        kpi_pf = make_kpi_card("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite", c_pf)
-        kpi_po = make_kpi_card("Rapporto Win/Loss", f"{payoff_ratio:.2f}x", "Vincita media / perdita media", c_payoff)
-        kpi_dd = make_kpi_card("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica", c_dd)
-
-        st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
+        st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
 
         st.markdown("#### 📜 Registro Operazioni Chiuse")
         if hist:
