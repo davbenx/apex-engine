@@ -1,5 +1,12 @@
 {
     "open_positions": {},
     "trade_history": [],
-    "pending_alerts": []
+    "pending_alerts": [],
+    "macro_positions": {
+        "Gold": {
+            "entry_date": "2026-08-26",
+            "entry_price": 4699.5,
+            "current_price": 4699.5
+        }
+    }
 }

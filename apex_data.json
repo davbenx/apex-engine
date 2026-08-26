@@ -6,14 +6,14 @@
             "mom": 0.11650313276852753
         },
         "BTC-USD": {
-            "price": 78906.6796875,
-            "ma200": 69176.0009765625,
-            "mom": 0.17778442464378053
+            "price": 79026.53125,
+            "ma200": 69176.600234375,
+            "mom": 0.17957336449197547
         },
         "GC=F": {
-            "price": 4702.2001953125,
-            "ma200": 4540.603493652344,
-            "mom": -0.10100369079198934
+            "price": 4699.5,
+            "ma200": 4540.576494140625,
+            "mom": -0.10151993117292801
         },
         "TLT": {
             "price": 83.47000122070312,
@@ -30,8 +30,8 @@
         {
             "Ticker": "HUM",
             "Prezzo ($)": 389.71,
-            "Momentum Score": 33.99,
-            "Stop Loss ($)": 385.44
+            "Momentum Score": 33.98,
+            "Stop Loss ($)": 385.42
         },
         {
             "Ticker": "MPC",
@@ -66,8 +66,8 @@
         {
             "Ticker": "EXPE",
             "Prezzo ($)": 337.97,
-            "Momentum Score": 20.0,
-            "Stop Loss ($)": 302.14
+            "Momentum Score": 19.99,
+            "Stop Loss ($)": 302.12
         },
         {
             "Ticker": "BNY",
@@ -102,13 +102,13 @@
         {
             "Ticker": "AIZ",
             "Prezzo ($)": 285.15,
-            "Momentum Score": 14.88,
-            "Stop Loss ($)": 283.96
+            "Momentum Score": 14.87,
+            "Stop Loss ($)": 283.94
         },
         {
             "Ticker": "NWS",
             "Prezzo ($)": 35.15,
-            "Momentum Score": 14.11,
+            "Momentum Score": 14.1,
             "Stop Loss ($)": 32.37
         },
         {
@@ -139,7 +139,7 @@
             "Ticker": "NTRS",
             "Prezzo ($)": 186.82,
             "Momentum Score": 12.88,
-            "Stop Loss ($)": 182.26
+            "Stop Loss ($)": 182.25
         },
         {
             "Ticker": "MRK",
@@ -151,24 +151,24 @@
     "crypto_top": [
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2458.19995117,
-            "Momentum Score": 6.75,
+            "Prezzo ($)": 2464.64990234,
+            "Momentum Score": 6.86,
             "Stop Loss ($)": 2382.36392163
         },
         {
             "Ticker": "XMR",
-            "Prezzo ($)": 441.0718689,
-            "Momentum Score": 5.8,
-            "Stop Loss ($)": 425.07650196
+            "Prezzo ($)": 443.20880127,
+            "Momentum Score": 5.95,
+            "Stop Loss ($)": 424.9860855
         },
         {
             "Ticker": "SOL",
-            "Prezzo ($)": 97.05000305,
-            "Momentum Score": 5.23,
+            "Prezzo ($)": 97.04000092,
+            "Momentum Score": 5.22,
             "Stop Loss ($)": 94.92776446
         }
     ],
-    "timestamp": "26 Aug 2026, 01:39 (UTC)",
+    "timestamp": "26 Aug 2026, 04:32 (UTC)",
     "allocations": {
         "Equities": 70,
         "Crypto": 15,
