@@ -442,7 +442,12 @@ with tab_pf:
 # TAB 2: METRICHE & GRAFICO
 # ==============================================================================
 with tab_perf:
-    st.markdown("#### 📈 Andamento del Portafoglio (Candele Settimanali)")
+    col_chart_hdr, col_chart_mode = st.columns([3, 1])
+    with col_chart_hdr:
+        st.markdown("#### 📈 Andamento del Portafoglio")
+    with col_chart_mode:
+        timeframe = st.radio("Timeframe", [
+                             "Settimanale", "Giornaliero"], horizontal=True, label_visibility="collapsed")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -500,49 +505,63 @@ with tab_perf:
             df_eq.loc[df_eq.index[0],
                       'low'] = df_eq.loc[df_eq.index[0], 'close'] * 0.999
 
-        # Aggregazione a Candele Settimanali (Weekly W-FRI)
-        df_eq_w = df_eq.resample('W-FRI').agg({
-            'open': 'first',
-            'high': 'max',
-            'low': 'min',
-            'close': 'last'
-        }).dropna()
+        if timeframe == "Settimanale":
+            df_plot = df_eq.resample('W-FRI').agg({
+                'open': 'first',
+                'high': 'max',
+                'low': 'min',
+                'close': 'last'
+            }).dropna()
+            date_fmt = '%d %b %Y'
+        else:
+            df_plot = df_eq.copy()
+            date_fmt = '%d %b'
 
-        # Normalizzazione in base 100
         first_open = df_eq['open'].iloc[0]
-        df_eq_w['norm_open'] = (df_eq_w['open'] / first_open) * 100
-        df_eq_w['norm_high'] = (df_eq_w['high'] / first_open) * 100
-        df_eq_w['norm_low'] = (df_eq_w['low'] / first_open) * 100
-        df_eq_w['norm_close'] = (df_eq_w['close'] / first_open) * 100
+        df_plot['norm_open'] = (df_plot['open'] / first_open) * 100
+        df_plot['norm_high'] = (df_plot['high'] / first_open) * 100
+        df_plot['norm_low'] = (df_plot['low'] / first_open) * 100
+        df_plot['norm_close'] = (df_plot['close'] / first_open) * 100
 
         # Calcolo Drawdown
-        cummax = df_eq_w['norm_close'].cummax()
-        dd_series = (df_eq_w['norm_close'] - cummax) / cummax * 100
+        cummax = df_plot['norm_close'].cummax()
+        dd_series = (df_plot['norm_close'] - cummax) / cummax * 100
         max_dd = dd_series.min()
         current_dd = dd_series.iloc[-1]
 
-        # Benchmark Weekly (S&P 500)
+        x_labels = [d.strftime(date_fmt) for d in df_plot.index]
+
+        # Benchmark Alignment
         df_spy = load_benchmark()
+        spy_norm = []
         if not df_spy.empty:
-            df_spy_w = df_spy.resample('W-FRI').last().dropna()
-            df_spy_w = df_spy_w.loc[df_spy_w.index >=
-                                    df_eq_w.index[0] - pd.Timedelta(days=7)]
-            if not df_spy_w.empty:
-                spy_base = df_spy_w['SPY'].iloc[0]
-                df_spy_w['Normalized'] = (df_spy_w['SPY'] / spy_base) * 100
-        else:
-            df_spy_w = pd.DataFrame()
+            if timeframe == "Settimanale":
+                df_spy_resampled = df_spy.resample('W-FRI').last().dropna()
+            else:
+                df_spy_resampled = df_spy.copy()
+
+            for dt in df_plot.index:
+                if dt in df_spy_resampled.index:
+                    spy_norm.append(df_spy_resampled.loc[dt, 'SPY'])
+                else:
+                    prior = df_spy_resampled.loc[df_spy_resampled.index <= dt]
+                    spy_norm.append(
+                        prior['SPY'].iloc[-1] if not prior.empty else df_spy_resampled['SPY'].iloc[0])
+
+            if spy_norm:
+                spy_base = spy_norm[0]
+                spy_norm = [(s / spy_base) * 100 for s in spy_norm]
 
         fig = go.Figure()
 
-        # 1. Candele Giapponesi Settimanali per Strategia Apex
+        # 1. Candele Giapponesi per Strategia Apex
         fig.add_trace(
             go.Candlestick(
-                x=df_eq_w.index,
-                open=df_eq_w['norm_open'],
-                high=df_eq_w['norm_high'],
-                low=df_eq_w['norm_low'],
-                close=df_eq_w['norm_close'],
+                x=x_labels,
+                open=df_plot['norm_open'],
+                high=df_plot['norm_high'],
+                low=df_plot['norm_low'],
+                close=df_plot['norm_close'],
                 increasing_line_color='#10B981',
                 decreasing_line_color='#EF4444',
                 increasing_fillcolor='#10B981',
@@ -551,15 +570,15 @@ with tab_perf:
             )
         )
 
-        # 2. Linea Settimanale per S&P 500 (Benchmark)
-        if not df_spy_w.empty:
+        # 2. Linea per S&P 500 (Benchmark)
+        if spy_norm:
             fig.add_trace(
                 go.Scatter(
-                    x=df_spy_w.index,
-                    y=df_spy_w['Normalized'],
+                    x=x_labels,
+                    y=spy_norm,
                     mode='lines+markers',
                     line=dict(color='#94A3B8', width=2, dash='dot'),
-                    marker=dict(size=5, color='#94A3B8'),
+                    marker=dict(size=6, color='#94A3B8'),
                     name='S&P 500'
                 )
             )
@@ -568,7 +587,8 @@ with tab_perf:
             template='plotly_dark',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
+            xaxis=dict(type='category', showgrid=True,
+                       gridcolor='rgba(255,255,255,0.06)'),
             yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
             xaxis_rangeslider_visible=False,
             margin=dict(l=0, r=0, t=20, b=0),
