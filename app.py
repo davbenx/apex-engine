@@ -858,12 +858,12 @@ with tab_guide:
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Routine Mensile</div>
-            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese, consulta la Dashboard. Vendi i titoli declassati, compra i nuovi ingressi suggeriti dall'algoritmo.</div>
+            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Allineamento Settimanale</div>
+            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì verifica la Dashboard. Sostituisci i titoli usciti per Stop Loss con i nuovi top in classifica ed esegui eventuali cambi di regime Macro.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 2. Regimi di Mercato</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se un motore è <strong>🟢 ATTIVO</strong>, mantieni le posizioni. Se diventa <strong>🔴 DISATTIVATO</strong>, liquida l'intero comparto per proteggere il capitale.</div>
+            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 2. Regimi Macro (Attivazione/Disattivazione)</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se un motore cambia stato (es. da 🟢 a 🔴), l'operazione di liquidazione (o acquisto) dell'intero comparto va eseguita al controllo settimanale.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #D97706; margin-bottom: 6px;">💵 3. Parcheggio Liquidità</div>
@@ -871,7 +871,7 @@ with tab_guide:
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Stop Loss Tassativo</div>
-            <div style="font-size: 13px; opacity: 0.85;">Inserisci sempre lo Stop Loss indicato dall'app sul broker. Se viene colpito in automatico, l'operazione è chiusa. Non rientrare manualmente.</div>
+            <div style="font-size: 13px; opacity: 0.85;">Lo Stop Loss inserito sul broker scatta in automatico durante la settimana. Il capitale incassato resta liquido fino al reinvestimento del venerdì.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -901,11 +901,11 @@ with tab_guide:
     ---
 
     ##### 2. L'ESECUZIONE (Cosa fare)
-    L'operatività è meccanica, asettica e richiede zero monitoraggio quotidiano.
+    L'operatività è meccanica, asettica e concentrata in un'unica routine periodica.
 
-    *   **La Verifica (Settimanale):** Ogni venerdì, apri la Dashboard per controllare i livelli di Stop Loss e aggiornarli sul tuo broker. Da lunedì a giovedì non è richiesta alcuna azione.
-    *   **La Rotazione (Mensile):** L'ultimo venerdì del mese, controlla il Radar. Il motore segnalerà matematicamente chi vendere e chi comprare per ricalibrare il portafoglio sui titoli più forti.
-    *   **I Tagli (Emergenze):** Se uno Stop Loss viene colpito automaticamente sul broker durante la settimana, l'operazione è chiusa. Il capitale torna in liquidità fino alla successiva rotazione.
+    *   **L'Emergenza (Infrasettimanale):** L'unica azione automatica è lo scatto dello Stop Loss sul broker se il prezzo crolla. L'operazione si chiude e il capitale incassato attende il venerdì.
+    *   **La Routine (Settimanale):** Ogni venerdì, apri la Dashboard. Aggiorna i livelli di Stop Loss per le posizioni aperte. Se ci sono stati Stop Loss colpiti in settimana, acquista i nuovi titoli in testa alla classifica per rimpiazzarli. Esegui le accensioni o gli spegnimenti dei motori Macro qualora abbiano cambiato colore.
+    *   **La Rotazione (Mensile):** L'ultimo venerdì del mese si esegue la pulizia strutturale: si vendono i titoli in portafoglio che hanno perso Momentum per far spazio ai nuovi leader di mercato suggeriti dall'algoritmo.
 
     ---
 
