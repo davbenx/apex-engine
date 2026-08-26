@@ -8,10 +8,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-st.set_page_config(page_title="Apex Multi-Asset",
-                   page_icon="logo_icon.png" if os.path.exists("logo_icon.png") else "🦅", layout="wide")
+st.set_page_config(
+    page_title="Apex Multi-Asset",
+    page_icon="logo_icon.png" if os.path.exists("logo_icon.png") else "🦅",
+    layout="wide"
+)
 
-# --- CUSTOM THEME & POLISH ---
+# ==============================================================================
+# THEME & GLOBAL STYLING
+# ==============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
@@ -21,7 +26,7 @@ st.markdown("""
         letter-spacing: -0.01em;
     }
 
-    /* Tabular numbers for financial metrics and tables */
+    /* Tabular numbers for financial metrics and dataframes */
     [data-testid="stMetricValue"], [data-testid="stMetricLabel"], .stDataFrame, div[data-testid="stTable"], table {
         font-family: 'JetBrains Mono', monospace !important;
         font-variant-numeric: tabular-nums !important;
@@ -40,7 +45,7 @@ st.markdown("""
         letter-spacing: 0.5px;
     }
 
-    /* Tab styling */
+    /* Tab navigation polish */
     .stTabs [data-baseweb="tab-list"] {
         gap: 6px;
         border-bottom: 1px solid rgba(128,128,128,0.2);
@@ -52,7 +57,7 @@ st.markdown("""
         font-size: 13.5px;
     }
 
-    /* Clean cards */
+    /* Clean cards hover effect */
     div[style*="border-radius"] {
         transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
@@ -60,6 +65,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+# ==============================================================================
+# DATA LOADING & SYNC
+# ==============================================================================
 @st.cache_data(ttl=60)
 def fetch_json_from_github(filename):
     url = f"https://raw.githubusercontent.com/davbenx/apex-engine/main/{filename}"
@@ -69,12 +77,24 @@ def fetch_json_from_github(filename):
         return json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
     except Exception:
         if os.path.exists(filename):
-            with open(filename, 'r') as f:
-                return json.load(f)
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception:
+                pass
     return None
+
 
 def load_data():
     return fetch_json_from_github('apex_data.json')
+
+
+def load_portfolio():
+    return fetch_json_from_github('portfolio.json')
+
+
+def load_equity():
+    return fetch_json_from_github('equity.json')
 
 
 data = load_data()
@@ -82,36 +102,62 @@ if not data:
     st.error("🚨 Dati non disponibili. In attesa del ricalcolo notturno su GitHub.")
     st.stop()
 
-# --- HEADER & STATUS BAR ---
-last_update = data.get("timestamp", "Sincronizzazione in corso...")
+
+# ==============================================================================
+# FORMATTING & HELPERS
+# ==============================================================================
+def format_price(val):
+    if val is None or pd.isna(val):
+        return "$0.00"
+    try:
+        num = float(val)
+        return f"${num:,.2f}" if abs(num) >= 1.0 else f"${num:,.6f}"
+    except Exception:
+        return f"${val}"
+
+
+def calculate_days(entry_date_str):
+    try:
+        entry_d = datetime.datetime.strptime(entry_date_str, "%Y-%m-%d")
+        return (datetime.datetime.now() - entry_d).days
+    except Exception:
+        return 0
 
 
 def get_logo_b64():
     for p in ["logo_icon.png", "logo.png"]:
         if os.path.exists(p):
-            with open(p, "rb") as f:
-                return base64.b64encode(f.read()).decode()
+            try:
+                with open(p, "rb") as f:
+                    return base64.b64encode(f.read()).decode()
+            except Exception:
+                pass
     return ""
 
 
+# ==============================================================================
+# HEADER & MACRO STATUS
+# ==============================================================================
+last_update = data.get("timestamp", "Sincronizzazione in corso...")
 logo_b64 = get_logo_b64()
-logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 80px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
+logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 75px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
-    st.markdown(f'''
+    st.markdown(f"""
     <div style="display: flex; align-items: center; gap: 16px; padding: 6px 0;">
         <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.18); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
             {logo_tag}
         </div>
         <div>
-            <div style="font-size: 29px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.15;">APEX ENGINE</div>
+            <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.15;">APEX ENGINE</div>
             <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px;">Sistema Quantitativo Multi-Asset<br><span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span></div>
         </div>
     </div>
-    ''', unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
 with col_meta:
-    st.markdown(f'''
+    st.markdown(f"""
     <div style="text-align: right; padding-top: 8px;">
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 5px;">
             <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 136, 204, 0.12); color: #0088cc; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(0, 136, 204, 0.3);">
@@ -123,19 +169,14 @@ with col_meta:
             🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
         </div>
     </div>
-    ''', unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- MACRO ENGINE STATUS CHIPS ---
-alloc = data['allocations']
-is_bull_eq = alloc['Equities'] > 0
-is_bull_cr = alloc['Crypto'] > 0
-is_bull_g = alloc['Gold'] > 0
-is_bull_b = alloc['Bonds'] > 0
-
+# Macro Engine Status Chips
+alloc = data.get('allocations', {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 raw_ts = data.get('timestamp', '')
-ts_date = raw_ts.split(',')[0].strip() if ',' in raw_ts else (raw_ts.split(
-    ' ')[0] if raw_ts else datetime.datetime.now().strftime('%Y-%m-%d'))
+ts_date = raw_ts.split(',')[0].strip() if ',' in raw_ts else (raw_ts.split(' ')[0] if raw_ts else datetime.datetime.now().strftime('%Y-%m-%d'))
 macro_dates = data.get("macro_dates", {})
+
 d_eq = macro_dates.get("Equities", ts_date)
 d_cr = macro_dates.get("Crypto", ts_date)
 d_g = macro_dates.get("Gold", ts_date)
@@ -148,109 +189,62 @@ def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
         bg_color = "rgba(59, 130, 246, 0.10)" if alloc_pct > 0 else "rgba(107, 114, 128, 0.06)"
         badge_bg = "#1E40AF" if alloc_pct > 0 else "#374151"
         status_text = "🟢 ATTIVO" if alloc_pct > 0 else "⚪ STBY"
-        status_color = "#60A5FA" if alloc_pct > 0 else "#9CA3AF"
-        date_str = "Rifugio"
+        subtitle = "Parcheggio Sicuro"
     else:
-        border_color = "#10B981" if is_active else "#EF4444"
-        bg_color = "rgba(16, 185, 129, 0.10)" if is_active else "rgba(239, 68, 68, 0.08)"
-        badge_bg = "#065F46" if is_active else "#7F1D1D"
+        border_color = "#10B981" if is_active else "rgba(128,128,128,0.2)"
+        bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(128, 128, 128, 0.04)"
+        badge_bg = "#065F46" if is_active else "#374151"
         status_text = "🟢 ATTIVO" if is_active else "🔴 OFF"
-        status_color = "#10B981" if is_active else "#EF4444"
-        date_str = f"dal {since_date}" if since_date else ""
+        subtitle = f"Dal {since_date}" if is_active else f"Spento {since_date}"
 
-    return (
-        f'<div style="flex: 1 1 150px; min-width: 140px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">'
-        f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">'
-        f'<span style="font-weight: 700; font-size: 13px; letter-spacing: 0.2px;">{icon} {name}</span>'
-        f'<span style="background: {badge_bg}; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px;">{alloc_pct}%</span>'
-        f'</div>'
-        f'<div style="display: flex; justify-content: space-between; align-items: baseline;">'
-        f'<span style="color: {status_color}; font-weight: 700; font-size: 12px;">{status_text}</span>'
-        f'<span style="opacity: 0.75; font-size: 10px;">{date_str}</span>'
-        f'</div>'
-        f'</div>'
-    )
+    opacity = "1" if (is_active or is_cash and alloc_pct > 0) else "0.55"
 
+    return f"""
+    <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between; flex: 1 1 150px; min-width: 140px; opacity: {opacity};">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">{icon}</span>
+            <div>
+                <div style="font-weight: 700; font-size: 12.5px; line-height: 1.1;">{name} <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: 0.9;">({alloc_pct}%)</span></div>
+                <div style="opacity: 0.65; font-size: 10px; margin-top: 1px;">{subtitle}</div>
+            </div>
+        </div>
+        <span style="background: {badge_bg}; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px;">{status_text}</span>
+    </div>
+    """
 
-chip_eq = make_chip("📈", "Azioni", alloc['Equities'], is_bull_eq, d_eq)
-chip_cr = make_chip("🪙", "Crypto", alloc['Crypto'], is_bull_cr, d_cr)
-chip_g = make_chip("🥇", "Oro", alloc['Gold'], is_bull_g, d_g)
-chip_b = make_chip("🛡️", "Obbligazioni", alloc['Bonds'], is_bull_b, d_b)
-chip_c = make_chip("💵", "Liquidità / Monetario",
-                   alloc['Cash'], True, "", is_cash=True)
+chip_eq = make_chip("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
+chip_cr = make_chip("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
+chip_g = make_chip("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
+chip_b = make_chip("🛡️", "Bond", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
+chip_c = make_chip("💵", "Liquidità", alloc.get('Cash', 0), False, "", is_cash=True)
 
-chips_html = f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">{chip_eq}{chip_cr}{chip_g}{chip_b}{chip_c}</div>'
-
-try:
-    st.html(chips_html)
-except BaseException:
-    st.markdown(chips_html, unsafe_allow_html=True)
-
-st.write("")
-
-# --- TABS LAYOUT ---
-tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
-    "💼 Portafoglio",
-    "📈 Metriche",
-    "🔮 Radar",
-    "📖 Guida"
-])
+st.markdown(f'<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px 0;">{chip_eq}{chip_cr}{chip_g}{chip_b}{chip_c}</div>', unsafe_allow_html=True)
 
 
-def format_price(x):
-    if x >= 1000:
-        return f"{x:,.2f}"
-    elif x >= 1:
-        return f"{x:,.4f}"
-    elif x >= 0.01:
-        return f"{x:,.6f}"
-    else:
-        return f"{x:,.8f}"
-
-
-def calculate_days(date_str):
-    try:
-        if not date_str or date_str == "-":
-            return ""
-        for fmt in ("%Y-%m-%d", "%d %b %Y", "%Y/%m/%d"):
-            try:
-                d = datetime.datetime.strptime(date_str.split(" ")[0], fmt)
-                diff = (datetime.datetime.now() - d).days
-                return f"{diff}g"
-            except BaseException:
-                pass
-        return ""
-    except BaseException:
-        return ""
-
-
-def load_portfolio():
-    return fetch_json_from_github('portfolio.json')
-
-
+# ==============================================================================
+# PORTFOLIO DATA EXTRACTION
+# ==============================================================================
 pf = load_portfolio()
-
 op_eq = []
 op_cr = []
 num_eq = 0
 num_cr = 0
 
-if pf and "open_positions" in pf:
-    for ticker, info in pf["open_positions"].items():
-        curr_p = info.get("current_price", info["entry_price"])
-        pnl_pct = (curr_p / info["entry_price"] - 1.0) * \
-            100 if info["entry_price"] > 0 else 0
-        stop_p = info["stop_loss"]
-        dist_stop_pct = (stop_p / curr_p - 1.0) * 100 if curr_p > 0 else 0
+if pf:
+    for ticker, info in pf.get("open_positions", {}).items():
+        entry_d = info.get("entry_date", "N/A")
+        days_open = calculate_days(entry_d) if entry_d != "N/A" else 0
+        entry_formatted = f"{entry_d} ({days_open}g)" if entry_d != "N/A" else "N/A"
 
-        entry_raw = info.get("entry_date", "-")
-        days_str = calculate_days(entry_raw)
-        entry_formatted = f"{entry_raw} ({days_str})" if days_str else entry_raw
+        curr_p = info.get("current_price", info.get("entry_price", 0.0))
+        stop_p = info.get("stop_loss", 0.0)
+        pnl_pct = ((curr_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
+        dist_stop_pct = ((stop_p / curr_p) - 1.0) * 100 if curr_p > 0 else 0.0
 
         row = {
             "Titolo": ticker,
             "Data Ingresso": entry_formatted,
-            "Ingresso ($)": info["entry_price"],
+            "Ingresso ($)": info.get("entry_price", 0.0),
             "Attuale ($)": curr_p,
             "Stop Loss ($)": stop_p,
             "Distanza Stop": dist_stop_pct,
@@ -265,148 +259,96 @@ if pf and "open_positions" in pf:
 
 
 # ==============================================================================
+# MAIN TABS DECLARATION
+# ==============================================================================
+tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
+    "💼 Portafoglio",
+    "📊 Metriche & Storico",
+    "📡 Radar Rotazione",
+    "📖 Guida & Strategia"
+])
+
+
+# ==============================================================================
 # TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
 with tab_pf:
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         capitale = st.number_input(
-            "💰 Capitale Broker Reale", min_value=1000, value=100000, step=1000, format="%d")
-        st.caption(
-            "Le size e le metriche si adattano istantaneamente al capitale inserito.")
+            "💰 Capitale Broker Reale (€ / $)", min_value=1000, value=100000, step=1000, format="%d"
+        )
+        st.caption("Le quote e i controvalori si adattano istantaneamente al capitale impostato.")
 
-    capitale_azionario = capitale * (alloc['Equities'] / 100)
-    single_eq = capitale_azionario / 20 if alloc['Equities'] > 0 else 0
-    crypto_cap = capitale * (alloc['Crypto'] / 100)
-    gold_cap = capitale * (alloc['Gold'] / 100)
-    bond_cap = capitale * (alloc['Bonds'] / 100)
-    cash_cap = capitale * (alloc['Cash'] / 100)
+    capitale_azionario = capitale * (alloc.get('Equities', 0) / 100)
+    single_eq = capitale_azionario / 20 if alloc.get('Equities', 0) > 0 else 0
+    crypto_cap = capitale * (alloc.get('Crypto', 0) / 100)
+    gold_cap = capitale * (alloc.get('Gold', 0) / 100)
+    bond_cap = capitale * (alloc.get('Bonds', 0) / 100)
 
-    # Calcolo del Cash Reale
-    real_cash = cash_cap
-    if alloc['Equities'] > 0:
-        real_cash += (20 - num_eq) * single_eq
-    if alloc['Crypto'] > 0:
-        real_cash += (3 - num_cr) * (capitale * 0.05)
-
-    # Calcolo del P&L Totale Galleggiante Aperto
+    # Calcolo Floating P&L
     tot_pnl_usd = 0.0
     tot_invested_usd = 0.0
+
     for r in op_eq:
         pnl_val = (r["Rendimento %"] / 100) * single_eq
         tot_pnl_usd += pnl_val
         tot_invested_usd += single_eq
 
-    has_btc = any(r['Titolo'] == 'BTC' for r in op_cr)
     for r in op_cr:
-        if has_btc:
-            if num_cr == 1:
-                cr_size = capitale * 0.10
-            elif num_cr == 2:
-                cr_size = capitale * \
-                    0.10 if r['Titolo'] == 'BTC' else capitale * 0.05
-            else:
-                cr_size = capitale * 0.05
-        else:
-            cr_size = capitale * 0.05
+        cr_size = capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05)
         pnl_val = (r["Rendimento %"] / 100) * cr_size
         tot_pnl_usd += pnl_val
         tot_invested_usd += cr_size
 
     macro_pos = pf.get("macro_positions", {}) if pf else {}
-    
-    g_pnl_pct = None
-    g_pnl_usd = None
-    if alloc['Gold'] > 0:
+    if alloc.get('Gold', 0) > 0:
+        g_pnl_usd = 0.0
         if "Gold" in macro_pos:
             g_pos = macro_pos["Gold"]
-            c_p = g_pos.get("current_price", g_pos["entry_price"])
-            g_pnl_pct = (c_p / g_pos["entry_price"] - 1.0) * 100 if g_pos["entry_price"] > 0 else 0.0
-            g_pnl_usd = (g_pnl_pct / 100) * gold_cap
-        else:
-            g_pnl_pct = 0.0
-            g_pnl_usd = 0.0
+            c_p = g_pos.get("current_price", g_pos.get("entry_price", 0))
+            if g_pos.get("entry_price", 0) > 0:
+                g_pnl_usd = ((c_p / g_pos["entry_price"]) - 1.0) * gold_cap
         tot_pnl_usd += g_pnl_usd
         tot_invested_usd += gold_cap
 
-    b_pnl_pct = None
-    b_pnl_usd = None
-    if alloc['Bonds'] > 0:
+    if alloc.get('Bonds', 0) > 0:
+        b_pnl_usd = 0.0
         if "Bonds" in macro_pos:
             b_pos = macro_pos["Bonds"]
-            c_p = b_pos.get("current_price", b_pos["entry_price"])
-            b_pnl_pct = (c_p / b_pos["entry_price"] - 1.0) * 100 if b_pos["entry_price"] > 0 else 0.0
-            b_pnl_usd = (b_pnl_pct / 100) * bond_cap
-        else:
-            b_pnl_pct = 0.0
-            b_pnl_usd = 0.0
+            c_p = b_pos.get("current_price", b_pos.get("entry_price", 0))
+            if b_pos.get("entry_price", 0) > 0:
+                b_pnl_usd = ((c_p / b_pos["entry_price"]) - 1.0) * bond_cap
         tot_pnl_usd += b_pnl_usd
         tot_invested_usd += bond_cap
 
-    tot_pnl_pct = (tot_pnl_usd / tot_invested_usd *
-                   100) if tot_invested_usd > 0 else 0.0
+    tot_pnl_pct = (tot_pnl_usd / tot_invested_usd * 100) if tot_invested_usd > 0 else 0.0
 
     with c_pnl:
-        num_pos = len(op_eq) + len(op_cr) + (1 if g_pnl_usd is not None else 0) + (1 if b_pnl_usd is not None else 0)
+        num_pos = len(op_eq) + len(op_cr) + (1 if alloc.get('Gold', 0) > 0 else 0) + (1 if alloc.get('Bonds', 0) > 0 else 0)
         if num_pos > 0:
             pnl_sign = "+" if tot_pnl_usd >= 0 else ""
             pnl_col = "#10B981" if tot_pnl_usd >= 0 else "#EF4444"
-            pnl_text = f"{pnl_sign}{
-                tot_pnl_usd:,.0f} <span style='font-size: 13px; font-weight: 600;'>({pnl_sign}{
-                tot_pnl_pct:.2f}%)</span>"
+            pnl_val_str = f"{pnl_sign}{tot_pnl_usd:,.0f}"
+            pnl_pct_str = f"{pnl_sign}{tot_pnl_pct:.2f}%"
             sub_text = f"Su {num_pos} posizioni aperte"
         else:
             pnl_col = "gray"
-            pnl_text = "0 <span style='font-size: 13px; font-weight: 600;'>(0.00%)</span>"
+            pnl_val_str = "0"
+            pnl_pct_str = "0.00%"
             sub_text = "Nessuna posizione aperta (attesa venerdì)"
 
-        st.markdown(f'''
+        st.markdown(f"""
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
             <div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante Aperto</div>
-            <div style="font-size: 19px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
-                {pnl_text}
+            <div style="font-size: 20px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
+                {pnl_val_str} <span style="font-size: 13px; font-weight: 600;">({pnl_pct_str})</span>
             </div>
             <div style="opacity: 0.65; font-size: 10.5px;">{sub_text}</div>
         </div>
-        ''', unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     st.write("")
-
-    # Liquidità & Coperture Cards (3 pure asset buckets)
-    def make_asset_card(icon, label, amount, subtext,
-                        border_col, is_active=True, pnl_pct=None, pnl_usd=None):
-        opacity = "1" if is_active else "0.4"
-        pnl_html = ""
-        if is_active and pnl_pct is not None and pnl_usd is not None:
-            p_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
-            sign = "+" if pnl_pct >= 0 else ""
-            pnl_html = (
-                f"<div style='text-align: right; margin-left: 8px;'>"
-                f"<div style='color: {p_col}; font-size: 15px; font-weight: 700; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}{pnl_usd:,.0f}</div>"
-                f"<div style='color: {p_col}; font-size: 11px; font-weight: 600; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}{pnl_pct:.2f}%</div>"
-                f"</div>"
-            )
-            
-        return (
-            f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; justify-content: space-between; align-items: center;">'
-            f'<div>'
-            f'<div style="opacity: 0.75; font-size: 11px; font-weight: 600;">{icon} {label}</div>'
-            f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{amount:,.0f}</div>'
-            f'<div style="opacity: 0.65; font-size: 10.5px;">{subtext}</div>'
-            f'</div>'
-            f'{pnl_html}'
-            f'</div>'
-        )
-
-    card_cash = make_asset_card("💵", "LIQUIDITÀ / MONETARIO", real_cash,
-                                "Liquidità strategica + transitoria", "#3B82F6", True)
-    card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro",
-                                "#F59E0B" if alloc['Gold'] > 0 else "#4B5563", alloc['Gold'] > 0, g_pnl_pct, g_pnl_usd)
-    card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi",
-                                "#8B5CF6" if alloc['Bonds'] > 0 else "#4B5563", alloc['Bonds'] > 0, b_pnl_pct, b_pnl_usd)
-
-    st.html(
-        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_gold}{card_bond}</div>')
 
     def color_pnl(val):
         color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
@@ -417,23 +359,22 @@ with tab_pf:
             return 'color: #EF4444; font-weight: 700;'
         elif val > -10.0:
             return 'color: #F59E0B; font-weight: 600;'
-        else:
-            return ''
+        return ''
 
     col_az, col_cr = st.columns([2, 1])
 
     with col_az:
-        st.markdown(f'''
+        st.markdown(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 1.1rem; font-weight: 600;">📈 Azioni in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / 20</span>
         </div>
-        ''', unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
             df_op_eq["Importo"] = single_eq
-            df_op_eq["Rendimento Netto"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
+            df_op_eq["P&L (€)"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
 
             df_eq_styled = df_op_eq.style.format({
                 "Ingresso ($)": "{:.2f}",
@@ -442,40 +383,25 @@ with tab_pf:
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "Rendimento Netto": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'Rendimento Netto']).map(color_stop_dist, subset=['Distanza Stop'])
+                "P&L (€)": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'P&L (€)']).map(color_stop_dist, subset=['Distanza Stop'])
 
-            st.dataframe(df_eq_styled, use_container_width=True,
-                         hide_index=True)
+            st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
-            st.info(
-                "Nessuna azione in portafoglio. In attesa del ricalcolo del venerdì.")
+            st.info("Nessuna azione in portafoglio. In attesa del ricalcolo del venerdì.")
 
     with col_cr:
-        st.markdown(f'''
+        st.markdown(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 1.1rem; font-weight: 600;">🪙 Crypto in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr} / 3</span>
         </div>
-        ''', unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
-            budgets = []
-            has_btc = any(r['Titolo'] == 'BTC' for r in op_cr)
-            for _, r in df_op_cr.iterrows():
-                if has_btc:
-                    if num_cr == 1:
-                        budgets.append(capitale * 0.10)
-                    elif num_cr == 2:
-                        budgets.append(
-                            capitale * 0.10 if r['Titolo'] == 'BTC' else capitale * 0.05)
-                    else:
-                        budgets.append(capitale * 0.05)
-                else:
-                    budgets.append(capitale * 0.05)
-            df_op_cr["Importo"] = budgets
-            df_op_cr["Rendimento Netto"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
+            df_op_cr["Importo"] = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05) for _, r in df_op_cr.iterrows()]
+            df_op_cr["P&L (€)"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
 
             df_cr_styled = df_op_cr.style.format({
                 "Ingresso ($)": format_price,
@@ -484,261 +410,152 @@ with tab_pf:
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "Rendimento Netto": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'Rendimento Netto']).map(color_stop_dist, subset=['Distanza Stop'])
+                "P&L (€)": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'P&L (€)']).map(color_stop_dist, subset=['Distanza Stop'])
 
-            st.dataframe(df_cr_styled, use_container_width=True,
-                         hide_index=True)
+            st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
-            st.info("Nessuna crypto in portafoglio.")
+            st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo del venerdì.")
+
+
 # ==============================================================================
-# TAB 2: METRICHE & GRAFICO
+# TAB 2: METRICHE & STORICO
 # ==============================================================================
 with tab_perf:
-    col_chart_hdr, col_chart_mode = st.columns([3, 1])
-    with col_chart_hdr:
-        st.markdown("#### 📈 Andamento del Portafoglio")
-    with col_chart_mode:
-        timeframe = st.radio("Timeframe", [
-                             "Settimanale", "Giornaliero"], horizontal=True, label_visibility="collapsed")
+    st.markdown("#### 📈 Andamento del Portafoglio")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
-        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=5y"
-        req = urllib.request.Request(
-            url, headers={'User-Agent': 'Mozilla/5.0'})
         try:
-            res = urllib.request.urlopen(req).read().decode()
-            data = json.loads(res)['chart']['result'][0]
-            timestamps = data['timestamp']
-            closes = data['indicators']['quote'][0]['close']
-
-            dates = [datetime.datetime.fromtimestamp(
-                ts).strftime('%Y-%m-%d') for ts in timestamps]
-            df = pd.DataFrame({'date': dates, 'SPY': closes})
-            df['date'] = pd.to_datetime(df['date'])
-            df.set_index('date', inplace=True)
-            return df.dropna()
-        except BaseException:
+            url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=2y&interval=1d"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
+            data_spy = res['chart']['result'][0]
+            timestamps = pd.to_datetime(data_spy['timestamp'], unit='s')
+            quote = data_spy['indicators']['quote'][0]
+            df_b = pd.DataFrame({
+                'open': quote['open'],
+                'high': quote['high'],
+                'low': quote['low'],
+                'close': quote['close']
+            }, index=timestamps).ffill().dropna()
+            return df_b
+        except Exception:
             return pd.DataFrame()
 
-    @st.cache_data(ttl=60)
-    def load_equity():
-        data = fetch_json_from_github('equity.json')
-        return data.get("history", []) if data else []
+    df_spy = load_benchmark()
+    eq_curve = load_equity()
 
-    eq_history = load_equity()
-
-    max_dd = 0.0
-    current_dd = 0.0
     total_ret_pct = 0.0
+    max_dd = 0.0
 
-    if len(eq_history) >= 1:
-        df_eq = pd.DataFrame(eq_history)
+    if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
+        df_eq = pd.DataFrame(eq_curve["history"])
         df_eq['date'] = pd.to_datetime(df_eq['date'])
-        df_eq.set_index('date', inplace=True)
+        df_eq = df_eq.set_index('date')
 
-        total_init = float(df_eq['value'].iloc[0]) if 'value' in df_eq.columns else 100000.0
-        total_curr = float(df_eq['value'].iloc[-1]) if 'value' in df_eq.columns else 100000.0
-        total_ret_pct = ((total_curr / total_init) - 1.0) * 100 if total_init > 0 else 0.0
+        if 'open' not in df_eq.columns or df_eq['open'].isna().all():
+            df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
+            df_eq['high'] = df_eq[['open', 'value']].max(axis=1)
+            df_eq['low'] = df_eq[['open', 'value']].min(axis=1)
+            df_eq['close'] = df_eq['value']
 
-        base_val = df_eq['value'].iloc[0] if 'value' in df_eq.columns else df_eq['close'].iloc[0]
+        df_eq['roll_max'] = df_eq['close'].cummax()
+        df_eq['drawdown'] = (df_eq['close'] - df_eq['roll_max']) / df_eq['roll_max'] * 100
+        max_dd = df_eq['drawdown'].min()
 
-        # Imputazione robusta OHLC per evitare valori NaN
-        if 'close' not in df_eq.columns or df_eq['close'].isna().any():
-            if 'value' in df_eq.columns:
-                df_eq['close'] = df_eq['close'].fillna(df_eq['value'])
-            else:
-                df_eq['close'] = df_eq['close'].ffill().bfill()
-
-        if 'open' not in df_eq.columns or df_eq['open'].isna().any():
-            df_eq['open'] = df_eq['open'].fillna(df_eq['close'].shift(1)).fillna(df_eq['close'])
-
-        if 'high' not in df_eq.columns or df_eq['high'].isna().any():
-            df_eq['high'] = df_eq['high'].fillna(df_eq[['open', 'close']].max(axis=1) * 1.001)
-
-        if 'low' not in df_eq.columns or df_eq['low'].isna().any():
-            df_eq['low'] = df_eq['low'].fillna(df_eq[['open', 'close']].min(axis=1) * 0.999)
-
-        # Calcolo Drawdown su serie storica giornaliera
-        cummax_daily = df_eq['close'].cummax()
-        dd_daily = (df_eq['close'] - cummax_daily) / cummax_daily * 100
-        min_dd_val = dd_daily.min()
-        max_dd = float(min_dd_val) if not pd.isna(min_dd_val) else 0.0
-        current_dd = float(dd_daily.iloc[-1]) if not pd.isna(dd_daily.iloc[-1]) else 0.0
-
-        if timeframe == "Settimanale":
-            df_plot = df_eq.resample('W-FRI').agg({
-                'open': 'first',
-                'high': 'max',
-                'low': 'min',
-                'close': 'last'
-            }).dropna()
-            date_fmt = '%d %b %Y'
-        else:
-            df_plot = df_eq.copy()
-            date_fmt = '%d %b'
-
-        first_open = float(df_eq['open'].iloc[0]) if not pd.isna(df_eq['open'].iloc[0]) and df_eq['open'].iloc[0] > 0 else 100000.0
-        df_plot['norm_open'] = (df_plot['open'] / first_open) * 100
-        df_plot['norm_high'] = (df_plot['high'] / first_open) * 100
-        df_plot['norm_low'] = (df_plot['low'] / first_open) * 100
-        df_plot['norm_close'] = (df_plot['close'] / first_open) * 100
-
-        x_labels = [d.strftime(date_fmt) for d in df_plot.index]
-
-        # Benchmark Alignment
-        df_spy = load_benchmark()
-        spy_norm = []
-        if not df_spy.empty:
-            if timeframe == "Settimanale":
-                df_spy_resampled = df_spy.resample('W-FRI').last().dropna()
-            else:
-                df_spy_resampled = df_spy.copy()
-
-            for dt in df_plot.index:
-                if dt in df_spy_resampled.index:
-                    spy_norm.append(df_spy_resampled.loc[dt, 'SPY'])
-                else:
-                    prior = df_spy_resampled.loc[df_spy_resampled.index <= dt]
-                    spy_norm.append(
-                        prior['SPY'].iloc[-1] if not prior.empty else df_spy_resampled['SPY'].iloc[0])
-
-            if spy_norm:
-                spy_base = spy_norm[0]
-                spy_norm = [(s / spy_base) * 100 for s in spy_norm]
+        initial_val = df_eq['open'].iloc[0]
+        final_val = df_eq['close'].iloc[-1]
+        total_ret_pct = ((final_val / initial_val) - 1.0) * 100
 
         fig = go.Figure()
 
-        # 1. Candele Giapponesi per Strategia Apex
-        fig.add_trace(
-            go.Candlestick(
-                x=x_labels,
-                open=df_plot['norm_open'],
-                high=df_plot['norm_high'],
-                low=df_plot['norm_low'],
-                close=df_plot['norm_close'],
-                increasing_line_color='#10B981',
-                decreasing_line_color='#EF4444',
-                increasing_fillcolor='#10B981',
-                decreasing_fillcolor='#EF4444',
-                name='Strategia Apex'
-            )
-        )
+        # Benchmark SPY overlay
+        if not df_spy.empty:
+            start_date = df_eq.index[0]
+            df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
+            if not df_spy_aligned.empty:
+                first_spy = df_spy_aligned['close'].iloc[0]
+                df_spy_aligned['norm'] = ((df_spy_aligned['close'] / first_spy) - 1.0) * 100
+                fig.add_trace(go.Scatter(
+                    x=df_spy_aligned.index,
+                    y=df_spy_aligned['norm'],
+                    name="S&P 500 Benchmark",
+                    line=dict(color='#9CA3AF', width=1.5, dash='dot'),
+                    opacity=0.7
+                ))
 
-        # 2. Linea per S&P 500 (Benchmark)
-        if spy_norm:
-            fig.add_trace(
-                go.Scatter(
-                    x=x_labels,
-                    y=spy_norm,
-                    mode='lines+markers',
-                    line=dict(color='#94A3B8', width=2, dash='dot'),
-                    marker=dict(size=6, color='#94A3B8'),
-                    name='S&P 500'
-                )
-            )
+        # Apex Strategy Return
+        df_eq['norm_ret'] = ((df_eq['close'] / initial_val) - 1.0) * 100
+        fig.add_trace(go.Scatter(
+            x=df_eq.index,
+            y=df_eq['norm_ret'],
+            name="Apex Strategy",
+            line=dict(color='#3B82F6', width=2.5),
+            fill='tozeroy',
+            fillcolor='rgba(59, 130, 246, 0.08)'
+        ))
 
         fig.update_layout(
+            template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#9CA3AF', family='Inter, sans-serif'),
-            xaxis=dict(type='category', showgrid=True,
-                       gridcolor='rgba(128,128,128,0.12)',
-                       tickfont=dict(size=11)),
-            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.12)',
-                       tickfont=dict(size=11)),
-            xaxis_rangeslider_visible=False,
-            margin=dict(l=0, r=0, t=20, b=0),
-            height=440,
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.05)')
+            hovermode="x unified",
+            xaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11)),
+            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', ticksuffix="%", tickfont=dict(size=11)),
+            margin=dict(l=0, r=0, t=15, b=0),
+            height=380,
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.08)')
         )
-
         st.plotly_chart(fig, use_container_width=True)
-
     else:
         st.info("📊 In attesa del file di tracciamento storico.")
 
     st.write("")
 
+    # Mathematical Advantage & Operating KPI Cards
     if pf:
         hist = pf.get("trade_history", [])
-        open_pos = pf.get("open_positions", {})
-
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]
         losses = [t for t in hist if t.get("profit_pct", 0) <= 0]
 
         win_rate = (len(wins) / len(hist) * 100) if hist else 0.0
-        avg_win = sum(t["profit_pct"]
-                      for t in wins) / len(wins) if wins else 0.0
-        avg_loss = sum(t["profit_pct"]
-                       for t in losses) / len(losses) if losses else 0.0
-
+        avg_win = sum(t["profit_pct"] for t in wins) / len(wins) if wins else 0.0
+        avg_loss = sum(t["profit_pct"] for t in losses) / len(losses) if losses else 0.0
         gross_profit = sum(t["profit_pct"] for t in wins)
         gross_loss = abs(sum(t["profit_pct"] for t in losses))
 
         payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
-        expectancy = (win_rate / 100 * avg_win) + \
-            (1 - win_rate / 100) * avg_loss
 
-        st.markdown("#### 🎯 Vantaggio Matematico")
+        def make_kpi_card(title, value, subtext="", val_color=""):
+            col_attr = f'color: {val_color};' if val_color else ''
+            sub_html = f'<div style="color: #6B7280; font-size: 10.5px;">{subtext}</div>' if subtext else ''
+            return f"""
+            <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{title}</div>
+                <div style="font-size: 21px; font-weight: 700; {col_attr} font-family: 'JetBrains Mono', monospace; margin-bottom: 2px;">{value}</div>
+                {sub_html}
+            </div>
+            """
 
-        def make_kpi_card(title, value, subtext="", val_color="", border_color="rgba(128,128,128,0.18)"):
-            return (
-                f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_color}; border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between;">'
-                f'<div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{title}</div>'
-                f'<div style="font-size: 22px; font-weight: 700; {f"color: {val_color};" if val_color else ""} font-family: \'JetBrains Mono\', monospace; margin-bottom: 2px;">{value}</div>'
-                f'{f"<div style='color: #6B7280; font-size: 10.5px;'>{subtext}</div>" if subtext else ""}'
-                f'</div>'
-            )
+        c_tot = "#10B981" if total_ret_pct >= 0 else "#EF4444"
+        c_win = "#10B981" if win_rate >= 50 else ("#3B82F6" if win_rate >= 40 else "#9CA3AF")
+        c_pf = "#10B981" if profit_factor >= 1.5 else ("#F59E0B" if profit_factor >= 1.0 else "#9CA3AF")
+        c_payoff = "#10B981" if payoff_ratio >= 2.0 else ("#F59E0B" if payoff_ratio >= 1.0 else "#9CA3AF")
+        c_dd = "#EF4444" if max_dd < -10 else "#F59E0B"
 
-        c_win = "#10B981" if win_rate >= 50 else (
-            "#3B82F6" if win_rate >= 40 else "#9CA3AF")
-        c_payoff = "#10B981" if payoff_ratio >= 2.0 else (
-            "#F59E0B" if payoff_ratio >= 1.0 else "#9CA3AF")
-        c_pf = "#10B981" if profit_factor >= 1.5 else (
-            "#F59E0B" if profit_factor >= 1.0 else ("#EF4444" if hist else "#9CA3AF"))
-        c_exp = "#10B981" if expectancy > 0 else (
-            "#EF4444" if expectancy < 0 else "#9CA3AF")
+        kpi_ret = make_kpi_card("Rendimento Netto", f"{total_ret_pct:+.2f}%", "Performance cumulativa", c_tot)
+        kpi_win = make_kpi_card("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}", c_win)
+        kpi_pf = make_kpi_card("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite", c_pf)
+        kpi_po = make_kpi_card("Rapporto Win/Loss", f"{payoff_ratio:.2f}x", "Vincita media / perdita media", c_payoff)
+        kpi_dd = make_kpi_card("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica", c_dd)
 
-        card_m1 = make_kpi_card("Tasso di Successo", f"{win_rate:.1f}%", "% operazioni chiuse in profitto",
-                                c_win, "#10B981" if win_rate >= 50 else "rgba(128,128,128,0.18)")
-        card_m2 = make_kpi_card("Rapporto Guadagno / Perdita", f"{payoff_ratio:.2f}x", "Dimensione vincite vs stop loss",
-                                c_payoff, "#10B981" if payoff_ratio >= 2.0 else "rgba(128,128,128,0.18)")
-        card_m3 = make_kpi_card("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite lorde",
-                                c_pf, "#10B981" if profit_factor >= 1.5 else "rgba(128,128,128,0.18)")
-        card_m4 = make_kpi_card("Valore Atteso", f"{expectancy:+.2f}%", "Aspettativa media per trade",
-                                c_exp, "#10B981" if expectancy > 0 else "rgba(128,128,128,0.18)")
+        st.markdown(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>', unsafe_allow_html=True)
 
-        st.html(
-            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 24px;">{card_m1}{card_m2}{card_m3}{card_m4}</div>')
-
-        st.markdown("#### ⚙️ Statistiche Operative")
-
-        c_tot = "#10B981" if total_ret_pct > 0 else ("#EF4444" if total_ret_pct < 0 else "#9CA3AF")
-        c_win_avg = "#10B981" if avg_win > 0 else "#9CA3AF"
-        c_loss_avg = "#EF4444" if avg_loss < 0 else "#9CA3AF"
-        c_dd = "#F87171" if max_dd < 0 else "#9CA3AF"
-
-        card_tot = make_kpi_card(
-            "Rendimento Totale", f"{total_ret_pct:+.2f}%", "Performance cumulativa portafoglio", c_tot)
-        card_o1 = make_kpi_card(
-            "Operazioni Chiuse", f"{len(hist)}", "Campione statistico complessivo")
-        card_o2 = make_kpi_card(
-            "Vincita Media", f"{avg_win:+.2f}%", "Rendimento medio trade vincenti", c_win_avg)
-        card_o3 = make_kpi_card(
-            "Perdita Media", f"{avg_loss:+.2f}%", "Perdita media stop loss scattati", c_loss_avg)
-        card_o4 = make_kpi_card(
-            "Perdita Massima Storica", f"{max_dd:.2f}%", "Drawdown massimo registrato", c_dd)
-
-        st.html(
-            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px;">{card_tot}{card_o1}{card_o2}{card_o3}{card_o4}</div>')
-        st.divider()
         st.markdown("#### 📜 Registro Operazioni Chiuse")
         if hist:
-            df_hist = pd.DataFrame(hist)
-            df_hist = df_hist.sort_values("exit_date", ascending=False)
+            df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
 
             def color_trade_pnl(val):
                 if isinstance(val, (int, float)):
@@ -755,13 +572,14 @@ with tab_perf:
                 "profit_pct": "Rendimento %",
                 "reason": "Motivazione"
             })
-            if "is_crypto" in df_hist.columns:
-                df_hist = df_hist.drop(columns=["is_crypto"])
+            cols_to_drop = [c for c in ["is_crypto", "weight"] if c in df_hist.columns]
+            if cols_to_drop:
+                df_hist = df_hist.drop(columns=cols_to_drop)
 
             st.dataframe(
                 df_hist.style.format({
-                    "Prezzo Ingresso": "{:.2f}",
-                    "Prezzo Uscita": "{:.2f}",
+                    "Prezzo Ingresso": format_price,
+                    "Prezzo Uscita": format_price,
                     "Rendimento %": "{:+.2f}%"
                 }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist.columns else None),
                 use_container_width=True,
@@ -769,7 +587,6 @@ with tab_perf:
             )
         else:
             st.info("Nessuna operazione chiusa registrata.")
-
 
 
 # ==============================================================================
@@ -791,51 +608,47 @@ with tab_radar:
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
-        st.markdown("#### 📈 Top 20 Azioni")
-        if is_bull_eq:
+        st.markdown("#### 📈 Top 20 Azioni S&P 500")
+        if alloc.get("Equities", 0) > 0:
             top20 = data.get("top20", [])
             if top20:
                 df_eq = pd.DataFrame(top20)
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
                 df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
-
-                df_eq["Pos"] = df_eq["Titolo"].apply(
-                    lambda t: "⭐" if t in held_tickers else "🆕")
-
+                df_eq["Pos"] = df_eq["Titolo"].apply(lambda t: "⭐" if t in held_tickers else "🆕")
                 cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
                 st.dataframe(
                     df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
-                        style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None),
+                        style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None
+                    ),
                     use_container_width=True,
                     hide_index=True
                 )
             else:
                 st.info("Nessun dato Top 20 disponibile.")
         else:
-            st.warning(
-                "Motore Azionario OFF (Semaforo Rosso). Nessun acquisto previsto.")
+            st.warning("Motore Azionario OFF (Semaforo Rosso). Nessun acquisto previsto.")
 
     with rc2:
         st.markdown("#### 🪙 Top 3 Crypto")
-        if is_bull_cr:
+        if alloc.get("Crypto", 0) > 0:
             cr_top = data.get("crypto_top", [])
             if cr_top:
                 df_c = pd.DataFrame(cr_top)
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
                 df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
-
-                df_c["Pos"] = df_c["Titolo"].apply(
-                    lambda t: "⭐" if t in held_tickers else "🆕")
+                df_c["Pos"] = df_c["Titolo"].apply(lambda t: "⭐" if t in held_tickers else "🆕")
                 cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
                     df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
-                        style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None),
+                        style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None
+                    ),
                     use_container_width=True,
                     hide_index=True
                 )
@@ -845,11 +658,8 @@ with tab_radar:
             st.warning("Motore Crypto OFF (Semaforo Rosso).")
 
 
-
-
-
 # ==============================================================================
-# TAB 5: GUIDA & STRATEGIA
+# TAB 4: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
     st.markdown('''
