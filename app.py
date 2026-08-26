@@ -142,6 +142,15 @@ def calculate_days(entry_date_str):
         return 0
 
 
+def format_date_italian(d_str):
+    try:
+        dt = datetime.datetime.strptime(d_str, "%Y-%m-%d")
+        mesi = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
+        return f"{dt.day} {mesi[dt.month-1]} {dt.year}"
+    except Exception:
+        return d_str
+
+
 def get_logo_b64():
     for p in ["logo_icon.png", "logo.png"]:
         if os.path.exists(p):
@@ -223,7 +232,8 @@ def make_engine_card(icon, name, alloc_pct, is_active, since_date, is_cash=False
         badge_bg = "#065F46" if is_active else "#7F1D1D"
         status_text = "🟢 ATTIVO" if is_active else "🔴 DISATTIVO"
         status_color = "#34D399" if is_active else "#F87171"
-        date_str = f"dal {since_date}" if since_date and since_date != "-" else ""
+        fmt_d = format_date_italian(since_date)
+        date_str = f"dal {fmt_d}" if since_date and since_date != "-" else ""
         opacity = "1" if is_active else "0.75"
 
     return f"""
