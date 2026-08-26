@@ -391,10 +391,12 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds):
         with open(pf_file, 'r') as f:
             pf = json.load(f)
     else:
-        pf = {"open_positions": {}, "trade_history": [], "pending_alerts": []}
+        pf = {"open_positions": {}, "macro_positions": {}, "trade_history": [], "pending_alerts": []}
 
     if "pending_alerts" not in pf:
         pf["pending_alerts"] = []
+    if "macro_positions" not in pf:
+        pf["macro_positions"] = {}
 
     today = datetime.datetime.now()
     is_rotation = today.weekday() == 4 and (
@@ -453,6 +455,25 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds):
 
     for k in sold_keys:
         del pf["open_positions"][k]
+
+    # Create missing macro positions if currently allocated
+    for asset, sym in [("Gold", "GC=F"), ("Bonds", "TLT")]:
+        if output["allocations"].get(asset, 0) > 0:
+            if asset not in pf.setdefault("macro_positions", {}):
+                try:
+                    price = float(b_inds['c'][sym].iloc[-1])
+                except:
+                    price = 0.0
+                pf["macro_positions"][asset] = {"entry_date": today_str, "entry_price": price}
+
+    # Update current prices for macro positions
+    for asset, pos in pf.get("macro_positions", {}).items():
+        sym = "GC=F" if asset == "Gold" else "TLT"
+        try:
+            pos["current_price"] = float(b_inds['c'][sym].iloc[-1])
+        except:
+            pos["current_price"] = pos["entry_price"]
+
 
     # 2. Weekly Actions (Macro Shifts & Deploying Cash)
     if today.weekday() == 4:
@@ -523,6 +544,37 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds):
                     }
                     action_log.append(
                         f"🟢 ACQUISTO SETTIMANALE CRYPTO: {ticker} a {row['Prezzo ($)']}")
+
+        # --- MACRO POSITIONS (GOLD & BONDS) TRACKING ---
+        for asset, sym in [("Gold", "GC=F"), ("Bonds", "TLT")]:
+            if alloc[asset] > 0:
+                if asset not in pf["macro_positions"]:
+                    try:
+                        price = float(b_inds['c'][sym].iloc[-1])
+                    except:
+                        price = 0.0
+                    pf["macro_positions"][asset] = {"entry_date": today_str, "entry_price": price}
+                    action_log.append(f"🛡️ HEDGE ATTIVATO: {asset} a {price:.2f}")
+            else:
+                if asset in pf["macro_positions"]:
+                    pos = pf["macro_positions"][asset]
+                    try:
+                        exit_price = float(b_inds['c'][sym].iloc[-1])
+                    except:
+                        exit_price = pos["entry_price"]
+                    profit_pct = (exit_price / pos["entry_price"]) - 1.0 if pos["entry_price"] > 0 else 0
+                    pf["trade_history"].append({
+                        "ticker": asset + " (Hedge)",
+                        "entry_date": pos["entry_date"],
+                        "exit_date": today_str,
+                        "entry_price": pos["entry_price"],
+                        "exit_price": exit_price,
+                        "profit_pct": round(profit_pct * 100, 2),
+                        "reason": "Hedge Chiuso"
+                    })
+                    action_log.append(f"🛑 HEDGE CHIUSO: {asset} a {exit_price:.2f} ({round(profit_pct*100, 2)}%)")
+                    del pf["macro_positions"][asset]
+
 
     # 3. Monthly Rotation (Sell underperformers that dropped out of rankings)
     if is_rotation:
