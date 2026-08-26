@@ -271,7 +271,7 @@ if pf:
 
 
 # ==============================================================================
-# MAIN TABS DECLARATION (ESATTAMENTE: METRICHE, RADAR, GUIDA)
+# MAIN TABS DECLARATION (METRICHE, RADAR, GUIDA)
 # ==============================================================================
 tab_perf, tab_radar, tab_guide = st.tabs([
     "📊 Metriche",
@@ -281,7 +281,7 @@ tab_perf, tab_radar, tab_guide = st.tabs([
 
 
 # ==============================================================================
-# TAB 1: METRICHE (PORTAFOGLIO, EQUITY CURVE, STATISTICHE E STORICO)
+# TAB 1: METRICHE (PORTAFOGLIO, CANDLESTICK EQUITY CURVE, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
     c_inp, c_pnl = st.columns([3, 2])
@@ -430,7 +430,12 @@ with tab_perf:
 
     st.divider()
 
-    st.markdown("#### 📈 Andamento dell'Equity Curve")
+    # --- GRAFICO CANDELE GIAPPONESI APEX STRATEGY & SPY ---
+    col_chart_hdr, col_chart_mode = st.columns([3, 1])
+    with col_chart_hdr:
+        st.markdown("#### 🕯️ Andamento Strategia Apex (Candele Giapponesi)")
+    with col_chart_mode:
+        timeframe = st.radio("Frequenza", ["Giornaliero", "Settimanale"], horizontal=True, label_visibility="collapsed")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -476,43 +481,73 @@ with tab_perf:
         final_val = df_eq['close'].iloc[-1]
         total_ret_pct = ((final_val / initial_val) - 1.0) * 100
 
+        # Normalizzazione Base 100
+        base_val = initial_val if initial_val > 0 else 100000.0
+        df_eq['norm_open'] = (df_eq['open'] / base_val) * 100
+        df_eq['norm_high'] = (df_eq['high'] / base_val) * 100
+        df_eq['norm_low'] = (df_eq['low'] / base_val) * 100
+        df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
+
+        # Timeframe aggregation
+        if timeframe == "Settimanale" and len(df_eq) >= 5:
+            df_plot = df_eq.resample('W-FRI').agg({
+                'norm_open': 'first',
+                'norm_high': 'max',
+                'norm_low': 'min',
+                'norm_close': 'last',
+                'close': 'last'
+            }).dropna()
+        else:
+            df_plot = df_eq
+
         fig = go.Figure()
 
-        # Benchmark SPY overlay
+        # 1. Candele Giapponesi per Strategia Apex
+        fig.add_trace(
+            go.Candlestick(
+                x=df_plot.index,
+                open=df_plot['norm_open'],
+                high=df_plot['norm_high'],
+                low=df_plot['norm_low'],
+                close=df_plot['norm_close'],
+                increasing_line_color='#10B981',
+                decreasing_line_color='#EF4444',
+                increasing_fillcolor='#10B981',
+                decreasing_fillcolor='#EF4444',
+                name='Strategia Apex'
+            )
+        )
+
+        # 2. Benchmark S&P 500 (Linea di Riferimento)
         if not df_spy.empty:
-            start_date = df_eq.index[0]
+            start_date = df_plot.index[0]
             df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
             if not df_spy_aligned.empty:
                 first_spy = df_spy_aligned['close'].iloc[0]
-                df_spy_aligned['norm'] = ((df_spy_aligned['close'] / first_spy) - 1.0) * 100
-                fig.add_trace(go.Scatter(
-                    x=df_spy_aligned.index,
-                    y=df_spy_aligned['norm'],
-                    name="S&P 500 Benchmark",
-                    line=dict(color='#9CA3AF', width=1.5, dash='dot'),
-                    opacity=0.7
-                ))
+                if timeframe == "Settimanale" and len(df_spy_aligned) >= 5:
+                    df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna()
+                else:
+                    df_spy_plot = df_spy_aligned['close']
+                df_spy_norm = (df_spy_plot / first_spy) * 100
 
-        # Apex Strategy Return
-        df_eq['norm_ret'] = ((df_eq['close'] / initial_val) - 1.0) * 100
-        fig.add_trace(go.Scatter(
-            x=df_eq.index,
-            y=df_eq['norm_ret'],
-            name="Apex Strategy",
-            line=dict(color='#3B82F6', width=2.5),
-            fill='tozeroy',
-            fillcolor='rgba(59, 130, 246, 0.08)'
-        ))
+                fig.add_trace(go.Scatter(
+                    x=df_spy_plot.index,
+                    y=df_spy_norm,
+                    mode='lines',
+                    name="S&P 500 Benchmark",
+                    line=dict(color='#9CA3AF', width=1.8, dash='dot'),
+                    opacity=0.75
+                ))
 
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            hovermode="x unified",
             xaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11)),
-            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', ticksuffix="%", tickfont=dict(size=11)),
+            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
+            xaxis_rangeslider_visible=False,
             margin=dict(l=0, r=0, t=15, b=0),
-            height=380,
+            height=430,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.08)')
         )
         st.plotly_chart(fig, use_container_width=True)
