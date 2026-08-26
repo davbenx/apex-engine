@@ -311,11 +311,33 @@ with tab_pf:
         tot_pnl_usd += pnl_val
         tot_invested_usd += cr_size
 
+    macro_pos = pf.get("macro_positions", {}) if pf else {}
+    
+    g_pnl_pct = None
+    g_pnl_usd = None
+    if alloc['Gold'] > 0 and "Gold" in macro_pos:
+        g_pos = macro_pos["Gold"]
+        c_p = g_pos.get("current_price", g_pos["entry_price"])
+        g_pnl_pct = (c_p / g_pos["entry_price"] - 1.0) * 100 if g_pos["entry_price"] > 0 else 0
+        g_pnl_usd = (g_pnl_pct / 100) * gold_cap
+        tot_pnl_usd += g_pnl_usd
+        tot_invested_usd += gold_cap
+
+    b_pnl_pct = None
+    b_pnl_usd = None
+    if alloc['Bonds'] > 0 and "Bonds" in macro_pos:
+        b_pos = macro_pos["Bonds"]
+        c_p = b_pos.get("current_price", b_pos["entry_price"])
+        b_pnl_pct = (c_p / b_pos["entry_price"] - 1.0) * 100 if b_pos["entry_price"] > 0 else 0
+        b_pnl_usd = (b_pnl_pct / 100) * bond_cap
+        tot_pnl_usd += b_pnl_usd
+        tot_invested_usd += bond_cap
+
     tot_pnl_pct = (tot_pnl_usd / tot_invested_usd *
                    100) if tot_invested_usd > 0 else 0.0
 
     with c_pnl:
-        num_pos = len(op_eq) + len(op_cr)
+        num_pos = len(op_eq) + len(op_cr) + (1 if g_pnl_usd is not None else 0) + (1 if b_pnl_usd is not None else 0)
         if num_pos > 0:
             pnl_sign = "+" if tot_pnl_usd >= 0 else ""
             pnl_col = "#10B981" if tot_pnl_usd >= 0 else "#EF4444"
