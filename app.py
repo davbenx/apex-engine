@@ -471,7 +471,7 @@ with tab_pf:
 with tab_perf:
     _, col_chart_mode = st.columns([3, 1])
     with col_chart_mode:
-        timeframe = st.radio("Frequenza", ["Giornaliero", "Settimanale"], horizontal=True, label_visibility="collapsed")
+        timeframe = st.radio("Frequenza", ["Giornaliero", "Settimanale"], horizontal=True, label_visibility="collapsed", key="chart_freq_radio")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -533,15 +533,20 @@ with tab_perf:
                 'norm_close': 'last',
                 'close': 'last'
             }).dropna()
+            # Ensure high is strictly max and low is strictly min
+            df_plot['norm_high'] = df_plot[['norm_open', 'norm_close', 'norm_high']].max(axis=1)
+            df_plot['norm_low'] = df_plot[['norm_open', 'norm_close', 'norm_low']].min(axis=1)
         else:
             df_plot = df_eq
+
+        x_series = df_plot.index
 
         fig = go.Figure()
 
         # 1. Candele Giapponesi per Strategia Apex
         fig.add_trace(
             go.Candlestick(
-                x=df_plot.index,
+                x=x_series,
                 open=df_plot['norm_open'],
                 high=df_plot['norm_high'],
                 low=df_plot['norm_low'],
@@ -579,7 +584,12 @@ with tab_perf:
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11)),
+            xaxis=dict(
+                showgrid=True,
+                gridcolor='rgba(128,128,128,0.1)',
+                tickfont=dict(size=11),
+                rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else []
+            ),
             yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
             xaxis_rangeslider_visible=False,
             margin=dict(l=0, r=0, t=15, b=0),
