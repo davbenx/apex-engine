@@ -858,27 +858,27 @@ with tab_guide:
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Allineamento Settimanale</div>
-            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì verifica la Dashboard. Sostituisci i titoli usciti per Stop Loss con i nuovi top in classifica ed esegui eventuali cambi di regime Macro.</div>
+            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Rotazione (Mensile)</div>
+            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese vendi i titoli che hanno perso forza relativa (Momentum) per fare spazio ai nuovi leader di mercato suggeriti.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 2. Regimi Macro (Attivazione/Disattivazione)</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se un motore cambia stato (es. da 🟢 a 🔴), l'operazione di liquidazione (o acquisto) dell'intero comparto va eseguita al controllo settimanale.</div>
+            <div style="font-weight: 700; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Allineamento (Settimanale)</div>
+            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì aggiorna i livelli di Stop Loss. Usa la liquidità dei titoli stoppati in settimana per acquistare i nuovi ingressi in classifica.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #D97706; margin-bottom: 6px;">💵 3. Parcheggio Liquidità</div>
-            <div style="font-size: 13px; opacity: 0.85;">Quando il sistema impone Cash, i fondi vanno parcheggiati in strumenti monetari risk-free in valuta base per azzerare la volatilità.</div>
+            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 3. Regimi Macro (Settimanale)</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se un motore passa da 🟢 a 🔴 o viceversa, l'esecuzione avviene il venerdì. In fase Cash, usa strumenti monetari in valuta base risk-free.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Stop Loss Tassativo</div>
-            <div style="font-size: 13px; opacity: 0.85;">Lo Stop Loss inserito sul broker scatta in automatico durante la settimana. Il capitale incassato resta liquido fino al reinvestimento del venerdì.</div>
+            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Emergenze (Infrasettimanale)</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se il prezzo crolla, lo Stop Loss scatta automaticamente sul broker. È l'unica azione ammessa in settimana. Il capitale attende il venerdì.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     st.divider()
 
-    st.markdown("#### 🧠 Manuale Operativo & Documentazione Strategica")
+    st.markdown("#### 🧠 Documentazione Strategica")
     st.markdown('''
     **Obiettivi e cosa aspettarsi**
     Apex Engine è un motore quantitativo progettato per battere i mercati nel lungo termine tramite *Absolute Return*.  
@@ -886,7 +886,7 @@ with tab_guide:
 
     ---
 
-    ##### 1. L'ALGORITMO (La Logica)
+    ##### L'ALGORITMO (La Logica)
     Il sistema ragiona per moduli, elaborando i dati a mercati chiusi:
 
     *   **Allocazione Macro (Waterfall):** Il capitale scivola dall'asset più redditizio a quello più difensivo. Un comparto riceve fondi solo se il suo trend è positivo (Media Mobile a 200 giorni).
@@ -897,15 +897,6 @@ with tab_guide:
         *   **Fondo Monetario (Cash):** Rifugio risk-free. Assorbe l'intero capitale durante i crolli sistemici globali.
     *   **Selezione Titoli (Momentum):** Se Azioni o Crypto sono attive, il motore seleziona esclusivamente i titoli con l'accelerazione matematica più alta degli ultimi 6 mesi. 
     *   **Gestione Rischio (Trailing Stop):** Ogni posizione è blindata da un livello di Stop dinamico basato sulla volatilità. Sale con il prezzo, non scende mai.
-
-    ---
-
-    ##### 2. L'ESECUZIONE (Cosa fare)
-    L'operatività è meccanica, asettica e concentrata in un'unica routine periodica.
-
-    *   **L'Emergenza (Infrasettimanale):** L'unica azione automatica è lo scatto dello Stop Loss sul broker se il prezzo crolla. L'operazione si chiude e il capitale incassato attende il venerdì.
-    *   **La Routine (Settimanale):** Ogni venerdì, apri la Dashboard. Aggiorna i livelli di Stop Loss per le posizioni aperte. Se ci sono stati Stop Loss colpiti in settimana, acquista i nuovi titoli in testa alla classifica per rimpiazzarli. Esegui le accensioni o gli spegnimenti dei motori Macro qualora abbiano cambiato colore.
-    *   **La Rotazione (Mensile):** L'ultimo venerdì del mese si esegue la pulizia strutturale: si vendono i titoli in portafoglio che hanno perso Momentum per far spazio ai nuovi leader di mercato suggeriti dall'algoritmo.
 
     ---
 
