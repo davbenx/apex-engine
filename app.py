@@ -31,7 +31,7 @@ def st_html(html_str):
 # ==============================================================================
 st_html("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
     html, body, [class*="css"], .stApp {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -44,17 +44,22 @@ st_html("""
         font-variant-numeric: tabular-nums !important;
     }
 
-    [data-testid="stMetricValue"] {
-        font-size: 1.45rem !important;
+    /* Standardized typography for section headers */
+    h4, .section-title {
+        font-family: 'Inter', sans-serif !important;
+        font-size: 16px !important;
         font-weight: 700 !important;
+        letter-spacing: -0.2px !important;
+        margin-top: 14px !important;
+        margin-bottom: 8px !important;
     }
 
-    [data-testid="stMetricLabel"] {
-        font-size: 0.8rem !important;
-        opacity: 0.75 !important;
+    h5, .subsection-title {
         font-family: 'Inter', sans-serif !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        margin-top: 12px !important;
+        margin-bottom: 6px !important;
     }
 
     /* Tab navigation polish */
@@ -163,7 +168,11 @@ with col_title:
         </div>
         <div>
             <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.15;">APEX ENGINE</div>
-            <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px;">Sistema Quantitativo Multi-Asset<br><span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span></div>
+            <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px; line-height: 1.35;">
+                Sistema Quantitativo<br>
+                Multi-Asset<br>
+                <span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span>
+            </div>
         </div>
     </div>
     """)
@@ -413,7 +422,7 @@ with tab_pf:
     with col_az:
         st_html(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 1.1rem; font-weight: 600;">📈 Azioni in Portafoglio</span>
+            <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">📈 Azioni in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / 20</span>
         </div>
         """)
@@ -440,7 +449,7 @@ with tab_pf:
     with col_cr:
         st_html(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 1.1rem; font-weight: 600;">🪙 Crypto in Portafoglio</span>
+            <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">🪙 Crypto in Portafoglio</span>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr} / 3</span>
         </div>
         """)
@@ -533,7 +542,6 @@ with tab_perf:
                 'norm_close': 'last',
                 'close': 'last'
             }).dropna()
-            # Ensure high is strictly max and low is strictly min
             df_plot['norm_high'] = df_plot[['norm_open', 'norm_close', 'norm_high']].max(axis=1)
             df_plot['norm_low'] = df_plot[['norm_open', 'norm_close', 'norm_low']].min(axis=1)
         else:
@@ -668,7 +676,7 @@ with tab_perf:
 
         st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
 
-        st.markdown("#### 📜 Registro Operazioni Chiuse")
+        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📜 Registro Operazioni Chiuse</div>')
         if hist:
             df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
 
@@ -723,7 +731,7 @@ with tab_radar:
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
-        st.markdown("#### 📈 Top 20 Azioni S&P 500")
+        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📈 Top 20 Azioni S&P 500</div>')
         if alloc.get("Equities", 0) > 0:
             top20 = data.get("top20", [])
             if top20:
@@ -748,7 +756,7 @@ with tab_radar:
             st.warning("Motore Azionario DISATTIVO (Semaforo Rosso). Nessun acquisto previsto.")
 
     with rc2:
-        st.markdown("#### 🪙 Top 3 Crypto")
+        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">🪙 Top 3 Crypto</div>')
         if alloc.get("Crypto", 0) > 0:
             cr_top = data.get("crypto_top", [])
             if cr_top:
@@ -789,44 +797,52 @@ with tab_guide:
     </div>
     ''')
 
-    st.markdown("#### 📖 Regole Operative")
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">📖 Regole Operative</div>')
     st_html("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Controllo mensile</div>
-            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese l'app vende i titoli deboli e li sostituisce con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
+            <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 6px;">📅 1. Controllo mensile</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">L'ultimo venerdì del mese l'app vende i titoli deboli e li sostituisce con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Controllo settimanale</div>
-            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì aggiorna i livelli di protezione. Se in settimana sono state chiuse delle posizioni, queste vengono sostituite con nuovi ingressi.</div>
+            <div style="font-weight: 700; font-size: 13.5px; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Controllo settimanale</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Ogni venerdì aggiorna i livelli di protezione. Se in settimana sono state chiuse delle posizioni, queste vengono sostituite con nuovi ingressi.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 3. Cambi di Mercato</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
+            <div style="font-weight: 700; font-size: 13.5px; color: #10B981; margin-bottom: 6px;">🛡️ 3. Cambi di Mercato</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
         </div>
     </div>
     """)
 
     st.divider()
 
-    st.markdown("#### 🧠 Documentazione Strategica")
-    st.markdown('''
-    ##### Obiettivo
-    Crescita del capitale nei mercati positivi e protezione totale durante i ribassi, eliminando ogni componente emotiva.
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">🧠 Documentazione Strategica</div>')
+    st_html('''
+    <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin: 10px 0 4px 0;">🎯 Obiettivo</div>
+        <div>Crescita del capitale nei mercati positivi e protezione totale durante i ribassi, eliminando ogni componente emotiva.</div>
 
-    ##### Il Sistema
-    **Distribuzione del Capitale:** I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:
-    * **Azioni:** fino al 70%, motore primario di crescita.
-    * **Criptovalute:** fino al 15%, comparto ad alto rendimento.
-    * **Oro:** fino al 10%, protezione contro inflazione e incertezza.
-    * **Obbligazioni:** titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.
-    * **Monetario:** rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.
+        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin: 14px 0 4px 0;">⚙️ Il Sistema</div>
+        <div><strong>Distribuzione del Capitale:</strong> I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:</div>
+        <ul style="margin: 6px 0 12px 18px; padding: 0;">
+            <li><strong>Azioni:</strong> fino al 70%, motore primario di crescita.</li>
+            <li><strong>Criptovalute:</strong> fino al 15%, comparto ad alto rendimento.</li>
+            <li><strong>Oro:</strong> fino al 10%, protezione contro inflazione e incertezza.</li>
+            <li><strong>Obbligazioni:</strong> titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.</li>
+            <li><strong>Monetario:</strong> rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.</li>
+        </ul>
 
-    **Selezione dei Titoli:** Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.
+        <div><strong>Selezione dei Titoli:</strong> Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.</div>
+    </div>
+    ''')
 
-    ---
+    st.divider()
 
-    > ⚠️ **Note Legali ed Esclusione di Responsabilità**  
-    > Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.  
-    > I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.
+    st_html('''
+    <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.85; line-height: 1.5;">
+        ⚠️ <strong>Note Legali ed Esclusione di Responsabilità:</strong><br>
+        Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.<br>
+        I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.
+    </div>
     ''')
