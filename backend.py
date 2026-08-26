@@ -315,10 +315,8 @@ def calculate_macro_allocation(b_data):
     allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
     capital = 100
 
-    # 1. Azioni (Max 70%) - Dual Breadth Check (SPY e RSP)
-    eq_bull = ("SPY" in macro and macro["SPY"]['price'] > macro["SPY"]['ma200']) and \
-              ("RSP" not in macro or macro["RSP"]['price'] > macro["RSP"]['ma200'])
-    if eq_bull:
+    # 1. Azioni (Max 70%)
+    if "RSP" in macro and macro["RSP"]['price'] > macro["RSP"]['ma200']:
         take = min(MAX_EQUITIES_ALLOCATION, capital)
         allocations["Equities"] = take
         capital -= take
