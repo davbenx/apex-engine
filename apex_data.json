@@ -6,14 +6,14 @@
             "mom": 0.11650313276852753
         },
         "BTC-USD": {
-            "price": 78901.0703125,
-            "ma200": 69175.9729296875,
-            "mom": 0.17770069745448347
+            "price": 78832.78125,
+            "ma200": 69175.631484375,
+            "mom": 0.17668139472238842
         },
         "GC=F": {
-            "price": 4697.60009765625,
-            "ma200": 4540.566994628906,
-            "mom": -0.10188316649340412
+            "price": 4696.5,
+            "ma200": 4540.561494140625,
+            "mom": -0.10209349010610835
         },
         "TLT": {
             "price": 83.47000122070312,
@@ -165,22 +165,22 @@
     "crypto_top": [
         {
             "Ticker": "ETH",
-            "Prezzo ($)": 2461.22,
-            "Momentum Score": 6.8,
+            "Prezzo ($)": 2456.58,
+            "Momentum Score": 6.72,
             "Stop Loss ($)": 2382.36
         },
         {
             "Ticker": "XMR",
-            "Prezzo ($)": 443.6,
-            "Momentum Score": 5.98,
+            "Prezzo ($)": 443.13,
+            "Momentum Score": 5.95,
             "Stop Loss ($)": 424.99
         },
         {
             "Ticker": "SOL",
-            "Prezzo ($)": 96.9,
-            "Momentum Score": 5.17,
+            "Prezzo ($)": 96.62,
+            "Momentum Score": 5.06,
             "Stop Loss ($)": 94.93
         }
     ],
-    "timestamp": "26 Aug 2026, 06:45 (UTC)"
+    "timestamp": "26 Aug 2026, 04:59 (UTC)"
 }
