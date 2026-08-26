@@ -155,7 +155,7 @@
             "stop_loss": 119.44
         },
         "MRVL": {
-            "entry_date": "2026-08-28",
+            "entry_date": "2026-08-21",
             "entry_price": 240.38,
             "current_price": 240.38,
             "shares": 34.2843,
@@ -166,7 +166,7 @@
             "stop_loss": 198.51
         },
         "CRL": {
-            "entry_date": "2026-08-28",
+            "entry_date": "2026-08-21",
             "entry_price": 297.64,
             "current_price": 297.64,
             "shares": 27.6886,
@@ -177,7 +177,7 @@
             "stop_loss": 237.34
         },
         "AMD": {
-            "entry_date": "2026-08-28",
+            "entry_date": "2026-08-21",
             "entry_price": 479.18,
             "current_price": 479.18,
             "shares": 17.1987,
@@ -188,7 +188,7 @@
             "stop_loss": 370.42
         },
         "ZBRA": {
-            "entry_date": "2026-08-28",
+            "entry_date": "2026-08-21",
             "entry_price": 360.52,
             "current_price": 360.52,
             "shares": 22.8593,
@@ -199,7 +199,7 @@
             "stop_loss": 303.11
         },
         "MET": {
-            "entry_date": "2026-08-28",
+            "entry_date": "2026-08-21",
             "entry_price": 95.87,
             "current_price": 95.87,
             "shares": 85.9628,
@@ -210,7 +210,7 @@
             "stop_loss": 88.83
         },
         "EXPE": {
-            "entry_date": "2026-08-28",
+            "entry_date": "2026-08-21",
             "entry_price": 337.97,
             "current_price": 337.97,
             "shares": 24.3846,
