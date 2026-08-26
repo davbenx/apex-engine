@@ -508,7 +508,9 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
         if b_inds and sym in b_inds['c'].columns:
             pos["current_price"] = float(b_inds['c'][sym].iloc[-1])
 
-    # 3. Monthly Rotation (Sells executed first on rotation Friday to free slots)
+    # 3. Monthly Rotation (Sells executed first on rotation Friday to free slots, effective next Monday)
+    exec_monday = (datetime.datetime.strptime(today_str, "%Y-%m-%d") + datetime.timedelta(days=3)).strftime("%Y-%m-%d") if is_friday else today_str
+
     if is_rotation:
         desired = {row["Ticker"]: True for row in output.get("top20", [])}
         desired.update({row["Ticker"]: True for row in output.get("crypto_top", [])})
@@ -526,7 +528,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 pf["trade_history"].append({
                     "ticker": ticker,
                     "entry_date": pos.get("entry_date", today_str),
-                    "exit_date": today_str,
+                    "exit_date": exec_monday,
                     "entry_price": entry_p,
                     "exit_price": close_price,
                     "profit_pct": round(profit_pct * 100, 2),
@@ -534,13 +536,13 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                     "reason": "🔄 Rotazione Mensile"
                 })
                 p_fmt = fmt_usd(close_price)
-                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
+                action_log.append(f"🔄 ROTAZIONE (VENDITA LUNEDÌ): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
                 sold_rot.append(ticker)
 
         for k in sold_rot:
             del pf["open_positions"][k]
 
-    # 4. Weekly Friday Actions (Forced Sells & New Buys)
+    # 4. Weekly Friday Actions (Forced Sells & New Buys, effective next Monday)
     if is_friday:
         forced_sells = []
         for ticker, pos in list(pf["open_positions"].items()):
@@ -562,7 +564,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
             pf["trade_history"].append({
                 "ticker": ticker,
                 "entry_date": pos.get("entry_date", today_str),
-                "exit_date": today_str,
+                "exit_date": exec_monday,
                 "entry_price": entry_p,
                 "exit_price": close_price,
                 "profit_pct": round(profit_pct * 100, 2),
@@ -570,7 +572,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 "reason": "⚠️ Regime Ribassista"
             })
             p_fmt = fmt_usd(close_price)
-            action_log.append(f"🔴 CAMBIO REGIME (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
+            action_log.append(f"🔴 CAMBIO REGIME (VENDITA LUNEDÌ): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
             del pf["open_positions"][ticker]
 
         # Buy equities to deploy cash
@@ -585,14 +587,14 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                         sl_val = row["Stop Loss ($)"]
                         dist_sl = ((sl_val / p_val) - 1.0) * 100 if p_val > 0 else 0.0
                         pf["open_positions"][ticker] = {
-                            "entry_date": today_str,
+                            "entry_date": exec_monday,
                             "entry_price": p_val,
                             "stop_loss": sl_val,
                             "is_crypto": False,
                             "weight": EQUITY_POSITION_WEIGHT
                         }
                         action_log.append(
-                            f"🟢 ACQUISTO AZIONI: {ticker} (Quota: 5%) | Prezzo: ${p_val:,.2f} | Stop Loss: ${sl_val:,.2f} ({dist_sl:+.2f}%)"
+                            f"🟢 ACQUISTO AZIONI (LUNEDÌ): {ticker} (Quota: 5%) | Prezzo: ${p_val:,.2f} | Stop Loss: ${sl_val:,.2f} ({dist_sl:+.2f}%)"
                         )
                         to_buy -= 1
                         if to_buy == 0:
@@ -614,14 +616,14 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                         p_fmt = fmt_usd(p_val)
                         sl_fmt = fmt_usd(sl_val)
                         pf["open_positions"][ticker] = {
-                            "entry_date": today_str,
+                            "entry_date": exec_monday,
                             "entry_price": p_val,
                             "stop_loss": sl_val,
                             "is_crypto": True,
                             "weight": weight_dec
                         }
                         action_log.append(
-                            f"🟢 ACQUISTO CRYPTO: {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop Loss: {sl_fmt} ({dist_sl:+.2f}%)"
+                            f"🟢 ACQUISTO CRYPTO (LUNEDÌ): {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop Loss: {sl_fmt} ({dist_sl:+.2f}%)"
                         )
                         to_buy_cr -= 1
                         if to_buy_cr == 0:
