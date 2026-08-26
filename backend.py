@@ -19,7 +19,7 @@ import pandas as pd
 # ==============================================================================
 # CONFIGURATION & CONSTANTS
 # ==============================================================================
-BENCHMARK_TICKERS = ['RSP', 'SPY', 'BTC-USD', 'GC=F', 'TLT', 'SHV']
+BENCHMARK_TICKERS = ['RSP', 'SPY', 'BTC-USD', 'GC=F', 'IEF']
 CRYPTO_FALLBACK = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
 CRYPTO_BLACKLIST = {
     'USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC',
@@ -202,57 +202,47 @@ def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
 # MACRO ENGINE & WATERFALL ALLOCATION
 # ==============================================================================
 def calculate_macro_allocation(b_data):
-    """Computes regime metrics and resolves optimal capital distribution via Waterfall."""
+    """Computes regime metrics and resolves optimal capital distribution via fixed-hierarchy Waterfall."""
     macro = {}
     for t in BENCHMARK_TICKERS:
         if t not in b_data or b_data[t].empty:
             continue
         df = b_data[t].resample('D').last().ffill()
-        df_m = df.resample('ME').last()
-
         price = float(df['Close'].iloc[-1])
         ma200 = float(df['Close'].rolling(200, min_periods=50).mean().iloc[-1]) if len(df) >= 50 else price
-        mom = float(df_m['Close'].pct_change(6).iloc[-1]) if len(df_m) >= 6 else 0.0
-        macro[t] = {'price': price, 'ma200': ma200, 'mom': mom}
+        macro[t] = {'price': price, 'ma200': ma200}
 
     allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
     eq_bench = "RSP" if "RSP" in macro else "SPY"
-
-    valid_macro = []
-    for m in [eq_bench, "BTC-USD", "GC=F", "TLT"]:
-        if m in macro and macro[m]['price'] > macro[m]['ma200']:
-            valid_macro.append((m, macro[m]['mom']))
-
-    valid_macro.sort(key=lambda x: x[1], reverse=True)
-    ranked = [x[0] for x in valid_macro]
-
     capital = 100
-    for m in ranked:
-        if capital <= 0:
-            break
-        if m == "BTC-USD":
-            take = min(15, capital)
-            allocations["Crypto"] = take
-            capital -= take
-        elif m == "GC=F":
-            take = min(10, capital)
-            allocations["Gold"] = take
-            capital -= take
-        elif m in ("RSP", "SPY"):
-            take = min(70, capital)
-            allocations["Equities"] = take
-            capital -= take
-        elif m == "TLT":
+
+    # 1. Azioni (Max 70%)
+    if eq_bench in macro and macro[eq_bench]['price'] > macro[eq_bench]['ma200']:
+        take = min(70, capital)
+        allocations["Equities"] = take
+        capital -= take
+
+    # 2. Crypto (Max 15%)
+    if "BTC-USD" in macro and macro["BTC-USD"]['price'] > macro["BTC-USD"]['ma200']:
+        take = min(15, capital)
+        allocations["Crypto"] = take
+        capital -= take
+
+    # 3. Oro (Max 10%)
+    if "GC=F" in macro and macro["GC=F"]['price'] > macro["GC=F"]['ma200']:
+        take = min(10, capital)
+        allocations["Gold"] = take
+        capital -= take
+
+    # 4. Obbligazioni (Resto del capitale, senza cap se trend positivo)
+    if capital > 0:
+        if "IEF" in macro and macro["IEF"]['price'] > macro["IEF"]['ma200']:
             allocations["Bonds"] = capital
             capital = 0
 
+    # 5. Cash (Fondo Monetario per tutto cio' che avanza se i Bond sono negativi)
     if capital > 0:
-        tlt = macro.get("TLT", {})
-        shv = macro.get("SHV", {})
-        if tlt.get('price', 0) > tlt.get('ma200', 0) and tlt.get('mom', 0) > shv.get('mom', 0):
-            allocations["Bonds"] += capital
-        else:
-            allocations["Cash"] += capital
+        allocations["Cash"] = capital
 
     return macro, allocations
 
@@ -316,7 +306,7 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds, today_str):
 
     # 3. Macro hedges floating P&L sum
     alloc = data_dict.get("allocations", {})
-    for asset, sym in [("Gold", "GC=F"), ("Bonds", "TLT")]:
+    for asset, sym in [("Gold", "GC=F"), ("Bonds", "IEF")]:
         if alloc.get(asset, 0) > 0 and asset in pf.get("macro_positions", {}):
             pos = pf["macro_positions"][asset]
             entry_p = pos.get("entry_price", 0.0)
@@ -437,7 +427,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
 
     # 2. Track / Update Macro Positions (Gold & Bonds)
     alloc = output.get("allocations", {})
-    for asset, sym in [("Gold", "GC=F"), ("Bonds", "TLT")]:
+    for asset, sym in [("Gold", "GC=F"), ("Bonds", "IEF")]:
         if alloc.get(asset, 0) > 0:
             if asset not in pf["macro_positions"]:
                 price = float(b_inds['c'][sym].iloc[-1]) if b_inds and sym in b_inds['c'].columns else 0.0
@@ -445,7 +435,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 action_log.append(f"🛡️ HEDGE ATTIVATO: {asset} a {price:.2f}")
 
     for asset, pos in pf["macro_positions"].items():
-        sym = "GC=F" if asset == "Gold" else "TLT"
+        sym = "GC=F" if asset == "Gold" else "IEF"
         if b_inds and sym in b_inds['c'].columns:
             pos["current_price"] = float(b_inds['c'][sym].iloc[-1])
 
@@ -528,7 +518,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
         for asset in list(pf["macro_positions"].keys()):
             if alloc.get(asset, 0) == 0:
                 pos = pf["macro_positions"][asset]
-                sym = "GC=F" if asset == "Gold" else "TLT"
+                sym = "GC=F" if asset == "Gold" else "IEF"
                 exit_price = float(b_inds['c'][sym].iloc[-1]) if b_inds and sym in b_inds['c'].columns else pos["entry_price"]
                 profit_pct = (exit_price / pos["entry_price"]) - 1.0 if pos["entry_price"] > 0 else 0.0
 
