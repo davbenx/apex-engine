@@ -133,7 +133,7 @@
             "stop_loss": 43.52
         },
         "CRWD": {
-            "entry_date": "2026-08-07",
+            "entry_date": "2026-08-17",
             "entry_price": 214.42,
             "current_price": 185.38,
             "shares": 38.2438,
@@ -144,7 +144,7 @@
             "stop_loss": 162.66
         },
         "MRNA": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-17",
             "entry_price": 145.13,
             "current_price": 158.83,
             "shares": 56.9001,
@@ -155,7 +155,7 @@
             "stop_loss": 119.44
         },
         "MRVL": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 240.38,
             "current_price": 240.38,
             "shares": 34.2843,
@@ -166,7 +166,7 @@
             "stop_loss": 198.51
         },
         "CRL": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 297.64,
             "current_price": 297.64,
             "shares": 27.6886,
@@ -177,7 +177,7 @@
             "stop_loss": 237.34
         },
         "AMD": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 479.18,
             "current_price": 479.18,
             "shares": 17.1987,
@@ -188,7 +188,7 @@
             "stop_loss": 370.42
         },
         "ZBRA": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 360.52,
             "current_price": 360.52,
             "shares": 22.8593,
@@ -199,7 +199,7 @@
             "stop_loss": 303.11
         },
         "MET": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 95.87,
             "current_price": 95.87,
             "shares": 85.9628,
@@ -210,7 +210,7 @@
             "stop_loss": 88.83
         },
         "EXPE": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 337.97,
             "current_price": 337.97,
             "shares": 24.3846,
@@ -221,7 +221,7 @@
             "stop_loss": 264.32
         },
         "ETH": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 2515.28,
             "current_price": 2444.48,
             "shares": 4.690141,
@@ -232,7 +232,7 @@
             "stop_loss": 1920.12
         },
         "SOL": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 93.65,
             "current_price": 96.6,
             "shares": 125.964454,
@@ -243,7 +243,7 @@
             "stop_loss": 76.52
         },
         "BTC": {
-            "entry_date": "2026-08-21",
+            "entry_date": "2026-08-24",
             "entry_price": 78335.19,
             "current_price": 78132.21,
             "shares": 0.301194,
