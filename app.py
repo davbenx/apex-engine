@@ -289,23 +289,23 @@ with tab_pf:
     tot_pnl_usd = 0.0
     tot_invested_usd = 0.0
     for r in op_eq:
-        pnl_val = (r["P&L (%)"] / 100) * single_eq
+        pnl_val = (r["Rendimento %"] / 100) * single_eq
         tot_pnl_usd += pnl_val
         tot_invested_usd += single_eq
 
-    has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
+    has_btc = any(r['Titolo'] == 'BTC' for r in op_cr)
     for r in op_cr:
         if has_btc:
             if num_cr == 1:
                 cr_size = capitale * 0.10
             elif num_cr == 2:
                 cr_size = capitale * \
-                    0.10 if r['Ticker'] == 'BTC' else capitale * 0.05
+                    0.10 if r['Titolo'] == 'BTC' else capitale * 0.05
             else:
                 cr_size = capitale * 0.05
         else:
             cr_size = capitale * 0.05
-        pnl_val = (r["P&L (%)"] / 100) * cr_size
+        pnl_val = (r["Rendimento %"] / 100) * cr_size
         tot_pnl_usd += pnl_val
         tot_invested_usd += cr_size
 
@@ -429,8 +429,7 @@ with tab_pf:
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
             df_op_eq["Importo"] = single_eq
-            df_op_eq["P&L Monetario"] = (
-                df_op_eq["P&L (%)"] / 100) * df_op_eq["Size"]
+            df_op_eq["Rendimento Netto"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
 
             df_eq_styled = df_op_eq.style.format({
                 "Ingresso ($)": "{:.2f}",
@@ -459,21 +458,20 @@ with tab_pf:
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
             budgets = []
-            has_btc = any(r['Ticker'] == 'BTC' for r in op_cr)
+            has_btc = any(r['Titolo'] == 'BTC' for r in op_cr)
             for _, r in df_op_cr.iterrows():
                 if has_btc:
                     if num_cr == 1:
                         budgets.append(capitale * 0.10)
                     elif num_cr == 2:
                         budgets.append(
-                            capitale * 0.10 if r['Ticker'] == 'BTC' else capitale * 0.05)
+                            capitale * 0.10 if r['Titolo'] == 'BTC' else capitale * 0.05)
                     else:
                         budgets.append(capitale * 0.05)
                 else:
                     budgets.append(capitale * 0.05)
             df_op_cr["Importo"] = budgets
-            df_op_cr["P&L Monetario"] = (
-                df_op_cr["P&L (%)"] / 100) * df_op_cr["Size"]
+            df_op_cr["Rendimento Netto"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
 
             df_cr_styled = df_op_cr.style.format({
                 "Ingresso ($)": format_price,
