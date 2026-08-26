@@ -312,10 +312,22 @@ tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
 with tab_pf:
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
-        capitale = st.number_input(
-            "💰 Capitale Broker Reale", min_value=1000, value=100000, step=1000, format="%d"
-        )
-        st.caption("Le quote e i controvalori si adattano istantaneamente al capitale impostato.")
+        c_val, c_cur = st.columns([3, 2])
+        with c_val:
+            capitale_input = st.number_input(
+                "💰 Capitale Broker Reale", min_value=1000, value=100000, step=1000, format="%d"
+            )
+        with c_cur:
+            valuta_sel = st.segmented_control("Valuta Conto", ["USD ($)", "EUR (€)"], default="USD ($)")
+
+        eur_usd_rate = float(data.get("eur_usd", 1.085))
+
+        if valuta_sel == "EUR (€)":
+            capitale = capitale_input * eur_usd_rate
+            st.caption(f"💶 Inseriti: **€{capitale_input:,.0f}** | 💵 Potere d'acquisto: **${capitale:,.0f} USD** (Tasso EUR/USD: `{eur_usd_rate:.4f}`)")
+        else:
+            capitale = float(capitale_input)
+            st.caption(f"💵 Capitale Operativo: **${capitale:,.0f} USD** (Quote e prezzi calcolati in dollari)")
 
     capitale_azionario = capitale * (alloc.get('Equities', 0) / 100)
     single_eq = capitale_azionario / 20 if alloc.get('Equities', 0) > 0 else 0
