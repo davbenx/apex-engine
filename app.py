@@ -246,9 +246,9 @@ if pf and "open_positions" in pf:
         row = {
             "Titolo": ticker,
             "Data Ingresso": entry_formatted,
-            "Ingresso": info["entry_price"],
-            "Attuale": curr_p,
-            "Stop Loss": stop_p,
+            "Ingresso ($)": info["entry_price"],
+            "Attuale ($)": curr_p,
+            "Stop Loss ($)": stop_p,
             "Distanza Stop": dist_stop_pct,
             "Rendimento %": pnl_pct
         }
@@ -432,9 +432,9 @@ with tab_pf:
             df_op_eq["Rendimento Netto"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
 
             df_eq_styled = df_op_eq.style.format({
-                "Ingresso": "{:.2f}",
-                "Attuale": "{:.2f}",
-                "Stop Loss": "{:.2f}",
+                "Ingresso ($)": "{:.2f}",
+                "Attuale ($)": "{:.2f}",
+                "Stop Loss ($)": "{:.2f}",
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
@@ -474,9 +474,9 @@ with tab_pf:
             df_op_cr["Rendimento Netto"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
 
             df_cr_styled = df_op_cr.style.format({
-                "Ingresso": format_price,
-                "Attuale": format_price,
-                "Stop Loss": format_price,
+                "Ingresso ($)": format_price,
+                "Attuale ($)": format_price,
+                "Stop Loss ($)": format_price,
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
@@ -758,16 +758,16 @@ with tab_radar:
                 df_eq = pd.DataFrame(top20)
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
-                df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
+                df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
 
                 df_eq["Pos"] = df_eq["Titolo"].apply(
                     lambda t: "⭐" if t in held_tickers else "🆕")
 
-                cols = ["Pos", "Titolo", "Prezzo", "Stop Loss"]
+                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
                 st.dataframe(
-                    df_eq.style.format({"Prezzo": "{:.2f}", "Stop Loss": "{:.2f}"}).map(
+                    df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
                         style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None),
                     use_container_width=True,
                     hide_index=True
@@ -786,15 +786,15 @@ with tab_radar:
                 df_c = pd.DataFrame(cr_top)
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
-                df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
+                df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
 
                 df_c["Pos"] = df_c["Titolo"].apply(
                     lambda t: "⭐" if t in held_tickers else "🆕")
-                cols = ["Pos", "Titolo", "Prezzo", "Stop Loss"]
+                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
-                    df_c.style.format({"Prezzo": format_price, "Stop Loss": format_price}).map(
+                    df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
                         style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None),
                     use_container_width=True,
                     hide_index=True
