@@ -164,6 +164,9 @@ def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asse
     return results
 
 
+fetch_bulk_parallel = download_universe_batch
+
+
 def get_tradable_crypto_universe():
     """Fetches actively traded spot/perp crypto candidates on Kraken & Yahoo Finance."""
     try:
