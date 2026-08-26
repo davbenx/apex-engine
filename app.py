@@ -100,15 +100,13 @@ logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 80px; wi
 col_title, col_meta = st.columns([3, 2])
 with col_title:
     st.markdown(f'''
-    <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-        <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-            <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.18); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
-                {logo_tag}
-            </div>
-            <div>
-                <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">APEX ENGINE</div>
-                <div style="font-size: 11.5px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset<br><span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span></div>
-            </div>
+    <div style="display: flex; align-items: center; gap: 16px; padding: 6px 0;">
+        <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.18); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            {logo_tag}
+        </div>
+        <div>
+            <div style="font-size: 29px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.15;">APEX ENGINE</div>
+            <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px;">Sistema Quantitativo Multi-Asset<br><span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span></div>
         </div>
     </div>
     ''', unsafe_allow_html=True)
