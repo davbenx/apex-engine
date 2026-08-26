@@ -95,7 +95,7 @@ def get_logo_b64():
 
 
 logo_b64 = get_logo_b64()
-logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 55px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
+logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 80px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
@@ -107,7 +107,7 @@ with col_title:
             </div>
             <div>
                 <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
-                <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset &bull; v1.0 Genesis</div>
+                <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset<br><span style='color: #60A5FA; font-weight: 700;'>v1.0 Genesis</span></div>
             </div>
         </div>
     </div>
