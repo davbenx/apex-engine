@@ -211,7 +211,7 @@ def make_engine_card(icon, name, alloc_pct, is_active, since_date, is_cash=False
         border_color = "#10B981" if is_active else "#EF4444"
         bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(239, 68, 68, 0.06)"
         badge_bg = "#065F46" if is_active else "#7F1D1D"
-        status_text = "🟢 ATTIVO" if is_active else "🔴 OFF"
+        status_text = "🟢 ATTIVO" if is_active else "🔴 DISATTIVO"
         status_color = "#34D399" if is_active else "#F87171"
         date_str = f"dal {since_date}" if since_date and since_date != "-" else ""
         opacity = "1" if is_active else "0.75"
@@ -745,7 +745,7 @@ with tab_radar:
             else:
                 st.info("Nessun dato Top 20 disponibile.")
         else:
-            st.warning("Motore Azionario OFF (Semaforo Rosso). Nessun acquisto previsto.")
+            st.warning("Motore Azionario DISATTIVO (Semaforo Rosso). Nessun acquisto previsto.")
 
     with rc2:
         st.markdown("#### 🪙 Top 3 Crypto")
@@ -770,7 +770,7 @@ with tab_radar:
             else:
                 st.info("Nessun dato Crypto disponibile.")
         else:
-            st.warning("Motore Crypto OFF (Semaforo Rosso).")
+            st.warning("Motore Crypto DISATTIVO (Semaforo Rosso).")
 
 
 # ==============================================================================
