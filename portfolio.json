@@ -254,7 +254,16 @@
             "stop_loss": 65104.99
         }
     },
-    "macro_positions": {},
+    "macro_positions": {
+        "Gold": {
+            "entry_date": "2026-08-24",
+            "entry_price": 4508.87,
+            "current_price": 4669.2001953125,
+            "shares": 2.2178,
+            "profit_pct": 3.56,
+            "weight": 0.1
+        }
+    },
     "trade_history": [
         {
             "ticker": "APP",
