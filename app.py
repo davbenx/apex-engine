@@ -135,8 +135,9 @@ def format_price(val):
 
 def calculate_days(entry_date_str):
     try:
-        entry_d = datetime.datetime.strptime(entry_date_str, "%Y-%m-%d")
-        return (datetime.datetime.now() - entry_d).days
+        entry_d = datetime.datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+        today = datetime.datetime.now().date()
+        return max(0, (today - entry_d).days)
     except Exception:
         return 0
 
