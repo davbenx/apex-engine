@@ -588,6 +588,9 @@ with tab_perf:
                     opacity=0.75
                 ))
 
+        last_date = df_plot.index[-1]
+        start_zoom = last_date - pd.DateOffset(months=6) if (last_date - df_plot.index[0]).days > 180 else df_plot.index[0]
+
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
@@ -596,12 +599,29 @@ with tab_perf:
                 showgrid=True,
                 gridcolor='rgba(128,128,128,0.1)',
                 tickfont=dict(size=11),
-                rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else []
+                range=[start_zoom, last_date + pd.DateOffset(days=3)],
+                rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else [],
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=1, label="1M", step="month", stepmode="backward"),
+                        dict(count=3, label="3M", step="month", stepmode="backward"),
+                        dict(count=6, label="6M", step="month", stepmode="backward"),
+                        dict(count=1, label="1A", step="year", stepmode="backward"),
+                        dict(step="all", label="TUTTO")
+                    ]),
+                    bgcolor="rgba(128, 128, 128, 0.12)",
+                    activecolor="#3B82F6",
+                    font=dict(size=11, family="Inter, sans-serif", color="#ffffff"),
+                    x=0.0,
+                    y=1.14,
+                    xanchor="left",
+                    yanchor="top"
+                )
             ),
             yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
             xaxis_rangeslider_visible=False,
-            margin=dict(l=0, r=0, t=15, b=0),
-            height=430,
+            margin=dict(l=0, r=0, t=32, b=0),
+            height=445,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.08)')
         )
         st.plotly_chart(fig, use_container_width=True)
