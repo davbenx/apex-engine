@@ -445,18 +445,23 @@ with tab_pf:
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Importo"] = single_eq
-            df_op_eq["Rendimento"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
+            df_op_eq["Quote"] = [max(1, int(round(single_eq / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
+            df_op_eq["Valore ($)"] = [r["Quote"] * r["Attuale ($)"] for _, r in df_op_eq.iterrows()]
+            df_op_eq["Rendimento ($)"] = df_op_eq["Valore ($)"] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"])
+
+            cols_eq = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Distanza Stop", "Valore ($)", "Rendimento %", "Rendimento ($)"]
+            df_op_eq = df_op_eq[[c for c in cols_eq if c in df_op_eq.columns]]
 
             df_eq_styled = df_op_eq.style.format({
+                "Quote": "{:d}",
                 "Ingresso ($)": "{:.2f}",
                 "Attuale ($)": "{:.2f}",
                 "Stop Loss ($)": "{:.2f}",
                 "Distanza Stop": "{:.1f}%",
-                "Importo": "{:,.0f}",
+                "Valore ($)": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "Rendimento": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
+                "Rendimento ($)": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento ($)']).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
@@ -472,18 +477,29 @@ with tab_pf:
 
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
-            df_op_cr["Importo"] = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05) for _, r in df_op_cr.iterrows()]
-            df_op_cr["Rendimento"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
+            alloc_moneys = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05) for _, r in df_op_cr.iterrows()]
+            df_op_cr["Quote"] = [m / r["Ingresso ($)"] if r["Ingresso ($)"] > 0 else 0 for m, (_, r) in zip(alloc_moneys, df_op_cr.iterrows())]
+            df_op_cr["Valore ($)"] = [r["Quote"] * r["Attuale ($)"] for _, r in df_op_cr.iterrows()]
+            df_op_cr["Rendimento ($)"] = df_op_cr["Valore ($)"] - (df_op_cr["Quote"] * df_op_cr["Ingresso ($)"])
+
+            cols_cr = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Distanza Stop", "Valore ($)", "Rendimento %", "Rendimento ($)"]
+            df_op_cr = df_op_cr[[c for c in cols_cr if c in df_op_cr.columns]]
+
+            def format_crypto_shares(val):
+                if val >= 1.0:
+                    return f"{val:.4f}"
+                return f"{val:.6f}"
 
             df_cr_styled = df_op_cr.style.format({
+                "Quote": format_crypto_shares,
                 "Ingresso ($)": format_price,
                 "Attuale ($)": format_price,
                 "Stop Loss ($)": format_price,
                 "Distanza Stop": "{:.1f}%",
-                "Importo": "{:,.0f}",
+                "Valore ($)": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "Rendimento": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
+                "Rendimento ($)": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento ($)']).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
@@ -738,11 +754,59 @@ with tab_perf:
             "#FBBF24" if max_dd > -15 else "#F87171"
         )
 
-        st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
+        st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
 
-        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📜 Registro Operazioni Chiuse</div>')
         if hist:
+            p_list = [t.get("profit_pct", 0.0) for t in hist]
+            max_val = max(p_list)
+            min_val = min(p_list)
+            max_idx = p_list.index(max_val)
+            min_idx = p_list.index(min_val)
+            best_trade_t = hist[max_idx].get("ticker", "-")
+            best_trade_p = hist[max_idx].get("profit_pct", 0.0)
+            worst_trade_t = hist[min_idx].get("ticker", "-")
+            worst_trade_p = hist[min_idx].get("profit_pct", 0.0)
+
+            durations = []
+            for t in hist:
+                try:
+                    d_in = datetime.datetime.strptime(str(t.get("entry_date", "")), "%Y-%m-%d")
+                    d_out = datetime.datetime.strptime(str(t.get("exit_date", "")), "%Y-%m-%d")
+                    durations.append(max(1, (d_out - d_in).days))
+                except Exception:
+                    pass
+            avg_days_val = int(round(sum(durations) / len(durations))) if durations else 0
+
+            st_html(f"""
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; font-size: 12.5px;">
+                <div style="flex: 1 1 200px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.85;">🏆 Miglior Trade</span>
+                    <span style="font-weight: 700; color: #10B981; font-family: 'JetBrains Mono', monospace;">{best_trade_t} ({best_trade_p:+.2f}%)</span>
+                </div>
+                <div style="flex: 1 1 200px; background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.85;">🛑 Peggior Trade</span>
+                    <span style="font-weight: 700; color: #EF4444; font-family: 'JetBrains Mono', monospace;">{worst_trade_t} ({worst_trade_p:+.2f}%)</span>
+                </div>
+                <div style="flex: 1 1 200px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.85;">⏱️ Durata Media Trade</span>
+                    <span style="font-weight: 700; color: #A78BFA; font-family: 'JetBrains Mono', monospace;">{avg_days_val} giorni</span>
+                </div>
+            </div>
+            """)
+
+            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📜 Registro Operazioni Chiuse</div>')
+
             df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
+
+            def calc_duration(r):
+                try:
+                    d_in = datetime.datetime.strptime(str(r.get("entry_date", "")), "%Y-%m-%d")
+                    d_out = datetime.datetime.strptime(str(r.get("exit_date", "")), "%Y-%m-%d")
+                    return f"{max(1, (d_out - d_in).days)}g"
+                except Exception:
+                    return "-"
+
+            df_hist["Durata"] = df_hist.apply(calc_duration, axis=1)
 
             def color_trade_pnl(val):
                 if isinstance(val, (int, float)):
@@ -771,9 +835,20 @@ with tab_perf:
             if "Motivazione" in df_hist.columns:
                 df_hist["Motivazione"] = df_hist["Motivazione"].apply(lambda r: reason_map.get(str(r), str(r)))
 
-            cols_to_drop = [c for c in ["is_crypto", "weight"] if c in df_hist.columns]
-            if cols_to_drop:
-                df_hist = df_hist.drop(columns=cols_to_drop)
+            cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
+            df_hist = df_hist[[c for c in cols_hist if c in df_hist.columns]]
+
+            # Search & Filter Controls
+            c_srch, c_flt = st.columns([2, 1])
+            with c_srch:
+                search_t = st.text_input("Cerca Ticker", placeholder="🔍 Cerca per ticker (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
+            with c_flt:
+                flt_reason = st.selectbox("Filtro Uscita", ["Tutte le Motivazioni", "🛡️ Trailing Stop", "🔄 Rotazione Mensile", "⚠️ Regime Ribassista"], label_visibility="collapsed")
+
+            if search_t:
+                df_hist = df_hist[df_hist["Titolo"].str.contains(search_t.strip().upper(), na=False)]
+            if flt_reason != "Tutte le Motivazioni":
+                df_hist = df_hist[df_hist["Motivazione"] == flt_reason]
 
             st.dataframe(
                 df_hist.style.format({
