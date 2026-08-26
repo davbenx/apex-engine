@@ -458,13 +458,20 @@ with tab_perf:
         except BaseException:
             return pd.DataFrame()
 
-    eq_history = []
-    if os.path.exists('equity_curve.json'):
+    @st.cache_data(ttl=60)
+    def load_equity():
         try:
-            with open('equity_curve.json', 'r') as f:
-                eq_history = json.load(f)
+            url = "https://raw.githubusercontent.com/davbenx/apex-engine/main/equity.json"
+            req = urllib.request.Request(url)
+            data = json.loads(urllib.request.urlopen(req).read().decode())
+            return data.get("history", [])
         except BaseException:
-            pass
+            if os.path.exists('equity.json'):
+                with open('equity.json', 'r') as f:
+                    return json.load(f).get("history", [])
+        return []
+
+    eq_history = load_equity()
 
     max_dd = 0.0
     current_dd = 0.0
@@ -475,12 +482,12 @@ with tab_perf:
         df_eq.set_index('date', inplace=True)
 
         start_date = df_eq.index[0]
-        base_val = df_eq['equity'].iloc[0]
-        df_eq['Apex'] = (df_eq['equity'] / base_val) * 100
+        base_val = df_eq['value'].iloc[0]
+        df_eq['Apex'] = (df_eq['value'] / base_val) * 100
 
         # Calcolo Drawdown
-        cummax = df_eq['equity'].cummax()
-        dd_series = (df_eq['equity'] - cummax) / cummax * 100
+        cummax = df_eq['value'].cummax()
+        dd_series = (df_eq['value'] - cummax) / cummax * 100
         max_dd = dd_series.min()
         current_dd = dd_series.iloc[-1]
 
