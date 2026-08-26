@@ -858,20 +858,20 @@ with tab_guide:
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Rotazione (Mensile)</div>
-            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese vendi i titoli che hanno perso forza relativa (Momentum) per fare spazio ai nuovi leader di mercato suggeriti.</div>
+            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Bilancio Mensile</div>
+            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese l'app ti indicherà i titoli deboli da vendere. Sostituiscili con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Allineamento (Settimanale)</div>
-            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì aggiorna i livelli di Stop Loss. Usa la liquidità dei titoli stoppati in settimana per acquistare i nuovi ingressi in classifica.</div>
+            <div style="font-weight: 700; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Controllo Settimanale</div>
+            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì aggiorna i livelli di protezione sul tuo conto. Se in settimana hai subito chiusure automatiche, usa quei fondi per comprare i nuovi ingressi.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 3. Regimi Macro (Settimanale)</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se un motore passa da 🟢 a 🔴 o viceversa, l'esecuzione avviene il venerdì. In fase Cash, usa strumenti monetari in valuta base risk-free.</div>
+            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 3. Cambi di Mercato</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un intero settore, liquidalo il venerdì. In caso di liquidità totale, parcheggia i fondi in strumenti sicuri garantiti in Euro.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Emergenze (Infrasettimanale)</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se il prezzo crolla, lo Stop Loss scatta automaticamente sul broker. È l'unica azione ammessa in settimana. Il capitale attende il venerdì.</div>
+            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Zero Azioni Quotidiane</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se il prezzo crolla, il livello di protezione in banca chiuderà l'investimento da solo. Non agire d'impulso in settimana: il capitale attende il venerdì.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -880,24 +880,24 @@ with tab_guide:
 
     st.markdown("#### 🧠 Documentazione Strategica")
     st.markdown('''
-    **Obiettivi e cosa aspettarsi**
-    Apex Engine è un motore quantitativo progettato per battere i mercati nel lungo termine tramite *Absolute Return*.  
-    * **Cosa aspettarsi:** Fasi di crescita aggressiva durante i mercati rialzisti (Risk-On) e periodi di stallo difensivo a capitale protetto durante i crolli (Risk-Off). Il Drawdown viene minimizzato matematicamente tagliando le perdite in anticipo.
+    **Obiettivi del sistema**
+    L'algoritmo è progettato per generare profitti costanti nel lungo termine, azzerando le decisioni emotive.  
+    Il sistema spinge sull'acceleratore e massimizza la crescita quando l'economia è positiva. Al contrario, quando i mercati crollano, l'algoritmo tira il freno a mano e sposta i fondi su beni rifugio per proteggere il capitale, riducendo drasticamente le perdite.
 
     ---
 
-    ##### L'ALGORITMO (La Logica)
-    Il sistema ragiona per moduli, elaborando i dati a mercati chiusi:
+    ##### COME FUNZIONA LA STRATEGIA
+    Il sistema lavora in totale autonomia a mercati chiusi, seguendo tre pilastri:
 
-    *   **Allocazione Macro (Waterfall):** Il capitale scivola dall'asset più redditizio a quello più difensivo. Un comparto riceve fondi solo se il suo trend è positivo (Media Mobile a 200 giorni).
-        *   **Azioni (Cap 70%):** Motore principale. Si attiva con azionario globale positivo.
-        *   **Crypto (Cap 15%):** Satellitare. Si attiva con mercato crypto positivo.
-        *   **Oro (Cap 10%):** Scudo anti-inflazione e barriera decorrelata.
-        *   **Obbligazioni (Variabile):** Assorbe il capitale scartato dagli asset superiori durante le contrazioni economiche (se i tassi calano).
-        *   **Fondo Monetario (Cash):** Rifugio risk-free. Assorbe l'intero capitale durante i crolli sistemici globali.
-    *   **Selezione Titoli (Momentum):** Se Azioni o Crypto sono attive, il motore seleziona esclusivamente i titoli con l'accelerazione matematica più alta degli ultimi 6 mesi. 
-    *   **Gestione Rischio (Trailing Stop):** Ogni posizione è blindata da un livello di Stop dinamico basato sulla volatilità. Sale con il prezzo, non scende mai.
-
+    *   **Distribuzione a Cascata:** Il capitale viene versato automaticamente dall'investimento più redditizio a quello più difensivo. Un settore riceve soldi solo se il suo andamento generale è sano e in crescita.
+        *   **Azioni (Massimo 70%):** Il motore principale. Si accende solo se le borse globali sono positive.
+        *   **Criptovalute (Massimo 15%):** Settore ad alto rendimento. Si accende solo se il mercato digitale è positivo.
+        *   **Oro (Massimo 10%):** Scudo contro l'inflazione e l'incertezza.
+        *   **Obbligazioni:** Titoli di stato sicuri. Assorbono tutto lo spazio lasciato libero dagli investimenti precedenti quando l'economia frena.
+        *   **Liquidità:** Il rifugio totale. Parcheggia l'intero capitale al sicuro durante i grandi crolli mondiali.
+    *   **Selezione dei Migliori:** Quando il sistema decide di investire in azioni o criptovalute, non sceglie a caso. Misura l'accelerazione dei prezzi degli ultimi sei mesi e acquista esclusivamente i titoli più veloci e forti del mercato.
+    *   **Protezione Automatica:** Ogni singolo investimento è protetto da un livello di sicurezza matematico. Questo limite sale man mano che l'investimento genera profitti per blindare i guadagni, ma non scende mai. Se il prezzo crolla, l'investimento viene venduto automaticamente prima che la perdita diventi grave.
+    
     ---
 
     > ⚠️ **DISCLAIMER & AVVERTENZE LEGALI (ESCLUSIONE DI RESPONSABILITÀ)**  
