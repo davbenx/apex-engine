@@ -148,7 +148,7 @@ def get_logo_b64():
 
 
 # ==============================================================================
-# HEADER & MACRO STATUS
+# HEADER & BRANDING
 # ==============================================================================
 last_update = data.get("timestamp", "Sincronizzazione in corso...")
 logo_b64 = get_logo_b64()
@@ -183,7 +183,9 @@ with col_meta:
     </div>
     """)
 
-# Macro Engine Status Chips
+# ==============================================================================
+# MACRO ENGINE CARDS
+# ==============================================================================
 alloc = data.get('allocations', {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 raw_ts = data.get('timestamp', '')
 ts_date = raw_ts.split(',')[0].strip() if ',' in raw_ts else (raw_ts.split(' ')[0] if raw_ts else datetime.datetime.now().strftime('%Y-%m-%d'))
@@ -195,42 +197,44 @@ d_g = macro_dates.get("Gold", ts_date)
 d_b = macro_dates.get("Bonds", ts_date)
 
 
-def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
+def make_engine_card(icon, name, alloc_pct, is_active, since_date, is_cash=False):
     if is_cash:
-        border_color = "#3B82F6" if alloc_pct > 0 else "#6B7280"
-        bg_color = "rgba(59, 130, 246, 0.10)" if alloc_pct > 0 else "rgba(107, 114, 128, 0.06)"
+        border_color = "#3B82F6" if alloc_pct > 0 else "#4B5563"
+        bg_color = "rgba(59, 130, 246, 0.08)" if alloc_pct > 0 else "rgba(107, 114, 128, 0.05)"
         badge_bg = "#1E40AF" if alloc_pct > 0 else "#374151"
         status_text = "🟢 ATTIVO" if alloc_pct > 0 else "⚪ STBY"
-        subtitle = "Parcheggio Sicuro"
+        status_color = "#60A5FA" if alloc_pct > 0 else "#9CA3AF"
+        date_str = "Rifugio Sicuro"
+        opacity = "1"
     else:
-        border_color = "#10B981" if is_active else "rgba(128,128,128,0.2)"
-        bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(128, 128, 128, 0.04)"
-        badge_bg = "#065F46" if is_active else "#374151"
+        border_color = "#10B981" if is_active else "#EF4444"
+        bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(239, 68, 68, 0.06)"
+        badge_bg = "#065F46" if is_active else "#7F1D1D"
         status_text = "🟢 ATTIVO" if is_active else "🔴 OFF"
-        subtitle = f"Dal {since_date}" if is_active else f"Spento {since_date}"
-
-    opacity = "1" if (is_active or (is_cash and alloc_pct > 0)) else "0.55"
+        status_color = "#34D399" if is_active else "#F87171"
+        date_str = f"dal {since_date}" if since_date and since_date != "-" else ""
+        opacity = "1" if is_active else "0.75"
 
     return f"""
-    <div style="background: {bg_color}; border: 1px solid {border_color}; border-radius: 8px; padding: 7px 12px; display: flex; align-items: center; justify-content: space-between; flex: 1 1 150px; min-width: 140px; opacity: {opacity};">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 16px;">{icon}</span>
-            <div>
-                <div style="font-weight: 700; font-size: 12.5px; line-height: 1.1;">{name} <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: 0.9;">({alloc_pct}%)</span></div>
-                <div style="opacity: 0.65; font-size: 10px; margin-top: 1px;">{subtitle}</div>
-            </div>
+    <div style="flex: 1 1 180px; min-width: 155px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.12); opacity: {opacity};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 700; font-size: 13.5px; letter-spacing: 0.2px;">{icon} {name}</span>
+            <span style="background: {badge_bg}; color: #ffffff; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">{alloc_pct}%</span>
         </div>
-        <span style="background: {badge_bg}; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.3px;">{status_text}</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="color: {status_color}; font-weight: 700; font-size: 11.5px; letter-spacing: 0.3px;">{status_text}</span>
+            <span style="opacity: 0.65; font-size: 10.5px;">{date_str}</span>
+        </div>
     </div>
     """
 
-chip_eq = make_chip("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
-chip_cr = make_chip("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
-chip_g = make_chip("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
-chip_b = make_chip("🛡️", "Bond", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
-chip_c = make_chip("💵", "Liquidità", alloc.get('Cash', 0), False, "", is_cash=True)
+card_eq = make_engine_card("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
+card_cr = make_engine_card("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
+card_g = make_engine_card("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
+card_b = make_engine_card("🛡️", "Bond", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
+card_c = make_engine_card("💵", "Cash", alloc.get('Cash', 0), False, "", is_cash=True)
 
-st_html(f'<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px 0;">{chip_eq}{chip_cr}{chip_g}{chip_b}{chip_c}</div>')
+st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 18px 0;">{card_eq}{card_cr}{card_g}{card_b}{card_c}</div>')
 
 
 # ==============================================================================
@@ -314,23 +318,27 @@ with tab_pf:
         tot_invested_usd += cr_size
 
     macro_pos = pf.get("macro_positions", {}) if pf else {}
+    g_pnl_usd = 0.0
+    g_pnl_pct = 0.0
     if alloc.get('Gold', 0) > 0:
-        g_pnl_usd = 0.0
         if "Gold" in macro_pos:
             g_pos = macro_pos["Gold"]
             c_p = g_pos.get("current_price", g_pos.get("entry_price", 0))
             if g_pos.get("entry_price", 0) > 0:
-                g_pnl_usd = ((c_p / g_pos["entry_price"]) - 1.0) * gold_cap
+                g_pnl_pct = ((c_p / g_pos["entry_price"]) - 1.0) * 100
+                g_pnl_usd = (g_pnl_pct / 100) * gold_cap
         tot_pnl_usd += g_pnl_usd
         tot_invested_usd += gold_cap
 
+    b_pnl_usd = 0.0
+    b_pnl_pct = 0.0
     if alloc.get('Bonds', 0) > 0:
-        b_pnl_usd = 0.0
         if "Bonds" in macro_pos:
             b_pos = macro_pos["Bonds"]
             c_p = b_pos.get("current_price", b_pos.get("entry_price", 0))
             if b_pos.get("entry_price", 0) > 0:
-                b_pnl_usd = ((c_p / b_pos["entry_price"]) - 1.0) * bond_cap
+                b_pnl_pct = ((c_p / b_pos["entry_price"]) - 1.0) * 100
+                b_pnl_usd = (b_pnl_pct / 100) * bond_cap
         tot_pnl_usd += b_pnl_usd
         tot_invested_usd += bond_cap
 
@@ -361,6 +369,32 @@ with tab_pf:
         """)
 
     st.write("")
+
+    # Coperture Macro & Liquidità Cards
+    def make_asset_card(icon, label, amount, subtext, border_col, is_active=True, pnl_pct=0.0, pnl_val=0.0):
+        opacity = "1" if is_active else "0.55"
+        pnl_badge = ""
+        if is_active and pnl_pct != 0.0:
+            pnl_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
+            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">P&L: {pnl_val:+,.0f} € ({pnl_pct:+.2f}%)</div>'
+
+        return f"""
+        <div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <span style="font-weight: 600; font-size: 12px; color: #9CA3AF;">{icon} {label}</span>
+                <span style="font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{amount:,.0f} €</span>
+            </div>
+            <div style="opacity: 0.65; font-size: 10.5px;">{subtext}</div>
+            {pnl_badge}
+        </div>
+        """
+
+    real_cash = capitale * (alloc.get('Cash', 0) / 100) + (capitale_azionario - (len(op_eq) * single_eq))
+    card_cash = make_asset_card("💵", "LIQUIDITÀ / CASH", real_cash, "Parcheggio strategico e riserve", "#3B82F6", True)
+    card_gold = make_asset_card("🥇", "ORO (GLD)", gold_cap, "Copertura Macro", "#F59E0B" if alloc.get('Gold', 0) > 0 else "#4B5563", alloc.get('Gold', 0) > 0, g_pnl_pct, g_pnl_usd)
+    card_bond = make_asset_card("🛡️", "BOND (IEF)", bond_cap, "Copertura Tassi", "#8B5CF6" if alloc.get('Bonds', 0) > 0 else "#4B5563", alloc.get('Bonds', 0) > 0, b_pnl_pct, b_pnl_usd)
+
+    st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_gold}{card_bond}</div>')
 
     def color_pnl(val):
         color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
