@@ -789,9 +789,9 @@ with tab_radar:
     held_tickers = set(pf.get("open_positions", {}).keys()) if pf else set()
 
     def style_radar_status(val):
-        if "⭐" in str(val):
-            return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700;'
-        return ''
+        if "🆕" in str(val):
+            return 'background-color: rgba(59, 130, 246, 0.15); color: #3B82F6; font-weight: 700; text-align: center;'
+        return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
@@ -803,7 +803,7 @@ with tab_radar:
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
                 df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
-                df_eq["Pos"] = df_eq["Titolo"].apply(lambda t: "⭐" if t in held_tickers else "🆕")
+                df_eq["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_eq["Titolo"])]
                 cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
@@ -828,7 +828,7 @@ with tab_radar:
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
                 df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
-                df_c["Pos"] = df_c["Titolo"].apply(lambda t: "⭐" if t in held_tickers else "🆕")
+                df_c["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_c["Titolo"])]
                 cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
