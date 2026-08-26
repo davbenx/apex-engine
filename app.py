@@ -885,7 +885,7 @@ with tab_guide:
     ##### 1. Il Motore Macro
     È il cuore difensivo della strategia. Misura il trend strutturale del mercato:
     - Se l'indice RSP è sopra la sua media mobile a 200 giorni, il sistema alloca il capitale sul comparto **Azioni**. Il motore **Crypto** è indipendente e viene attivato solo se Bitcoin è sopra la sua media mobile a 200 giorni.
-    - Se il mercato azionario scende sotto la media a 200 giorni, il sistema attiva il protocollo Waterfall: sposta i fondi prima sull'**Oro**. Se anche l'Oro è negativo, si rifugia nelle **Obbligazioni**. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
+    - Se il mercato azionario scende sotto la media a 200 giorni, il sistema attiva il protocollo Waterfall occupando progressivamente lo spazio libero: sposta i fondi prima sull'**Oro**. Se anche l'Oro è negativo, si rifugia nelle **Obbligazioni**, utilizzando **IEF** come riferimento per i Treasury a 7-10 anni. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
 
     ##### 2. Il Motore Azionario
     Quando il semaforo Macro è verde:
