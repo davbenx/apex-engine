@@ -246,9 +246,9 @@ if pf and "open_positions" in pf:
         row = {
             "Titolo": ticker,
             "Data Ingresso": entry_formatted,
-            "Ingresso ($)": info["entry_price"],
-            "Attuale ($)": curr_p,
-            "Stop Loss ($)": stop_p,
+            "Ingresso": info["entry_price"],
+            "Attuale": curr_p,
+            "Stop Loss": stop_p,
             "Distanza Stop": dist_stop_pct,
             "Rendimento %": pnl_pct
         }
@@ -378,7 +378,7 @@ with tab_pf:
             sign = "+" if pnl_pct >= 0 else ""
             pnl_html = (
                 f"<div style='text-align: right; margin-left: 8px;'>"
-                f"<div style='color: {p_col}; font-size: 15px; font-weight: 700; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}${pnl_usd:,.0f}</div>"
+                f"<div style='color: {p_col}; font-size: 15px; font-weight: 700; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}{pnl_usd:,.0f}</div>"
                 f"<div style='color: {p_col}; font-size: 11px; font-weight: 600; font-family: \"JetBrains Mono\", monospace; white-space: nowrap;'>{sign}{pnl_pct:.2f}%</div>"
                 f"</div>"
             )
@@ -432,9 +432,9 @@ with tab_pf:
             df_op_eq["Rendimento Netto"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
 
             df_eq_styled = df_op_eq.style.format({
-                "Ingresso ($)": "{:.2f}",
-                "Attuale ($)": "{:.2f}",
-                "Stop Loss ($)": "{:.2f}",
+                "Ingresso": "{:.2f}",
+                "Attuale": "{:.2f}",
+                "Stop Loss": "{:.2f}",
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
@@ -474,9 +474,9 @@ with tab_pf:
             df_op_cr["Rendimento Netto"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
 
             df_cr_styled = df_op_cr.style.format({
-                "Ingresso ($)": format_price,
-                "Attuale ($)": format_price,
-                "Stop Loss ($)": format_price,
+                "Ingresso": format_price,
+                "Attuale": format_price,
+                "Stop Loss": format_price,
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
@@ -758,16 +758,16 @@ with tab_radar:
                 df_eq = pd.DataFrame(top20)
                 if "Momentum Score" in df_eq.columns:
                     df_eq = df_eq.drop(columns=["Momentum Score"])
-                df_eq = df_eq.rename(columns={"Ticker": "Titolo"})
+                df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
 
                 df_eq["Pos"] = df_eq["Titolo"].apply(
                     lambda t: "⭐" if t in held_tickers else "🆕")
 
-                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Titolo", "Prezzo", "Stop Loss"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
                 st.dataframe(
-                    df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
+                    df_eq.style.format({"Prezzo": "{:.2f}", "Stop Loss": "{:.2f}"}).map(
                         style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None),
                     use_container_width=True,
                     hide_index=True
@@ -786,15 +786,15 @@ with tab_radar:
                 df_c = pd.DataFrame(cr_top)
                 if "Momentum Score" in df_c.columns:
                     df_c = df_c.drop(columns=["Momentum Score"])
-                df_c = df_c.rename(columns={"Ticker": "Titolo"})
+                df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo ($)": "Prezzo", "Stop Loss ($)": "Stop Loss"})
 
                 df_c["Pos"] = df_c["Titolo"].apply(
                     lambda t: "⭐" if t in held_tickers else "🆕")
-                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Titolo", "Prezzo", "Stop Loss"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
-                    df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
+                    df_c.style.format({"Prezzo": format_price, "Stop Loss": format_price}).map(
                         style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None),
                     use_container_width=True,
                     hide_index=True
@@ -867,7 +867,7 @@ with tab_guide:
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #D97706; margin-bottom: 6px;">💵 3. Fondo Monetario</div>
-            <div style="font-size: 13px; opacity: 0.85;">La liquidità parcheggiata in Cash non va tenuta sul conto, ma investita in ETF Monetari (es. XEON o IB01) per rendita risk-free.</div>
+            <div style="font-size: 13px; opacity: 0.85;">La liquidità parcheggiata in Cash non va tenuta sul conto, ma investita in ETF Monetari come XEON o IB01 per rendita risk-free.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Stop Loss Automatico</div>
@@ -880,23 +880,23 @@ with tab_guide:
 
     st.markdown("#### 🧠 Documentazione Strategica")
     st.markdown('''
-    **Apex Multi-Asset Engine** è un motore quantitativo a guida autonoma progettato per generare **Alpha assoluto**, battendo l'S&P 500 nel lungo termine e proteggendo al contempo il capitale dai crolli di mercato (Drawdown).
+    **Apex Multi-Asset Engine** è un motore quantitativo a guida autonoma progettato per generare **Alpha assoluto**, battendo l'S&P 500 nel lungo termine e proteggendo al contempo il capitale dai crolli di mercato.
 
-    ##### 1. Il Motore Macro (Waterfall Allocation)
+    ##### 1. Il Motore Macro
     È il cuore difensivo della strategia. Misura il trend strutturale del mercato:
-    - Se l'S&P 500 è sopra la sua media mobile a 200 giorni, il sistema alloca il capitale sugli asset di rischio (**Azioni** e **Crypto**).
-    - Se l'S&P 500 crolla, il sistema attiva il protocollo *Waterfall*: sposta i fondi prima sull'**Oro**. Se anche l'Oro è negativo, si rifugia nelle **Obbligazioni**. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
+    - Se l'S&P 500 è sopra la sua media mobile a 200 giorni, il sistema alloca il capitale sugli asset di rischio: **Azioni** e **Crypto**.
+    - Se l'S&P 500 crolla, il sistema attiva il protocollo Waterfall: sposta i fondi prima sull'**Oro**. Se anche l'Oro è negativo, si rifugia nelle **Obbligazioni**. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
 
-    ##### 2. Il Motore Azionario (Momentum Cross-Sectional)
+    ##### 2. Il Motore Azionario
     Quando il semaforo Macro è verde:
-    - Il motore analizza tutti i 500 titoli dell'S&P 500 e calcola il Rate of Change (ROC) a 130 giorni.
-    - Seleziona solo i **20 migliori titoli** (equi-pesati al 5% ciascuno) che stanno sovraperformando il mercato.
+    - Il motore analizza tutti i 500 titoli dell'S&P 500 e calcola il Rate of Change a 130 giorni.
+    - Seleziona solo i **20 migliori titoli** equi-pesati al 5% ciascuno che stanno sovraperformando il mercato.
 
     ##### 3. Il Motore Crypto
     Satellite ad alto rendimento, attivato solo se Bitcoin è sopra la sua MA200:
     - Alloca fino al 10-15% del capitale.
-    - Seleziona fino a 3 altcoin con il momentum più esplosivo con stop loss dedicati (ATR x 2).
+    - Seleziona fino a 3 altcoin con il momentum più esplosivo con stop loss dedicati.
 
-    ##### 4. Gestione del Rischio (ATR Trailing Stop)
-    Ogni operazione è protetta da un **Trailing Stop Loss Dinamico** basato sulla volatilità reale (ATR).
+    ##### 4. Gestione del Rischio
+    Ogni operazione è protetta da un **Trailing Stop Loss Dinamico** basato sulla volatilità reale.
     ''')
