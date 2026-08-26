@@ -112,9 +112,14 @@ with col_title:
     ''', unsafe_allow_html=True)
 with col_meta:
     st.markdown(f'''
-    <div style="text-align: right; padding-top: 10px;">
-        <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Attivo</span>
-        <div style="opacity: 0.75; font-size: 11.5px; margin-top: 5px;">
+    <div style="text-align: right; padding-top: 8px;">
+        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 5px;">
+            <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 136, 204, 0.12); color: #0088cc; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(0, 136, 204, 0.3);">
+                ✈️ Notifiche @apex_multiasset
+            </a>
+            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Attivo</span>
+        </div>
+        <div style="opacity: 0.75; font-size: 11.5px;">
             🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
         </div>
     </div>
@@ -847,6 +852,18 @@ with tab_radar:
 # TAB 5: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
+    st.markdown('''
+    <div style="background: rgba(0, 136, 204, 0.08); border-left: 4px solid #0088cc; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <div style="font-weight: 700; font-size: 14px; color: #0088cc; margin-bottom: 2px;">📢 Canale Ufficiale Notifiche Telegram</div>
+            <div style="font-size: 12.5px; opacity: 0.85;">Ricevi in tempo reale i cambi di mercato, gli ordini di rotazione e i livelli di protezione aggiornati.</div>
+        </div>
+        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+            Unisciti al Canale ✈️
+        </a>
+    </div>
+    ''', unsafe_allow_html=True)
+
     st.markdown("#### 📖 Regole Operative")
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
