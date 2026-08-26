@@ -358,7 +358,8 @@ with tab_pf:
         tot_invested_usd += single_eq
 
     for r in op_cr:
-        cr_size = capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05)
+        cr_weight = 0.10 if r['Titolo'] == 'BTC' else 0.025
+        cr_size = capitale * cr_weight
         pnl_val = (r["Rendimento %"] / 100) * cr_size
         tot_pnl_usd += pnl_val
         tot_invested_usd += cr_size
@@ -388,17 +389,31 @@ with tab_pf:
         tot_pnl_usd += b_pnl_usd
         tot_invested_usd += bond_cap
 
-    tot_pnl_pct = (tot_pnl_usd / tot_invested_usd * 100) if tot_invested_usd > 0 else 0.0
+    tot_pnl_pct = (tot_pnl_usd / capitale * 100) if capitale > 0 else 0.0
     tot_pnl_user = tot_pnl_usd * fx_ratio
 
     with c_pnl:
         num_pos = len(op_eq) + len(op_cr) + (1 if alloc.get('Gold', 0) > 0 else 0) + (1 if alloc.get('Bonds', 0) > 0 else 0)
+        breakdown_items = []
+        if len(op_eq) > 0:
+            breakdown_items.append(f"{len(op_eq)} Azioni")
+        if len(op_cr) > 0:
+            breakdown_items.append(f"{len(op_cr)} Crypto")
+        if alloc.get('Gold', 0) > 0:
+            breakdown_items.append("1 Oro")
+        if alloc.get('Bonds', 0) > 0:
+            breakdown_items.append("1 Bond")
+        breakdown_str = f"({', '.join(breakdown_items)})" if breakdown_items else ""
+
         if num_pos > 0:
             pnl_sign = "+" if tot_pnl_user >= 0 else "-"
             pnl_col = "#10B981" if tot_pnl_user >= 0 else "#EF4444"
             pnl_val_str = f"{pnl_sign}{curr_sym}{abs(tot_pnl_user):,.0f}"
             pnl_pct_str = f"{'+' if tot_pnl_pct>=0 else ''}{tot_pnl_pct:.2f}%"
-            sub_text = f"Su {num_pos} posizioni ({'+' if tot_pnl_usd>=0 else ''}${tot_pnl_usd:,.0f} USD)" if is_eur else f"Su {num_pos} posizioni aperte"
+            if is_eur:
+                sub_text = f"Su {num_pos} posizioni {breakdown_str} • (${tot_pnl_usd:+,.0f} USD)"
+            else:
+                sub_text = f"Su {num_pos} posizioni {breakdown_str}"
         else:
             pnl_col = "gray"
             pnl_val_str = f"{curr_sym}0"
@@ -511,7 +526,7 @@ with tab_pf:
 
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
-            alloc_moneys = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05) for _, r in df_op_cr.iterrows()]
+            alloc_moneys = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.025) for _, r in df_op_cr.iterrows()]
             df_op_cr["Quote"] = [m / r["Ingresso ($)"] if r["Ingresso ($)"] > 0 else 0 for m, (_, r) in zip(alloc_moneys, df_op_cr.iterrows())]
             df_op_cr[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_cr.iterrows()]
             df_op_cr[col_rend_label] = df_op_cr[col_val_label] - (df_op_cr["Quote"] * df_op_cr["Ingresso ($)"] * fx_ratio)
