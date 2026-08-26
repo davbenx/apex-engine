@@ -189,9 +189,9 @@ def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
             res_sym = sym.replace('-USD', '') if is_crypto else sym
             results.append({
                 "Ticker": res_sym,
-                "Prezzo": round(c, 6 if is_crypto and c < 1 else 2),
+                "Prezzo ($)": round(c, 6 if is_crypto and c < 1 else 2),
                 "Momentum Score": round(sc, 2),
-                "Stop Loss": round(trail_stop, 6 if is_crypto and trail_stop < 1 else 2)
+                "Stop Loss ($)": round(trail_stop, 6 if is_crypto and trail_stop < 1 else 2)
             })
 
     df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False)
@@ -459,15 +459,18 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 for row in output.get("top20", []):
                     ticker = row["Ticker"]
                     if ticker not in pf["open_positions"]:
-                        p_val = row.get("Prezzo", row.get("Prezzo ($)", 0.0))
-                        sl_val = row.get("Stop Loss", row.get("Stop Loss ($)", 0.0))
+                        p_val = row.get("Prezzo ($)", row.get("Prezzo", 0.0))
+                        sl_val = row.get("Stop Loss ($)", row.get("Stop Loss", 0.0))
+                        dist_sl = ((sl_val / p_val) - 1.0) * 100 if p_val > 0 else 0.0
                         pf["open_positions"][ticker] = {
                             "entry_date": today_str,
                             "entry_price": p_val,
                             "stop_loss": sl_val,
                             "is_crypto": False
                         }
-                        action_log.append(f"🟢 ACQUISTO SETTIMANALE: {ticker} a {p_val}")
+                        action_log.append(
+                            f"🟢 ACQUISTO AZIONI: {ticker} (Quota: 5%) | Prezzo: ${p_val:.2f} | Stop: ${sl_val:.2f} ({dist_sl:+.2f}%)"
+                        )
                         to_buy -= 1
                         if to_buy == 0:
                             break
@@ -477,15 +480,21 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
             for row in output.get("crypto_top", []):
                 ticker = row["Ticker"]
                 if ticker not in pf["open_positions"]:
-                    p_val = row.get("Prezzo", row.get("Prezzo ($)", 0.0))
-                    sl_val = row.get("Stop Loss", row.get("Stop Loss ($)", 0.0))
+                    p_val = row.get("Prezzo ($)", row.get("Prezzo", 0.0))
+                    sl_val = row.get("Stop Loss ($)", row.get("Stop Loss", 0.0))
+                    dist_sl = ((sl_val / p_val) - 1.0) * 100 if p_val > 0 else 0.0
+                    weight_pct = 10 if ticker == "BTC" else 5
+                    p_fmt = f"${p_val:,.2f}" if p_val >= 1 else f"${p_val:,.6f}"
+                    sl_fmt = f"${sl_val:,.2f}" if sl_val >= 1 else f"${sl_val:,.6f}"
                     pf["open_positions"][ticker] = {
                         "entry_date": today_str,
                         "entry_price": p_val,
                         "stop_loss": sl_val,
                         "is_crypto": True
                     }
-                    action_log.append(f"🟢 ACQUISTO CRYPTO: {ticker} a {p_val}")
+                    action_log.append(
+                        f"🟢 ACQUISTO CRYPTO: {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop: {sl_fmt} ({dist_sl:+.2f}%)"
+                    )
 
         # Close macro hedges if deactivated
         for asset in list(pf["macro_positions"].keys()):
@@ -546,7 +555,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
 # TELEGRAM NOTIFICATIONS
 # ==============================================================================
 def send_telegram_alert(data_dict, action_log):
-    """Sends concise formatted markdown alerts to the user's Telegram channel."""
+    """Sends concise formatted markdown alerts to the user's Telegram channel with % and stop losses in $ and %."""
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
@@ -555,12 +564,12 @@ def send_telegram_alert(data_dict, action_log):
         return
 
     try:
-        def fmt(val):
+        def fmt_usd(v):
             try:
-                v = float(val)
-                return f"{v:.2f}" if v > 1 else f"{v:.6f}"
+                val = float(v)
+                return f"${val:,.2f}" if val >= 1 else f"${val:,.6f}"
             except Exception:
-                return str(val)
+                return f"${v}"
 
         msg = f"🦅 *APEX ENGINE UPDATE* 🦅\n"
         msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
@@ -573,7 +582,7 @@ def send_telegram_alert(data_dict, action_log):
             msg += "\n"
 
         if action_log:
-            msg += "🚀 *AZIONI DA ESEGUIRE OGGI*\n"
+            msg += "🚀 *ORDINI DA ESEGUIRE OGGI*\n"
             for log in action_log:
                 if any(k in log for k in ("ACQUISTO", "VENDITA", "BEAR", "STOP LOSS", "HEDGE")):
                     msg += f"• {log}\n"
@@ -600,15 +609,19 @@ def send_telegram_alert(data_dict, action_log):
             if open_pos:
                 msg += "💼 *IL TUO PORTAFOGLIO (AGGIORNA STOP)*\n"
                 for ticker, info in open_pos.items():
-                    msg += f"• {ticker} (Nuovo Stop: {fmt(info['stop_loss'])})\n"
+                    cur_p = info.get("current_price", info.get("entry_price", 0.0))
+                    sl_p = info.get("stop_loss", 0.0)
+                    dist_sl = ((sl_p / cur_p) - 1.0) * 100 if cur_p > 0 else 0.0
+                    msg += f"• *{ticker}* | Prezzo: {fmt_usd(cur_p)} | Stop: `{fmt_usd(sl_p)}` ({dist_sl:+.2f}%)\n"
                 msg += "\n"
 
         today = datetime.datetime.now()
-        is_rotation = today.weekday() == 4 and (today + datetime.timedelta(days=7)).month != today.month
+        is_friday = today.weekday() == 4
+        is_rotation = is_friday and (today + datetime.timedelta(days=7)).month != today.month
         if is_rotation:
-            msg += "🔄 *RADAR ROTAZIONE MENSILE*\nControlla la Dashboard per rimpiazzare le vendite.\n\n"
+            msg += "🔄 *ROTAZIONE MENSILE ATTIVA*\nAccedi alla Dashboard per completare la rotazione dei titoli.\n\n"
 
-        msg += "💡 _Vai sulla Dashboard per operare._"
+        msg += "💡 _Accedi ad Apex Engine per i dettagli operativi._"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
