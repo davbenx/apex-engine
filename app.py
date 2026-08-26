@@ -263,7 +263,7 @@ if pf:
         entry_formatted = f"{entry_d} ({days_open}g)" if entry_d != "N/A" else "N/A"
 
         curr_p = info.get("current_price", info.get("entry_price", 0.0))
-        stop_p = info.get("stop_loss", 0.0)
+        stop_p = info.get("stop_loss", info.get("stop_price", 0.0))
         pnl_pct = ((curr_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
         dist_stop_pct = ((stop_p / curr_p) - 1.0) * 100 if curr_p > 0 else 0.0
 
