@@ -1,12 +1,328 @@
 {
     "open_positions": {},
-    "trade_history": [],
+    "trade_history": [
+        {
+            "ticker": "KIM",
+            "entry_date": "2026-07-17",
+            "exit_date": "2026-08-03",
+            "entry_price": 26.1200008392334,
+            "exit_price": 25.35349922180176,
+            "profit_pct": -2.93,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "TRV",
+            "entry_date": "2026-07-24",
+            "exit_date": "2026-08-03",
+            "entry_price": 387.260009765625,
+            "exit_price": 375.7745086669922,
+            "profit_pct": -2.97,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HPE",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-03",
+            "entry_price": 47.900001525878906,
+            "exit_price": 55.67990016937256,
+            "profit_pct": 16.24,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "CSX",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-03",
+            "entry_price": 50.400001525878906,
+            "exit_price": 50.56699886322021,
+            "profit_pct": 0.33,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "STX",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-03",
+            "entry_price": 856.1300048828125,
+            "exit_price": 934.043994140625,
+            "profit_pct": 9.1,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "FFIV",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-03",
+            "entry_price": 402.57000732421875,
+            "exit_price": 393.31700897216797,
+            "profit_pct": -2.3,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "DVA",
+            "entry_date": "2026-06-12",
+            "exit_date": "2026-08-04",
+            "entry_price": 208.66000366210938,
+            "exit_price": 225.2750045776367,
+            "profit_pct": 7.96,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "GWW",
+            "entry_date": "2026-07-17",
+            "exit_date": "2026-08-04",
+            "entry_price": 1395.010009765625,
+            "exit_price": 1331.8820251464845,
+            "profit_pct": -4.53,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "ALL",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-04",
+            "entry_price": 264.0799865722656,
+            "exit_price": 259.4924934387207,
+            "profit_pct": -1.74,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "MPC",
+            "entry_date": "2026-07-10",
+            "exit_date": "2026-08-05",
+            "entry_price": 283.739990234375,
+            "exit_price": 300.38901748657224,
+            "profit_pct": 5.87,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "DDOG",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-06",
+            "entry_price": 267.9700012207031,
+            "exit_price": 238.72324905395507,
+            "profit_pct": -10.91,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HUM",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-10",
+            "entry_price": 385.0,
+            "exit_price": 387.4125091552734,
+            "profit_pct": 0.63,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HPE",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-10",
+            "entry_price": 53.220001220703125,
+            "exit_price": 55.10865020751953,
+            "profit_pct": 3.55,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "WST",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-10",
+            "entry_price": 354.07000732421875,
+            "exit_price": 358.9410064697266,
+            "profit_pct": 1.38,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "DVA",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-10",
+            "entry_price": 183.77000427246094,
+            "exit_price": 227.1175048828125,
+            "profit_pct": 23.59,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "TRV",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-10",
+            "entry_price": 384.30999755859375,
+            "exit_price": 375.335009765625,
+            "profit_pct": -2.34,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "MRVL",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-10",
+            "entry_price": 218.72000122070312,
+            "exit_price": 260.5215042114258,
+            "profit_pct": 19.11,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "GL",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-12",
+            "entry_price": 182.25,
+            "exit_price": 180.15299911499022,
+            "profit_pct": -1.15,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HUM",
+            "entry_date": "2026-08-14",
+            "exit_date": "2026-08-17",
+            "entry_price": 389.04998779296875,
+            "exit_price": 387.35400848388673,
+            "profit_pct": -0.44,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "DDOG",
+            "entry_date": "2026-08-14",
+            "exit_date": "2026-08-17",
+            "entry_price": 255.4600067138672,
+            "exit_price": 249.52370376586913,
+            "profit_pct": -2.32,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "AMD",
+            "entry_date": "2026-08-14",
+            "exit_date": "2026-08-18",
+            "entry_price": 514.3900146484375,
+            "exit_price": 478.01797027587895,
+            "profit_pct": -7.07,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "FTNT",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-19",
+            "entry_price": 161.9499969482422,
+            "exit_price": 152.7594902038574,
+            "profit_pct": -5.67,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "PANW",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-19",
+            "entry_price": 331.8299865722656,
+            "exit_price": 353.30300216674806,
+            "profit_pct": 6.47,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "CRWD",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-19",
+            "entry_price": 214.4199981689453,
+            "exit_price": 198.77929000854493,
+            "profit_pct": -7.29,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "NUE",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-19",
+            "entry_price": 272.6300048828125,
+            "exit_price": 257.00598907470703,
+            "profit_pct": -5.73,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HPE",
+            "entry_date": "2026-08-14",
+            "exit_date": "2026-08-19",
+            "entry_price": 58.709999084472656,
+            "exit_price": 54.73170051574707,
+            "profit_pct": -6.78,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "GRMN",
+            "entry_date": "2026-07-31",
+            "exit_date": "2026-08-20",
+            "entry_price": 293.7799987792969,
+            "exit_price": 291.90049743652344,
+            "profit_pct": -0.64,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "ZBRA",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-20",
+            "entry_price": 376.489990234375,
+            "exit_price": 350.7660140991211,
+            "profit_pct": -6.83,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "MRNA",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-24",
+            "entry_price": 145.1300048828125,
+            "exit_price": 155.61310291290283,
+            "profit_pct": 7.22,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HUM",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-24",
+            "entry_price": 378.8800048828125,
+            "exit_price": 386.3705108642578,
+            "profit_pct": 1.98,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "PANW",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-24",
+            "entry_price": 357.8699951171875,
+            "exit_price": 352.4560012817383,
+            "profit_pct": -1.51,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "HPE",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-24",
+            "entry_price": 53.45000076293945,
+            "exit_price": 54.52845058441162,
+            "profit_pct": 2.02,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "MRVL",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-24",
+            "entry_price": 237.0399932861328,
+            "exit_price": 259.6965019226074,
+            "profit_pct": 9.56,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "FTNT",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-24",
+            "entry_price": 153.50999450683594,
+            "exit_price": 152.5359909057617,
+            "profit_pct": -0.63,
+            "reason": "Stop Loss"
+        },
+        {
+            "ticker": "URI",
+            "entry_date": "2026-08-07",
+            "exit_date": "2026-08-25",
+            "entry_price": 1162.8399658203125,
+            "exit_price": 1078.2710357666015,
+            "profit_pct": -7.27,
+            "reason": "Stop Loss"
+        }
+    ],
     "pending_alerts": [],
     "macro_positions": {
         "Gold": {
             "entry_date": "2026-08-26",
             "entry_price": 4697.60009765625,
-            "current_price": 4683.5
+            "current_price": 4669.2001953125
         }
     }
 }
