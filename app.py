@@ -177,8 +177,9 @@ with col_meta:
             </a>
             <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Attivo</span>
         </div>
-        <div style="opacity: 0.75; font-size: 11.5px;">
-            🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
+        <div style="opacity: 0.75; font-size: 11.5px; line-height: 1.4;">
+            🕒 <strong>Aggiornato:</strong> {last_update}<br>
+            ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
         </div>
     </div>
     """)
@@ -231,8 +232,8 @@ def make_engine_card(icon, name, alloc_pct, is_active, since_date, is_cash=False
 card_eq = make_engine_card("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
 card_cr = make_engine_card("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
 card_g = make_engine_card("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
-card_b = make_engine_card("🛡️", "Bond", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
-card_c = make_engine_card("💵", "Cash", alloc.get('Cash', 0), False, "", is_cash=True)
+card_b = make_engine_card("🛡️", "Obbligazioni", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
+card_c = make_engine_card("💵", "Monetario", alloc.get('Cash', 0), False, "", is_cash=True)
 
 st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 18px 0;">{card_eq}{card_cr}{card_g}{card_b}{card_c}</div>')
 
@@ -292,7 +293,7 @@ with tab_pf:
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         capitale = st.number_input(
-            "💰 Capitale Broker Reale (€ / $)", min_value=1000, value=100000, step=1000, format="%d"
+            "💰 Capitale Broker Reale", min_value=1000, value=100000, step=1000, format="%d"
         )
         st.caption("Le quote e i controvalori si adattano istantaneamente al capitale impostato.")
 
@@ -370,19 +371,19 @@ with tab_pf:
 
     st.write("")
 
-    # Coperture Macro & Liquidità Cards
+    # Coperture Macro & Monetario Cards
     def make_asset_card(icon, label, amount, subtext, border_col, is_active=True, pnl_pct=0.0, pnl_val=0.0):
         opacity = "1" if is_active else "0.55"
         pnl_badge = ""
         if is_active and pnl_pct != 0.0:
             pnl_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
-            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">P&L: {pnl_val:+,.0f} € ({pnl_pct:+.2f}%)</div>'
+            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">P&L: {pnl_val:+,.0f} ({pnl_pct:+.2f}%)</div>'
 
         return f"""
         <div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; flex-direction: column; justify-content: space-between;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                 <span style="font-weight: 600; font-size: 12px; color: #9CA3AF;">{icon} {label}</span>
-                <span style="font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{amount:,.0f} €</span>
+                <span style="font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{amount:,.0f}</span>
             </div>
             <div style="opacity: 0.65; font-size: 10.5px;">{subtext}</div>
             {pnl_badge}
@@ -390,9 +391,9 @@ with tab_pf:
         """
 
     real_cash = capitale * (alloc.get('Cash', 0) / 100) + (capitale_azionario - (len(op_eq) * single_eq))
-    card_cash = make_asset_card("💵", "LIQUIDITÀ / CASH", real_cash, "Parcheggio strategico e riserve", "#3B82F6", True)
-    card_gold = make_asset_card("🥇", "ORO (GLD)", gold_cap, "Copertura Macro", "#F59E0B" if alloc.get('Gold', 0) > 0 else "#4B5563", alloc.get('Gold', 0) > 0, g_pnl_pct, g_pnl_usd)
-    card_bond = make_asset_card("🛡️", "BOND (IEF)", bond_cap, "Copertura Tassi", "#8B5CF6" if alloc.get('Bonds', 0) > 0 else "#4B5563", alloc.get('Bonds', 0) > 0, b_pnl_pct, b_pnl_usd)
+    card_cash = make_asset_card("💵", "MONETARIO", real_cash, "Parcheggio strategico e riserve", "#3B82F6", True)
+    card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro", "#F59E0B" if alloc.get('Gold', 0) > 0 else "#4B5563", alloc.get('Gold', 0) > 0, g_pnl_pct, g_pnl_usd)
+    card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi", "#8B5CF6" if alloc.get('Bonds', 0) > 0 else "#4B5563", alloc.get('Bonds', 0) > 0, b_pnl_pct, b_pnl_usd)
 
     st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_gold}{card_bond}</div>')
 
@@ -420,7 +421,7 @@ with tab_pf:
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
             df_op_eq["Importo"] = single_eq
-            df_op_eq["P&L (€)"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
+            df_op_eq["P&L"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
 
             df_eq_styled = df_op_eq.style.format({
                 "Ingresso ($)": "{:.2f}",
@@ -429,8 +430,8 @@ with tab_pf:
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "P&L (€)": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'P&L (€)']).map(color_stop_dist, subset=['Distanza Stop'])
+                "P&L": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'P&L']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
@@ -447,7 +448,7 @@ with tab_pf:
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
             df_op_cr["Importo"] = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05) for _, r in df_op_cr.iterrows()]
-            df_op_cr["P&L (€)"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
+            df_op_cr["P&L"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
 
             df_cr_styled = df_op_cr.style.format({
                 "Ingresso ($)": format_price,
@@ -456,8 +457,8 @@ with tab_pf:
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "P&L (€)": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'P&L (€)']).map(color_stop_dist, subset=['Distanza Stop'])
+                "P&L": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'P&L']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
@@ -809,7 +810,7 @@ with tab_guide:
     * **Criptovalute:** fino al 15%, comparto ad alto rendimento.
     * **Oro:** fino al 10%, protezione contro inflazione e incertezza.
     * **Obbligazioni:** titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.
-    * **Liquidità:** rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.
+    * **Monetario:** rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.
 
     **Selezione dei Titoli:** Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.
 
