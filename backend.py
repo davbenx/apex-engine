@@ -19,7 +19,8 @@ def get_sp500_tickers():
         with urllib.request.urlopen(req) as response:
             tables = pd.read_html(response.read())
             return [t.replace('.', '-') for t in tables[0]['Symbol'].tolist()]
-    except Exception:
+    except Exception as e:
+        print(f'Errore SP500: {e}')
         return ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META', 'GOOGL']
 
 
@@ -93,15 +94,14 @@ def calc_indicators(df_dict, roc_period=130):
     }
 
 
-def process_engine(df_dict, roc_period, atr_multiplier, gap_limit, is_crypto=False):
-    inds = calc_indicators(df_dict, roc_period=roc_period)
+def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
     if not inds:
         return []
 
     results = []
     for sym in inds['c'].columns:
         # REGOLA: Se non ci sono almeno 150 giorni di storico per la media mobile, scarta e prendi la successiva
-        if pd.isna(inds['m150'][sym].iloc[-1]):
+        if inds['m150'][sym].empty or pd.isna(inds['m150'][sym].iloc[-1]):
             continue
 
         c = float(inds['c'].iloc[-1][sym])
@@ -244,11 +244,12 @@ if allocations["Equities"] > 0:
     print("Elaborazione Azioni (S&P 500)...")
     eq_ticks = get_sp500_tickers()
     eq_data = fetch_bulk_parallel(eq_ticks, max_workers=3)
-    output["top20"] = process_engine(
-        eq_data, roc_period=130, atr_multiplier=3.5, gap_limit=15.0)[:20]
+    eq_inds = calc_indicators(eq_data, roc_period=130)
+    output["top20"] = process_engine(eq_inds, atr_multiplier=3.5, gap_limit=15.0)[:20]
 else:
     output["top20"] = []
     eq_data = {}
+    eq_inds = None
 
 if allocations["Crypto"] > 0:
     print("Elaborazione Crypto...")
@@ -296,12 +297,13 @@ if allocations["Crypto"] > 0:
                    'XRP-USD', 'ADA-USD', 'DOGE-USD']
 
     cr_data = fetch_bulk_parallel(c_ticks, max_workers=2)
-    output["crypto_top"] = process_engine(
-        cr_data, roc_period=90, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
+    cr_inds = calc_indicators(cr_data, roc_period=90)
+    output["crypto_top"] = process_engine(cr_inds, atr_multiplier=2.0, gap_limit=40.0, is_crypto=True)[:3]
 
 else:
     output["crypto_top"] = []
     cr_data = {}
+    cr_inds = None
 
 # ==============================
 # EQUITY CURVE TRACKER
@@ -382,7 +384,7 @@ print("Apex Backend elaborato con successo!")
 # ==============================
 # TRADE LOGGER & PORTFOLIO STATE
 # ==============================
-def update_portfolio(output, b_inds, cr_inds, eq_inds):
+def update_portfolio(output, b_inds, eq_inds, cr_inds):
 
     pf_file = 'portfolio.json'
     if os.path.exists(pf_file):
@@ -563,13 +565,14 @@ def update_portfolio(output, b_inds, cr_inds, eq_inds):
 
 
 # ==============================
+# Calcolo unico indicatori Macro (gli altri sono calcolati sopra)
+b_inds = calc_indicators(b_data)
+
 # Aggiorna l'Equity Curve OGNI GIORNO
-update_equity_curve(output, calc_indicators(b_data),
-                    calc_indicators(eq_data), calc_indicators(cr_data))
+update_equity_curve(output, b_inds, eq_inds, cr_inds)
 
 # Aggiorna il Portfolio Logger
-action_log = update_portfolio(output, calc_indicators(
-    b_data), calc_indicators(eq_data), calc_indicators(cr_data))
+action_log = update_portfolio(output, b_inds, eq_inds, cr_inds)
 
 # ==============================
 # NOTIFICHE TELEGRAM
