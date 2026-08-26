@@ -851,20 +851,16 @@ with tab_guide:
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Bilancio Mensile</div>
-            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese l'app ti indicherà i titoli deboli da vendere. Sostituiscili con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
+            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Controllo mensile</div>
+            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese l'app vende i titoli deboli e li sostituisce con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Controllo Settimanale</div>
-            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì aggiorna i livelli di protezione sul tuo conto. Se in settimana hai subito chiusure automatiche, usa quei fondi per comprare i nuovi ingressi.</div>
+            <div style="font-weight: 700; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Controllo settimanale</div>
+            <div style="font-size: 13px; opacity: 0.85;">Ogni venerdì aggiorna i livelli di protezione. Se in settimana sono state chiuse delle posizioni, queste vengono sostituite con nuovi ingressi.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 3. Cambi di Mercato</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un intero settore, liquidalo il venerdì. In caso di liquidità totale, parcheggia i fondi in strumenti sicuri garantiti in Euro.</div>
-        </div>
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Zero Azioni Quotidiane</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se il prezzo crolla, il livello di protezione in banca chiuderà l'investimento da solo. Non agire d'impulso in settimana: il capitale attende il venerdì.</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un settore, viene liquidato interamente il venerdì. In caso di liquidità totale, i fondi vengono parcheggiati in strumenti sicuri garantiti in Euro. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
