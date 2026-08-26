@@ -616,14 +616,14 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                         p_fmt = fmt_usd(p_val)
                         sl_fmt = fmt_usd(sl_val)
                         pf["open_positions"][ticker] = {
-                            "entry_date": exec_monday,
+                            "entry_date": today_str,
                             "entry_price": p_val,
                             "stop_loss": sl_val,
                             "is_crypto": True,
                             "weight": weight_dec
                         }
                         action_log.append(
-                            f"🟢 ACQUISTO CRYPTO (LUNEDÌ): {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop Loss: {sl_fmt} ({dist_sl:+.2f}%)"
+                            f"🟢 ACQUISTO CRYPTO (24/7): {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop Loss: {sl_fmt} ({dist_sl:+.2f}%)"
                         )
                         to_buy_cr -= 1
                         if to_buy_cr == 0:
