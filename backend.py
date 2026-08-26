@@ -189,9 +189,9 @@ def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
             res_sym = sym.replace('-USD', '') if is_crypto else sym
             results.append({
                 "Ticker": res_sym,
-                "Prezzo ($)": round(c, 6 if is_crypto and c < 1 else 2),
+                "Prezzo": round(c, 6 if is_crypto and c < 1 else 2),
                 "Momentum Score": round(sc, 2),
-                "Stop Loss ($)": round(trail_stop, 6 if is_crypto and trail_stop < 1 else 2)
+                "Stop Loss": round(trail_stop, 6 if is_crypto and trail_stop < 1 else 2)
             })
 
     df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False)
@@ -459,13 +459,15 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 for row in output.get("top20", []):
                     ticker = row["Ticker"]
                     if ticker not in pf["open_positions"]:
+                        p_val = row.get("Prezzo", row.get("Prezzo ($)", 0.0))
+                        sl_val = row.get("Stop Loss", row.get("Stop Loss ($)", 0.0))
                         pf["open_positions"][ticker] = {
                             "entry_date": today_str,
-                            "entry_price": row["Prezzo ($)"],
-                            "stop_loss": row["Stop Loss ($)"],
+                            "entry_price": p_val,
+                            "stop_loss": sl_val,
                             "is_crypto": False
                         }
-                        action_log.append(f"🟢 ACQUISTO SETTIMANALE: {ticker} a {row['Prezzo ($)']}")
+                        action_log.append(f"🟢 ACQUISTO SETTIMANALE: {ticker} a {p_val}")
                         to_buy -= 1
                         if to_buy == 0:
                             break
@@ -475,13 +477,15 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
             for row in output.get("crypto_top", []):
                 ticker = row["Ticker"]
                 if ticker not in pf["open_positions"]:
+                    p_val = row.get("Prezzo", row.get("Prezzo ($)", 0.0))
+                    sl_val = row.get("Stop Loss", row.get("Stop Loss ($)", 0.0))
                     pf["open_positions"][ticker] = {
                         "entry_date": today_str,
-                        "entry_price": row["Prezzo ($)"],
-                        "stop_loss": row["Stop Loss ($)"],
+                        "entry_price": p_val,
+                        "stop_loss": sl_val,
                         "is_crypto": True
                     }
-                    action_log.append(f"🟢 ACQUISTO CRYPTO: {ticker} a {row['Prezzo ($)']}")
+                    action_log.append(f"🟢 ACQUISTO CRYPTO: {ticker} a {p_val}")
 
         # Close macro hedges if deactivated
         for asset in list(pf["macro_positions"].keys()):
