@@ -1,24 +1,28 @@
 {
     "macro": {
         "RSP": {
-            "price": 222.5399932861328,
-            "ma200": 202.52390014648438
+            "price": 222.13499450683594,
+            "ma200": 203.780375289917
         },
         "SPY": {
-            "price": 766.3400268554688,
-            "ma200": 708.9073504638671
+            "price": 765.0800170898438,
+            "ma200": 711.5075012207031
         },
         "BTC-USD": {
-            "price": 78416.59375,
-            "ma200": 69171.5530078125
+            "price": 78088.7578125,
+            "ma200": 74385.8580078125
         },
         "GC=F": {
-            "price": 4669.2001953125,
-            "ma200": 4508.870988769531
+            "price": 4654.0,
+            "ma200": 4535.254992675781
         },
         "IEF": {
-            "price": 93.2750015258789,
-            "ma200": 95.21567485809327
+            "price": 93.23999786376953,
+            "ma200": 95.09274940490722
+        },
+        "EURUSD=X": {
+            "price": 1.1657729148864746,
+            "ma200": 1.1635091006755829
         }
     },
     "allocations": {
@@ -37,146 +41,146 @@
     "macro_events": [],
     "top20": [
         {
-            "Ticker": "HUM",
-            "Prezzo ($)": 400.37,
-            "Momentum Score": 35.54,
-            "Stop Loss ($)": 391.65
-        },
-        {
-            "Ticker": "MPC",
-            "Prezzo ($)": 356.94,
-            "Momentum Score": 31.88,
-            "Stop Loss ($)": 340.17
-        },
-        {
-            "Ticker": "CRL",
-            "Prezzo ($)": 298.09,
-            "Momentum Score": 27.01,
-            "Stop Loss ($)": 273.6
-        },
-        {
             "Ticker": "VLO",
-            "Prezzo ($)": 339.33,
-            "Momentum Score": 24.92,
-            "Stop Loss ($)": 324.27
+            "Prezzo ($)": 348.76,
+            "Momentum Score": 10.42,
+            "Stop Loss ($)": 282.3
         },
         {
             "Ticker": "STT",
-            "Prezzo ($)": 192.95,
-            "Momentum Score": 24.3,
-            "Stop Loss ($)": 183.05
-        },
-        {
-            "Ticker": "EXPE",
-            "Prezzo ($)": 339.91,
-            "Momentum Score": 21.65,
-            "Stop Loss ($)": 308.64
+            "Prezzo ($)": 193.7,
+            "Momentum Score": 10.39,
+            "Stop Loss ($)": 166.87
         },
         {
             "Ticker": "PSX",
-            "Prezzo ($)": 237.78,
-            "Momentum Score": 21.24,
-            "Stop Loss ($)": 229.15
+            "Prezzo ($)": 243.74,
+            "Momentum Score": 9.62,
+            "Stop Loss ($)": 202.92
         },
         {
             "Ticker": "BNY",
-            "Prezzo ($)": 163.17,
-            "Momentum Score": 20.17,
-            "Stop Loss ($)": 156.45
+            "Prezzo ($)": 163.76,
+            "Momentum Score": 8.79,
+            "Stop Loss ($)": 144.72
         },
         {
-            "Ticker": "IQV",
-            "Prezzo ($)": 261.72,
-            "Momentum Score": 19.08,
-            "Stop Loss ($)": 240.06
+            "Ticker": "MET",
+            "Prezzo ($)": 96.61,
+            "Momentum Score": 8.1,
+            "Stop Loss ($)": 88.75
         },
         {
-            "Ticker": "XYZ",
-            "Prezzo ($)": 82.51,
-            "Momentum Score": 16.69,
-            "Stop Loss ($)": 78.44
-        },
-        {
-            "Ticker": "CNC",
-            "Prezzo ($)": 66.99,
-            "Momentum Score": 16.21,
-            "Stop Loss ($)": 62.74
-        },
-        {
-            "Ticker": "TGT",
-            "Prezzo ($)": 162.12,
-            "Momentum Score": 15.66,
-            "Stop Loss ($)": 158.28
-        },
-        {
-            "Ticker": "NWS",
-            "Prezzo ($)": 35.21,
-            "Momentum Score": 14.58,
-            "Stop Loss ($)": 32.81
-        },
-        {
-            "Ticker": "PAYX",
-            "Prezzo ($)": 125.29,
-            "Momentum Score": 14.16,
-            "Stop Loss ($)": 117.62
+            "Ticker": "EXPE",
+            "Prezzo ($)": 336.63,
+            "Momentum Score": 7.36,
+            "Stop Loss ($)": 264.77
         },
         {
             "Ticker": "NTRS",
-            "Prezzo ($)": 187.04,
-            "Momentum Score": 14.13,
-            "Stop Loss ($)": 184.28
+            "Prezzo ($)": 187.17,
+            "Momentum Score": 7.07,
+            "Stop Loss ($)": 171.3
         },
         {
-            "Ticker": "NWSA",
-            "Prezzo ($)": 30.95,
-            "Momentum Score": 13.95,
-            "Stop Loss ($)": 28.86
+            "Ticker": "UNH",
+            "Prezzo ($)": 401.35,
+            "Momentum Score": 6.83,
+            "Stop Loss ($)": 396.61
         },
         {
-            "Ticker": "VRSN",
-            "Prezzo ($)": 296.07,
-            "Momentum Score": 13.48,
-            "Stop Loss ($)": 278.83
+            "Ticker": "WST",
+            "Prezzo ($)": 351.83,
+            "Momentum Score": 6.7,
+            "Stop Loss ($)": 325.64
         },
         {
-            "Ticker": "ADP",
-            "Prezzo ($)": 282.93,
-            "Momentum Score": 13.42,
-            "Stop Loss ($)": 265.97
+            "Ticker": "IQV",
+            "Prezzo ($)": 261.17,
+            "Momentum Score": 6.51,
+            "Stop Loss ($)": 207.03
         },
         {
-            "Ticker": "CSX",
-            "Prezzo ($)": 51.8,
-            "Momentum Score": 13.35,
-            "Stop Loss ($)": 50.77
+            "Ticker": "AIZ",
+            "Prezzo ($)": 289.14,
+            "Momentum Score": 6.49,
+            "Stop Loss ($)": 269.28
         },
         {
             "Ticker": "EXPD",
-            "Prezzo ($)": 190.38,
-            "Momentum Score": 12.77,
-            "Stop Loss ($)": 178.99
+            "Prezzo ($)": 191.61,
+            "Momentum Score": 6.42,
+            "Stop Loss ($)": 163.05
+        },
+        {
+            "Ticker": "BAC",
+            "Prezzo ($)": 62.33,
+            "Momentum Score": 6.32,
+            "Stop Loss ($)": 57.81
+        },
+        {
+            "Ticker": "TGT",
+            "Prezzo ($)": 164.55,
+            "Momentum Score": 6.29,
+            "Stop Loss ($)": 135.73
+        },
+        {
+            "Ticker": "FFIV",
+            "Prezzo ($)": 395.53,
+            "Momentum Score": 6.24,
+            "Stop Loss ($)": 348.02
+        },
+        {
+            "Ticker": "BEN",
+            "Prezzo ($)": 34.93,
+            "Momentum Score": 6.19,
+            "Stop Loss ($)": 30.93
+        },
+        {
+            "Ticker": "ADP",
+            "Prezzo ($)": 281.34,
+            "Momentum Score": 5.86,
+            "Stop Loss ($)": 240.59
+        },
+        {
+            "Ticker": "PAYX",
+            "Prezzo ($)": 124.59,
+            "Momentum Score": 5.83,
+            "Stop Loss ($)": 105.89
+        },
+        {
+            "Ticker": "NUE",
+            "Prezzo ($)": 254.12,
+            "Momentum Score": 5.45,
+            "Stop Loss ($)": 219.01
+        },
+        {
+            "Ticker": "CSX",
+            "Prezzo ($)": 52.08,
+            "Momentum Score": 5.16,
+            "Stop Loss ($)": 46.94
         }
     ],
     "crypto_top": [
         {
-            "Ticker": "ZEC",
-            "Prezzo ($)": 765.8,
-            "Momentum Score": 7.58,
-            "Stop Loss ($)": 758.25
-        },
-        {
             "Ticker": "ETH",
-            "Prezzo ($)": 2450.41,
-            "Momentum Score": 6.61,
-            "Stop Loss ($)": 2300.65
+            "Prezzo ($)": 2449.67,
+            "Momentum Score": 2.55,
+            "Stop Loss ($)": 1920.12
         },
         {
-            "Ticker": "XMR",
-            "Prezzo ($)": 438.74,
-            "Momentum Score": 5.6,
-            "Stop Loss ($)": 406.2
+            "Ticker": "LINK",
+            "Prezzo ($)": 11.18,
+            "Momentum Score": 2.5,
+            "Stop Loss ($)": 9.34
+        },
+        {
+            "Ticker": "SOL",
+            "Prezzo ($)": 95.74,
+            "Momentum Score": 1.86,
+            "Stop Loss ($)": 76.52
         }
     ],
-    "timestamp": "26 Aug 2026, 15:49 (UTC)",
-    "eur_usd": 1.085
+    "timestamp": "26 Aug 2026, 16:22 (UTC)",
+    "eur_usd": 1.1658
 }
