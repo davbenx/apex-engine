@@ -759,6 +759,18 @@ with tab_perf:
                 "profit_pct": "Rendimento %",
                 "reason": "Motivazione"
             })
+
+            reason_map = {
+                'Trailing Stop': '🛡️ Trailing Stop',
+                'Stop Loss': '🛡️ Stop Loss',
+                'Monthly Rotation Out': '🔄 Rotazione Mensile',
+                'Rotation Out': '🔄 Rotazione Mensile',
+                'Macro Bearish Regime': '⚠️ Regime Ribassista',
+                'Bearish Regime': '⚠️ Regime Ribassista'
+            }
+            if "Motivazione" in df_hist.columns:
+                df_hist["Motivazione"] = df_hist["Motivazione"].apply(lambda r: reason_map.get(str(r), str(r)))
+
             cols_to_drop = [c for c in ["is_crypto", "weight"] if c in df_hist.columns]
             if cols_to_drop:
                 df_hist = df_hist.drop(columns=cols_to_drop)
