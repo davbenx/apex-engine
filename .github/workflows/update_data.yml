@@ -26,6 +26,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add apex_data.json portfolio.json equity_curve.json || git add -A
+          git add apex_data.json portfolio.json equity.json || git add -A
           git commit -m "Aggiornamento dati, portfolio e Equity Curve" || echo "Nessuna modifica da pushare"
           git push
