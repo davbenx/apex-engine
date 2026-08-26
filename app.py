@@ -269,12 +269,15 @@ if pf:
         dist_stop_pct = ((stop_p / curr_p) - 1.0) * 100 if curr_p > 0 else 0.0
 
         is_crypto = info.get("is_crypto", False)
+        is_new_this_week = days_open <= 7
+        badge_icon = "🆕" if is_new_this_week else "⭐"
+
         if is_crypto:
             num_cr += 1
-            pos_str = f"⭐ {num_cr}"
+            pos_str = f"{badge_icon} {num_cr}"
         else:
             num_eq += 1
-            pos_str = f"⭐ {num_eq}"
+            pos_str = f"{badge_icon} {num_eq}"
 
         row = {
             "Pos": pos_str,
@@ -426,6 +429,8 @@ with tab_pf:
         return ''
 
     def style_pos(val):
+        if "🆕" in str(val):
+            return 'background-color: rgba(59, 130, 246, 0.15); color: #3B82F6; font-weight: 700; text-align: center;'
         return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
 
     col_az, col_cr = st.columns([2, 1])
