@@ -34,7 +34,7 @@ st.markdown("""
 
     [data-testid="stMetricLabel"] {
         font-size: 0.8rem !important;
-        color: #9CA3AF !important;
+        opacity: 0.75 !important;
         font-family: 'Inter', sans-serif !important;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -43,7 +43,7 @@ st.markdown("""
     /* Tab styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 6px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-bottom: 1px solid rgba(128,128,128,0.2);
     }
     .stTabs [data-baseweb="tab"] {
         padding: 8px 18px;
@@ -102,12 +102,12 @@ with col_title:
     st.markdown(f'''
     <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
         <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-            <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.18); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
                 {logo_tag}
             </div>
             <div>
-                <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
-                <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset<br><span style='color: #60A5FA; font-weight: 700;'>v1.0 Genesis</span></div>
+                <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">APEX ENGINE</div>
+                <div style="font-size: 11.5px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset<br><span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span></div>
             </div>
         </div>
     </div>
@@ -116,7 +116,7 @@ with col_meta:
     st.markdown(f'''
     <div style="text-align: right; padding-top: 10px;">
         <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Attivo</span>
-        <div style="color: #9CA3AF; font-size: 11.5px; margin-top: 5px;">
+        <div style="opacity: 0.75; font-size: 11.5px; margin-top: 5px;">
             🕒 <strong>Aggiornato:</strong> {last_update} &nbsp;•&nbsp; ⏳ <strong>Ricalcolo:</strong> 01:30 UTC
         </div>
     </div>
@@ -163,7 +163,7 @@ def make_chip(icon, name, alloc_pct, is_active, since_date, is_cash=False):
         f'</div>'
         f'<div style="display: flex; justify-content: space-between; align-items: baseline;">'
         f'<span style="color: {status_color}; font-weight: 700; font-size: 12px;">{status_text}</span>'
-        f'<span style="color: #9CA3AF; font-size: 10px;">{date_str}</span>'
+        f'<span style="opacity: 0.75; font-size: 10px;">{date_str}</span>'
         f'</div>'
         f'</div>'
     )
@@ -346,17 +346,17 @@ with tab_pf:
                 tot_pnl_pct:.2f}%)</span>"
             sub_text = f"Su {num_pos} posizioni aperte"
         else:
-            pnl_col = "#9CA3AF"
+            pnl_col = "gray"
             pnl_text = "0 <span style='font-size: 13px; font-weight: 600;'>(0.00%)</span>"
             sub_text = "Nessuna posizione aperta (attesa venerdì)"
 
         st.markdown(f'''
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
-            <div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante Aperto</div>
+            <div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante Aperto</div>
             <div style="font-size: 19px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
                 {pnl_text}
             </div>
-            <div style="color: #6B7280; font-size: 10.5px;">{sub_text}</div>
+            <div style="opacity: 0.65; font-size: 10.5px;">{sub_text}</div>
         </div>
         ''', unsafe_allow_html=True)
 
@@ -368,10 +368,10 @@ with tab_pf:
         opacity = "1" if is_active else "0.4"
         return (
             f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity};">'
-            f'<div style="color: #9CA3AF; font-size: 11px; font-weight: 600;">{icon} {label}</div>'
+            f'<div style="opacity: 0.75; font-size: 11px; font-weight: 600;">{icon} {label}</div>'
             f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{
                 amount:,.0f}</div>'
-            f'<div style="color: #6B7280; font-size: 10.5px;">{subtext}</div>'
+            f'<div style="opacity: 0.65; font-size: 10.5px;">{subtext}</div>'
             f'</div>'
         )
 
@@ -395,7 +395,7 @@ with tab_pf:
         elif val > -10.0:
             return 'color: #F59E0B; font-weight: 600;'
         else:
-            return 'color: #9CA3AF;'
+            return ''
 
     col_az, col_cr = st.columns([2, 1])
 
@@ -608,16 +608,18 @@ with tab_perf:
             )
 
         fig.update_layout(
-            template='plotly_dark',
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#9CA3AF', family='Inter, sans-serif'),
             xaxis=dict(type='category', showgrid=True,
-                       gridcolor='rgba(255,255,255,0.06)'),
-            yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
+                       gridcolor='rgba(128,128,128,0.12)',
+                       tickfont=dict(size=11)),
+            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.12)',
+                       tickfont=dict(size=11)),
             xaxis_rangeslider_visible=False,
             margin=dict(l=0, r=0, t=20, b=0),
             height=440,
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.05)')
         )
 
         st.plotly_chart(fig, use_container_width=True)
@@ -650,11 +652,11 @@ with tab_perf:
 
         st.markdown("#### 🎯 Vantaggio Matematico")
 
-        def make_kpi_card(title, value, subtext="", val_color="#F9FAFB", border_color="rgba(128,128,128,0.18)"):
+        def make_kpi_card(title, value, subtext="", val_color="", border_color="rgba(128,128,128,0.18)"):
             return (
                 f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_color}; border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between;">'
-                f'<div style="color: #9CA3AF; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{title}</div>'
-                f'<div style="font-size: 22px; font-weight: 700; color: {val_color}; font-family: \'JetBrains Mono\', monospace; margin-bottom: 2px;">{value}</div>'
+                f'<div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{title}</div>'
+                f'<div style="font-size: 22px; font-weight: 700; {f"color: {val_color};" if val_color else ""} font-family: \'JetBrains Mono\', monospace; margin-bottom: 2px;">{value}</div>'
                 f'{f"<div style='color: #6B7280; font-size: 10.5px;'>{subtext}</div>" if subtext else ""}'
                 f'</div>'
             )
@@ -687,7 +689,7 @@ with tab_perf:
         c_dd = "#F87171" if max_dd < 0 else "#9CA3AF"
 
         card_o1 = make_kpi_card(
-            "Operazioni Chiuse", f"{len(hist)}", "Campione statistico complessivo", "#F9FAFB")
+            "Operazioni Chiuse", f"{len(hist)}", "Campione statistico complessivo")
         card_o2 = make_kpi_card(
             "Vincita Media", f"{avg_win:+.2f}%", "Rendimento medio trade vincenti", c_win_avg)
         card_o3 = make_kpi_card(
@@ -704,7 +706,7 @@ with tab_perf:
 # ==============================================================================
 with tab_radar:
     st.markdown("""
-    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; color: #93C5FD;">
+    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px;">
         💡 <strong>Radar di Rotazione:</strong> Questi sono i titoli con il momentum più alto <strong>Oggi</strong>. I titoli già presenti in portafoglio sono marcati con ⭐, mentre i nuovi candidati verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).
     </div>
     """, unsafe_allow_html=True)
@@ -714,7 +716,7 @@ with tab_radar:
     def style_radar_status(val):
         if "⭐" in str(val):
             return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700;'
-        return 'color: #93C5FD;'
+        return ''
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
@@ -824,21 +826,21 @@ with tab_guide:
     st.markdown("#### 📖 Regole Operative")
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #60A5FA; margin-bottom: 6px;">📅 1. Rotazione Mensile</div>
-            <div style="font-size: 13px; color: #D1D5DB;">L'ultimo venerdì del mese, controlla le Tabelle Operative. Vendi chi è uscito dalla Top, compra chi è entrato.</div>
+        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Rotazione Mensile</div>
+            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese, controlla le Tabelle Operative. Vendi chi è uscito dalla Top, compra chi è entrato.</div>
         </div>
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #34D399; margin-bottom: 6px;">🛡️ 2. Gestione Cockpit</div>
-            <div style="font-size: 13px; color: #D1D5DB;">Se un motore è <strong>🟢 ATTIVO</strong>, mantieni gli asset e aggiorna i trailing stop. Se diventa <strong>🔴 DISATTIVATO</strong>, vendi tutto il comparto lunedì mattina.</div>
+        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 2. Gestione Cockpit</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se un motore è <strong>🟢 ATTIVO</strong>, mantieni gli asset e aggiorna i trailing stop. Se diventa <strong>🔴 DISATTIVATO</strong>, vendi tutto il comparto lunedì mattina.</div>
         </div>
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #FBBF24; margin-bottom: 6px;">💵 3. Fondo Monetario</div>
-            <div style="font-size: 13px; color: #D1D5DB;">La liquidità parcheggiata in Cash non va tenuta sul conto, ma investita in ETF Monetari (es. XEON o IB01) per rendita risk-free.</div>
+        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; color: #D97706; margin-bottom: 6px;">💵 3. Fondo Monetario</div>
+            <div style="font-size: 13px; opacity: 0.85;">La liquidità parcheggiata in Cash non va tenuta sul conto, ma investita in ETF Monetari (es. XEON o IB01) per rendita risk-free.</div>
         </div>
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #F87171; margin-bottom: 6px;">⚡ 4. Stop Loss Automatico</div>
-            <div style="font-size: 13px; color: #D1D5DB;">Se il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Sposta il ricavato nel Fondo Monetario fino al venerdì.</div>
+        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Stop Loss Automatico</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Sposta il ricavato nel Fondo Monetario fino al venerdì.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
