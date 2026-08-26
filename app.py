@@ -535,16 +535,28 @@ with tab_perf:
 
         base_val = df_eq['value'].iloc[0] if 'value' in df_eq.columns else df_eq['close'].iloc[0]
 
-        # Generazione OHLC per le Candele se non presente
-        if 'open' not in df_eq.columns:
-            df_eq['close'] = df_eq['value']
-            df_eq['open'] = df_eq['close'].shift(1).fillna(df_eq['close'])
-            df_eq['high'] = df_eq[['open', 'close']].max(axis=1) * 1.002
-            df_eq['low'] = df_eq[['open', 'close']].min(axis=1) * 0.998
-            df_eq.loc[df_eq.index[0],
-                      'high'] = df_eq.loc[df_eq.index[0], 'close'] * 1.001
-            df_eq.loc[df_eq.index[0],
-                      'low'] = df_eq.loc[df_eq.index[0], 'close'] * 0.999
+        # Imputazione robusta OHLC per evitare valori NaN
+        if 'close' not in df_eq.columns or df_eq['close'].isna().any():
+            if 'value' in df_eq.columns:
+                df_eq['close'] = df_eq['close'].fillna(df_eq['value'])
+            else:
+                df_eq['close'] = df_eq['close'].ffill().bfill()
+
+        if 'open' not in df_eq.columns or df_eq['open'].isna().any():
+            df_eq['open'] = df_eq['open'].fillna(df_eq['close'].shift(1)).fillna(df_eq['close'])
+
+        if 'high' not in df_eq.columns or df_eq['high'].isna().any():
+            df_eq['high'] = df_eq['high'].fillna(df_eq[['open', 'close']].max(axis=1) * 1.001)
+
+        if 'low' not in df_eq.columns or df_eq['low'].isna().any():
+            df_eq['low'] = df_eq['low'].fillna(df_eq[['open', 'close']].min(axis=1) * 0.999)
+
+        # Calcolo Drawdown su serie storica giornaliera
+        cummax_daily = df_eq['close'].cummax()
+        dd_daily = (df_eq['close'] - cummax_daily) / cummax_daily * 100
+        min_dd_val = dd_daily.min()
+        max_dd = float(min_dd_val) if not pd.isna(min_dd_val) else 0.0
+        current_dd = float(dd_daily.iloc[-1]) if not pd.isna(dd_daily.iloc[-1]) else 0.0
 
         if timeframe == "Settimanale":
             df_plot = df_eq.resample('W-FRI').agg({
@@ -558,17 +570,11 @@ with tab_perf:
             df_plot = df_eq.copy()
             date_fmt = '%d %b'
 
-        first_open = df_eq['open'].iloc[0]
+        first_open = float(df_eq['open'].iloc[0]) if not pd.isna(df_eq['open'].iloc[0]) and df_eq['open'].iloc[0] > 0 else 100000.0
         df_plot['norm_open'] = (df_plot['open'] / first_open) * 100
         df_plot['norm_high'] = (df_plot['high'] / first_open) * 100
         df_plot['norm_low'] = (df_plot['low'] / first_open) * 100
         df_plot['norm_close'] = (df_plot['close'] / first_open) * 100
-
-        # Calcolo Drawdown
-        cummax = df_plot['norm_close'].cummax()
-        dd_series = (df_plot['norm_close'] - cummax) / cummax * 100
-        max_dd = dd_series.min()
-        current_dd = dd_series.iloc[-1]
 
         x_labels = [d.strftime(date_fmt) for d in df_plot.index]
 
