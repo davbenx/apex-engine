@@ -872,15 +872,15 @@ with tab_guide:
     ##### Obiettivo
     Crescita del capitale nei mercati positivi e protezione totale durante i ribassi, eliminando ogni componente emotiva.
 
-    ##### I Tre Pilastri del Sistema
-    1. **Distribuzione del Capitale:** I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:
-       * **Azioni:** fino al 70%, motore primario di crescita.
-       * **Criptovalute:** fino al 15%, comparto ad alto rendimento.
-       * **Oro:** fino al 10%, protezione contro inflazione e incertezza.
-       * **Obbligazioni:** titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.
-       * **Liquidità:** rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.
-    2. **Selezione dei Titoli:** Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.
-    3. **Protezione dei Profitti:** Ogni investimento ha un livello di vendita automatica che sale insieme al prezzo per blindare i guadagni e taglia subito le perdite se il mercato scende.
+    ##### Il Sistema
+    **Distribuzione del Capitale:** I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:
+    * **Azioni:** fino al 70%, motore primario di crescita.
+    * **Criptovalute:** fino al 15%, comparto ad alto rendimento.
+    * **Oro:** fino al 10%, protezione contro inflazione e incertezza.
+    * **Obbligazioni:** titoli di stato sicuri che assorbono tutto lo spazio libero quando l'economia frena.
+    * **Liquidità:** rifugio sicuro in cui parcheggiare tutto se tutti i mercati scendono.
+
+    **Selezione dei Titoli:** Tra le centinaia di titoli disponibili, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi.
 
     ---
 
