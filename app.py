@@ -1,3 +1,4 @@
+import base64
 import datetime
 import json
 import os
@@ -7,7 +8,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-st.set_page_config(page_title="Apex Multi-Asset", page_icon="🦅", layout="wide")
+st.set_page_config(page_title="Apex Multi-Asset",
+                   page_icon="logo_icon.png" if os.path.exists("logo_icon.png") else "🦅", layout="wide")
 
 # --- CUSTOM THEME & POLISH ---
 st.markdown("""
@@ -82,11 +84,25 @@ if not data:
 # --- HEADER & STATUS BAR ---
 last_update = data.get("timestamp", "Sincronizzazione in corso...")
 
+
+def get_logo_b64():
+    for p in ["logo_icon.png", "logo.png"]:
+        if os.path.exists(p):
+            with open(p, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+    return ""
+
+
+logo_b64 = get_logo_b64()
+logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 38px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
+
 col_title, col_meta = st.columns([3, 2])
 with col_title:
-    st.markdown('''
+    st.markdown(f'''
     <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2)); border: 1px solid rgba(255, 255, 255, 0.12); padding: 8px 12px; border-radius: 12px; font-size: 26px;">🦅</div>
+        <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            {logo_tag}
+        </div>
         <div>
             <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #F9FAFB;">APEX ENGINE</div>
             <div style="font-size: 11.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.6px; text-transform: uppercase;">Sistema Quantitativo Multi-Asset</div>
