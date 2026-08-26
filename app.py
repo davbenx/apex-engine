@@ -453,17 +453,11 @@ with tab_perf:
             res = urllib.request.urlopen(req).read().decode()
             data = json.loads(res)['chart']['result'][0]
             timestamps = data['timestamp']
-            quote = data['indicators']['quote'][0]
+            closes = data['indicators']['quote'][0]['close']
 
             dates = [datetime.datetime.fromtimestamp(
                 ts).strftime('%Y-%m-%d') for ts in timestamps]
-            df = pd.DataFrame({
-                'date': dates,
-                'open': quote['open'],
-                'high': quote['high'],
-                'low': quote['low'],
-                'close': quote['close']
-            })
+            df = pd.DataFrame({'date': dates, 'SPY': closes})
             df['date'] = pd.to_datetime(df['date'])
             df.set_index('date', inplace=True)
             return df.dropna()
@@ -493,56 +487,67 @@ with tab_perf:
         df_eq['date'] = pd.to_datetime(df_eq['date'])
         df_eq.set_index('date', inplace=True)
 
-        start_date = df_eq.index[0]
-        base_val = df_eq['value'].iloc[0]
-        df_eq['Apex'] = (df_eq['value'] / base_val) * 100
+        base_val = df_eq['value'].iloc[0] if 'value' in df_eq.columns else df_eq['close'].iloc[0]
+
+        # Generazione OHLC per le Candele Giapponesi di Apex se presente solo value
+        if 'open' not in df_eq.columns:
+            df_eq['close'] = df_eq['value']
+            df_eq['open'] = df_eq['close'].shift(1).fillna(df_eq['close'])
+            df_eq['high'] = df_eq[['open', 'close']].max(axis=1) * 1.002
+            df_eq['low'] = df_eq[['open', 'close']].min(axis=1) * 0.998
+            df_eq.loc[df_eq.index[0],
+                      'high'] = df_eq.loc[df_eq.index[0], 'close'] * 1.001
+            df_eq.loc[df_eq.index[0],
+                      'low'] = df_eq.loc[df_eq.index[0], 'close'] * 0.999
+
+        df_eq['norm_open'] = (df_eq['open'] / base_val) * 100
+        df_eq['norm_high'] = (df_eq['high'] / base_val) * 100
+        df_eq['norm_low'] = (df_eq['low'] / base_val) * 100
+        df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
 
         # Calcolo Drawdown
-        cummax = df_eq['value'].cummax()
-        dd_series = (df_eq['value'] - cummax) / cummax * 100
+        cummax = df_eq['norm_close'].cummax()
+        dd_series = (df_eq['norm_close'] - cummax) / cummax * 100
         max_dd = dd_series.min()
         current_dd = dd_series.iloc[-1]
 
+        start_date = df_eq.index[0]
         df_spy = load_benchmark()
         if not df_spy.empty:
             df_spy = df_spy.loc[df_spy.index >= start_date]
             if not df_spy.empty:
-                spy_base = df_spy['close'].iloc[0]
-                df_spy['norm_open'] = (df_spy['open'] / spy_base) * 100
-                df_spy['norm_high'] = (df_spy['high'] / spy_base) * 100
-                df_spy['norm_low'] = (df_spy['low'] / spy_base) * 100
-                df_spy['norm_close'] = (df_spy['close'] / spy_base) * 100
+                spy_base = df_spy['SPY'].iloc[0]
+                df_spy['Normalized'] = (df_spy['SPY'] / spy_base) * 100
 
         fig = go.Figure()
 
-        # 1. Candele Giapponesi per S&P 500 (Benchmark)
-        if not df_spy.empty:
-            fig.add_trace(
-                go.Candlestick(
-                    x=df_spy.index,
-                    open=df_spy['norm_open'],
-                    high=df_spy['norm_high'],
-                    low=df_spy['norm_low'],
-                    close=df_spy['norm_close'],
-                    increasing_line_color='rgba(148, 163, 184, 0.9)',
-                    decreasing_line_color='rgba(239, 68, 68, 0.7)',
-                    increasing_fillcolor='rgba(148, 163, 184, 0.3)',
-                    decreasing_fillcolor='rgba(239, 68, 68, 0.3)',
-                    name='S&P 500'
-                )
-            )
-
-        # 2. Linea Strategia Apex
+        # 1. Candele Giapponesi per Strategia Apex
         fig.add_trace(
-            go.Scatter(
+            go.Candlestick(
                 x=df_eq.index,
-                y=df_eq['Apex'],
-                mode='lines+markers',
-                line=dict(color='#10B981', width=3),
-                marker=dict(size=7, color='#10B981'),
+                open=df_eq['norm_open'],
+                high=df_eq['norm_high'],
+                low=df_eq['norm_low'],
+                close=df_eq['norm_close'],
+                increasing_line_color='#10B981',
+                decreasing_line_color='#EF4444',
+                increasing_fillcolor='#10B981',
+                decreasing_fillcolor='#EF4444',
                 name='Strategia Apex'
             )
         )
+
+        # 2. Linea per S&P 500 (Benchmark)
+        if not df_spy.empty:
+            fig.add_trace(
+                go.Scatter(
+                    x=df_spy.index,
+                    y=df_spy['Normalized'],
+                    mode='lines',
+                    line=dict(color='#94A3B8', width=2, dash='dot'),
+                    name='S&P 500'
+                )
+            )
 
         fig.update_layout(
             template='plotly_dark',
