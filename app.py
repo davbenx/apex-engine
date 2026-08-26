@@ -860,7 +860,7 @@ with tab_guide:
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
             <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 3. Cambi di Mercato</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un settore, viene liquidato interamente il venerdì. In caso di liquidità totale, i fondi vengono parcheggiati in strumenti sicuri garantiti in Euro. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
