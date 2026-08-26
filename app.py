@@ -620,6 +620,29 @@ with tab_perf:
                     opacity=0.75
                 ))
 
+        IT_MONTHS = {1: 'Gen', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Mag', 6: 'Giu', 7: 'Lug', 8: 'Ago', 9: 'Set', 10: 'Ott', 11: 'Nov', 12: 'Dic'}
+
+        ticks = []
+        tick_labels = []
+        if not df_plot.empty:
+            start_d = df_plot.index[0]
+            end_d = df_plot.index[-1]
+            total_days = (end_d - start_d).days
+            all_days = pd.date_range(start_d, end_d, freq='D')
+
+            if total_days <= 45:
+                ticks = [all_days[i] for i in range(0, len(all_days), 7)]
+                tick_labels = [f"{d.day} {IT_MONTHS[d.month]}" for d in ticks]
+            elif total_days <= 120:
+                ticks = [d for d in all_days if d.day in [1, 15]]
+                tick_labels = [f"{d.day:02d} {IT_MONTHS[d.month]}" for d in ticks]
+            elif total_days <= 450:
+                ticks = [d for d in all_days if d.day == 1]
+                tick_labels = [f"{IT_MONTHS[d.month]} '{d.strftime('%y')}" if (d.month in [1, 7] or (len(ticks) > 0 and d == ticks[0])) else IT_MONTHS[d.month] for d in ticks]
+            else:
+                ticks = [d for d in all_days if d.day == 1 and d.month in [1, 4, 7, 10]]
+                tick_labels = [f"{IT_MONTHS[d.month]} '{d.strftime('%y')}" for d in ticks]
+
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
@@ -628,6 +651,9 @@ with tab_perf:
                 showgrid=True,
                 gridcolor='rgba(128,128,128,0.1)',
                 tickfont=dict(size=11),
+                tickmode='array' if len(ticks) > 0 else 'auto',
+                tickvals=ticks if len(ticks) > 0 else None,
+                ticktext=tick_labels if len(tick_labels) > 0 else None,
                 rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else []
             ),
             yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
