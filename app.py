@@ -271,9 +271,10 @@ if pf:
 
 
 # ==============================================================================
-# MAIN TABS DECLARATION (METRICHE, RADAR, GUIDA)
+# MAIN TABS DECLARATION (PORTAFOGLIO, METRICHE, RADAR, GUIDA)
 # ==============================================================================
-tab_perf, tab_radar, tab_guide = st.tabs([
+tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
+    "💼 Portafoglio",
     "📊 Metriche",
     "📡 Radar",
     "📖 Guida"
@@ -281,9 +282,9 @@ tab_perf, tab_radar, tab_guide = st.tabs([
 
 
 # ==============================================================================
-# TAB 1: METRICHE (PORTAFOGLIO, CANDLESTICK EQUITY CURVE, KPI, STORICO)
+# TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
-with tab_perf:
+with tab_pf:
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         capitale = st.number_input(
@@ -428,9 +429,11 @@ with tab_perf:
         else:
             st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo del venerdì.")
 
-    st.divider()
 
-    # --- GRAFICO CANDELE GIAPPONESI APEX STRATEGY & SPY ---
+# ==============================================================================
+# TAB 2: METRICHE (CANDLESTICK EQUITY CURVE, KPI, STORICO)
+# ==============================================================================
+with tab_perf:
     col_chart_hdr, col_chart_mode = st.columns([3, 1])
     with col_chart_hdr:
         st.markdown("#### 🕯️ Andamento Strategia Apex (Candele Giapponesi)")
@@ -633,7 +636,7 @@ with tab_perf:
 
 
 # ==============================================================================
-# TAB 2: RADAR ROTAZIONE
+# TAB 3: RADAR ROTAZIONE
 # ==============================================================================
 with tab_radar:
     st_html("""
@@ -702,7 +705,7 @@ with tab_radar:
 
 
 # ==============================================================================
-# TAB 3: GUIDA & STRATEGIA
+# TAB 4: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
     st_html('''
