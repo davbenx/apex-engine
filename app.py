@@ -765,8 +765,8 @@ with tab_perf:
 # ==============================================================================
 with tab_radar:
     st_html("""
-    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px;">
-        💡 <strong>Radar di Rotazione:</strong> Questi sono i titoli con il momentum più alto <strong>Oggi</strong>. I titoli già presenti in portafoglio sono marcati con ⭐, mentre i nuovi candidati verranno acquistati solo se rimarranno in classifica nel giorno di Rotazione (ultimo venerdì del mese).
+    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
+        💡 <strong>Radar di Rotazione:</strong> Classifica dei titoli con la maggior forza relativa consolidata su base settimanale. I titoli già in portafoglio sono contrassegnati con ⭐ e aggiornano la protezione ogni venerdì, mentre i nuovi candidati (🆕) subentrano alla rotazione mensile o per rimpiazzare posizioni chiuse su stop loss.
     </div>
     """)
 
