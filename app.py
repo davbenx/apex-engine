@@ -442,7 +442,7 @@ with tab_pf:
 # TAB 2: METRICHE & GRAFICO
 # ==============================================================================
 with tab_perf:
-    st.markdown("#### 📈 Andamento del Portafoglio")
+    st.markdown("#### 📈 Andamento del Portafoglio (Candele Settimanali)")
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -489,7 +489,7 @@ with tab_perf:
 
         base_val = df_eq['value'].iloc[0] if 'value' in df_eq.columns else df_eq['close'].iloc[0]
 
-        # Generazione OHLC per le Candele Giapponesi di Apex se presente solo value
+        # Generazione OHLC per le Candele se non presente
         if 'open' not in df_eq.columns:
             df_eq['close'] = df_eq['value']
             df_eq['open'] = df_eq['close'].shift(1).fillna(df_eq['close'])
@@ -500,35 +500,49 @@ with tab_perf:
             df_eq.loc[df_eq.index[0],
                       'low'] = df_eq.loc[df_eq.index[0], 'close'] * 0.999
 
-        df_eq['norm_open'] = (df_eq['open'] / base_val) * 100
-        df_eq['norm_high'] = (df_eq['high'] / base_val) * 100
-        df_eq['norm_low'] = (df_eq['low'] / base_val) * 100
-        df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
+        # Aggregazione a Candele Settimanali (Weekly W-FRI)
+        df_eq_w = df_eq.resample('W-FRI').agg({
+            'open': 'first',
+            'high': 'max',
+            'low': 'min',
+            'close': 'last'
+        }).dropna()
+
+        # Normalizzazione in base 100
+        first_open = df_eq['open'].iloc[0]
+        df_eq_w['norm_open'] = (df_eq_w['open'] / first_open) * 100
+        df_eq_w['norm_high'] = (df_eq_w['high'] / first_open) * 100
+        df_eq_w['norm_low'] = (df_eq_w['low'] / first_open) * 100
+        df_eq_w['norm_close'] = (df_eq_w['close'] / first_open) * 100
 
         # Calcolo Drawdown
-        cummax = df_eq['norm_close'].cummax()
-        dd_series = (df_eq['norm_close'] - cummax) / cummax * 100
+        cummax = df_eq_w['norm_close'].cummax()
+        dd_series = (df_eq_w['norm_close'] - cummax) / cummax * 100
         max_dd = dd_series.min()
         current_dd = dd_series.iloc[-1]
 
-        start_date = df_eq.index[0]
+        # Benchmark Weekly (S&P 500)
         df_spy = load_benchmark()
         if not df_spy.empty:
-            df_spy = df_spy.loc[df_spy.index >= start_date]
-            if not df_spy.empty:
-                spy_base = df_spy['SPY'].iloc[0]
-                df_spy['Normalized'] = (df_spy['SPY'] / spy_base) * 100
+            df_spy_w = df_spy.resample('W-FRI').last().dropna()
+            df_spy_w = df_spy_w.loc[df_spy_w.index >=
+                                    df_eq_w.index[0] - pd.Timedelta(days=7)]
+            if not df_spy_w.empty:
+                spy_base = df_spy_w['SPY'].iloc[0]
+                df_spy_w['Normalized'] = (df_spy_w['SPY'] / spy_base) * 100
+        else:
+            df_spy_w = pd.DataFrame()
 
         fig = go.Figure()
 
-        # 1. Candele Giapponesi per Strategia Apex
+        # 1. Candele Giapponesi Settimanali per Strategia Apex
         fig.add_trace(
             go.Candlestick(
-                x=df_eq.index,
-                open=df_eq['norm_open'],
-                high=df_eq['norm_high'],
-                low=df_eq['norm_low'],
-                close=df_eq['norm_close'],
+                x=df_eq_w.index,
+                open=df_eq_w['norm_open'],
+                high=df_eq_w['norm_high'],
+                low=df_eq_w['norm_low'],
+                close=df_eq_w['norm_close'],
                 increasing_line_color='#10B981',
                 decreasing_line_color='#EF4444',
                 increasing_fillcolor='#10B981',
@@ -537,14 +551,15 @@ with tab_perf:
             )
         )
 
-        # 2. Linea per S&P 500 (Benchmark)
-        if not df_spy.empty:
+        # 2. Linea Settimanale per S&P 500 (Benchmark)
+        if not df_spy_w.empty:
             fig.add_trace(
                 go.Scatter(
-                    x=df_spy.index,
-                    y=df_spy['Normalized'],
-                    mode='lines',
+                    x=df_spy_w.index,
+                    y=df_spy_w['Normalized'],
+                    mode='lines+markers',
                     line=dict(color='#94A3B8', width=2, dash='dot'),
+                    marker=dict(size=5, color='#94A3B8'),
                     name='S&P 500'
                 )
             )
