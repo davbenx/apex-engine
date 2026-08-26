@@ -29,7 +29,7 @@ st.markdown("""
         font-size: 1.45rem !important;
         font-weight: 700 !important;
     }
-    
+
     [data-testid="stMetricLabel"] {
         font-size: 0.8rem !important;
         color: #9CA3AF !important;
@@ -49,7 +49,7 @@ st.markdown("""
         font-weight: 600;
         font-size: 13.5px;
     }
-    
+
     /* Clean cards */
     div[style*="border-radius"] {
         transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -61,7 +61,9 @@ st.markdown("""
 @st.cache_data(ttl=60)
 def load_data():
     try:
-        url = f"https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json?token={urllib.request.urlopen('https://api.github.com/repos/davbenx/apex-engine/commits/main').read().hex()[:10]}"
+        url = f"https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json?token={
+            urllib.request.urlopen('https://api.github.com/repos/davbenx/apex-engine/commits/main').read().hex()[
+                :10]}"
         req = urllib.request.Request(
             "https://raw.githubusercontent.com/davbenx/apex-engine/main/apex_data.json")
         return json.loads(urllib.request.urlopen(req).read().decode())
@@ -307,7 +309,9 @@ with tab_pf:
         if num_pos > 0:
             pnl_sign = "+" if tot_pnl_usd >= 0 else ""
             pnl_col = "#10B981" if tot_pnl_usd >= 0 else "#EF4444"
-            pnl_text = f"{pnl_sign}{tot_pnl_usd:,.0f} <span style='font-size: 13px; font-weight: 600;'>({pnl_sign}{tot_pnl_pct:.2f}%)</span>"
+            pnl_text = f"{pnl_sign}{
+                tot_pnl_usd:,.0f} <span style='font-size: 13px; font-weight: 600;'>({pnl_sign}{
+                tot_pnl_pct:.2f}%)</span>"
             sub_text = f"Su {num_pos} posizioni aperte"
         else:
             pnl_col = "#9CA3AF"
@@ -327,12 +331,14 @@ with tab_pf:
     st.write("")
 
     # Liquidità & Coperture Cards (3 pure asset buckets)
-    def make_asset_card(icon, label, amount, subtext, border_col, is_active=True):
+    def make_asset_card(icon, label, amount, subtext,
+                        border_col, is_active=True):
         opacity = "1" if is_active else "0.4"
         return (
             f'<div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity};">'
             f'<div style="color: #9CA3AF; font-size: 11px; font-weight: 600;">{icon} {label}</div>'
-            f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{amount:,.0f}</div>'
+            f'<div style="font-size: 18px; font-weight: 700; font-family: \'JetBrains Mono\', monospace; margin: 3px 0;">{
+                amount:,.0f}</div>'
             f'<div style="color: #6B7280; font-size: 10.5px;">{subtext}</div>'
             f'</div>'
         )
@@ -447,14 +453,20 @@ with tab_perf:
             res = urllib.request.urlopen(req).read().decode()
             data = json.loads(res)['chart']['result'][0]
             timestamps = data['timestamp']
-            closes = data['indicators']['quote'][0]['close']
+            quote = data['indicators']['quote'][0]
 
             dates = [datetime.datetime.fromtimestamp(
                 ts).strftime('%Y-%m-%d') for ts in timestamps]
-            df = pd.DataFrame({'date': dates, 'SPY': closes})
+            df = pd.DataFrame({
+                'date': dates,
+                'open': quote['open'],
+                'high': quote['high'],
+                'low': quote['low'],
+                'close': quote['close']
+            })
             df['date'] = pd.to_datetime(df['date'])
             df.set_index('date', inplace=True)
-            return df
+            return df.dropna()
         except BaseException:
             return pd.DataFrame()
 
@@ -476,7 +488,7 @@ with tab_perf:
     max_dd = 0.0
     current_dd = 0.0
 
-    if len(eq_history) > 1:
+    if len(eq_history) >= 1:
         df_eq = pd.DataFrame(eq_history)
         df_eq['date'] = pd.to_datetime(df_eq['date'])
         df_eq.set_index('date', inplace=True)
@@ -495,29 +507,42 @@ with tab_perf:
         if not df_spy.empty:
             df_spy = df_spy.loc[df_spy.index >= start_date]
             if not df_spy.empty:
-                spy_base = df_spy['SPY'].iloc[0]
-                df_spy['Normalized'] = (df_spy['SPY'] / spy_base) * 100
+                spy_base = df_spy['close'].iloc[0]
+                df_spy['norm_open'] = (df_spy['open'] / spy_base) * 100
+                df_spy['norm_high'] = (df_spy['high'] / spy_base) * 100
+                df_spy['norm_low'] = (df_spy['low'] / spy_base) * 100
+                df_spy['norm_close'] = (df_spy['close'] / spy_base) * 100
 
         fig = go.Figure()
 
+        # 1. Candele Giapponesi per S&P 500 (Benchmark)
+        if not df_spy.empty:
+            fig.add_trace(
+                go.Candlestick(
+                    x=df_spy.index,
+                    open=df_spy['norm_open'],
+                    high=df_spy['norm_high'],
+                    low=df_spy['norm_low'],
+                    close=df_spy['norm_close'],
+                    increasing_line_color='rgba(148, 163, 184, 0.9)',
+                    decreasing_line_color='rgba(239, 68, 68, 0.7)',
+                    increasing_fillcolor='rgba(148, 163, 184, 0.3)',
+                    decreasing_fillcolor='rgba(239, 68, 68, 0.3)',
+                    name='S&P 500'
+                )
+            )
+
+        # 2. Linea Strategia Apex
         fig.add_trace(
             go.Scatter(
                 x=df_eq.index,
                 y=df_eq['Apex'],
-                mode='lines',
+                mode='lines+markers',
                 line=dict(color='#10B981', width=3),
-                fill='tozeroy',
-                fillcolor='rgba(16, 185, 129, 0.08)',
-                name='Strategia Apex'))
-
-        if not df_spy.empty:
-            fig.add_trace(
-                go.Scatter(
-                    x=df_spy.index,
-                    y=df_spy['Normalized'],
-                    mode='lines',
-                    line=dict(color='#94A3B8', width=2, dash='dot'),
-                    name='S&P 500'))
+                marker=dict(size=7, color='#10B981'),
+                name='Strategia Apex'
+            )
+        )
 
         fig.update_layout(
             template='plotly_dark',
@@ -527,16 +552,14 @@ with tab_perf:
             yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
             xaxis_rangeslider_visible=False,
             margin=dict(l=0, r=0, t=20, b=0),
-            height=420,
+            height=440,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    elif len(eq_history) == 1:
-        st.info("📊 Tracking avviato. Il grafico dell'Equity Curve apparirà domani con il primo aggiornamento dei prezzi.")
     else:
-        st.info("📊 In attesa del file Equity Curve.")
+        st.info("📊 In attesa del file di tracciamento storico.")
 
     st.write("")
 
@@ -572,7 +595,6 @@ with tab_perf:
                 f'</div>'
             )
 
-        # Colori dinamici per metriche di Edge
         c_win = "#10B981" if win_rate >= 50 else (
             "#3B82F6" if win_rate >= 40 else "#9CA3AF")
         c_payoff = "#10B981" if payoff_ratio >= 2.0 else (
