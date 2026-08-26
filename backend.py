@@ -19,7 +19,7 @@ import pandas as pd
 # ==============================================================================
 # CONFIGURATION & CONSTANTS
 # ==============================================================================
-BENCHMARK_TICKERS = ['SPY', 'BTC-USD', 'GC=F', 'TLT', 'SHV']
+BENCHMARK_TICKERS = ['RSP', 'SPY', 'BTC-USD', 'GC=F', 'TLT', 'SHV']
 CRYPTO_FALLBACK = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
 CRYPTO_BLACKLIST = {
     'USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC',
@@ -216,8 +216,10 @@ def calculate_macro_allocation(b_data):
         macro[t] = {'price': price, 'ma200': ma200, 'mom': mom}
 
     allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
+    eq_bench = "RSP" if "RSP" in macro else "SPY"
+
     valid_macro = []
-    for m in ["SPY", "BTC-USD", "GC=F", "TLT"]:
+    for m in [eq_bench, "BTC-USD", "GC=F", "TLT"]:
         if m in macro and macro[m]['price'] > macro[m]['ma200']:
             valid_macro.append((m, macro[m]['mom']))
 
@@ -236,7 +238,7 @@ def calculate_macro_allocation(b_data):
             take = min(10, capital)
             allocations["Gold"] = take
             capital -= take
-        elif m == "SPY":
+        elif m in ("RSP", "SPY"):
             take = min(70, capital)
             allocations["Equities"] = take
             capital -= take
