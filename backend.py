@@ -5,6 +5,7 @@ Trailing Stops, Dynamic Portfolio Tracking, and Telegram Notifications.
 """
 
 import datetime
+import io
 import json
 import os
 import random
@@ -121,7 +122,7 @@ def get_sp500_tickers():
         url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
         req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
         html = urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode('utf-8')
-        df = pd.read_html(html)[0]
+        df = pd.read_html(io.StringIO(html))[0]
         return [t.replace('.', '-') for t in df['Symbol'].tolist()]
     except Exception as e:
         print(f"[!] Errore recupero lista S&P 500 ({e}). Uso fallback minimizzato.")
@@ -312,11 +313,12 @@ def calculate_macro_allocation(b_data):
         macro[t] = {'price': price, 'ma200': ma40}
 
     allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
-    eq_bench = "RSP" if "RSP" in macro else "SPY"
     capital = 100
 
-    # 1. Azioni (Max 70%)
-    if eq_bench in macro and macro[eq_bench]['price'] > macro[eq_bench]['ma200']:
+    # 1. Azioni (Max 70%) - Dual Breadth Check (SPY e RSP)
+    eq_bull = ("SPY" in macro and macro["SPY"]['price'] > macro["SPY"]['ma200']) and \
+              ("RSP" not in macro or macro["RSP"]['price'] > macro["RSP"]['ma200'])
+    if eq_bull:
         take = min(MAX_EQUITIES_ALLOCATION, capital)
         allocations["Equities"] = take
         capital -= take
@@ -644,10 +646,10 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                     "exit_price": exit_price,
                     "profit_pct": round(profit_pct * 100, 2),
                     "weight": MAX_GOLD_ALLOCATION / 100.0 if asset == "Gold" else 0.20,
-                    "reason": "Hedge Chiuso"
+                    "reason": "🛡️ Chiusura Copertura Macro"
                 })
                 p_fmt = fmt_usd(exit_price)
-                action_log.append(f"🛑 HEDGE CHIUSO (VENDITA): {asset} | Prezzo: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
+                action_log.append(f"🛑 HEDGE CHIUSO (VENDITA): {asset} | Prezzo: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
                 del pf["macro_positions"][asset]
 
     save_json_atomic(PORTFOLIO_FILE, pf)
