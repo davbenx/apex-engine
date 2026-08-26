@@ -858,20 +858,20 @@ with tab_guide:
     st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Rotazione Mensile</div>
-            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese, controlla le Tabelle Operative. Vendi chi è uscito dalla Top, compra chi è entrato.</div>
+            <div style="font-weight: 700; color: #3B82F6; margin-bottom: 6px;">📅 1. Routine Mensile</div>
+            <div style="font-size: 13px; opacity: 0.85;">L'ultimo venerdì del mese, consulta la Dashboard. Vendi i titoli declassati, compra i nuovi ingressi suggeriti dall'algoritmo.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 2. Gestione Cockpit</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se un motore è <strong>🟢 ATTIVO</strong>, mantieni gli asset e aggiorna i trailing stop. Se diventa <strong>🔴 DISATTIVATO</strong>, vendi tutto il comparto lunedì mattina.</div>
+            <div style="font-weight: 700; color: #10B981; margin-bottom: 6px;">🛡️ 2. Regimi di Mercato</div>
+            <div style="font-size: 13px; opacity: 0.85;">Se un motore è <strong>🟢 ATTIVO</strong>, mantieni le posizioni. Se diventa <strong>🔴 DISATTIVATO</strong>, liquida l'intero comparto per proteggere il capitale.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #D97706; margin-bottom: 6px;">💵 3. Fondo Monetario</div>
-            <div style="font-size: 13px; opacity: 0.85;">La liquidità parcheggiata in Cash non va tenuta sul conto, ma investita in ETF Monetari come XEON o IB01 per rendita risk-free.</div>
+            <div style="font-weight: 700; color: #D97706; margin-bottom: 6px;">💵 3. Parcheggio Liquidità</div>
+            <div style="font-size: 13px; opacity: 0.85;">Quando il sistema impone Cash, i fondi vanno parcheggiati in strumenti monetari risk-free in valuta base per azzerare la volatilità.</div>
         </div>
         <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Stop Loss Automatico</div>
-            <div style="font-size: 13px; opacity: 0.85;">Se il prezzo tocca lo Stop Loss sul broker, l'ordine scatterà automaticamente. Sposta il ricavato nel Fondo Monetario fino al venerdì.</div>
+            <div style="font-weight: 700; color: #EF4444; margin-bottom: 6px;">⚡ 4. Stop Loss Tassativo</div>
+            <div style="font-size: 13px; opacity: 0.85;">Inserisci sempre lo Stop Loss indicato dall'app sul broker. Se viene colpito in automatico, l'operazione è chiusa. Non rientrare manualmente.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -880,36 +880,37 @@ with tab_guide:
 
     st.markdown("#### 🧠 Manuale Operativo & Documentazione Strategica")
     st.markdown('''
-    **Apex Multi-Asset Engine** è un motore quantitativo a guida autonoma progettato per generare *Alpha assoluto*, cavalcando i mercati rialzisti e proteggendo matematicamente il capitale durante i crolli. Tutta la complessità analitica è demandata all'algoritmo; l'esecuzione richiesta è meccanica e strutturata.
+    **Obiettivi e cosa aspettarsi**
+    Apex Engine è un motore quantitativo progettato per battere i mercati nel lungo termine tramite *Absolute Return*.  
+    * **Cosa aspettarsi:** Fasi di crescita aggressiva durante i mercati rialzisti (Risk-On) e periodi di stallo difensivo a capitale protetto durante i crolli (Risk-Off). Il Drawdown viene minimizzato matematicamente tagliando le perdite in anticipo.
 
     ---
 
-    ##### 1. L'ALGORITMO (Come funziona)
-    Il motore opera su tre livelli sequenziali elaborando i dati a mercati chiusi:
+    ##### 1. L'ALGORITMO (La Logica)
+    Il sistema ragiona per moduli, elaborando i dati a mercati chiusi:
 
-    *   **Allocazione Macro (Waterfall):** Il capitale viene versato a cascata dall'asset più redditizio a quello più difensivo. Un asset si attiva solo se il suo prezzo è in trend positivo.
-        *   **Azioni (Cap 70%):** Si attiva se l'azionario globale è in trend rialzista.
-        *   **Crypto (Cap 15%):** Indipendente. Si attiva se Bitcoin è in trend rialzista.
-        *   **Oro (Cap 10%):** Prima barriera difensiva.
-        *   **Obbligazioni:** Assorbe tutto lo spazio residuo (o l'intero capitale) se i mercati scendono, a patto che i tassi d'interesse siano in calo.
-        *   **Fondo Monetario (Cash):** Rifugio risk-free. Assorbe l'intero capitale se c'è un crollo sistemico su tutte le altre asset class.
-    *   **Selezione Titoli (Momentum):** Quando le Azioni o le Crypto sono attivate, il motore analizza centinaia di strumenti e acquista unicamente i titoli matematicamente più forti e veloci degli ultimi 6 mesi (Top 20 Azioni, Top 3 Crypto).
-    *   **Gestione Rischio (Trailing Stop):** Ogni titolo ha uno Stop Loss basato sulla volatilità che sale dinamicamente per blindare i profitti. Non scende mai.
+    *   **Allocazione Macro (Waterfall):** Il capitale scivola dall'asset più redditizio a quello più difensivo. Un comparto riceve fondi solo se il suo trend è positivo (Media Mobile a 200 giorni).
+        *   **Azioni (Cap 70%):** Motore principale. Si attiva con azionario globale positivo.
+        *   **Crypto (Cap 15%):** Satellitare. Si attiva con mercato crypto positivo.
+        *   **Oro (Cap 10%):** Scudo anti-inflazione e barriera decorrelata.
+        *   **Obbligazioni (Variabile):** Assorbe il capitale scartato dagli asset superiori durante le contrazioni economiche (se i tassi calano).
+        *   **Fondo Monetario (Cash):** Rifugio risk-free. Assorbe l'intero capitale durante i crolli sistemici globali.
+    *   **Selezione Titoli (Momentum):** Se Azioni o Crypto sono attive, il motore seleziona esclusivamente i titoli con l'accelerazione matematica più alta degli ultimi 6 mesi. 
+    *   **Gestione Rischio (Trailing Stop):** Ogni posizione è blindata da un livello di Stop dinamico basato sulla volatilità. Sale con il prezzo, non scende mai.
 
     ---
 
-    ##### 2. IL FLUSSO OPERATIVO (Cosa fare)
-    L'approccio è *frictionless*: nessun monitoraggio quotidiano richiesto.
+    ##### 2. L'ESECUZIONE (Cosa fare)
+    L'operatività è meccanica, asettica e richiede zero monitoraggio quotidiano.
 
-    *   **La Routine (Telegram):** Da lunedì a giovedì il sistema lavora in background. Il **Venerdì sera** ricevi un report su Telegram per aggiornare gli Stop Loss sul tuo broker.
-    *   **La Rotazione (Mensile):** L'ultimo venerdì del mese, il motore ti indicherà chi è scivolato nella classifica Momentum. Venderai i titoli deboli per comprare i nuovi ingressi suggeriti dalla notifica.
-    *   **Le Emergenze (Real-time):** Se un tuo Stop Loss scatta infrasettimanalmente, o se avviene un improvviso cambio di regime Macro (es. crollo dell'azionario), il bot Telegram ti invia un *Alert Immediato* per eseguire la vendita e mettere il capitale al sicuro.
-    *   **La Dashboard:** Il tuo cruscotto visivo. Consultala per verificare lo stato di portafoglio, i livelli esatti di Stop Loss, la crescita del capitale (Metriche) e i prossimi candidati all'acquisto (Radar).
+    *   **La Verifica (Settimanale):** Ogni venerdì, apri la Dashboard per controllare i livelli di Stop Loss e aggiornarli sul tuo broker. Da lunedì a giovedì non è richiesta alcuna azione.
+    *   **La Rotazione (Mensile):** L'ultimo venerdì del mese, controlla il Radar. Il motore segnalerà matematicamente chi vendere e chi comprare per ricalibrare il portafoglio sui titoli più forti.
+    *   **I Tagli (Emergenze):** Se uno Stop Loss viene colpito automaticamente sul broker durante la settimana, l'operazione è chiusa. Il capitale torna in liquidità fino alla successiva rotazione.
 
     ---
 
     > ⚠️ **DISCLAIMER & AVVERTENZE LEGALI (ESCLUSIONE DI RESPONSABILITÀ)**  
-    > Le informazioni, i dati, i segnali e i risultati generati da Apex Engine (l'"Applicazione") e presentati in questa dashboard hanno scopo **esclusivamente informativo e di ricerca statistico/quantitativa**. 
+    > Le informazioni, i dati, i segnali e i risultati presentati in questa dashboard hanno scopo **esclusivamente informativo e di ricerca statistico-quantitativa**. 
     > L'Applicazione **non costituisce prestazione di un servizio di consulenza in materia di investimenti** né di consulenza finanziaria personalizzata (ex art. 1, comma 5, lett. f, del T.U.F.). I portafogli, le allocazioni e gli *stop loss* generati sono il risultato di algoritmi matematici automatizzati applicati a dati storici e non tengono in considerazione il profilo di rischio, gli obiettivi di investimento o la situazione finanziaria del singolo utente. 
-    > Le performance storiche non sono indicative dei rendimenti futuri. Il trading sui mercati finanziari comporta un elevato rischio di perdita del capitale. L'utente assume la totale ed esclusiva responsabilità per qualsiasi decisione di investimento o operazione di trading effettuata sul proprio conto di intermediazione. L'autore dell'Applicazione declina ogni responsabilità per eventuali perdite o danni, diretti o indiretti, derivanti dall'utilizzo dell'Applicazione o delle notifiche da essa generate.
+    > Le performance storiche non sono indicative dei rendimenti futuri. Il trading sui mercati finanziari comporta un elevato rischio di perdita del capitale. L'utente assume la totale ed esclusiva responsabilità per qualsiasi decisione di investimento o operazione di trading effettuata sul proprio conto di intermediazione. L'autore declina ogni responsabilità per eventuali perdite o danni, diretti o indiretti, derivanti dall'utilizzo dell'Applicazione.
     ''')
