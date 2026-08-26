@@ -478,28 +478,15 @@ with tab_pf:
 # TAB 2: METRICHE (CANDLESTICK EQUITY CURVE, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
-    col_range, col_freq = st.columns([3, 2])
-    with col_range:
-        selected_range = st.segmented_control(
-            "Periodo",
-            options=["1M", "3M", "6M", "1A", "Tutto"],
-            default="6M",
-            label_visibility="collapsed",
-            key="chart_range_ctrl"
-        )
-        if not selected_range:
-            selected_range = "6M"
-
-    with col_freq:
-        timeframe = st.segmented_control(
-            "Frequenza",
-            options=["Giornaliero", "Settimanale"],
-            default="Giornaliero",
-            label_visibility="collapsed",
-            key="chart_freq_ctrl"
-        )
-        if not timeframe:
-            timeframe = "Giornaliero"
+    selected_range = st.segmented_control(
+        "Periodo",
+        options=["1M", "3M", "6M", "1A", "Tutto"],
+        default="6M",
+        label_visibility="collapsed",
+        key="chart_range_ctrl"
+    )
+    if not selected_range:
+        selected_range = "6M"
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -552,8 +539,8 @@ with tab_perf:
         df_eq['norm_low'] = (df_eq['low'] / base_val) * 100
         df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
 
-        # Timeframe aggregation
-        if timeframe == "Settimanale" and len(df_eq) >= 5:
+        # Pure Weekly Candlestick Aggregation (W-FRI)
+        if len(df_eq) >= 5:
             df_agg = df_eq.resample('W-FRI').agg({
                 'norm_open': 'first',
                 'norm_high': 'max',
@@ -608,7 +595,7 @@ with tab_perf:
 
         it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_plot.index]
 
-        # 1. Candele Giapponesi per Strategia Apex
+        # 1. Candele Giapponesi Settimanali per Strategia Apex
         fig.add_trace(
             go.Candlestick(
                 x=df_plot.index,
@@ -626,16 +613,13 @@ with tab_perf:
             )
         )
 
-        # 2. Benchmark S&P 500 (Linea di Riferimento)
+        # 2. Benchmark S&P 500 (Linea di Riferimento Settimanale)
         if not df_spy.empty:
             start_date = df_plot.index[0]
             df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
             if not df_spy_aligned.empty:
                 first_spy = df_spy_aligned['close'].iloc[0]
-                if timeframe == "Settimanale" and len(df_spy_aligned) >= 5:
-                    df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna()
-                else:
-                    df_spy_plot = df_spy_aligned['close']
+                df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna() if len(df_spy_aligned) >= 5 else df_spy_aligned['close']
                 df_spy_norm = (df_spy_plot / first_spy) * 100
 
                 spy_it_dates = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_spy_plot.index]
@@ -660,8 +644,7 @@ with tab_perf:
                 tickfont=dict(size=11),
                 tickmode='array' if len(ticks) > 0 else 'auto',
                 tickvals=ticks if len(ticks) > 0 else None,
-                ticktext=tick_labels if len(tick_labels) > 0 else None,
-                rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else []
+                ticktext=tick_labels if len(tick_labels) > 0 else None
             ),
             yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
             xaxis_rangeslider_visible=False,
