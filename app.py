@@ -878,25 +878,38 @@ with tab_guide:
 
     st.divider()
 
-    st.markdown("#### 🧠 Documentazione Strategica")
+    st.markdown("#### 🧠 Manuale Operativo & Documentazione Strategica")
     st.markdown('''
-    **Apex Multi-Asset Engine** è un motore quantitativo a guida autonoma progettato per generare **Alpha assoluto**, battendo l'S&P 500 nel lungo termine e proteggendo al contempo il capitale dai crolli di mercato.
+    **Apex Multi-Asset Engine** è un motore quantitativo a guida autonoma progettato per generare *Alpha assoluto*, cavalcando i mercati rialzisti e proteggendo matematicamente il capitale durante i crolli. Tutta la complessità analitica è demandata all'algoritmo; l'esecuzione richiesta è meccanica e strutturata.
 
-    ##### 1. Il Motore Macro
-    È il cuore difensivo della strategia. Misura il trend strutturale del mercato:
-    - Se l'indice RSP è sopra la sua media mobile a 200 giorni, il sistema alloca il capitale sul comparto **Azioni**. Il motore **Crypto** è indipendente e viene attivato solo se Bitcoin è sopra la sua media mobile a 200 giorni.
-    - Se il mercato azionario scende sotto la media a 200 giorni, il sistema attiva il protocollo Waterfall occupando progressivamente lo spazio libero: sposta i fondi prima sull'**Oro**. Se anche l'Oro è negativo, si rifugia nelle **Obbligazioni**, utilizzando **IEF** come riferimento per i Treasury a 7-10 anni. Se c'è un crollo sistemico, parcheggia tutto nel **Fondo Monetario**.
+    ---
 
-    ##### 2. Il Motore Azionario
-    Quando il semaforo Macro è verde:
-    - Il motore analizza tutti i 500 titoli dell'S&P 500 e calcola il Rate of Change a 130 giorni.
-    - Seleziona solo i **20 migliori titoli** equi-pesati al 5% ciascuno che stanno sovraperformando il mercato.
+    ##### 1. L'ALGORITMO (Come funziona)
+    Il motore opera su tre livelli sequenziali elaborando i dati a mercati chiusi:
 
-    ##### 3. Il Motore Crypto
-    Satellite ad alto rendimento, attivato solo se Bitcoin è sopra la sua media mobile a 200 giorni:
-    - Alloca fino al 10-15% del capitale.
-    - Seleziona fino a 3 altcoin con il momentum più esplosivo con stop loss dedicati.
+    *   **Allocazione Macro (Waterfall):** Il capitale viene versato a cascata dall'asset più redditizio a quello più difensivo. Un asset si attiva solo se il suo prezzo è in trend positivo.
+        *   **Azioni (Cap 70%):** Si attiva se l'azionario globale è in trend rialzista.
+        *   **Crypto (Cap 15%):** Indipendente. Si attiva se Bitcoin è in trend rialzista.
+        *   **Oro (Cap 10%):** Prima barriera difensiva.
+        *   **Obbligazioni:** Assorbe tutto lo spazio residuo (o l'intero capitale) se i mercati scendono, a patto che i tassi d'interesse siano in calo.
+        *   **Fondo Monetario (Cash):** Rifugio risk-free. Assorbe l'intero capitale se c'è un crollo sistemico su tutte le altre asset class.
+    *   **Selezione Titoli (Momentum):** Quando le Azioni o le Crypto sono attivate, il motore analizza centinaia di strumenti e acquista unicamente i titoli matematicamente più forti e veloci degli ultimi 6 mesi (Top 20 Azioni, Top 3 Crypto).
+    *   **Gestione Rischio (Trailing Stop):** Ogni titolo ha uno Stop Loss basato sulla volatilità che sale dinamicamente per blindare i profitti. Non scende mai.
 
-    ##### 4. Gestione del Rischio
-    Ogni operazione è protetta da un **Trailing Stop Loss Dinamico** basato sulla volatilità reale.
+    ---
+
+    ##### 2. IL FLUSSO OPERATIVO (Cosa fare)
+    L'approccio è *frictionless*: nessun monitoraggio quotidiano richiesto.
+
+    *   **La Routine (Telegram):** Da lunedì a giovedì il sistema lavora in background. Il **Venerdì sera** ricevi un report su Telegram per aggiornare gli Stop Loss sul tuo broker.
+    *   **La Rotazione (Mensile):** L'ultimo venerdì del mese, il motore ti indicherà chi è scivolato nella classifica Momentum. Venderai i titoli deboli per comprare i nuovi ingressi suggeriti dalla notifica.
+    *   **Le Emergenze (Real-time):** Se un tuo Stop Loss scatta infrasettimanalmente, o se avviene un improvviso cambio di regime Macro (es. crollo dell'azionario), il bot Telegram ti invia un *Alert Immediato* per eseguire la vendita e mettere il capitale al sicuro.
+    *   **La Dashboard:** Il tuo cruscotto visivo. Consultala per verificare lo stato di portafoglio, i livelli esatti di Stop Loss, la crescita del capitale (Metriche) e i prossimi candidati all'acquisto (Radar).
+
+    ---
+
+    > ⚠️ **DISCLAIMER & AVVERTENZE LEGALI (ESCLUSIONE DI RESPONSABILITÀ)**  
+    > Le informazioni, i dati, i segnali e i risultati generati da Apex Engine (l'"Applicazione") e presentati in questa dashboard hanno scopo **esclusivamente informativo e di ricerca statistico/quantitativa**. 
+    > L'Applicazione **non costituisce prestazione di un servizio di consulenza in materia di investimenti** né di consulenza finanziaria personalizzata (ex art. 1, comma 5, lett. f, del T.U.F.). I portafogli, le allocazioni e gli *stop loss* generati sono il risultato di algoritmi matematici automatizzati applicati a dati storici e non tengono in considerazione il profilo di rischio, gli obiettivi di investimento o la situazione finanziaria del singolo utente. 
+    > Le performance storiche non sono indicative dei rendimenti futuri. Il trading sui mercati finanziari comporta un elevato rischio di perdita del capitale. L'utente assume la totale ed esclusiva responsabilità per qualsiasi decisione di investimento o operazione di trading effettuata sul proprio conto di intermediazione. L'autore dell'Applicazione declina ogni responsabilità per eventuali perdite o danni, diretti o indiretti, derivanti dall'utilizzo dell'Applicazione o delle notifiche da essa generate.
     ''')
