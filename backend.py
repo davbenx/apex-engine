@@ -419,7 +419,8 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                     "profit_pct": round(profit_pct * 100, 2),
                     "reason": "Stop Loss"
                 })
-                action_log.append(f"🔴 STOP LOSS: {ticker} venduto a {exit_price:.2f} ({round(profit_pct*100, 2):+0.2f}%)")
+                p_fmt = f"${exit_price:,.2f}" if exit_price >= 1 else f"${exit_price:,.6f}"
+                action_log.append(f"🔴 STOP LOSS (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
                 sold_keys.append(ticker)
 
     for k in sold_keys:
@@ -439,7 +440,37 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
         if b_inds and sym in b_inds['c'].columns:
             pos["current_price"] = float(b_inds['c'][sym].iloc[-1])
 
-    # 3. Weekly Friday Actions
+    # 3. Monthly Rotation (Sells executed first on rotation Friday to free slots)
+    if is_rotation:
+        desired = {row["Ticker"]: True for row in output.get("top20", [])}
+        desired.update({row["Ticker"]: True for row in output.get("crypto_top", [])})
+
+        sold_rot = []
+        for ticker, pos in list(pf["open_positions"].items()):
+            if ticker not in desired:
+                is_crypto = pos.get("is_crypto", False)
+                inds = cr_inds if is_crypto else eq_inds
+                sym = ticker + "-USD" if is_crypto else ticker
+                close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
+                profit_pct = (close_price / pos["entry_price"]) - 1.0
+
+                pf["trade_history"].append({
+                    "ticker": ticker,
+                    "entry_date": pos["entry_date"],
+                    "exit_date": today_str,
+                    "entry_price": pos["entry_price"],
+                    "exit_price": close_price,
+                    "profit_pct": round(profit_pct * 100, 2),
+                    "reason": "Rotazione"
+                })
+                p_fmt = f"${close_price:,.2f}" if close_price >= 1 else f"${close_price:,.6f}"
+                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
+                sold_rot.append(ticker)
+
+        for k in sold_rot:
+            del pf["open_positions"][k]
+
+    # 4. Weekly Friday Actions (Forced Sells & New Buys)
     if is_friday:
         forced_sells = []
         for ticker, pos in list(pf["open_positions"].items()):
@@ -466,7 +497,8 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                 "profit_pct": round(profit_pct * 100, 2),
                 "reason": "Macro Bear"
             })
-            action_log.append(f"🔴 MACRO BEAR: {ticker} liquidato a {close_price:.2f} ({round(profit_pct*100, 2):+0.2f}%)")
+            p_fmt = f"${close_price:,.2f}" if close_price >= 1 else f"${close_price:,.6f}"
+            action_log.append(f"🔴 CAMBIO REGIME (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
             del pf["open_positions"][ticker]
 
         # Buy equities to deploy cash
@@ -487,7 +519,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                             "is_crypto": False
                         }
                         action_log.append(
-                            f"🟢 ACQUISTO AZIONI: {ticker} (Quota: 5%) | Prezzo: ${p_val:.2f} | Stop: ${sl_val:.2f} ({dist_sl:+.2f}%)"
+                            f"🟢 ACQUISTO AZIONI: {ticker} (Quota: 5%) | Prezzo: ${p_val:,.2f} | Stop Loss: ${sl_val:,.2f} ({dist_sl:+.2f}%)"
                         )
                         to_buy -= 1
                         if to_buy == 0:
@@ -511,7 +543,7 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                         "is_crypto": True
                     }
                     action_log.append(
-                        f"🟢 ACQUISTO CRYPTO: {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop: {sl_fmt} ({dist_sl:+.2f}%)"
+                        f"🟢 ACQUISTO CRYPTO: {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop Loss: {sl_fmt} ({dist_sl:+.2f}%)"
                     )
 
         # Close macro hedges if deactivated
@@ -531,37 +563,9 @@ def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
                     "profit_pct": round(profit_pct * 100, 2),
                     "reason": "Hedge Chiuso"
                 })
-                action_log.append(f"🛑 HEDGE CHIUSO: {asset} a {exit_price:.2f} ({round(profit_pct*100, 2):+0.2f}%)")
+                p_fmt = f"${exit_price:,.2f}" if exit_price >= 1 else f"${exit_price:,.6f}"
+                action_log.append(f"🛑 HEDGE CHIUSO (VENDITA): {asset} | Prezzo: {p_fmt} | P&L: {round(profit_pct*100, 2):+0.2f}%")
                 del pf["macro_positions"][asset]
-
-    # 4. Monthly Rotation
-    if is_rotation:
-        desired = {row["Ticker"]: True for row in output.get("top20", [])}
-        desired.update({row["Ticker"]: True for row in output.get("crypto_top", [])})
-
-        sold_rot = []
-        for ticker, pos in list(pf["open_positions"].items()):
-            if ticker not in desired:
-                is_crypto = pos.get("is_crypto", False)
-                inds = cr_inds if is_crypto else eq_inds
-                sym = ticker + "-USD" if is_crypto else ticker
-                close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else pos["entry_price"]
-                profit_pct = (close_price / pos["entry_price"]) - 1.0
-
-                pf["trade_history"].append({
-                    "ticker": ticker,
-                    "entry_date": pos["entry_date"],
-                    "exit_date": today_str,
-                    "entry_price": pos["entry_price"],
-                    "exit_price": close_price,
-                    "profit_pct": round(profit_pct * 100, 2),
-                    "reason": "Rotazione"
-                })
-                action_log.append(f"🔄 ROTAZIONE (VENDITA): {ticker} chiuso a {close_price:.2f} ({round(profit_pct*100, 2):+0.2f}%)")
-                sold_rot.append(ticker)
-
-        for k in sold_rot:
-            del pf["open_positions"][k]
 
     with open(pf_file, 'w') as f:
         json.dump(pf, f, indent=4)
