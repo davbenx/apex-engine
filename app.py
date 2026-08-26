@@ -354,27 +354,27 @@ with tab_pf:
         tot_invested_usd += cr_size
 
     macro_pos = pf.get("macro_positions", {}) if pf else {}
+    macro_data = data.get("macro", {})
+
     g_pnl_usd = 0.0
     g_pnl_pct = 0.0
     if alloc.get('Gold', 0) > 0:
-        if "Gold" in macro_pos:
-            g_pos = macro_pos["Gold"]
-            c_p = g_pos.get("current_price", g_pos.get("entry_price", 0))
-            if g_pos.get("entry_price", 0) > 0:
-                g_pnl_pct = ((c_p / g_pos["entry_price"]) - 1.0) * 100
-                g_pnl_usd = (g_pnl_pct / 100) * gold_cap
+        g_entry = macro_pos.get("Gold", {}).get("entry_price", macro_data.get("GC=F", {}).get("ma200", 0.0))
+        g_curr = macro_pos.get("Gold", {}).get("current_price", macro_data.get("GC=F", {}).get("price", g_entry))
+        if g_entry > 0 and g_curr > 0:
+            g_pnl_pct = ((g_curr / g_entry) - 1.0) * 100
+            g_pnl_usd = (g_pnl_pct / 100) * gold_cap
         tot_pnl_usd += g_pnl_usd
         tot_invested_usd += gold_cap
 
     b_pnl_usd = 0.0
     b_pnl_pct = 0.0
     if alloc.get('Bonds', 0) > 0:
-        if "Bonds" in macro_pos:
-            b_pos = macro_pos["Bonds"]
-            c_p = b_pos.get("current_price", b_pos.get("entry_price", 0))
-            if b_pos.get("entry_price", 0) > 0:
-                b_pnl_pct = ((c_p / b_pos["entry_price"]) - 1.0) * 100
-                b_pnl_usd = (b_pnl_pct / 100) * bond_cap
+        b_entry = macro_pos.get("Bonds", {}).get("entry_price", macro_data.get("IEF", {}).get("ma200", 0.0))
+        b_curr = macro_pos.get("Bonds", {}).get("current_price", macro_data.get("IEF", {}).get("price", b_entry))
+        if b_entry > 0 and b_curr > 0:
+            b_pnl_pct = ((b_curr / b_entry) - 1.0) * 100
+            b_pnl_usd = (b_pnl_pct / 100) * bond_cap
         tot_pnl_usd += b_pnl_usd
         tot_invested_usd += bond_cap
 
@@ -408,14 +408,17 @@ with tab_pf:
     st.write("")
 
     # Coperture Macro & Monetario Cards
-    def make_asset_card(icon, label, amount_usd, subtext, border_col, is_active=True, pnl_pct=0.0, pnl_val_usd=0.0):
+    def make_asset_card(icon, label, amount_usd, subtext, border_col, is_active=True, pnl_pct=0.0, pnl_val_usd=0.0, is_cash=False):
         opacity = "1" if is_active else "0.55"
         amount_user = amount_usd * fx_ratio
         pnl_val_user = pnl_val_usd * fx_ratio
         pnl_badge = ""
-        if is_active and pnl_pct != 0.0:
+        if is_active and not is_cash:
             pnl_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
-            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">Rendimento: {pnl_val_user:+,.0f} {curr_sym} ({pnl_pct:+.2f}%)</div>'
+            pnl_sign = "+" if pnl_val_user >= 0 else "-"
+            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">Rendimento: {pnl_sign}{curr_sym}{abs(pnl_val_user):,.0f} ({pnl_pct:+.2f}%)</div>'
+        elif not is_active:
+            pnl_badge = '<div style="font-size: 10.5px; opacity: 0.55; margin-top: 3px;">Copertura non attiva (0%)</div>'
 
         return f"""
         <div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; flex-direction: column; justify-content: space-between;">
@@ -429,7 +432,7 @@ with tab_pf:
         """
 
     real_cash_usd = capitale * (alloc.get('Cash', 0) / 100) + (capitale_azionario - (len(op_eq) * single_eq))
-    card_cash = make_asset_card("💵", "MONETARIO", real_cash_usd, "Parcheggio strategico e riserve", "#3B82F6", True)
+    card_cash = make_asset_card("💵", "MONETARIO", real_cash_usd, "Parcheggio strategico e riserve", "#3B82F6", True, is_cash=True)
     card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro", "#F59E0B" if alloc.get('Gold', 0) > 0 else "#4B5563", alloc.get('Gold', 0) > 0, g_pnl_pct, g_pnl_usd)
     card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi", "#8B5CF6" if alloc.get('Bonds', 0) > 0 else "#4B5563", alloc.get('Bonds', 0) > 0, b_pnl_pct, b_pnl_usd)
 
