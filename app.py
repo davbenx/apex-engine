@@ -478,9 +478,28 @@ with tab_pf:
 # TAB 2: METRICHE (CANDLESTICK EQUITY CURVE, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
-    _, col_chart_mode = st.columns([3, 1])
-    with col_chart_mode:
-        timeframe = st.radio("Frequenza", ["Giornaliero", "Settimanale"], horizontal=True, label_visibility="collapsed", key="chart_freq_radio")
+    col_range, col_freq = st.columns([3, 2])
+    with col_range:
+        selected_range = st.segmented_control(
+            "Periodo",
+            options=["1M", "3M", "6M", "1A", "Tutto"],
+            default="6M",
+            label_visibility="collapsed",
+            key="chart_range_ctrl"
+        )
+        if not selected_range:
+            selected_range = "6M"
+
+    with col_freq:
+        timeframe = st.segmented_control(
+            "Frequenza",
+            options=["Giornaliero", "Settimanale"],
+            default="Giornaliero",
+            label_visibility="collapsed",
+            key="chart_freq_ctrl"
+        )
+        if not timeframe:
+            timeframe = "Giornaliero"
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
@@ -535,26 +554,39 @@ with tab_perf:
 
         # Timeframe aggregation
         if timeframe == "Settimanale" and len(df_eq) >= 5:
-            df_plot = df_eq.resample('W-FRI').agg({
+            df_agg = df_eq.resample('W-FRI').agg({
                 'norm_open': 'first',
                 'norm_high': 'max',
                 'norm_low': 'min',
                 'norm_close': 'last',
                 'close': 'last'
             }).dropna()
-            df_plot['norm_high'] = df_plot[['norm_open', 'norm_close', 'norm_high']].max(axis=1)
-            df_plot['norm_low'] = df_plot[['norm_open', 'norm_close', 'norm_low']].min(axis=1)
+            df_agg['norm_high'] = df_agg[['norm_open', 'norm_close', 'norm_high']].max(axis=1)
+            df_agg['norm_low'] = df_agg[['norm_open', 'norm_close', 'norm_low']].min(axis=1)
         else:
-            df_plot = df_eq
+            df_agg = df_eq
 
-        x_series = df_plot.index
+        # Range filter
+        last_dt = df_agg.index[-1]
+        if selected_range == "1M":
+            start_dt = last_dt - pd.DateOffset(months=1)
+        elif selected_range == "3M":
+            start_dt = last_dt - pd.DateOffset(months=3)
+        elif selected_range == "6M":
+            start_dt = last_dt - pd.DateOffset(months=6)
+        elif selected_range == "1A":
+            start_dt = last_dt - pd.DateOffset(years=1)
+        else:  # "Tutto"
+            start_dt = df_agg.index[0]
+
+        df_plot = df_agg[df_agg.index >= start_dt].copy()
 
         fig = go.Figure()
 
         # 1. Candele Giapponesi per Strategia Apex
         fig.add_trace(
             go.Candlestick(
-                x=x_series,
+                x=df_plot.index,
                 open=df_plot['norm_open'],
                 high=df_plot['norm_high'],
                 low=df_plot['norm_low'],
@@ -588,9 +620,6 @@ with tab_perf:
                     opacity=0.75
                 ))
 
-        last_date = df_plot.index[-1]
-        start_zoom = last_date - pd.DateOffset(months=6) if (last_date - df_plot.index[0]).days > 180 else df_plot.index[0]
-
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
@@ -599,29 +628,12 @@ with tab_perf:
                 showgrid=True,
                 gridcolor='rgba(128,128,128,0.1)',
                 tickfont=dict(size=11),
-                range=[start_zoom, last_date + pd.DateOffset(days=3)],
-                rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else [],
-                rangeselector=dict(
-                    buttons=list([
-                        dict(count=1, label="1M", step="month", stepmode="backward"),
-                        dict(count=3, label="3M", step="month", stepmode="backward"),
-                        dict(count=6, label="6M", step="month", stepmode="backward"),
-                        dict(count=1, label="1A", step="year", stepmode="backward"),
-                        dict(step="all", label="TUTTO")
-                    ]),
-                    bgcolor="rgba(128, 128, 128, 0.12)",
-                    activecolor="#3B82F6",
-                    font=dict(size=11, family="Inter, sans-serif", color="#ffffff"),
-                    x=0.0,
-                    y=1.14,
-                    xanchor="left",
-                    yanchor="top"
-                )
+                rangebreaks=[dict(bounds=["sat", "mon"])] if timeframe == "Giornaliero" else []
             ),
             yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
             xaxis_rangeslider_visible=False,
-            margin=dict(l=0, r=0, t=32, b=0),
-            height=445,
+            margin=dict(l=0, r=0, t=10, b=0),
+            height=430,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.08)')
         )
         st.plotly_chart(fig, use_container_width=True)
