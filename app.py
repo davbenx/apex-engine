@@ -386,7 +386,7 @@ with tab_pf:
         pnl_badge = ""
         if is_active and pnl_pct != 0.0:
             pnl_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
-            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">P&L: {pnl_val:+,.0f} ({pnl_pct:+.2f}%)</div>'
+            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">Rendimento: {pnl_val:+,.0f} ({pnl_pct:+.2f}%)</div>'
 
         return f"""
         <div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; flex-direction: column; justify-content: space-between;">
@@ -430,7 +430,7 @@ with tab_pf:
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
             df_op_eq["Importo"] = single_eq
-            df_op_eq["P&L"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
+            df_op_eq["Rendimento"] = (df_op_eq["Rendimento %"] / 100) * df_op_eq["Importo"]
 
             df_eq_styled = df_op_eq.style.format({
                 "Ingresso ($)": "{:.2f}",
@@ -439,8 +439,8 @@ with tab_pf:
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "P&L": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'P&L']).map(color_stop_dist, subset=['Distanza Stop'])
+                "Rendimento": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
@@ -457,7 +457,7 @@ with tab_pf:
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
             df_op_cr["Importo"] = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.05) for _, r in df_op_cr.iterrows()]
-            df_op_cr["P&L"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
+            df_op_cr["Rendimento"] = (df_op_cr["Rendimento %"] / 100) * df_op_cr["Importo"]
 
             df_cr_styled = df_op_cr.style.format({
                 "Ingresso ($)": format_price,
@@ -466,8 +466,8 @@ with tab_pf:
                 "Distanza Stop": "{:.1f}%",
                 "Importo": "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
-                "P&L": "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', 'P&L']).map(color_stop_dist, subset=['Distanza Stop'])
+                "Rendimento": "{:+,.0f}"
+            }).map(color_pnl, subset=['Rendimento %', 'Rendimento']).map(color_stop_dist, subset=['Distanza Stop'])
 
             st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
