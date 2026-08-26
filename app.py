@@ -527,11 +527,16 @@ with tab_perf:
 
     max_dd = 0.0
     current_dd = 0.0
+    total_ret_pct = 0.0
 
     if len(eq_history) >= 1:
         df_eq = pd.DataFrame(eq_history)
         df_eq['date'] = pd.to_datetime(df_eq['date'])
         df_eq.set_index('date', inplace=True)
+
+        total_init = float(df_eq['value'].iloc[0]) if 'value' in df_eq.columns else 100000.0
+        total_curr = float(df_eq['value'].iloc[-1]) if 'value' in df_eq.columns else 100000.0
+        total_ret_pct = ((total_curr / total_init) - 1.0) * 100 if total_init > 0 else 0.0
 
         base_val = df_eq['value'].iloc[0] if 'value' in df_eq.columns else df_eq['close'].iloc[0]
 
@@ -707,10 +712,13 @@ with tab_perf:
 
         st.markdown("#### ⚙️ Statistiche Operative")
 
+        c_tot = "#10B981" if total_ret_pct > 0 else ("#EF4444" if total_ret_pct < 0 else "#9CA3AF")
         c_win_avg = "#10B981" if avg_win > 0 else "#9CA3AF"
         c_loss_avg = "#EF4444" if avg_loss < 0 else "#9CA3AF"
         c_dd = "#F87171" if max_dd < 0 else "#9CA3AF"
 
+        card_tot = make_kpi_card(
+            "Rendimento Totale", f"{total_ret_pct:+.2f}%", "Performance cumulativa portafoglio", c_tot)
         card_o1 = make_kpi_card(
             "Operazioni Chiuse", f"{len(hist)}", "Campione statistico complessivo")
         card_o2 = make_kpi_card(
@@ -721,7 +729,7 @@ with tab_perf:
             "Perdita Massima Storica", f"{max_dd:.2f}%", "Drawdown massimo registrato", c_dd)
 
         st.html(
-            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 15px;">{card_o1}{card_o2}{card_o3}{card_o4}</div>')
+            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px;">{card_tot}{card_o1}{card_o2}{card_o3}{card_o4}</div>')
 
 
 # ==============================================================================
