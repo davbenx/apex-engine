@@ -181,7 +181,7 @@ with col_title:
             <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px; line-height: 1.35;">
                 Sistema Quantitativo<br>
                 Multi-Asset<br>
-                <span style='color: #3B82F6; font-weight: 700;'>v1.0 Genesis</span>
+                <span style='color: #3B82F6; font-weight: 700;'>v2.0</span>
             </div>
         </div>
     </div>
@@ -274,9 +274,7 @@ if pf:
         entry_formatted = f"{entry_d} ({days_open}g)" if entry_d != "N/A" else "N/A"
 
         curr_p = info.get("current_price", info.get("entry_price", 0.0))
-        stop_p = info.get("stop_loss", info.get("stop_price", 0.0))
         pnl_pct = ((curr_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
-        dist_stop_pct = ((stop_p / curr_p) - 1.0) * 100 if curr_p > 0 else 0.0
 
         is_crypto = info.get("is_crypto", False)
         is_new_this_week = days_open <= 7
@@ -295,8 +293,7 @@ if pf:
             "Data Ingresso": entry_formatted,
             "Ingresso ($)": info.get("entry_price", 0.0),
             "Attuale ($)": curr_p,
-            "Stop Loss ($)": stop_p,
-            "Distanza Stop": dist_stop_pct,
+            "Peso (%)": info.get("weight", 0.0) * 100.0,
             "Rendimento %": pnl_pct
         }
         if is_crypto:
@@ -342,50 +339,43 @@ with tab_pf:
             capitale = float(capitale_input)
             st.caption(f"💵 Conto Operativo: **${capitale:,.0f} USD** (Prezzi e quote calcolati in dollari)")
 
+    # v2: ogni posizione (azioni, IEF, GLD, BTC) porta il proprio peso reale in
+    # portfolio.json ("weight", frazione del capitale) — nessuna quota fissa per
+    # istanza (v1 assumeva 20 azioni al 5% e crypto al 10%/2.5%, non piu' valido).
     capitale_azionario = capitale * (alloc.get('Equities', 0) / 100)
-    single_eq = capitale_azionario / 20 if alloc.get('Equities', 0) > 0 else 0
-    crypto_cap = capitale * (alloc.get('Crypto', 0) / 100)
     gold_cap = capitale * (alloc.get('Gold', 0) / 100)
     bond_cap = capitale * (alloc.get('Bonds', 0) / 100)
 
-    # Calcolo Floating P&L
     tot_pnl_usd = 0.0
     tot_invested_usd = 0.0
 
-    for r in op_eq:
-        pnl_val = (r["Rendimento %"] / 100) * single_eq
-        tot_pnl_usd += pnl_val
-        tot_invested_usd += single_eq
+    for r in op_eq + op_cr:
+        size = capitale * (r.get("Peso (%)", 0.0) / 100.0)
+        tot_pnl_usd += (r["Rendimento %"] / 100) * size
+        tot_invested_usd += size
 
-    for r in op_cr:
-        cr_weight = 0.10 if r['Titolo'] == 'BTC' else 0.025
-        cr_size = capitale * cr_weight
-        pnl_val = (r["Rendimento %"] / 100) * cr_size
-        tot_pnl_usd += pnl_val
-        tot_invested_usd += cr_size
+    # Oro e Obbligazioni vivono in open_positions come le altre posizioni v2 (nessun
+    # "macro_positions" separato): cerca le rispettive righe per calcolare il P&L.
+    open_pos_raw = pf.get("open_positions", {}) if pf else {}
 
-    macro_pos = pf.get("macro_positions", {}) if pf else {}
-    macro_data = data.get("macro", {})
+    def _pnl_for(ticker):
+        info = open_pos_raw.get(ticker)
+        if not info:
+            return 0.0, 0.0
+        entry_p = info.get("entry_price", 0.0)
+        curr_p = info.get("current_price", entry_p)
+        if entry_p <= 0 or curr_p <= 0:
+            return 0.0, 0.0
+        pct = ((curr_p / entry_p) - 1.0) * 100
+        return pct, (pct / 100) * (capitale * info.get("weight", 0.0))
 
-    g_pnl_usd = 0.0
-    g_pnl_pct = 0.0
+    g_pnl_pct, g_pnl_usd = _pnl_for("GLD")
     if alloc.get('Gold', 0) > 0:
-        g_entry = macro_pos.get("Gold", {}).get("entry_price", macro_data.get("GC=F", {}).get("ma200", 0.0))
-        g_curr = macro_pos.get("Gold", {}).get("current_price", macro_data.get("GC=F", {}).get("price", g_entry))
-        if g_entry > 0 and g_curr > 0:
-            g_pnl_pct = ((g_curr / g_entry) - 1.0) * 100
-            g_pnl_usd = (g_pnl_pct / 100) * gold_cap
         tot_pnl_usd += g_pnl_usd
         tot_invested_usd += gold_cap
 
-    b_pnl_usd = 0.0
-    b_pnl_pct = 0.0
+    b_pnl_pct, b_pnl_usd = _pnl_for("IEF")
     if alloc.get('Bonds', 0) > 0:
-        b_entry = macro_pos.get("Bonds", {}).get("entry_price", macro_data.get("IEF", {}).get("ma200", 0.0))
-        b_curr = macro_pos.get("Bonds", {}).get("current_price", macro_data.get("IEF", {}).get("price", b_entry))
-        if b_entry > 0 and b_curr > 0:
-            b_pnl_pct = ((b_curr / b_entry) - 1.0) * 100
-            b_pnl_usd = (b_pnl_pct / 100) * bond_cap
         tot_pnl_usd += b_pnl_usd
         tot_invested_usd += bond_cap
 
@@ -456,7 +446,7 @@ with tab_pf:
         </div>
         """
 
-    real_cash_usd = capitale * (alloc.get('Cash', 0) / 100) + (capitale_azionario - (len(op_eq) * single_eq))
+    real_cash_usd = max(0.0, capitale - tot_invested_usd)
     card_cash = make_asset_card("💵", "MONETARIO", real_cash_usd, "Parcheggio strategico e riserve", "#3B82F6", True, is_cash=True)
     card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro", "#F59E0B" if alloc.get('Gold', 0) > 0 else "#4B5563", alloc.get('Gold', 0) > 0, g_pnl_pct, g_pnl_usd)
     card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi", "#8B5CF6" if alloc.get('Bonds', 0) > 0 else "#4B5563", alloc.get('Bonds', 0) > 0, b_pnl_pct, b_pnl_usd)
@@ -466,13 +456,6 @@ with tab_pf:
     def color_pnl(val):
         color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
         return f'color: {color}; font-weight: 700;'
-
-    def color_stop_dist(val):
-        if val > -5.0:
-            return 'color: #EF4444; font-weight: 700;'
-        elif val > -10.0:
-            return 'color: #F59E0B; font-weight: 600;'
-        return ''
 
     def style_pos(val):
         if "🆕" in str(val):
@@ -487,51 +470,49 @@ with tab_pf:
     with col_az:
         st_html(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">📈 Azioni in Portafoglio</span>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / 20</span>
+            <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">📈 Basket Azionario (bassa volatilità)</span>
+            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / {max(len(data.get('top20', [])), num_eq)}</span>
         </div>
         """)
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("weight", (single_eq / capitale))) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
+            df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
             df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
             df_op_eq[col_rend_label] = df_op_eq[col_val_label] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"] * fx_ratio)
 
-            cols_eq = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Distanza Stop", col_val_label, "Rendimento %", col_rend_label]
+            cols_eq = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
             df_op_eq = df_op_eq[[c for c in cols_eq if c in df_op_eq.columns]]
 
             df_eq_styled = df_op_eq.style.format({
                 "Quote": "{:d}",
                 "Ingresso ($)": "{:.2f}",
                 "Attuale ($)": "{:.2f}",
-                "Stop Loss ($)": "{:.2f}",
-                "Distanza Stop": "{:.1f}%",
+                "Peso (%)": "{:.2f}%",
                 col_val_label: "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
                 col_rend_label: "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', col_rend_label]).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
+            }).map(color_pnl, subset=['Rendimento %', col_rend_label]).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
-            st.info("Nessuna azione in portafoglio. In attesa del ricalcolo del venerdì.")
+            st.info("Nessuna azione in portafoglio. In attesa del ricalcolo di fine mese.")
 
     with col_cr:
         st_html(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">🪙 Crypto in Portafoglio</span>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr} / 3</span>
+            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr}</span>
         </div>
         """)
 
         if op_cr:
             df_op_cr = pd.DataFrame(op_cr)
-            alloc_moneys = [capitale * (0.10 if r['Titolo'] == 'BTC' else 0.025) for _, r in df_op_cr.iterrows()]
-            df_op_cr["Quote"] = [m / r["Ingresso ($)"] if r["Ingresso ($)"] > 0 else 0 for m, (_, r) in zip(alloc_moneys, df_op_cr.iterrows())]
+            df_op_cr["Quote"] = [(capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"] if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_cr.iterrows()]
             df_op_cr[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_cr.iterrows()]
             df_op_cr[col_rend_label] = df_op_cr[col_val_label] - (df_op_cr["Quote"] * df_op_cr["Ingresso ($)"] * fx_ratio)
 
-            cols_cr = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Distanza Stop", col_val_label, "Rendimento %", col_rend_label]
+            cols_cr = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
             df_op_cr = df_op_cr[[c for c in cols_cr if c in df_op_cr.columns]]
 
             def format_crypto_shares(val):
@@ -543,16 +524,15 @@ with tab_pf:
                 "Quote": format_crypto_shares,
                 "Ingresso ($)": format_price,
                 "Attuale ($)": format_price,
-                "Stop Loss ($)": format_price,
-                "Distanza Stop": "{:.1f}%",
+                "Peso (%)": "{:.2f}%",
                 col_val_label: "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
                 col_rend_label: "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', col_rend_label]).map(color_stop_dist, subset=['Distanza Stop']).map(style_pos, subset=['Pos'])
+            }).map(color_pnl, subset=['Rendimento %', col_rend_label]).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
-            st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo del venerdì.")
+            st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo di fine mese.")
 
 
 # ==============================================================================
@@ -883,17 +863,6 @@ with tab_perf:
                 "reason": "Motivazione"
             })
 
-            reason_map = {
-                'Trailing Stop': '🛡️ Trailing Stop',
-                'Stop Loss': '🛡️ Stop Loss',
-                'Monthly Rotation Out': '🔄 Rotazione Mensile',
-                'Rotation Out': '🔄 Rotazione Mensile',
-                'Macro Bearish Regime': '⚠️ Regime Ribassista',
-                'Bearish Regime': '⚠️ Regime Ribassista'
-            }
-            if "Motivazione" in df_hist.columns:
-                df_hist["Motivazione"] = df_hist["Motivazione"].apply(lambda r: reason_map.get(str(r), str(r)))
-
             cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
             df_hist = df_hist[[c for c in cols_hist if c in df_hist.columns]]
 
@@ -902,7 +871,8 @@ with tab_perf:
             with c_srch:
                 search_t = st.text_input("Cerca Ticker", placeholder="🔍 Cerca per ticker (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
             with c_flt:
-                flt_reason = st.selectbox("Filtro Uscita", ["Tutte le Motivazioni", "🛡️ Trailing Stop", "🔄 Rotazione Mensile", "⚠️ Regime Ribassista"], label_visibility="collapsed")
+                reason_options = ["Tutte le Motivazioni"] + sorted(df_hist["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist.columns else ["Tutte le Motivazioni"]
+                flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
 
             if search_t:
                 df_hist = df_hist[df_hist["Titolo"].str.contains(search_t.strip().upper(), na=False)]
@@ -929,7 +899,7 @@ with tab_perf:
 with tab_radar:
     st_html("""
     <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
-        💡 <strong>Radar di Rotazione:</strong> Classifica dei titoli con la maggior forza relativa consolidata su base settimanale. I titoli già in portafoglio sono contrassegnati con ⭐ e aggiornano la protezione ogni venerdì, mentre i nuovi candidati (🆕) subentrano alla rotazione mensile o per rimpiazzare posizioni chiuse su stop loss.
+        💡 <strong>Radar di Rotazione:</strong> Basket azionario a bassa volatilità selezionato trimestralmente, e classe Crypto (solo BTC-USD). I titoli già in portafoglio sono contrassegnati con ⭐, i nuovi candidati (🆕) subentrano alla prossima rotazione trimestrale se il segnale macro di classe è attivo.
     </div>
     """)
 
@@ -942,45 +912,44 @@ with tab_radar:
 
     rc1, rc2 = st.columns([2, 1])
     with rc1:
-        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📈 Top 20 Azioni S&P 500</div>')
+        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📈 Basket Azionario (bassa volatilità, rotazione trimestrale)</div>')
         if alloc.get("Equities", 0) > 0:
             top20 = data.get("top20", [])
             if top20:
                 df_eq = pd.DataFrame(top20)
-                if "Momentum Score" in df_eq.columns:
-                    df_eq = df_eq.drop(columns=["Momentum Score"])
-                df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
+                df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
                 df_eq["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_eq["Titolo"])]
-                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Titolo", "Prezzo ($)", "Volatilita' Ann. (%)"]
                 df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
 
+                fmt = {"Prezzo ($)": "{:.2f}"}
+                if "Volatilita' Ann. (%)" in df_eq.columns:
+                    fmt["Volatilita' Ann. (%)"] = "{:.1f}%"
                 st.dataframe(
-                    df_eq.style.format({"Prezzo ($)": "{:.2f}", "Stop Loss ($)": "{:.2f}"}).map(
+                    df_eq.style.format(fmt).map(
                         style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None
                     ),
                     use_container_width=True,
                     hide_index=True
                 )
             else:
-                st.info("Nessun dato Top 20 disponibile.")
+                st.info("Nessun dato basket disponibile.")
         else:
-            st.warning("Motore Azionario DISATTIVO (Semaforo Rosso). Nessun acquisto previsto.")
+            st.warning("Classe Equity DISATTIVA (segnale sotto la media a 40 settimane).")
 
     with rc2:
-        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">🪙 Top 3 Crypto</div>')
+        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">🪙 Crypto (solo BTC-USD)</div>')
         if alloc.get("Crypto", 0) > 0:
             cr_top = data.get("crypto_top", [])
             if cr_top:
                 df_c = pd.DataFrame(cr_top)
-                if "Momentum Score" in df_c.columns:
-                    df_c = df_c.drop(columns=["Momentum Score"])
-                df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)", "Stop Loss": "Stop Loss ($)"})
+                df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
                 df_c["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_c["Titolo"])]
-                cols = ["Pos", "Titolo", "Prezzo ($)", "Stop Loss ($)"]
+                cols = ["Pos", "Titolo", "Prezzo ($)"]
                 df_c = df_c[[c for c in cols if c in df_c.columns]]
 
                 st.dataframe(
-                    df_c.style.format({"Prezzo ($)": format_price, "Stop Loss ($)": format_price}).map(
+                    df_c.style.format({"Prezzo ($)": format_price}).map(
                         style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None
                     ),
                     use_container_width=True,
@@ -989,7 +958,7 @@ with tab_radar:
             else:
                 st.info("Nessun dato Crypto disponibile.")
         else:
-            st.warning("Motore Crypto DISATTIVO (Semaforo Rosso).")
+            st.warning("Classe Crypto DISATTIVA (BTC-USD sotto la media a 40 settimane).")
 
 
 # ==============================================================================
@@ -1032,53 +1001,58 @@ with tab_guide:
     st_html('''
     <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
         <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">🎯 Obiettivo Primario</div>
-        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Crescita costante del capitale nei mercati rialzisti e protezione totale durante i ribassi, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
+        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Generare alpha reale (indipendente dal semplice beta di mercato) con bassa frequenza di intervento (rotazione mensile/trimestrale, mai giornaliera) e alta efficienza fiscale, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
     </div>
 
-    <div style="font-size: 13px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0;">⚙️ Il Sistema — Distribuzione del Capitale</div>
-    <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 10px;">I fondi vengono versati solo nei settori con andamento positivo, riempiendo prima le attività a maggior rendimento e dirottando il resto sui beni difensivi:</div>
+    <div style="font-size: 13px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0;">⚙️ Il Sistema — Segnale di Timing per Classe</div>
+    <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 10px;">Ogni classe di attivo (Azioni, Obbligazioni, Oro, Crypto) viene attivata o disattivata in base al proprio trend di lungo periodo — non esiste più un tetto percentuale fisso per classe:</div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px;">
         <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">📈 Azioni</span>
-                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 70%</span>
+                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Basket a bassa vol</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Motore primario di crescita del capitale.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Attiva se SPY è sopra la media mobile a 40 settimane (con isteresi ±2%).</div>
         </div>
         <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">🪙 Criptovalute</span>
-                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 15%</span>
+                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Solo BTC-USD</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Comparto asimmetrico ad alto rendimento.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Nessuna rotazione altcoin (testata e respinta: nessun edge aggiuntivo). Stesso segnale di timing dell'azionario.</div>
         </div>
         <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid #F59E0B; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">🥇 Oro</span>
-                <span style="background: #78350F; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 10%</span>
+                <span style="background: #78350F; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Segnale di trend</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Protezione contro inflazione e incertezza.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Protezione contro inflazione e incertezza, attivata dallo stesso meccanismo di timing.</div>
         </div>
         <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid #8B5CF6; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">🛡️ Obbligazioni</span>
-                <span style="background: #5B21B6; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 100%</span>
+                <span style="background: #5B21B6; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Segnale di trend</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Titoli di stato sicuri nei rallentamenti economici.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Titoli di stato, allocati quando il proprio trend è favorevole.</div>
         </div>
         <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid #3B82F6; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">💵 Monetario</span>
-                <span style="background: #1E40AF; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Fino al 100%</span>
+                <span style="background: #1E40AF; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Residuo</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Rifugio sicuro e liquidità in attesa di trend.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Rifugio sicuro e liquidità per le classi disattivate o per il target di volatilità.</div>
         </div>
     </div>
 
+    <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">⚡ Selezione del Basket Azionario</div>
+        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile.</div>
+    </div>
+
     <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 18px;">
-        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">⚡ Selezione dei Titoli ad Alto Momentum</div>
-        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Tra centinaia di titoli quotati, il sistema acquista solo quelli con la crescita più rapida e solida negli ultimi sei mesi, mantenendo in portafoglio solo la forza relativa leader di mercato.</div>
+        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">📏 Vol-Targeting di Portafoglio</div>
+        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">L'esposizione aggregata alle classi rischiose viene scalata mensilmente per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §4).</div>
     </div>
     ''')
 
