@@ -178,6 +178,33 @@ fino a 15 per ogni ricalibrazione).
   i costi reali del broker in uso.
 - Nessuna interazione modellata con Convex o con eventuali flussi PAC.
 
+### 8.1 Registro dei test aggiuntivi respinti (dopo il deploy)
+
+In conformità allo stesso principio anti-overfitting di `BRIEF_AGENTE.md` (§3.7:
+"si riportano tutti i test eseguiti, inclusi quelli negativi"), oltre ai sei
+tentativi di miglioramento già respinti prima del deploy (titoli individuali con
+rotazione mensile, diversificazione a 9 mercati, rotazione altcoin, pesatura per
+forza del trend, doppia conferma trend+momentum, stop-loss per posizione — vedi
+Apex Allocation §7/§7-bis e la sezione stop sopra), sono stati testati altri due
+candidati dopo il deploy, entrambi respinti:
+
+- **Banda di non-negoziazione** (non ribilanciare se il peso target cambia di poco):
+  riduce il turnover (23→11-18 eventi/anno a seconda dell'ampiezza) ma peggiora
+  Sharpe e Calmar a ogni ampiezza testata (1-5 punti percentuali) — perché impedisce
+  al vol-targeting di essere preciso, che è il meccanismo che rende il disegno
+  valido. Scartata.
+- **Kill-switch di portafoglio su drawdown** (riduce l'esposizione se il DD supera
+  una soglia): alle soglie 20-25% non scatta mai in 12 anni (il vol-targeting tiene
+  già il MaxDD sotto soglia); alla soglia 15% scatta ma non migliora nulla — segnale
+  reattivo, arriva quando il danno è già fatto. Scartata.
+
+**Nota metodologica:** dopo 8 tentativi di miglioramento testati sullo stesso
+campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
+contro il rischio di data-snooping crescente (lo stesso principio che ha già
+smascherato il motore di selezione titoli v1). Il disegno deployato resta quello
+raccomandato finché non emerge un'ipotesi con una giustificazione a priori più
+forte di "vediamo se funziona".
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)
