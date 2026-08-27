@@ -1,182 +1,268 @@
 {
     "macro": {
-        "RSP": {
-            "price": 222.5399932861328,
-            "ma200": 202.52390014648438
-        },
         "SPY": {
-            "price": 766.3400268554688,
-            "ma200": 708.9073504638671
-        },
-        "BTC-USD": {
-            "price": 78416.59375,
-            "ma200": 69171.5530078125
-        },
-        "GC=F": {
-            "price": 4669.2001953125,
-            "ma200": 4508.870988769531
+            "price": 771.0999755859375
         },
         "IEF": {
-            "price": 93.2750015258789,
-            "ma200": 95.21567485809327
+            "price": 93.2300033569336
+        },
+        "GLD": {
+            "price": 422.6000061035156
+        },
+        "BTC-USD": {
+            "price": 80309.703125
         }
     },
     "allocations": {
-        "Equities": 70,
-        "Crypto": 15,
-        "Gold": 10,
-        "Bonds": 0,
-        "Cash": 5
+        "Equities": 19.69,
+        "Bonds": 0.0,
+        "Gold": 0.0,
+        "Crypto": 19.69,
+        "Cash": 60.62
     },
     "macro_dates": {
         "Equities": "2026-04-03",
         "Crypto": "2026-08-21",
-        "Gold": "2026-08-21",
+        "Gold": "2026-08-27",
         "Bonds": "2026-03-13"
     },
-    "macro_events": [],
+    "macro_events": [
+        "\u26a0\ufe0f MACRO REGIME: Il motore Gold \u00e8 passato a \ud83d\udd34 DISATTIVATO"
+    ],
     "top20": [
         {
-            "Ticker": "HUM",
-            "Prezzo ($)": 400.37,
-            "Momentum Score": 35.54,
-            "Stop Loss ($)": 391.65
+            "Ticker": "BRK-B",
+            "Prezzo ($)": 503.7,
+            "Volatilita' Ann. (%)": 13.42,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "MPC",
-            "Prezzo ($)": 356.94,
-            "Momentum Score": 31.88,
-            "Stop Loss ($)": 340.17
+            "Ticker": "WBD",
+            "Prezzo ($)": 28.88,
+            "Volatilita' Ann. (%)": 14.15,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "CRL",
-            "Prezzo ($)": 298.09,
-            "Momentum Score": 27.01,
-            "Stop Loss ($)": 273.6
+            "Ticker": "ATO",
+            "Prezzo ($)": 167.22,
+            "Volatilita' Ann. (%)": 15.52,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "VLO",
-            "Prezzo ($)": 339.33,
-            "Momentum Score": 24.92,
-            "Stop Loss ($)": 324.27
+            "Ticker": "SNA",
+            "Prezzo ($)": 395.84,
+            "Volatilita' Ann. (%)": 16.3,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "STT",
-            "Prezzo ($)": 192.95,
-            "Momentum Score": 24.3,
-            "Stop Loss ($)": 183.05
+            "Ticker": "NEE",
+            "Prezzo ($)": 83.47,
+            "Volatilita' Ann. (%)": 16.7,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "EXPE",
-            "Prezzo ($)": 339.91,
-            "Momentum Score": 21.65,
-            "Stop Loss ($)": 308.64
+            "Ticker": "KVUE",
+            "Prezzo ($)": 19.2,
+            "Volatilita' Ann. (%)": 16.73,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "PSX",
-            "Prezzo ($)": 237.78,
-            "Momentum Score": 21.24,
-            "Stop Loss ($)": 229.15
+            "Ticker": "PG",
+            "Prezzo ($)": 143.14,
+            "Volatilita' Ann. (%)": 16.76,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "BNY",
-            "Prezzo ($)": 163.17,
-            "Momentum Score": 20.17,
-            "Stop Loss ($)": 156.45
+            "Ticker": "AWK",
+            "Prezzo ($)": 136.69,
+            "Volatilita' Ann. (%)": 16.89,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "IQV",
-            "Prezzo ($)": 261.72,
-            "Momentum Score": 19.08,
-            "Stop Loss ($)": 240.06
+            "Ticker": "COST",
+            "Prezzo ($)": 934.66,
+            "Volatilita' Ann. (%)": 17.19,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "XYZ",
-            "Prezzo ($)": 82.51,
-            "Momentum Score": 16.69,
-            "Stop Loss ($)": 78.44
+            "Ticker": "CHD",
+            "Prezzo ($)": 102.37,
+            "Volatilita' Ann. (%)": 17.24,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "CNC",
-            "Prezzo ($)": 66.99,
-            "Momentum Score": 16.21,
-            "Stop Loss ($)": 62.74
+            "Ticker": "JPM",
+            "Prezzo ($)": 354.22,
+            "Volatilita' Ann. (%)": 17.32,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "TGT",
-            "Prezzo ($)": 162.12,
-            "Momentum Score": 15.66,
-            "Stop Loss ($)": 158.28
+            "Ticker": "CL",
+            "Prezzo ($)": 90.96,
+            "Volatilita' Ann. (%)": 17.38,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "NWS",
-            "Prezzo ($)": 35.21,
-            "Momentum Score": 14.58,
-            "Stop Loss ($)": 32.81
+            "Ticker": "MCD",
+            "Prezzo ($)": 260.06,
+            "Volatilita' Ann. (%)": 17.4,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "PAYX",
-            "Prezzo ($)": 125.29,
-            "Momentum Score": 14.16,
-            "Stop Loss ($)": 117.62
+            "Ticker": "PEG",
+            "Prezzo ($)": 73.33,
+            "Volatilita' Ann. (%)": 17.56,
+            "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "NTRS",
-            "Prezzo ($)": 187.04,
-            "Momentum Score": 14.13,
-            "Stop Loss ($)": 184.28
-        },
-        {
-            "Ticker": "NWSA",
-            "Prezzo ($)": 30.95,
-            "Momentum Score": 13.95,
-            "Stop Loss ($)": 28.86
-        },
-        {
-            "Ticker": "VRSN",
-            "Prezzo ($)": 296.07,
-            "Momentum Score": 13.48,
-            "Stop Loss ($)": 278.83
-        },
-        {
-            "Ticker": "ADP",
-            "Prezzo ($)": 282.93,
-            "Momentum Score": 13.42,
-            "Stop Loss ($)": 265.97
-        },
-        {
-            "Ticker": "CSX",
-            "Prezzo ($)": 51.8,
-            "Momentum Score": 13.35,
-            "Stop Loss ($)": 50.77
-        },
-        {
-            "Ticker": "EXPD",
-            "Prezzo ($)": 190.38,
-            "Momentum Score": 12.77,
-            "Stop Loss ($)": 178.99
+            "Ticker": "AIZ",
+            "Prezzo ($)": 285.41,
+            "Volatilita' Ann. (%)": 17.6,
+            "Stop Loss ($)": 0.0
         }
     ],
     "crypto_top": [
         {
-            "Ticker": "ZEC",
-            "Prezzo ($)": 765.8,
-            "Momentum Score": 7.58,
-            "Stop Loss ($)": 758.25
-        },
-        {
-            "Ticker": "ETH",
-            "Prezzo ($)": 2450.41,
-            "Momentum Score": 6.61,
-            "Stop Loss ($)": 2300.65
-        },
-        {
-            "Ticker": "XMR",
-            "Prezzo ($)": 438.74,
-            "Momentum Score": 5.6,
-            "Stop Loss ($)": 406.2
+            "Ticker": "BTC",
+            "Prezzo ($)": 80309.7,
+            "Stop Loss ($)": 0.0
         }
     ],
-    "timestamp": "26 Aug 2026, 15:49 (UTC)",
-    "eur_usd": 1.085
+    "v2_state": {
+        "hysteresis": {
+            "Equities": true,
+            "Bonds": false,
+            "Gold": false,
+            "Crypto": true
+        },
+        "basket": [
+            {
+                "Ticker": "BRK-B",
+                "Prezzo ($)": 503.7,
+                "Volatilita' Ann. (%)": 13.42,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "WBD",
+                "Prezzo ($)": 28.88,
+                "Volatilita' Ann. (%)": 14.15,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "ATO",
+                "Prezzo ($)": 167.22,
+                "Volatilita' Ann. (%)": 15.52,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "SNA",
+                "Prezzo ($)": 395.84,
+                "Volatilita' Ann. (%)": 16.3,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "NEE",
+                "Prezzo ($)": 83.47,
+                "Volatilita' Ann. (%)": 16.7,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "KVUE",
+                "Prezzo ($)": 19.2,
+                "Volatilita' Ann. (%)": 16.73,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "PG",
+                "Prezzo ($)": 143.14,
+                "Volatilita' Ann. (%)": 16.76,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "AWK",
+                "Prezzo ($)": 136.69,
+                "Volatilita' Ann. (%)": 16.89,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "COST",
+                "Prezzo ($)": 934.66,
+                "Volatilita' Ann. (%)": 17.19,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "CHD",
+                "Prezzo ($)": 102.37,
+                "Volatilita' Ann. (%)": 17.24,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "JPM",
+                "Prezzo ($)": 354.22,
+                "Volatilita' Ann. (%)": 17.32,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "CL",
+                "Prezzo ($)": 90.96,
+                "Volatilita' Ann. (%)": 17.38,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "MCD",
+                "Prezzo ($)": 260.06,
+                "Volatilita' Ann. (%)": 17.4,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "PEG",
+                "Prezzo ($)": 73.33,
+                "Volatilita' Ann. (%)": 17.56,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "AIZ",
+                "Prezzo ($)": 285.41,
+                "Volatilita' Ann. (%)": 17.6,
+                "Stop Loss ($)": 0.0
+            }
+        ],
+        "basket_quarter": "2026-08",
+        "signal_debug": {
+            "Equities": {
+                "price": 771.0999755859375,
+                "ma40w": 711.6580001831055,
+                "distanza_pct": 8.35,
+                "attivo": true,
+                "vol_12w_ann_pct": 11.91
+            },
+            "Bonds": {
+                "price": 93.2300033569336,
+                "ma40w": 95.09249954223633,
+                "distanza_pct": -1.96,
+                "attivo": false,
+                "vol_12w_ann_pct": 3.89
+            },
+            "Gold": {
+                "price": 422.6000061035156,
+                "ma40w": 416.56800079345703,
+                "distanza_pct": 1.45,
+                "attivo": false,
+                "vol_12w_ann_pct": 22.24
+            },
+            "Crypto": {
+                "price": 80309.703125,
+                "ma40w": 74441.381640625,
+                "distanza_pct": 7.88,
+                "attivo": true,
+                "vol_12w_ann_pct": 54.13
+            },
+            "_vol_target": {
+                "vol_portafoglio_stimata_pct": 16.51,
+                "fattore_scala": 0.787
+            }
+        }
+    },
+    "timestamp": "27 Aug 2026, 23:42 (UTC)",
+    "eur_usd": 1.1658
 }

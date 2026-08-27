@@ -1,269 +1,135 @@
 {
     "open_positions": {
-        "DELL": {
-            "entry_date": "2026-06-01",
-            "entry_price": 426.15,
-            "current_price": 451.5,
-            "shares": 21.8893,
-            "stop_price": 309.22,
-            "profit_pct": 5.95,
-            "weight": 0.035,
+        "BRK-B": {
+            "entry_date": "2026-08-27",
+            "entry_price": 503.70001220703125,
+            "current_price": 503.70001220703125,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 309.22
+            "weight": 0.013126666666666668
         },
-        "FTNT": {
-            "entry_date": "2026-06-01",
-            "entry_price": 141.16,
-            "current_price": 153.66,
-            "shares": 66.7785,
-            "stop_price": 135.38,
-            "profit_pct": 8.86,
-            "weight": 0.035,
+        "WBD": {
+            "entry_date": "2026-08-27",
+            "entry_price": 28.8799991607666,
+            "current_price": 28.8799991607666,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 135.38
+            "weight": 0.013126666666666668
         },
-        "PANW": {
-            "entry_date": "2026-07-06",
-            "entry_price": 338.96,
-            "current_price": 339.9,
-            "shares": 26.261,
-            "stop_price": 287.11,
-            "profit_pct": 0.28,
-            "weight": 0.035,
+        "ATO": {
+            "entry_date": "2026-08-27",
+            "entry_price": 167.22000122070312,
+            "current_price": 167.22000122070312,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 287.11
+            "weight": 0.013126666666666668
         },
-        "MPC": {
-            "entry_date": "2026-07-20",
-            "entry_price": 312.95,
-            "current_price": 354.88,
-            "shares": 26.7406,
-            "stop_price": 299.28,
-            "profit_pct": 13.4,
-            "weight": 0.035,
+        "SNA": {
+            "entry_date": "2026-08-27",
+            "entry_price": 395.8399963378906,
+            "current_price": 395.8399963378906,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 299.28
+            "weight": 0.013126666666666668
         },
-        "DDOG": {
-            "entry_date": "2026-07-20",
-            "entry_price": 258.59,
-            "current_price": 222.99,
-            "shares": 32.3133,
-            "stop_price": 200.32,
-            "profit_pct": -13.77,
-            "weight": 0.035,
+        "NEE": {
+            "entry_date": "2026-08-27",
+            "entry_price": 83.47000122070312,
+            "current_price": 83.47000122070312,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 200.32
+            "weight": 0.013126666666666668
         },
-        "VLO": {
-            "entry_date": "2026-07-20",
-            "entry_price": 308.99,
-            "current_price": 340.41,
-            "shares": 26.9954,
-            "stop_price": 283.57,
-            "profit_pct": 10.17,
-            "weight": 0.035,
+        "KVUE": {
+            "entry_date": "2026-08-27",
+            "entry_price": 19.200000762939453,
+            "current_price": 19.200000762939453,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 283.57
+            "weight": 0.013126666666666668
         },
-        "STT": {
-            "entry_date": "2026-07-20",
-            "entry_price": 184.15,
-            "current_price": 192.95,
-            "shares": 45.8034,
-            "stop_price": 167.12,
-            "profit_pct": 4.78,
-            "weight": 0.035,
+        "PG": {
+            "entry_date": "2026-08-27",
+            "entry_price": 143.13999938964844,
+            "current_price": 143.13999938964844,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 167.12
+            "weight": 0.013126666666666668
         },
-        "PSX": {
-            "entry_date": "2026-07-20",
-            "entry_price": 206.07,
-            "current_price": 236.9,
-            "shares": 40.4096,
-            "stop_price": 203.68,
-            "profit_pct": 14.96,
-            "weight": 0.035,
+        "AWK": {
+            "entry_date": "2026-08-27",
+            "entry_price": 136.69000244140625,
+            "current_price": 136.69000244140625,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 203.68
+            "weight": 0.013126666666666668
         },
-        "BNY": {
-            "entry_date": "2026-07-27",
-            "entry_price": 158.85,
-            "current_price": 163.65,
-            "shares": 52.4265,
-            "stop_price": 144.75,
-            "profit_pct": 3.02,
-            "weight": 0.035,
+        "COST": {
+            "entry_date": "2026-08-27",
+            "entry_price": 934.6599731445312,
+            "current_price": 934.6599731445312,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 144.75
+            "weight": 0.013126666666666668
         },
-        "HUM": {
-            "entry_date": "2026-08-03",
-            "entry_price": 365.0,
-            "current_price": 389.71,
-            "shares": 22.5745,
-            "stop_price": 344.84,
-            "profit_pct": 6.77,
-            "weight": 0.035,
+        "CHD": {
+            "entry_date": "2026-08-27",
+            "entry_price": 102.37000274658203,
+            "current_price": 102.37000274658203,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 344.84
+            "weight": 0.013126666666666668
         },
-        "NTAP": {
-            "entry_date": "2026-08-03",
-            "entry_price": 179.06,
-            "current_price": 187.43,
-            "shares": 46.0166,
-            "stop_price": 163.42,
-            "profit_pct": 4.67,
-            "weight": 0.035,
+        "JPM": {
+            "entry_date": "2026-08-27",
+            "entry_price": 354.2200012207031,
+            "current_price": 354.2200012207031,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 163.42
+            "weight": 0.013126666666666668
         },
-        "HPE": {
-            "entry_date": "2026-08-03",
-            "entry_price": 47.51,
-            "current_price": 53.44,
-            "shares": 171.4816,
-            "stop_price": 43.52,
-            "profit_pct": 12.48,
-            "weight": 0.035,
+        "CL": {
+            "entry_date": "2026-08-27",
+            "entry_price": 90.95999908447266,
+            "current_price": 90.95999908447266,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 43.52
+            "weight": 0.013126666666666668
         },
-        "CRWD": {
-            "entry_date": "2026-08-17",
-            "entry_price": 216.53,
-            "current_price": 185.38,
-            "shares": 38.2438,
-            "stop_price": 162.66,
-            "profit_pct": -14.39,
-            "weight": 0.035,
+        "MCD": {
+            "entry_date": "2026-08-27",
+            "entry_price": 260.05999755859375,
+            "current_price": 260.05999755859375,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 162.66
+            "weight": 0.013126666666666668
         },
-        "MRNA": {
-            "entry_date": "2026-08-17",
-            "entry_price": 64.78,
-            "current_price": 158.83,
-            "shares": 56.9001,
-            "stop_price": 113.6,
-            "profit_pct": 145.2,
-            "weight": 0.035,
+        "PEG": {
+            "entry_date": "2026-08-27",
+            "entry_price": 73.33000183105469,
+            "current_price": 73.33000183105469,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 113.6
+            "weight": 0.013126666666666668
         },
-        "MRVL": {
-            "entry_date": "2026-08-24",
-            "entry_price": 229.22,
-            "current_price": 240.38,
-            "shares": 34.2843,
-            "stop_price": 198.51,
-            "profit_pct": 4.87,
-            "weight": 0.035,
+        "AIZ": {
+            "entry_date": "2026-08-27",
+            "entry_price": 285.4100036621094,
+            "current_price": 285.4100036621094,
+            "stop_loss": 0.0,
             "is_crypto": false,
-            "stop_loss": 198.51
-        },
-        "CRL": {
-            "entry_date": "2026-08-24",
-            "entry_price": 297.63,
-            "current_price": 297.64,
-            "shares": 27.6886,
-            "stop_price": 237.34,
-            "profit_pct": 0.0,
-            "weight": 0.035,
-            "is_crypto": false,
-            "stop_loss": 237.34
-        },
-        "AMD": {
-            "entry_date": "2026-08-24",
-            "entry_price": 468.54,
-            "current_price": 479.18,
-            "shares": 17.1987,
-            "stop_price": 370.42,
-            "profit_pct": 2.27,
-            "weight": 0.035,
-            "is_crypto": false,
-            "stop_loss": 370.42
-        },
-        "ZBRA": {
-            "entry_date": "2026-08-24",
-            "entry_price": 365.23,
-            "current_price": 360.52,
-            "shares": 22.8593,
-            "stop_price": 303.11,
-            "profit_pct": -1.29,
-            "weight": 0.035,
-            "is_crypto": false,
-            "stop_loss": 303.11
-        },
-        "MET": {
-            "entry_date": "2026-08-24",
-            "entry_price": 94.87,
-            "current_price": 95.87,
-            "shares": 85.9628,
-            "stop_price": 88.83,
-            "profit_pct": 1.05,
-            "weight": 0.035,
-            "is_crypto": false,
-            "stop_loss": 88.83
-        },
-        "EXPE": {
-            "entry_date": "2026-08-24",
-            "entry_price": 323.55,
-            "current_price": 337.97,
-            "shares": 24.3846,
-            "stop_price": 264.32,
-            "profit_pct": 4.46,
-            "weight": 0.035,
-            "is_crypto": false,
-            "stop_loss": 264.32
-        },
-        "ETH": {
-            "entry_date": "2026-08-21",
-            "entry_price": 2515.28,
-            "current_price": 2444.48,
-            "shares": 4.690141,
-            "stop_price": 1920.12,
-            "profit_pct": -2.81,
-            "weight": 0.05,
-            "is_crypto": true,
-            "stop_loss": 1920.12
-        },
-        "SOL": {
-            "entry_date": "2026-08-21",
-            "entry_price": 93.65,
-            "current_price": 96.6,
-            "shares": 125.964454,
-            "stop_price": 76.52,
-            "profit_pct": 3.15,
-            "weight": 0.05,
-            "is_crypto": true,
-            "stop_loss": 76.52
+            "weight": 0.013126666666666668
         },
         "BTC": {
-            "entry_date": "2026-08-21",
-            "entry_price": 78335.19,
-            "current_price": 78132.21,
-            "shares": 0.301194,
-            "stop_price": 65104.99,
-            "profit_pct": -0.26,
-            "weight": 0.1,
+            "entry_date": "2026-08-27",
+            "entry_price": 80309.703125,
+            "current_price": 80309.703125,
+            "stop_loss": 0.0,
             "is_crypto": true,
-            "stop_loss": 65104.99
+            "weight": 0.19690000000000002
         }
     },
-    "macro_positions": {
-        "Gold": {
-            "entry_date": "2026-08-21",
-            "entry_price": 4508.87,
-            "current_price": 4675.8,
-            "profit_pct": 3.7,
-            "weight": 0.1,
-            "shares": 2.2179
-        }
-    },
+    "macro_positions": {},
     "trade_history": [
         {
             "ticker": "APP",
@@ -1364,6 +1230,247 @@
             "reason": "\ud83d\udd04 Rotazione Mensile",
             "weight": 0.035,
             "is_crypto": false
+        },
+        {
+            "ticker": "DELL",
+            "entry_date": "2026-06-01",
+            "exit_date": "2026-08-27",
+            "entry_price": 426.15,
+            "exit_price": 472.260009765625,
+            "profit_pct": 10.82,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "FTNT",
+            "entry_date": "2026-06-01",
+            "exit_date": "2026-08-27",
+            "entry_price": 141.16,
+            "exit_price": 172.77999877929688,
+            "profit_pct": 22.4,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "PANW",
+            "entry_date": "2026-07-06",
+            "exit_date": "2026-08-27",
+            "entry_price": 338.96,
+            "exit_price": 382.8500061035156,
+            "profit_pct": 12.95,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "MPC",
+            "entry_date": "2026-07-20",
+            "exit_date": "2026-08-27",
+            "entry_price": 312.95,
+            "exit_price": 363.5400085449219,
+            "profit_pct": 16.17,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "DDOG",
+            "entry_date": "2026-07-20",
+            "exit_date": "2026-08-27",
+            "entry_price": 258.59,
+            "exit_price": 242.92999267578125,
+            "profit_pct": -6.06,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "VLO",
+            "entry_date": "2026-07-20",
+            "exit_date": "2026-08-27",
+            "entry_price": 308.99,
+            "exit_price": 346.5899963378906,
+            "profit_pct": 12.17,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "STT",
+            "entry_date": "2026-07-20",
+            "exit_date": "2026-08-27",
+            "entry_price": 184.15,
+            "exit_price": 193.3699951171875,
+            "profit_pct": 5.01,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "PSX",
+            "entry_date": "2026-07-20",
+            "exit_date": "2026-08-27",
+            "entry_price": 206.07,
+            "exit_price": 239.80999755859375,
+            "profit_pct": 16.37,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "BNY",
+            "entry_date": "2026-07-27",
+            "exit_date": "2026-08-27",
+            "entry_price": 158.85,
+            "exit_price": 162.24000549316406,
+            "profit_pct": 2.13,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "HUM",
+            "entry_date": "2026-08-03",
+            "exit_date": "2026-08-27",
+            "entry_price": 365.0,
+            "exit_price": 392.6300048828125,
+            "profit_pct": 7.57,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "NTAP",
+            "entry_date": "2026-08-03",
+            "exit_date": "2026-08-27",
+            "entry_price": 179.06,
+            "exit_price": 190.63999938964844,
+            "profit_pct": 6.47,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "HPE",
+            "entry_date": "2026-08-03",
+            "exit_date": "2026-08-27",
+            "entry_price": 47.51,
+            "exit_price": 54.40999984741211,
+            "profit_pct": 14.52,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "CRWD",
+            "entry_date": "2026-08-17",
+            "exit_date": "2026-08-27",
+            "entry_price": 216.53,
+            "exit_price": 227.9600067138672,
+            "profit_pct": 5.28,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "MRNA",
+            "entry_date": "2026-08-17",
+            "exit_date": "2026-08-27",
+            "entry_price": 64.78,
+            "exit_price": 142.77000427246094,
+            "profit_pct": 120.39,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "MRVL",
+            "entry_date": "2026-08-24",
+            "exit_date": "2026-08-27",
+            "entry_price": 229.22,
+            "exit_price": 241.4499969482422,
+            "profit_pct": 5.34,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "CRL",
+            "entry_date": "2026-08-24",
+            "exit_date": "2026-08-27",
+            "entry_price": 297.63,
+            "exit_price": 296.4100036621094,
+            "profit_pct": -0.41,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "AMD",
+            "entry_date": "2026-08-24",
+            "exit_date": "2026-08-27",
+            "entry_price": 468.54,
+            "exit_price": 476.6700134277344,
+            "profit_pct": 1.74,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "ZBRA",
+            "entry_date": "2026-08-24",
+            "exit_date": "2026-08-27",
+            "entry_price": 365.23,
+            "exit_price": 361.1099853515625,
+            "profit_pct": -1.13,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "MET",
+            "entry_date": "2026-08-24",
+            "exit_date": "2026-08-27",
+            "entry_price": 94.87,
+            "exit_price": 96.25,
+            "profit_pct": 1.45,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "EXPE",
+            "entry_date": "2026-08-24",
+            "exit_date": "2026-08-27",
+            "entry_price": 323.55,
+            "exit_price": 318.9200134277344,
+            "profit_pct": -1.43,
+            "weight": 0.035,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "ETH",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-27",
+            "entry_price": 2515.28,
+            "exit_price": 2515.28,
+            "profit_pct": 0.0,
+            "weight": 0.05,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "SOL",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-27",
+            "entry_price": 93.65,
+            "exit_price": 93.65,
+            "profit_pct": 0.0,
+            "weight": 0.05,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "BTC",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-27",
+            "entry_price": 78335.19,
+            "exit_price": 80309.703125,
+            "profit_pct": 2.52,
+            "weight": 0.1,
+            "reason": "\ud83d\udd01 Migrazione a v2"
+        },
+        {
+            "ticker": "Gold (Hedge)",
+            "entry_date": "2026-08-21",
+            "exit_date": "2026-08-27",
+            "entry_price": 4508.87,
+            "exit_price": 422.6000061035156,
+            "profit_pct": -90.63,
+            "weight": 0.1,
+            "reason": "\ud83d\udd01 Migrazione a v2"
         }
-    ]
+    ],
+    "v2_migrated": true
 }
