@@ -278,8 +278,12 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
             exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
             _close_position(pf, ticker, pos, exit_price, today_str, "🔁 Migrazione a v2", action_log, verb="MIGRAZIONE V2 (VENDITA)")
         for asset, pos in list(pf.get("macro_positions", {}).items()):
-            sym = {"Gold": "GLD", "Bonds": "IEF"}.get(asset)
-            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0)) if sym else pos.get("entry_price", 0.0)
+            # Chiusura di migrazione: l'entry_price di v1 per "Gold" era in convenzione
+            # GC=F (futures, $/oncia), non GLD (ETF, scala di prezzo completamente diversa
+            # ~1/10) — usare prices_by_ticker["GLD"] qui produrrebbe un profit_pct falsato
+            # da mismatch di unita' di misura, non un rendimento reale. Si usa invece
+            # l'ultimo current_price gia' tracciato da v1 nella stessa convenzione dell'entry.
+            exit_price = pos.get("current_price", pos.get("entry_price", 0.0))
             _close_position(pf, f"{asset} (Hedge)", pos, exit_price, today_str, "🔁 Migrazione a v2", action_log, verb="MIGRAZIONE V2 (CHIUSURA HEDGE)")
         pf["open_positions"] = {}
         pf["macro_positions"] = {}

@@ -407,20 +407,32 @@ ancora risolta:**
   vincolo su tutti i ~600 titoli dell'universo (non solo i 198 mai scelti), un
   giro di test aggiuntivo.
 
-**Decisioni aperte (testate, trade-off presentato, non ancora decise):**
+**Decise (non adottate, con motivazione):**
 - **Decisione di ribilanciamento trimestrale invece di mensile** (§8.2 extra,
   script `quarterly_decision_test.py`): taglia gli eventi tassabili del segnale
   macro del 65% (23.4→8.2/anno) e migliora leggermente il CAGR netto (12.61%→
-  13.36% Scenario A), ma MaxDD peggiora (15.9%→20.8%) per reazione più lenta nei
-  mercati "in stillicidio" tipo 2022 (-7.9%→-13.0%). Coerente con l'obiettivo di
-  bassa frequenza + efficienza fiscale, ma non deciso.
+  13.36% Scenario A), ma MaxDD peggiora (15.9%→20.8%) e Calmar peggiora
+  (0.94→0.75) per reazione più lenta nei mercati "in stillicidio" tipo 2022
+  (-7.9%→-13.0%). **Non adottata**: il meccanismo che rompe è lo stesso già
+  respinto con la "banda di non-negoziazione" (§8.1) — ridurre la frequenza
+  della decisione impedisce al vol-targeting di essere preciso, che è il motivo
+  per cui il disegno funziona. La cadenza mensile già rispetta ampiamente il
+  vincolo "mai infragiornaliero/daily"; il guadagno fiscale marginale (+0.7pp
+  di CAGR netto) non giustifica accettare un controllo del rischio
+  sistematicamente peggiore.
 - **Sleeve Commodity aggiuntiva (DBC)** (script `reit_commodity_sleeve_test.py`):
   sul campione deployato (12 anni) migliora tutto (Sharpe 1.39→1.46, Calmar
   0.94→1.35, MaxDD 15.9%→10.9%, alpha invariato) e risolve il 2022. Ma sul
-  campione lungo 2006-2026 (GFC inclusa) è sostanzialmente neutro (Sharpe
-  0.97→0.92) perché le commodity sono crollate insieme alle azioni nel 2008 —
-  è un diversificatore regime-dipendente (aiuta in stagflazione/rialzo tassi,
-  non protegge in una crisi da shock di domanda), non un miglioramento pulito.
+  campione lungo 2006-2026 (GFC inclusa) è sostanzialmente neutro o peggiore
+  (Sharpe 0.97→0.92, alpha 2.93%→2.68%, GFC MaxDD 8.0%→12.1%) perché le
+  commodity sono crollate insieme alle azioni nel 2008 — protegge da uno shock
+  da rialzo tassi (2022-style) ma non da uno shock di domanda (2008-style), anzi
+  peggiora quest'ultimo. **Non adottata**: stesso principio che ha già
+  respinto il "buffer illimitato" (§8.3) e la diversificazione a 9 mercati
+  (§8.1) — un miglioramento che appare forte solo sul campione breve e
+  regredisce (o peggiora) sul campione lungo e severo non è un edge robusto,
+  è un artefatto del periodo testato. Aggiungerebbe anche complessità e
+  turnover (ev/yr 23.4→26.9) senza un beneficio che regga fuori campione.
 
 ---
 
