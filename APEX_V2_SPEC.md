@@ -107,12 +107,23 @@ momentum come criterio di selezione è stato falsificato dall'audit).
 settembre, dicembre). Nei mesi intermedi il paniere resta invariato nella
 composizione — solo la taglia complessiva dello slot si aggiorna mensilmente (§3).
 
-**Nessuno stop-loss per singola posizione.** Questo è un cambiamento deliberato
-rispetto al motore v1 (che usava trailing stop ATR per titolo): il disegno validato
-non ne usa uno, l'uscita da una posizione avviene solo (a) quando esce dal paniere
-alla rotazione trimestrale, o (b) quando l'intera classe Equity si disattiva (§2).
-**Se preferisci mantenere una protezione per singola posizione come rete di sicurezza
-aggiuntiva, va deciso e testato separatamente — non è nel disegno validato.**
+**Nessuno stop-loss per singola posizione — ora testato, non solo assunto.**
+L'uscita da una posizione avviene solo (a) quando esce dal paniere alla rotazione
+trimestrale, o (b) quando l'intera classe Equity si disattiva (§2). Aggiungere un
+trailing stop settimanale per posizione (HH(12w) - k×ATR(12w), k testato tra 2.0 e
+3.5 sul segnale campione SPY/IEF/GLD/BTC-USD) è stato verificato esplicitamente e
+**peggiora sia l'edge sia l'alpha CAPM** su ogni valore di k testato:
+
+| | CAGR | Sharpe | Sortino | Calmar | Alpha CAPM |
+|---|---|---|---|---|---|
+| Nessuno stop (disegno validato) | 14.9% | **1.39** | **2.29** | **0.94** | **10.6%** (p=0.0002) |
+| Stop 2.5x ATR (il migliore dei 4 testati) | 12.8% | 1.30 | 2.14 | 0.92 | 9.4% (p=0.0005) |
+
+Il vol-targeting mensile (§3) già assorbe il controllo del rischio a livello di
+portafoglio; uno stop settimanale per posizione taglia fuori posizioni durante
+normali ritracciamenti che il ribilanciamento di fine mese avrebbe comunque gestito
+— genera whipsaw, non protezione aggiuntiva. La non-presenza di uno stop per
+posizione è quindi una scelta misurata, non solo un'omissione.
 
 ---
 
