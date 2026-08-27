@@ -179,33 +179,42 @@ def update_macro_regimes(allocations, old_data, today_str):
 # ==============================================================================
 # EQUITY CURVE & PORTFOLIO TRACKING
 # ==============================================================================
-def update_equity_curve(prices_by_ticker, today_str):
-    """Updates daily OHLC equity curve tracking based on real portfolio holdings & closed history.
-
-    v2: le posizioni (azioni del basket, IEF, GLD, BTC) vivono tutte in open_positions con
-    un peso target esplicito — non serve piu' un dizionario "macro_positions" separato.
+def mark_to_market_and_compound_nav(pf, prices_by_ticker):
     """
-    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
+    Fa crescere pf["nav_usd"] in modo COMPOSTO: nav_oggi = nav_ieri * (1 + rendimento
+    pesato del giorno sulle posizioni gia' aperte). Va chiamata PRIMA che
+    update_portfolio chiuda/riapra posizioni (usa il "current_price" di ieri come base
+    del rendimento), cosi' la rotazione stessa non altera il NAV (a parte i costi).
 
-    # 1. Closed trades realized P&L sum (weighted by trade size)
-    closed_pnl_usd = sum(
-        (t.get("profit_pct", 0.0) / 100.0) * (INITIAL_CAPITAL * t.get("weight", 0.0))
-        for t in pf.get("trade_history", [])
-    )
-
-    # 2. Open positions floating P&L sum
-    open_pnl_usd = 0.0
+    Sostituisce un bug: la vecchia update_equity_curve ricalcolava il NAV da zero ogni
+    notte come "capitale iniziale + somma di tutto il P&L storico usando il capitale
+    INIZIALE (non quello composto) come base dei pesi" — ignorava completamente la
+    crescita composta, e il giorno della migrazione v1->v2 (che ha aggiunto ~24 righe
+    di chiusura insieme) ha fatto crollare il NAV mostrato da $243.770 a $160.436, un
+    salto fittizio, non una perdita di mercato reale.
+    """
+    nav_usd = pf.get("nav_usd")
+    if nav_usd is None:
+        eq = load_json_safe(EQUITY_FILE, default={"history": []})
+        hist = eq.get("history", [])
+        nav_usd = hist[-1]["value"] if hist else INITIAL_CAPITAL
+    daily_return = 0.0
     for ticker, pos in pf.get("open_positions", {}).items():
-        is_crypto = pos.get("is_crypto", False)
-        sym = ticker + "-USD" if is_crypto else ticker
-        entry_p = pos.get("entry_price", 0.0)
-        cur_p = prices_by_ticker.get(sym)
-        if cur_p is not None and entry_p > 0:
-            pnl_pct = (cur_p / entry_p - 1.0)
-            size = INITIAL_CAPITAL * pos.get("weight", 0.0)
-            open_pnl_usd += pnl_pct * size
+        sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+        old_price = pos.get("current_price", pos.get("entry_price", 0.0))
+        new_price = prices_by_ticker.get(sym)
+        if new_price is not None and old_price and old_price > 0:
+            daily_return += pos.get("weight", 0.0) * (new_price / old_price - 1.0)
+            pos["current_price"] = new_price
+    nav_usd *= (1.0 + daily_return)
+    pf["nav_usd"] = nav_usd
+    return nav_usd
 
-    current_portfolio_value = round(INITIAL_CAPITAL + closed_pnl_usd + open_pnl_usd, 2)
+
+def update_equity_curve(nav_usd, today_str):
+    """Registra pf["nav_usd"] (gia' composto da mark_to_market_and_compound_nav) nella
+    curva OHLC giornaliera. Non ricalcola piu' il NAV da trade_history — vedi sopra."""
+    current_portfolio_value = round(nav_usd, 2)
     eq_data = load_json_safe(EQUITY_FILE, default={"history": []})
     history = eq_data.setdefault("history", [])
 
@@ -305,6 +314,12 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
         target["BTC"] = allocations["Crypto"] / 100.0
 
     EPS = 1e-4  # tolleranza sotto la quale non vale la pena ribilanciare (rumore di calcolo)
+    # Stessa convenzione di costo usata in tutti i backtest (APEX_V2_SPEC.md §8.2 test 2):
+    # 8bps per le classi-ETF (IEF/GLD/BTC), 10bps per i singoli titoli del basket.
+    turnover_cost_frac = 0.0
+
+    def cost_bps(tkr):
+        return 8.0 if tkr in ("IEF", "GLD", "BTC") else 10.0
 
     # Chiudi posizioni non piu' desiderate o il cui peso target e' cambiato
     for ticker, pos in list(current.items()):
@@ -315,11 +330,13 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
             exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
             _close_position(pf, ticker, pos, exit_price, today_str, "🔄 Uscito da basket/classe disattivata", action_log)
             del current[ticker]
+            turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
         elif abs(tgt_w - cur_w) > EPS:
             sym = ticker + "-USD" if pos.get("is_crypto") else ticker
             exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
             _close_position(pf, ticker, pos, exit_price, today_str, "⚖️ Ribilanciamento mensile (peso)", action_log)
             del current[ticker]
+            turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
 
     # Apri (o riapri a nuovo peso) le posizioni target
     for ticker, tgt_w in target.items():
@@ -340,6 +357,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
             "weight": tgt_w,
         }
         action_log.append(f"🟢 APERTURA: {ticker} (peso {tgt_w * 100:.2f}%) | Prezzo: {fmt_usd(price)}")
+        turnover_cost_frac += tgt_w * (cost_bps(ticker) / 10000.0)
 
     # Aggiorna il prezzo corrente delle posizioni rimaste invariate
     for ticker, pos in current.items():
@@ -349,6 +367,8 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
 
     pf["open_positions"] = current
     pf["macro_positions"] = {}  # v2: oro/bond vivono in open_positions come le altre posizioni
+    if turnover_cost_frac > 0:
+        pf["nav_usd"] = pf.get("nav_usd", INITIAL_CAPITAL) * (1.0 - turnover_cost_frac)
     save_json_atomic(PORTFOLIO_FILE, pf)
     return action_log
 
@@ -525,18 +545,22 @@ def main():
 
     # 4. Ribilanciamento (solo alla decisione) + tracking quotidiano dell'equity curve
     print("[4/4] Aggiornamento Portafoglio ed Equity Curve...")
+    # Mark-to-market PRIMA di un eventuale ribilanciamento: compone il NAV sul
+    # rendimento pesato del giorno usando i prezzi di ieri (gia' in pf) come base —
+    # cosi' la rotazione stessa (chiusura/riapertura) non altera il NAV, solo i costi
+    # lo fanno (vedi update_portfolio). Vedi mark_to_market_and_compound_nav per il
+    # bug che questo sostituisce (NAV non composto, crollo fittizio in migrazione).
+    nav_usd = mark_to_market_and_compound_nav(pf, prices_by_ticker)
+    save_json_atomic(PORTFOLIO_FILE, pf)
+
     if should_decide:
         action_log = update_portfolio(allocations, basket, prices_by_ticker, today_str)
+        pf_after = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
+        nav_usd = pf_after.get("nav_usd", nav_usd)
     else:
         action_log = []
-        pf_mtm = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
-        for ticker, pos in pf_mtm.get("open_positions", {}).items():
-            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
-            if sym in prices_by_ticker:
-                pos["current_price"] = prices_by_ticker[sym]
-        save_json_atomic(PORTFOLIO_FILE, pf_mtm)
 
-    update_equity_curve(prices_by_ticker, today_str)
+    update_equity_curve(nav_usd, today_str)
 
     has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "Ribilanciamento", "Uscito")) for log in action_log)
     if is_friday or output.get("macro_events") or has_orders:

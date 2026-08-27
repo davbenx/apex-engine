@@ -1472,5 +1472,6 @@
       "reason": "\ud83d\udd01 Migrazione a v2"
     }
   ],
-  "v2_migrated": true
+  "v2_migrated": true,
+  "nav_usd": 249125.46
 }

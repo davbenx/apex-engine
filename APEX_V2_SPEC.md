@@ -434,6 +434,43 @@ ancora risolta:**
   è un artefatto del periodo testato. Aggiungerebbe anche complessità e
   turnover (ev/yr 23.4→26.9) senza un beneficio che regga fuori campione.
 
+### 8.5 Bug di produzione trovato e corretto — il NAV non era composto
+
+Il giorno stesso della prima esecuzione live dopo il deploy (27→28 agosto 2026,
+migrazione v1→v2 forzata via `workflow_dispatch`), il grafico equity della
+dashboard ha mostrato un crollo del NAV da $243.770 a $160.436 (-34%) in un solo
+giorno — nessun evento di mercato reale lo giustificava.
+
+**Causa:** `update_equity_curve` ricalcolava ogni notte il NAV da zero come
+"capitale iniziale ($100k) + somma di tutto il P&L storico, con ogni trade
+dimensionato come `$100k × peso`" — questa base di capitale FISSA ignora
+completamente la crescita composta: dopo che il NAV reale è cresciuto ben oltre
+i $100k iniziali, ogni posizione avrebbe dovuto essere dimensionata come
+`NAV_corrente × peso`, non `$100k × peso`. Il giorno della migrazione, che ha
+chiuso ~24 posizioni v1 in blocco (facendole passare da "P&L aperto" a "P&L
+storico" nella stessa formula), ha reso visibile di colpo questo
+sottodimensionamento cronico, causando il crollo.
+
+**Correzione:** nuova funzione `mark_to_market_and_compound_nav` — il NAV è ora
+un valore persistito (`portfolio.json["nav_usd"]`) che si compone giorno per
+giorno (`nav_oggi = nav_ieri × (1 + rendimento pesato del giorno)`), esattamente
+come in tutti gli script di backtest di questo progetto. `update_equity_curve`
+si limita ora a registrarlo, senza più ricalcolarlo da zero. Aggiunta anche, per
+coerenza con i backtest (mai modellata prima nel tracking live), una deduzione
+del costo di transazione dal NAV ad ogni ribilanciamento (8bps ETF, 10bps
+titoli/crypto — stessa convenzione di `APEX_V2_SPEC.md` §8.2 test 2). Test in
+`test_backend.py` (4/4 passano).
+
+**Correzione del dato live:** usando lo snapshot del portafoglio v1 salvato
+poco prima della migrazione (prezzi "di ieri" per ciascuna posizione), è stato
+ricostruito il vero rendimento pesato del giorno (+2,20%) e applicato al NAV
+di chiusura del giorno prima ($243.770,52) invece di lasciare il valore
+corrotto o inventarne uno arbitrario: **NAV corretto = $249.125,46**, in
+continuità piena con la curva storica precedente. Nessun altro punto della
+curva storica risultava affetto (il bug si manifesta solo quando la base di
+capitale fissa diverge abbastanza dal NAV reale, cosa emersa con evidenza solo
+nel giorno di migrazione).
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)
