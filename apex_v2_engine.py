@@ -22,7 +22,7 @@ V2_VOL_TARGET = 0.13
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
 V2_EQUITY_VOL_LOOKBACK = 26
-V2_EQUITY_BUFFER_RANK = 100  # vedi APEX_V2_SPEC.md §8.3: dimezza il turnover trimestrale senza costo in Sharpe/Calmar
+V2_EQUITY_BUFFER_RANK = 20  # vedi APEX_V2_SPEC.md §8.3: valore corretto dopo bug nel calendario del backtest (era 100)
 
 
 def _weekly_close(df: pd.DataFrame) -> pd.Series:
@@ -112,10 +112,12 @@ def select_low_vol_basket(
     Buffer di isteresi sulla rank (§8.3 di APEX_V2_SPEC.md): un titolo gia' detenuto
     (`prev_tickers`) resta in basket se la sua posizione in classifica resta entro
     `buffer_rank`, anche se e' scesa fuori dal top-`top_n` esatto — senza buffer, il
-    rinnovo trimestrale misurato in backtest era quasi totale (~93% dei nomi sostituiti
-    ogni trimestre, per rumore di stima della volatilita' vicino alla soglia), un costo
-    fiscale/di transazione mai modellato prima. I NUOVI ingressi restano comunque
-    selezionati solo tra i migliori in assoluto (nessun allentamento sui nuovi nomi).
+    rinnovo trimestrale misurato in backtest era comunque sostanzioso (~60% dei nomi
+    sostituiti ogni trimestre, per rumore di stima della volatilita' vicino alla
+    soglia). Un buffer stretto (rank 20, poco oltre il top-15) riduce il turnover in
+    modo consistente; valori piu' larghi si sono rivelati rumorosi/inaffidabili sul
+    campione testato — vedi §8.3 per la griglia completa. I NUOVI ingressi restano
+    comunque selezionati solo tra i migliori in assoluto (nessun allentamento).
     """
     scored = []
     for sym, df in eq_data.items():

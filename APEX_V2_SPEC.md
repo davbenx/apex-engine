@@ -288,59 +288,124 @@ o un picco isolato, e se l'alpha misurato regge su un campione più severo.
 
 Backtest storico reale (non un solo punto nel tempo) della selezione per bassa
 volatilità sull'universo S&P 500 point-in-time, 2014-2026, 49 trimestri, verificato
-sui ~600 titoli con dati sufficienti in cache. Due risultati, uno negativo (già in
-§8.1) e uno strutturale che ha portato a una modifica del motore:
+sui ~600 titoli con dati sufficienti in cache.
 
-**Scoperta non cercata — turnover del basket molto più alto dell'assunto:** in
-media solo 1,4 titoli su 15 sopravvivono da un trimestre al successivo (~93% di
-rinnovo). Verificato non essere un artefatto di dati scadenti (le composizioni
-storiche sono titoli liquidi e noti — MCD, PG, IBM, DUK, AON, ecc.) ma un effetto
-strutturale: centinaia di titoli hanno volatilità realizzata molto simile vicino
-alla soglia dei 15, e il rumore di stima settimana-per-settimana rimescola
-pesantemente la classifica esatta. **Nessun backtest precedente in questo
-documento — inclusa la decisione originale di deploy — aveva mai simulato questo
-turnover**: tutti usano SPY come proxy della gamba azionaria a livello di segnale
-macro, che non cattura il churn a livello di singolo titolo. I costi di
-transazione e gli eventi tassabili reali della gamba azionaria erano quindi
-sottostimati in tutta l'analisi fin qui.
+**Bug trovato e corretto durante questa stessa sessione di test — dichiarato per
+trasparenza:** la prima versione di questo paragrafo riportava un turnover del
+~93% (1,4/15 titoli sopravvissuti a trimestre) e raccomandava `buffer_rank = 100`,
+già implementato in produzione. Costruendo il test di validazione end-to-end
+(sotto) è emerso un bug nel calendario dei prezzi: `pd.DataFrame` su 600+ titoli
+con calendari di trading leggermente disallineati (fonte dati gratuita) produce
+l'*unione* di tutte le date viste, non un calendario settimanale pulito —
+verificato che 26 righe indietro nell'indice corrispondevano a soli 59 giorni
+reali invece dei ~182 attesi per 26 settimane. La finestra di volatilità usata per
+selezionare il basket era quindi ~3 volte più corta del dichiarato. Corretto
+riallineando ogni titolo sul calendario canonico di SPY (reindex + ffill) in
+`basket_construction_tests.build_universe_frame`. Tutti i numeri sotto sono
+ricalcolati con il fix.
+
+**Scoperta confermata (ridimensionata dal fix, ma reale) — turnover del basket più
+alto dell'assunto:** in media 5,8 titoli su 15 sopravvivono da un trimestre al
+successivo (~61% di rinnovo, non ~93% come nella prima misura errata).
+Verificato non essere un artefatto di dati scadenti (le composizioni storiche
+sono titoli liquidi e noti — MCD, PG, IBM, DUK, AON, ecc.) ma un effetto
+strutturale: centinaia di titoli hanno volatilità realizzata simile vicino alla
+soglia dei 15, e il rumore di stima settimana-per-settimana rimescola la
+classifica esatta. **Nessun backtest precedente in questo documento — inclusa la
+decisione originale di deploy — aveva mai simulato questo turnover**: tutti usano
+SPY come proxy della gamba azionaria a livello di segnale macro.
 
 **Correzione applicata — buffer di isteresi sulla rank (stessa idea dell'isteresi
 già validata sul segnale macro, e della buffer rule usata dagli indici MSCI
-Minimum Volatility per lo stesso problema):**
+Minimum Volatility per lo stesso problema), numeri corretti:**
 
 | Buffer di permanenza | CAGR | Sharpe | Calmar | MaxDD | Turnover/trimestre |
 |---|---|---|---|---|---|
-| Nessuno (come deployato inizialmente) | 10.14% | 0.75 | 0.38 | 26.6% | 179.9% |
-| top-75 | 10.90% | 0.79 | 0.39 | 28.1% | 113.2% |
-| **top-100 (adottato)** | 9.95% | 0.77 | 0.39 | 25.3% | **92.1%** |
-| top-150 | 9.81% | 0.78 | 0.40 | 24.4% | 56.0% |
-| Illimitato (mai esce se non per rimozione da S&P 500) | 12.26% | 0.95 | 0.64 | 19.3% | 2.1% |
+| Nessuno | 9.30% | 0.75 | 0.40 | 23.5% | 121.0% |
+| top-16 | 9.44% | 0.76 | 0.40 | 23.5% | 117.1% |
+| top-18 | 9.47% | 0.78 | 0.44 | 21.6% | 112.6% |
+| **top-20 (adottato)** | **9.52%** | **0.79** | **0.44** | **21.6%** | 107.4% |
+| top-22 → top-150 | 7.81% – 9.01% | 0.65 – 0.77 | 0.33 – 0.43 | 20.3% – 23.7% | 96.5% → 19.0% |
+| Illimitato (mai esce se non per rimozione da S&P 500) | 13.15% | 0.97 | 0.62 | 21.1% | 2.1% |
 
 *(Nota: questi Sharpe/Calmar sono del basket azionario isolato, sempre investito
 al 100%, senza l'overlay di timing/vol-target di portafoglio — non sono
-confrontabili con lo Sharpe 1.39 della strategia intera. Il confronto valido è
-solo relativo, tra le righe di questa tabella.)*
+confrontabili con lo Sharpe della strategia intera. Vedi il test end-to-end sotto
+per il confronto valido.)*
 
-**Adottato: buffer_rank = 100** — dimezza il turnover (179.9%→92.1%) a costo
-sostanzialmente nullo (CAGR/Sharpe/Calmar/MaxDD tutti stabili o leggermente
-migliori). Implementato in `apex_v2_engine.select_low_vol_basket` (parametro
-`buffer_rank`, collegato a `backend.py` passando le posizioni azionarie già
-detenute). I nuovi ingressi restano sempre scelti solo tra i migliori in
-assoluto — il buffer allenta solo la permanenza, mai l'ingresso.
+**Adottato: buffer_rank = 20**, non 100. La zona 22-150 è **rumorosa e non
+monotona** (Sharpe oscilla tra 0.65 e 0.77 senza un pattern chiaro) — prendere
+alla lettera il singolo punto migliore in quella zona sarebbe stato lo stesso
+errore di data-snooping che questo documento cerca di evitare altrove. La zona
+16-20 invece è consistentemente migliore del nessun-buffer su ogni metrica, con
+un allentamento piccolo e facilmente giustificabile (poco oltre il top-15
+esatto). Scelto il punto migliore di quella zona stretta e coerente, non il
+singolo massimo assoluto del grid intero.
 
-**Scartato: buffer illimitato**, pur avendo i numeri migliori in tabella. Senza
-alcuna soglia di uscita per volatilità, il basket smette di fare sorveglianza
-continua e degenera in "compra i 15 titoli selezionati nel 2014 e non toccarli
-più" — il risultato brillante rischia di riflettere che quella specifica
-selezione iniziale si è rivelata buona col senno di poi, non un edge sistematico
-di rotazione per bassa volatilità. Un titolo il cui rischio aumenta molto nel
-tempo non verrebbe mai rimosso, contraddicendo lo scopo stesso del basket
-(contenere il rischio della gamba azionaria).
+**Scartato: buffer illimitato**, pur avendo ancora i numeri migliori in tabella
+dopo la correzione. Senza soglia di uscita per volatilità, il basket smette di
+fare sorveglianza continua e degenera in "compra i titoli selezionati nel 2014 e
+non toccarli più" — il risultato rischia di riflettere che quella selezione
+iniziale si è rivelata buona col senno di poi, non un edge sistematico di
+rotazione per bassa volatilità.
+
+**Validazione end-to-end (il test più importante di questa sessione):** tutti i
+backtest precedenti in questo documento — inclusa la decisione di deploy —
+usavano SPY come proxy della gamba azionaria nel segnale di timing. Con il fix
+del calendario, è stato simulato per la prima volta il sistema VERO (segnale
+macro + basket azionario reale con rotazione trimestrale e buffer-20), script
+`full_strategy_backtest.py`:
+
+| | CAGR | netA | Sharpe | Calmar | MaxDD | Alpha CAPM |
+|---|---|---|---|---|---|---|
+| **Sistema reale (basket top-15, buffer-20)** | 15.01% | 12.63% | 1.41 | **1.13** | **13.3%** | **11.31%** (t=3.96, p=0.0001) |
+| Proxy SPY (usato in tutti i test precedenti) | 14.92% | 12.61% | 1.39 | 0.94 | 15.9% | 10.64% (t=3.75, p=0.0002) |
+
+Il sistema reale **eguaglia o supera** l'approssimazione SPY su ogni metrica —
+Calmar e MaxDD sono nettamente migliori, l'alpha è leggermente più alto e più
+significativo. Il turnover reale del basket (che aveva sollevato il dubbio)
+**non fa un buco nel rendimento netto**: la decisione di deploy, presa sul proxy
+SPY, resta valida. Confrontati anche basket top-10 (CAGR 14.64%, Calmar 1.06) e
+top-20 (CAGR 14.87%, Calmar 1.11): il top-15 deployato resta il migliore o
+sostanzialmente alla pari — nessuna ragione per cambiare dimensione del basket.
 
 ### 8.4 To-do — decisioni aperte e miglioramenti non ancora testati
 
-Non azioni immediate: richiedono una scelta esplicita dell'utente o dati non
-ancora disponibili in questo repository.
+**Risolti in questo giro di test (vedi dettagli sopra):**
+- ~~Dimensione del basket in combinazione con l'overlay completo~~ — fatto
+  (§8.3, test end-to-end): top-15 resta il migliore o alla pari con top-10/20,
+  nessuna ragione per cambiare.
+- ~~Walk-forward vero~~ — fatto (script `walk_forward_test.py`): parametri scelti
+  massimizzando lo Sharpe SOLO sulla prima metà campione (2014-2020) vs la
+  scelta a-priori (40w/2%), confrontati fuori campione sulla seconda metà
+  (2020-2026). Risultato: **sostanzialmente pari** (Sharpe 1.35 vs 1.35, CAGR
+  14.66% vs 14.08%) — l'ottimizzazione cieca non batte in modo significativo la
+  scelta teorica, nessun segno del classico decadimento da overfitting.
+  Conferma che i parametri deployati non lasciano edge sul tavolo.
+- ~~Costi di transazione reali del broker~~ — verificato con dati reali del
+  conto IBKR collegato (205 trade azionari, gennaio-agosto 2026): commissione
+  media ponderata per valore **~1,18 bps**, molto sotto l'8-10bps assunto in
+  ogni backtest di questo documento. Le stime usate finora sono quindi
+  **conservative** (sovrastimano il costo reale), non ottimistiche. Non
+  verificato: costi su crypto/obbligazioni (nessun trade di quel tipo nel
+  campione), e lo spread bid-ask/slippage non è visibile nel dato di
+  commissione puro — la cifra reale copre solo la commissione del broker, non
+  il costo di esecuzione totale.
+
+**Nuova scoperta (prima non testabile, ora confermata con dati reali) — non
+ancora risolta:**
+- **Concentrazione settoriale nel basket, confermata reale**: recuperati i
+  settori (fonte: yfinance) per i 198 titoli distinti mai selezionati nel
+  basket buffer-20 su 12 anni. Il rischio non è teorico: in alcuni trimestri il
+  basket si è concentrato pesantemente in un solo settore — **Utilities al 47%
+  (7/15) nel 2019-Q3, al 53% (8/15) nel 2024-Q3** — perché la selezione per
+  bassa volatilità premia sistematicamente i settori difensivi (Utilities,
+  Consumer Staples) e in certi regimi quei settori dominano l'intero universo a
+  bassa vol. Un vincolo di concentrazione (es. max 3-4 titoli per settore,
+  prassi istituzionale standard) è ben giustificato, ma **non ancora
+  implementato né testato in backtest** — richiede ripetere la selezione con il
+  vincolo su tutti i ~600 titoli dell'universo (non solo i 198 mai scelti), un
+  giro di test aggiuntivo.
 
 **Decisioni aperte (testate, trade-off presentato, non ancora decise):**
 - **Decisione di ribilanciamento trimestrale invece di mensile** (§8.2 extra,
@@ -356,23 +421,6 @@ ancora disponibili in questo repository.
   0.97→0.92) perché le commodity sono crollate insieme alle azioni nel 2008 —
   è un diversificatore regime-dipendente (aiuta in stagflazione/rialzo tassi,
   non protegge in una crisi da shock di domanda), non un miglioramento pulito.
-- **Dimensione del basket azionario (10 vs 15 titoli)**: nel test isolato (§8.3)
-  top-10 ha Sharpe/Calmar migliori del top-15 deployato, ma non è stato ancora
-  verificato nella strategia completa (con l'overlay di timing/vol-target), e un
-  basket più piccolo aumenta il rischio idiosincratico per singolo titolo (10%
-  invece di 6.7% del portafoglio azionario per nome). Da testare in combinazione
-  prima di decidere.
-
-**Non ancora testati (dati non disponibili o priorità inferiore):**
-- **Vincolo di concentrazione settoriale nel basket**: nessuna mappatura
-  GICS/settore disponibile per i titoli point-in-time in questo repository —
-  richiede una fonte dati aggiuntiva.
-- **Walk-forward vero** (ottimizzazione su finestra scorrevole, non un singolo
-  backtest statico): la griglia MA/isteresi (§8.2) e il confronto campione
-  breve/lungo (§8.2 test 4) coprono parzialmente la robustezza, ma un walk-forward
-  completo non è stato fatto.
-- **Costi di transazione reali del broker in uso**: stress-testati fino a 5x
-  l'assunzione (§8.2 test 2), ma restano stime, non i costi effettivi.
 
 ---
 
