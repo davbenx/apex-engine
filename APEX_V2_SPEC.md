@@ -237,8 +237,17 @@ candidati dopo il deploy, entrambi respinti:
   10.14%→9.01%, Sharpe 0.75→0.65, Calmar 0.38→0.35 — peggiora su ogni metrica,
   probabilmente perché sovrappesa proprio i nomi con volatilità misurata più
   bassa, i più esposti al rumore di stima. Scartata.
+- **Espansione dell'universo crypto oltre BTC-USD** (due varianti, script
+  `trend_ts_short_and_crypto_variants.py`): (a) mix statico 70/30 BTC/ETH senza
+  rotazione, (b) basket a bassa volatilità (top-2 di 5: BTC/ETH/SOL/ADA/XRP,
+  rotazione trimestrale, stessa logica del basket azionario). Entrambe
+  peggiorano ogni metrica rispetto a BTC-only: Sharpe 1.39→1.36/1.26, Calmar
+  0.94→0.85/0.90, alpha CAPM 10.64%→9.35%/10.02% (entrambi comunque
+  significativi), eventi tassabili/anno 23.4→27.9/26.3. Nessun compenso nei
+  regimi difficili (Bear 2022: -7.9% baseline vs -8.4%/-8.7% con più crypto).
+  BTC-only domina su tutta la linea. Scartate entrambe.
 
-**Nota metodologica:** dopo 11 tentativi di miglioramento testati sullo stesso
+**Nota metodologica:** dopo 13 tentativi di miglioramento testati sullo stesso
 campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
 contro il rischio di data-snooping crescente (lo stesso principio che ha già
 smascherato il motore di selezione titoli v1). Il disegno deployato resta quello
