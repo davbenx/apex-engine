@@ -1,44 +1,56 @@
-# Apex Multi-Asset Quantitative Engine 🦅
+# Apex Multi-Asset Quantitative Engine v2 🦅
 
-Sistema quantitativo autonomo multi-asset basato su Macro Allocation a cascata (Waterfall), Cross-Sectional Momentum su S&P 500 e Crypto, Trailing Stops ancorati alla volatilità (ATR), ribilanciamento periodico e notifiche automatiche via Telegram.
+Timing multi-asset (isteresi + vol-targeting di portafoglio) su SPY / IEF / GLD /
+BTC-USD, con un basket di 15 titoli individuali a bassa volatilità al posto di un
+ETF azionario (carattere fiscale "redditi diversi" in Italia). Ribilanciamento
+mensile, notifiche Telegram, nessuno stop-loss per singola posizione.
+
+**Specifica operativa completa, non ambigua: [`APEX_V2_SPEC.md`](APEX_V2_SPEC.md).**
+Questo README è solo un orientamento rapido — per parametri, formule e
+giustificazione di ogni scelta fai riferimento alla specifica.
+
+v2 sostituisce il precedente motore a waterfall macro + selezione momentum Top-20:
+un audit statistico indipendente ha dimostrato che quella selezione titoli aveva
+expectancy negativa e statisticamente significativa (test a ingresso casuale,
+Deflated Sharpe Ratio, PBO via CSCV). L'alpha di v2 viene dal *timing* tra classi
+di attivo, verificato con regressione CAPM (alpha ~10-11%/anno, p<0.001, confermato
+anche fuori-campione).
 
 ---
 
 ## 🏛️ Architettura del Sistema
 
 ```
-                        ┌───────────────────────────────┐
-                        │   Macro Waterfall Engine      │
-                        │   (RSP, BTC, GC=F, IEF > MA200)│
-                        └──────────────┬────────────────┘
-                                       │
-            ┌──────────────────────────┼──────────────────────────┐
-            ▼                          ▼                          ▼
-   ┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
-   │ Azioni (Max 70%)│        │ Crypto (Max 15%)│        │  Oro (Max 10%)  │
-   │ S&P 500 Top 20  │        │ Spot / Perp Top3│        │ Copertura Macro │
-   └─────────────────┘        └─────────────────┘        └─────────────────┘
-                                       │
-                                       ▼ (Capitale Residuo)
-                              ┌─────────────────┐
-                              │ Obbligazioni /  │
-                              │ Liquidità (Resto│
-                              └─────────────────┘
+        ┌──────────────────────────────────────────────────────────┐
+        │  Segnale di timing (per classe, indipendente)              │
+        │  prezzo vs MA(40w) + isteresi ±2% → attivo/inattivo         │
+        └───────────────────────────┬──────────────────────────────┘
+                                     │
+                    ┌────────────────┴────────────────┐
+                    │  Vol-targeting di portafoglio     │
+                    │  scala l'esposizione totale verso  │
+                    │  un target di volatilità (13%)     │
+                    └────────────────┬────────────────┘
+                                     │
+      ┌───────────────┬─────────────┼─────────────┬───────────────┐
+      ▼               ▼             ▼             ▼               ▼
+┌───────────┐   ┌───────────┐ ┌───────────┐ ┌───────────┐  ┌───────────┐
+│ Azionario │   │   Bond    │ │    Oro    │ │  Crypto   │  │   Cash    │
+│ 15 titoli │   │    IEF    │ │    GLD    │ │  BTC-USD  │  │  residuo  │
+│ bassa vol.│   │           │ │           │ │           │  │           │
+│(rot. trim)│   │           │ │           │ │           │  │           │
+└───────────┘   └───────────┘ └───────────┘ └───────────┘  └───────────┘
 ```
 
-1. **Macro Waterfall Cockpit**:
-   - **Azioni**: Fino al 70% se `RSP > 200 SMA`
-   - **Crypto**: Fino al 15% se `BTC > 200 SMA`
-   - **Oro**: Fino al 10% se `GC=F > 200 SMA`
-   - **Obbligazioni**: Assorbe tutto il capitale residuo se `IEF > 200 SMA`
-   - **Liquidità**: Rifugio monetario se nessun asset è in trend positivo
-2. **Selezione Cross-Sectional Momentum**:
-   - Classifica i titoli in base a $\text{Score} = \frac{\text{ROC}(130)}{\text{NATR}(60)}$
-   - Filtro di ammissione: $\text{Prezzo} > \text{MA}(150)$, $\text{Score} > 0$, assenza di gap anomali
-3. **Gestione del Rischio & Trailing Stops**:
-   - Livello di protezione continuo a $\text{HH}(60) - 3.0 \times \text{ATR}(60)$
-   - Esecuzione stop automatica giornaliera; aggiornamento trailing stop ogni venerdì
-   - Rotazione mensile dell'azionario l'ultimo venerdì del mese
+1. **Segnale di timing**: per ciascuna classe, isteresi ±2% attorno alla MA a 40
+   settimane del proxy di segnale (SPY / IEF / GLD / BTC-USD).
+2. **Vol-targeting**: scala l'intera esposizione (mai a leva) per centrare una
+   volatilità di portafoglio del 13%, stimata sulle ultime 12 settimane.
+3. **Basket azionario**: 15 titoli a **bassa volatilità realizzata** (non momentum)
+   tra i membri storici dell'S&P 500, equal-weight, rotazione trimestrale della
+   composizione. Nessuno stop-loss per singola posizione — l'uscita è solo per
+   rotazione o disattivazione della classe.
+4. **Crypto**: solo BTC-USD, nessuna rotazione verso altcoin (testata e respinta).
 
 ---
 
@@ -48,13 +60,15 @@ Sistema quantitativo autonomo multi-asset basato su Macro Allocation a cascata (
 ├── .github/workflows/
 │   └── update_data.yml     # Cronjob GitHub Actions (giornaliero alle 23:00 UTC)
 ├── app.py                  # Dashboard Streamlit Web
-├── backend.py              # Motore di calcolo quantitativo e pipeline ordini
-├── apex_data.json          # Stato dei segnali e classifiche
-├── portfolio.json          # Posizioni aperte, stop loss e storico trade
+├── backend.py              # Pipeline: segnale → ribilanciamento → notifiche
+├── apex_v2_engine.py        # Motore isolato: segnale, vol-target, selezione basket
+├── test_apex_v2_engine.py   # Test unitari su dati sintetici
+├── APEX_V2_SPEC.md          # Specifica operativa completa (fonte di verità)
+├── apex_data.json          # Stato dei segnali, basket e isteresi (v2_state)
+├── portfolio.json          # Posizioni aperte, pesi e storico trade
 ├── equity.json             # Serie storica Mark-to-Market dell'Equity Curve
 ├── requirements.txt        # Dipendenze Python
-└── research/               # Suite di simulazione e backtest a 20 anni
-```
+└── research/               # Suite di simulazione e backtest storici
 
 ---
 

@@ -1,7 +1,8 @@
 """
-Apex Multi-Asset Quantitative Engine (Genesis Core Release)
-Autonomous quantitative engine for Waterfall Macro Allocation, Cross-Sectional Momentum,
-Trailing Stops, Dynamic Portfolio Tracking, and Telegram Notifications.
+Apex Multi-Asset Quantitative Engine v2
+Timing multi-asset (isteresi + vol-targeting) su SPY/IEF/GLD/BTC-USD + basket
+azionario a bassa volatilita', tracking di portafoglio e notifiche Telegram.
+Specifica completa: APEX_V2_SPEC.md.
 """
 
 import datetime
@@ -14,50 +15,26 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import numpy as np
 import pandas as pd
+
+from apex_v2_engine import (
+    compute_v2_macro_signal, select_low_vol_basket, is_quarter_end_month,
+    V2_CLASS_TICKER, V2_EQUITY_TOP_N,
+)
 
 # ==============================================================================
 # CONFIGURATION & CONSTANTS
 # ==============================================================================
 INITIAL_CAPITAL = 100_000.0
 
-# Position Sizing Weights
-EQUITY_POSITION_WEIGHT = 0.05       # 5% per equity position
-BTC_POSITION_WEIGHT = 0.10          # 10% for Bitcoin
-ALTCOIN_POSITION_WEIGHT = 0.05      # 5% for other cryptocurrencies
-MAX_EQUITY_POSITIONS = 20
-MAX_CRYPTO_POSITIONS = 3
-
-# Waterfall Macro Class Caps (%)
-MAX_EQUITIES_ALLOCATION = 70
-MAX_CRYPTO_ALLOCATION = 15
-MAX_GOLD_ALLOCATION = 10
-
-# Quantitative Screening Parameters (Weekly Base)
-EQUITIES_ROC_PERIOD = 26        # 26 settimane (~6 mesi)
-CRYPTO_ROC_PERIOD = 13          # 13 settimane (~3 mesi)
-EQUITIES_GAP_LIMIT = 15.0
-CRYPTO_GAP_LIMIT = 40.0
-ATR_STOP_MULTIPLIER = 3.0
-MA_LONG_PERIOD = 40             # 40 settimane (~200 giorni / 10 mesi)
-MA_MID_PERIOD = 30              # 30 settimane (~150 giorni / 7 mesi)
-HH_PERIOD = 12                  # 12 settimane (~60 giorni / 3 mesi)
-GAP_PERIOD = 18                 # 18 settimane (~90 giorni)
-
 # Persistence File Names
 APEX_DATA_FILE = 'apex_data.json'
 PORTFOLIO_FILE = 'portfolio.json'
 EQUITY_FILE = 'equity.json'
 
-# Benchmarks & Universes
-BENCHMARK_TICKERS = ['RSP', 'SPY', 'BTC-USD', 'GC=F', 'IEF', 'EURUSD=X']
-CRYPTO_FALLBACK = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD', 'ADA-USD', 'DOGE-USD']
-CRYPTO_BLACKLIST = {
-    'USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'STETH', 'WSTETH', 'WBTC',
-    'WBETH', 'WETH', 'AETHWETH', 'BTCB', 'WEETH', 'USDE', 'USDG', 'USDS', 'CBBTC',
-    'XAUT', 'PAXG', 'KAG', 'KAU', 'EURT', 'EURC', 'PYUSD', 'BUSD', 'USDD', 'FRAX'
-}
+# Benchmarks (solo per display/FX — il segnale di timing usa V2_CLASS_TICKER)
+DISPLAY_TICKERS = ['EURUSD=X']
+
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 MAX_WORKERS_DEFAULT = 3
 MAX_WORKERS_CRYPTO = 2
@@ -168,182 +145,13 @@ def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asse
 fetch_bulk_parallel = download_universe_batch
 
 
-def get_tradable_crypto_universe():
-    """Fetches actively traded spot/perp crypto candidates on Kraken & Yahoo Finance."""
-    try:
-        req_k = urllib.request.Request(
-            'https://futures.kraken.com/derivatives/api/v3/instruments',
-            headers={'User-Agent': USER_AGENT}
-        )
-        kr_data = json.loads(urllib.request.urlopen(req_k, timeout=8).read().decode())['instruments']
-        kr_bases = set()
-        for d in kr_data:
-            if d.get('tradeable'):
-                s = d['symbol'].upper().replace('PI_', '').replace('PF_', '').replace('USD', '')
-                if s == 'XBT':
-                    s = 'BTC'
-                kr_bases.add(s)
-
-        url = "https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=false&lang=en-US&region=US&scrIds=all_cryptocurrencies_us&start=0&count=100"
-        req_y = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-        res_y = urllib.request.urlopen(req_y, timeout=8).read().decode()
-        quotes = json.loads(res_y)['finance']['result'][0]['quotes']
-
-        c_ticks = []
-        for q in quotes:
-            sym = q['symbol']
-            base = sym.replace('-USD', '')
-            if base not in CRYPTO_BLACKLIST and not any(char.isdigit() for char in base) and base in kr_bases:
-                c_ticks.append(sym)
-        return c_ticks[:30] if c_ticks else CRYPTO_FALLBACK
-    except Exception as e:
-        print(f"[!] Errore recupero lista crypto dinamica ({e}). Uso fallback predefinito.")
-        return CRYPTO_FALLBACK
-
-
 # ==============================================================================
-# QUANTITATIVE INDICATOR ENGINE (WEEKLY BASE)
+# PREZZI CORRENTI (v2 non ha bisogno degli indicatori pesanti di v1 — nessuno
+# stop-loss per posizione, nessuna selezione per momentum: vedi APEX_V2_SPEC.md)
 # ==============================================================================
-def calc_indicators(df_dict, roc_period=EQUITIES_ROC_PERIOD):
-    """Calculates weekly indicators: ROC momentum (26w/13w), SMA 30/40w, ATR(12w), Highest High(12w), and Gap volatility."""
-    if not df_dict:
-        return None
-
-    weekly_closes = {}
-    weekly_highs = {}
-    weekly_lows = {}
-    weekly_opens = {}
-
-    for k, v in df_dict.items():
-        if v.empty:
-            continue
-        v_w = v.resample('W-FRI').agg({
-            'Open': 'first',
-            'High': 'max',
-            'Low': 'min',
-            'Close': 'last'
-        }).dropna()
-        if not v_w.empty:
-            weekly_closes[k] = v_w['Close']
-            weekly_highs[k] = v_w['High']
-            weekly_lows[k] = v_w['Low']
-            weekly_opens[k] = v_w['Open']
-
-    if not weekly_closes:
-        return None
-
-    closes = pd.DataFrame(weekly_closes).ffill()
-    highs = pd.DataFrame(weekly_highs).ffill()
-    lows = pd.DataFrame(weekly_lows).ffill()
-    opens = pd.DataFrame(weekly_opens).ffill()
-    prev_closes = closes.shift(1)
-
-    ma200 = closes.rolling(window=MA_LONG_PERIOD, min_periods=20).mean()
-    ma150 = closes.rolling(window=MA_MID_PERIOD, min_periods=15).mean()
-
-    hl = highs - lows
-    hp = (highs - prev_closes).abs()
-    lp = (lows - prev_closes).abs()
-    tr = pd.DataFrame(np.maximum(hl.values, np.maximum(hp.values, lp.values)),
-                      index=closes.index, columns=closes.columns)
-
-    atr = tr.rolling(window=HH_PERIOD, min_periods=6).mean()
-    score = (closes.pct_change(periods=roc_period) * 100) / ((atr / closes) * 100 + 1e-6)
-    highest_high_60 = highs.rolling(window=HH_PERIOD, min_periods=6).max()
-
-    gaps = ((closes - prev_closes) / prev_closes) * 100
-    gap_max = gaps.rolling(window=GAP_PERIOD, min_periods=1).max()
-    gap_min = gaps.rolling(window=GAP_PERIOD, min_periods=1).min()
-
-    return {
-        'c': closes, 'low': lows, 'open': opens, 'high': highs,
-        'm200': ma200, 'm150': ma150, 'atr': atr,
-        'score': score, 'hh60': highest_high_60,
-        'g_max': gap_max, 'g_min': gap_min
-    }
-
-
-def process_engine(inds, atr_multiplier, gap_limit, is_crypto=False):
-    """Filters, scores, and ranks asset universe based on weekly quantitative criteria."""
-    if not inds or inds['c'].empty:
-        return []
-
-    results = []
-    for sym in inds['c'].columns:
-        if inds['m150'][sym].empty or pd.isna(inds['m150'][sym].iloc[-1]):
-            continue
-
-        c = float(inds['c'][sym].iloc[-1])
-        m150 = float(inds['m150'][sym].iloc[-1])
-        sc = float(inds['score'][sym].iloc[-1]) if pd.notna(inds['score'][sym].iloc[-1]) else -99.0
-        a = float(inds['atr'][sym].iloc[-1]) if pd.notna(inds['atr'][sym].iloc[-1]) else 0.0
-        hh = float(inds['hh60'][sym].iloc[-1]) if pd.notna(inds['hh60'][sym].iloc[-1]) else c
-        g_max = float(inds['g_max'][sym].iloc[-1]) if pd.notna(inds['g_max'][sym].iloc[-1]) else 0.0
-        g_min = float(inds['g_min'][sym].iloc[-1]) if pd.notna(inds['g_min'][sym].iloc[-1]) else 0.0
-
-        trail_stop = hh - (atr_multiplier * a)
-
-        # Quantitative admission filters
-        if c > 0.000001 and c > m150 and sc > 0 and g_max < gap_limit and g_min > -gap_limit and c > trail_stop:
-            res_sym = sym.replace('-USD', '') if is_crypto else sym
-            results.append({
-                "Ticker": res_sym,
-                "Prezzo ($)": round(c, 6 if is_crypto and c < 1 else 2),
-                "Momentum Score": round(sc, 2),
-                "Stop Loss ($)": round(trail_stop, 6 if is_crypto and trail_stop < 1 else 2)
-            })
-
-    df_res = pd.DataFrame(results).sort_values(by="Momentum Score", ascending=False)
-    return df_res.to_dict(orient="records")
-
-
-# ==============================================================================
-# MACRO ENGINE & WATERFALL ALLOCATION
-# ==============================================================================
-def calculate_macro_allocation(b_data):
-    """Computes regime metrics and resolves optimal capital distribution via fixed-hierarchy Waterfall using weekly trend."""
-    macro = {}
-    for t in BENCHMARK_TICKERS:
-        if t not in b_data or b_data[t].empty:
-            continue
-        df = b_data[t]
-        df_w = df.resample('W-FRI').agg({'Close': 'last'}).dropna()
-        price = float(df['Close'].iloc[-1])
-        ma40 = float(df_w['Close'].rolling(MA_LONG_PERIOD, min_periods=20).mean().iloc[-1]) if len(df_w) >= 20 else price
-        macro[t] = {'price': price, 'ma200': ma40}
-
-    allocations = {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 0}
-    capital = 100
-
-    # 1. Azioni (Max 70%)
-    if "RSP" in macro and macro["RSP"]['price'] > macro["RSP"]['ma200']:
-        take = min(MAX_EQUITIES_ALLOCATION, capital)
-        allocations["Equities"] = take
-        capital -= take
-
-    # 2. Crypto (Max 15%)
-    if "BTC-USD" in macro and macro["BTC-USD"]['price'] > macro["BTC-USD"]['ma200']:
-        take = min(MAX_CRYPTO_ALLOCATION, capital)
-        allocations["Crypto"] = take
-        capital -= take
-
-    # 3. Oro (Max 10%)
-    if "GC=F" in macro and macro["GC=F"]['price'] > macro["GC=F"]['ma200']:
-        take = min(MAX_GOLD_ALLOCATION, capital)
-        allocations["Gold"] = take
-        capital -= take
-
-    # 4. Obbligazioni (Resto del capitale, senza cap se trend positivo)
-    if capital > 0:
-        if "IEF" in macro and macro["IEF"]['price'] > macro["IEF"]['ma200']:
-            allocations["Bonds"] = capital
-            capital = 0
-
-    # 5. Cash (Fondo Monetario per tutto cio' che avanza se i Bond sono negativi)
-    if capital > 0:
-        allocations["Cash"] = capital
-
-    return macro, allocations
+def latest_prices(data_dict):
+    """Restituisce l'ultimo prezzo di chiusura giornaliero per ciascun simbolo scaricato."""
+    return {sym: float(df['Close'].iloc[-1]) for sym, df in data_dict.items() if not df.empty}
 
 
 def update_macro_regimes(allocations, old_data, today_str):
@@ -371,13 +179,17 @@ def update_macro_regimes(allocations, old_data, today_str):
 # ==============================================================================
 # EQUITY CURVE & PORTFOLIO TRACKING
 # ==============================================================================
-def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds, today_str):
-    """Updates daily OHLC equity curve tracking based on real portfolio holdings & closed history."""
-    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "macro_positions": {}, "trade_history": []})
+def update_equity_curve(prices_by_ticker, today_str):
+    """Updates daily OHLC equity curve tracking based on real portfolio holdings & closed history.
+
+    v2: le posizioni (azioni del basket, IEF, GLD, BTC) vivono tutte in open_positions con
+    un peso target esplicito — non serve piu' un dizionario "macro_positions" separato.
+    """
+    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
 
     # 1. Closed trades realized P&L sum (weighted by trade size)
     closed_pnl_usd = sum(
-        (t.get("profit_pct", 0.0) / 100.0) * (INITIAL_CAPITAL * t.get("weight", EQUITY_POSITION_WEIGHT))
+        (t.get("profit_pct", 0.0) / 100.0) * (INITIAL_CAPITAL * t.get("weight", 0.0))
         for t in pf.get("trade_history", [])
     )
 
@@ -385,27 +197,13 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds, today_str):
     open_pnl_usd = 0.0
     for ticker, pos in pf.get("open_positions", {}).items():
         is_crypto = pos.get("is_crypto", False)
-        inds = cr_inds if is_crypto else eq_inds
         sym = ticker + "-USD" if is_crypto else ticker
         entry_p = pos.get("entry_price", 0.0)
-        if inds and sym in inds['c'].columns and entry_p > 0:
-            cur_p = float(inds['c'][sym].iloc[-1])
+        cur_p = prices_by_ticker.get(sym)
+        if cur_p is not None and entry_p > 0:
             pnl_pct = (cur_p / entry_p - 1.0)
-            weight = pos.get("weight", BTC_POSITION_WEIGHT if ticker == "BTC" else ALTCOIN_POSITION_WEIGHT if is_crypto else EQUITY_POSITION_WEIGHT)
-            size = INITIAL_CAPITAL * weight
+            size = INITIAL_CAPITAL * pos.get("weight", 0.0)
             open_pnl_usd += pnl_pct * size
-
-    # 3. Macro hedges floating P&L sum
-    alloc = data_dict.get("allocations", {})
-    for asset, sym in [("Gold", "GC=F"), ("Bonds", "IEF")]:
-        if alloc.get(asset, 0) > 0 and asset in pf.get("macro_positions", {}):
-            pos = pf["macro_positions"][asset]
-            entry_p = pos.get("entry_price", 0.0)
-            if b_inds and sym in b_inds['c'].columns and entry_p > 0:
-                cur_p = float(b_inds['c'][sym].iloc[-1])
-                pnl_pct = (cur_p / entry_p - 1.0)
-                alloc_cap = INITIAL_CAPITAL * (alloc.get(asset, 0) / 100.0)
-                open_pnl_usd += pnl_pct * alloc_cap
 
     current_portfolio_value = round(INITIAL_CAPITAL + closed_pnl_usd + open_pnl_usd, 2)
     eq_data = load_json_safe(EQUITY_FILE, default={"history": []})
@@ -442,216 +240,111 @@ def update_equity_curve(data_dict, b_inds, eq_inds, cr_inds, today_str):
     print(f"[+] Equity Curve Reale aggiornata: {current_portfolio_value:,.2f}")
 
 
-def update_portfolio(output, b_inds, eq_inds, cr_inds, today_str):
-    """Executes trailing stops, weekly additions/liquidations, macro hedge tracking and monthly rotations."""
-    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "macro_positions": {}, "trade_history": []})
+def _close_position(pf, ticker, pos, exit_price, exit_date, reason, action_log, verb="CHIUSURA"):
+    entry_p = pos.get("entry_price", 0.0)
+    profit_pct = (exit_price / entry_p - 1.0) if entry_p > 0 else 0.0
+    pf.setdefault("trade_history", []).append({
+        "ticker": ticker,
+        "entry_date": pos.get("entry_date", exit_date),
+        "exit_date": exit_date,
+        "entry_price": entry_p,
+        "exit_price": exit_price,
+        "profit_pct": round(profit_pct * 100, 2),
+        "weight": pos.get("weight", 0.0),
+        "reason": reason,
+    })
+    action_log.append(f"🔴 {verb}: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
 
-    is_friday, is_rotation = is_rebalancing_schedule()
+
+def update_portfolio(allocations, basket, prices_by_ticker, today_str):
+    """
+    Ribilancia il portafoglio verso i pesi target Apex v2 (vedi APEX_V2_SPEC.md §2-4).
+    Ogni posizione la cui composizione (basket trimestrale) o il cui peso (vol-target
+    mensile) cambia viene chiusa e riaperta: e' il modello di turnover gia' validato
+    nel backtest (~109 eventi tassabili/anno), non un incidente di implementazione.
+
+    Nessuno stop-loss per singola posizione (cambiamento deliberato rispetto a v1 —
+    vedi APEX_V2_SPEC.md §4): l'uscita avviene solo per rotazione del basket o
+    disattivazione della classe di attivo.
+    """
+    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
     action_log = []
 
-    # 1. Stop Losses & Trailing Stop Updates
-    sold_keys = []
-    for ticker, pos in pf["open_positions"].items():
-        is_crypto = pos.get("is_crypto", False)
-        inds = cr_inds if is_crypto else eq_inds
+    # Migrazione one-time da v1: liquida tutto cio' che il vecchio motore aveva aperto,
+    # una volta sola (vedi APEX_V2_SPEC.md §9 — decisione esplicita dell'utente).
+    if not pf.get("v2_migrated", False):
+        for ticker, pos in list(pf.get("open_positions", {}).items()):
+            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
+            _close_position(pf, ticker, pos, exit_price, today_str, "🔁 Migrazione a v2", action_log, verb="MIGRAZIONE V2 (VENDITA)")
+        for asset, pos in list(pf.get("macro_positions", {}).items()):
+            sym = {"Gold": "GLD", "Bonds": "IEF"}.get(asset)
+            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0)) if sym else pos.get("entry_price", 0.0)
+            _close_position(pf, f"{asset} (Hedge)", pos, exit_price, today_str, "🔁 Migrazione a v2", action_log, verb="MIGRAZIONE V2 (CHIUSURA HEDGE)")
+        pf["open_positions"] = {}
+        pf["macro_positions"] = {}
+        pf["v2_migrated"] = True
+
+    current = pf.get("open_positions", {})
+
+    # Pesi target: basket azionario equal-weight dentro lo slot Equities, poi IEF/GLD/BTC
+    target = {}
+    n_basket = max(1, len(basket))
+    eq_slot = allocations.get("Equities", 0.0) / 100.0
+    for row in basket:
+        target[row["Ticker"]] = eq_slot / n_basket
+    if allocations.get("Bonds", 0.0) > 0:
+        target["IEF"] = allocations["Bonds"] / 100.0
+    if allocations.get("Gold", 0.0) > 0:
+        target["GLD"] = allocations["Gold"] / 100.0
+    if allocations.get("Crypto", 0.0) > 0:
+        target["BTC"] = allocations["Crypto"] / 100.0
+
+    EPS = 1e-4  # tolleranza sotto la quale non vale la pena ribilanciare (rumore di calcolo)
+
+    # Chiudi posizioni non piu' desiderate o il cui peso target e' cambiato
+    for ticker, pos in list(current.items()):
+        tgt_w = target.get(ticker)
+        cur_w = pos.get("weight", 0.0)
+        if tgt_w is None:
+            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
+            _close_position(pf, ticker, pos, exit_price, today_str, "🔄 Uscito da basket/classe disattivata", action_log)
+            del current[ticker]
+        elif abs(tgt_w - cur_w) > EPS:
+            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
+            _close_position(pf, ticker, pos, exit_price, today_str, "⚖️ Ribilanciamento mensile (peso)", action_log)
+            del current[ticker]
+
+    # Apri (o riapri a nuovo peso) le posizioni target
+    for ticker, tgt_w in target.items():
+        if ticker in current or tgt_w <= EPS:
+            continue
+        is_crypto = (ticker == "BTC")
         sym = ticker + "-USD" if is_crypto else ticker
+        price = prices_by_ticker.get(sym)
+        if price is None or price <= 0:
+            action_log.append(f"⚠️ Impossibile aprire {ticker}: prezzo non disponibile")
+            continue
+        current[ticker] = {
+            "entry_date": today_str,
+            "entry_price": price,
+            "current_price": price,
+            "stop_loss": 0.0,  # v2 non usa stop per posizione — vedi APEX_V2_SPEC.md §4
+            "is_crypto": is_crypto,
+            "weight": tgt_w,
+        }
+        action_log.append(f"🟢 APERTURA: {ticker} (peso {tgt_w * 100:.2f}%) | Prezzo: {fmt_usd(price)}")
 
-        if inds and sym in inds['c'].columns:
-            low_price = float(inds['low'][sym].iloc[-1]) if 'low' in inds else float(inds['c'][sym].iloc[-1])
-            close_price = float(inds['c'][sym].iloc[-1])
-            pos["current_price"] = close_price
+    # Aggiorna il prezzo corrente delle posizioni rimaste invariate
+    for ticker, pos in current.items():
+        sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+        if sym in prices_by_ticker:
+            pos["current_price"] = prices_by_ticker[sym]
 
-            if is_friday:
-                try:
-                    atr = float(inds['atr'][sym].iloc[-1])
-                    hh = float(inds['hh60'][sym].iloc[-1]) if pd.notna(inds['hh60'][sym].iloc[-1]) else close_price
-                    new_stop = hh - (atr * ATR_STOP_MULTIPLIER)
-                    if new_stop > pos["stop_loss"]:
-                        pos["stop_loss"] = new_stop
-                except Exception:
-                    pass
-
-            if low_price < pos["stop_loss"]:
-                open_price = float(inds['open'][sym].iloc[-1]) if 'open' in inds else close_price
-                exit_price = open_price if open_price < pos["stop_loss"] else pos["stop_loss"]
-                entry_p = pos.get("entry_price", 0.0)
-                profit_pct = (exit_price / entry_p) - 1.0 if entry_p > 0 else 0.0
-
-                pf["trade_history"].append({
-                    "ticker": ticker,
-                    "entry_date": pos.get("entry_date", today_str),
-                    "exit_date": today_str,
-                    "entry_price": entry_p,
-                    "exit_price": exit_price,
-                    "profit_pct": round(profit_pct * 100, 2),
-                    "weight": pos.get("weight", EQUITY_POSITION_WEIGHT),
-                    "reason": "🛡️ Trailing Stop"
-                })
-                p_fmt = fmt_usd(exit_price)
-                action_log.append(f"🔴 STOP LOSS (VENDITA): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
-                sold_keys.append(ticker)
-
-    for k in sold_keys:
-        del pf["open_positions"][k]
-
-    # 2. Track / Update Macro Positions (Gold & Bonds)
-    alloc = output.get("allocations", {})
-    for asset, sym in [("Gold", "GC=F"), ("Bonds", "IEF")]:
-        if alloc.get(asset, 0) > 0:
-            if asset not in pf["macro_positions"]:
-                price = float(b_inds['c'][sym].iloc[-1]) if b_inds and sym in b_inds['c'].columns else 0.0
-                pf["macro_positions"][asset] = {"entry_date": today_str, "entry_price": price, "current_price": price}
-                action_log.append(f"🛡️ HEDGE ATTIVATO: {asset} a {price:.2f}")
-
-    for asset, pos in pf["macro_positions"].items():
-        sym = "GC=F" if asset == "Gold" else "IEF"
-        if b_inds and sym in b_inds['c'].columns:
-            pos["current_price"] = float(b_inds['c'][sym].iloc[-1])
-
-    # 3. Monthly Rotation (Sells executed first on rotation Friday to free slots, effective next Monday)
-    exec_monday = (datetime.datetime.strptime(today_str, "%Y-%m-%d") + datetime.timedelta(days=3)).strftime("%Y-%m-%d") if is_friday else today_str
-
-    if is_rotation:
-        desired = {row["Ticker"]: True for row in output.get("top20", [])}
-        desired.update({row["Ticker"]: True for row in output.get("crypto_top", [])})
-
-        sold_rot = []
-        for ticker, pos in list(pf["open_positions"].items()):
-            if ticker not in desired:
-                is_crypto = pos.get("is_crypto", False)
-                inds = cr_inds if is_crypto else eq_inds
-                sym = ticker + "-USD" if is_crypto else ticker
-                entry_p = pos.get("entry_price", 0.0)
-                close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else entry_p
-                profit_pct = (close_price / entry_p) - 1.0 if entry_p > 0 else 0.0
-
-                pf["trade_history"].append({
-                    "ticker": ticker,
-                    "entry_date": pos.get("entry_date", today_str),
-                    "exit_date": exec_monday,
-                    "entry_price": entry_p,
-                    "exit_price": close_price,
-                    "profit_pct": round(profit_pct * 100, 2),
-                    "weight": pos.get("weight", EQUITY_POSITION_WEIGHT),
-                    "reason": "🔄 Rotazione Mensile"
-                })
-                p_fmt = fmt_usd(close_price)
-                action_log.append(f"🔄 ROTAZIONE (VENDITA LUNEDÌ): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
-                sold_rot.append(ticker)
-
-        for k in sold_rot:
-            del pf["open_positions"][k]
-
-    # 4. Weekly Friday Actions (Forced Sells & New Buys, effective next Monday)
-    if is_friday:
-        forced_sells = []
-        for ticker, pos in list(pf["open_positions"].items()):
-            is_crypto = pos.get("is_crypto", False)
-            if is_crypto and alloc.get("Crypto", 0) == 0:
-                forced_sells.append(ticker)
-            elif not is_crypto and alloc.get("Equities", 0) == 0:
-                forced_sells.append(ticker)
-
-        for ticker in forced_sells:
-            pos = pf["open_positions"][ticker]
-            is_crypto = pos.get("is_crypto", False)
-            inds = cr_inds if is_crypto else eq_inds
-            sym = ticker + "-USD" if is_crypto else ticker
-            entry_p = pos.get("entry_price", 0.0)
-            close_price = float(inds['c'][sym].iloc[-1]) if inds and sym in inds['c'].columns else entry_p
-            profit_pct = (close_price / entry_p) - 1.0 if entry_p > 0 else 0.0
-
-            pf["trade_history"].append({
-                "ticker": ticker,
-                "entry_date": pos.get("entry_date", today_str),
-                "exit_date": exec_monday,
-                "entry_price": entry_p,
-                "exit_price": close_price,
-                "profit_pct": round(profit_pct * 100, 2),
-                "weight": pos.get("weight", EQUITY_POSITION_WEIGHT),
-                "reason": "⚠️ Regime Ribassista"
-            })
-            p_fmt = fmt_usd(close_price)
-            action_log.append(f"🔴 CAMBIO REGIME (VENDITA LUNEDÌ): {ticker} | Prezzo Uscita: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
-            del pf["open_positions"][ticker]
-
-        # Buy equities to deploy cash
-        if alloc.get("Equities", 0) > 0:
-            current_eq = len([k for k, v in pf["open_positions"].items() if not v.get("is_crypto", False)])
-            to_buy = MAX_EQUITY_POSITIONS - current_eq
-            if to_buy > 0:
-                for row in output.get("top20", []):
-                    ticker = row["Ticker"]
-                    if ticker not in pf["open_positions"]:
-                        p_val = row["Prezzo ($)"]
-                        sl_val = row["Stop Loss ($)"]
-                        dist_sl = ((sl_val / p_val) - 1.0) * 100 if p_val > 0 else 0.0
-                        pf["open_positions"][ticker] = {
-                            "entry_date": exec_monday,
-                            "entry_price": p_val,
-                            "stop_loss": sl_val,
-                            "is_crypto": False,
-                            "weight": EQUITY_POSITION_WEIGHT
-                        }
-                        action_log.append(
-                            f"🟢 ACQUISTO AZIONI (LUNEDÌ): {ticker} (Quota: 5%) | Prezzo: ${p_val:,.2f} | Stop Loss: ${sl_val:,.2f} ({dist_sl:+.2f}%)"
-                        )
-                        to_buy -= 1
-                        if to_buy == 0:
-                            break
-
-        # Buy crypto top 3 with strict position capping
-        if alloc.get("Crypto", 0) > 0:
-            current_cr = len([k for k, v in pf["open_positions"].items() if v.get("is_crypto", False)])
-            to_buy_cr = MAX_CRYPTO_POSITIONS - current_cr
-            if to_buy_cr > 0:
-                for row in output.get("crypto_top", []):
-                    ticker = row["Ticker"]
-                    if ticker not in pf["open_positions"]:
-                        p_val = row["Prezzo ($)"]
-                        sl_val = row["Stop Loss ($)"]
-                        dist_sl = ((sl_val / p_val) - 1.0) * 100 if p_val > 0 else 0.0
-                        weight_pct = 10 if ticker == "BTC" else 5
-                        weight_dec = BTC_POSITION_WEIGHT if ticker == "BTC" else ALTCOIN_POSITION_WEIGHT
-                        p_fmt = fmt_usd(p_val)
-                        sl_fmt = fmt_usd(sl_val)
-                        pf["open_positions"][ticker] = {
-                            "entry_date": today_str,
-                            "entry_price": p_val,
-                            "stop_loss": sl_val,
-                            "is_crypto": True,
-                            "weight": weight_dec
-                        }
-                        action_log.append(
-                            f"🟢 ACQUISTO CRYPTO (24/7): {ticker} (Quota: {weight_pct}%) | Prezzo: {p_fmt} | Stop Loss: {sl_fmt} ({dist_sl:+.2f}%)"
-                        )
-                        to_buy_cr -= 1
-                        if to_buy_cr == 0:
-                            break
-
-        # Close macro hedges if deactivated
-        for asset in list(pf["macro_positions"].keys()):
-            if alloc.get(asset, 0) == 0:
-                pos = pf["macro_positions"][asset]
-                sym = "GC=F" if asset == "Gold" else "IEF"
-                entry_p = pos.get("entry_price", 0.0)
-                exit_price = float(b_inds['c'][sym].iloc[-1]) if b_inds and sym in b_inds['c'].columns else entry_p
-                profit_pct = (exit_price / entry_p) - 1.0 if entry_p > 0 else 0.0
-
-                pf["trade_history"].append({
-                    "ticker": f"{asset} (Hedge)",
-                    "entry_date": pos.get("entry_date", today_str),
-                    "exit_date": today_str,
-                    "entry_price": entry_p,
-                    "exit_price": exit_price,
-                    "profit_pct": round(profit_pct * 100, 2),
-                    "weight": MAX_GOLD_ALLOCATION / 100.0 if asset == "Gold" else 0.20,
-                    "reason": "🛡️ Chiusura Copertura Macro"
-                })
-                p_fmt = fmt_usd(exit_price)
-                action_log.append(f"🛑 HEDGE CHIUSO (VENDITA): {asset} | Prezzo: {p_fmt} | Rendimento: {round(profit_pct*100, 2):+0.2f}%")
-                del pf["macro_positions"][asset]
-
+    pf["open_positions"] = current
+    pf["macro_positions"] = {}  # v2: oro/bond vivono in open_positions come le altre posizioni
     save_json_atomic(PORTFOLIO_FILE, pf)
     return action_log
 
@@ -682,8 +375,7 @@ def send_telegram_alert(data_dict, action_log):
         if action_log:
             msg += "🚀 *ORDINI DA ESEGUIRE OGGI*\n"
             for log in action_log:
-                if any(k in log for k in ("ACQUISTO", "VENDITA", "BEAR", "STOP LOSS", "HEDGE")):
-                    msg += f"• {log}\n"
+                msg += f"• {log}\n"
             msg += "\n"
 
         alloc = data_dict.get('allocations', {})
@@ -702,17 +394,17 @@ def send_telegram_alert(data_dict, action_log):
         pf = load_json_safe(PORTFOLIO_FILE, default={})
         open_pos = pf.get("open_positions", {})
         if open_pos:
-            msg += "💼 *IL TUO PORTAFOGLIO (AGGIORNA STOP)*\n"
+            msg += "💼 *IL TUO PORTAFOGLIO*\n"
             for ticker, info in open_pos.items():
                 cur_p = info.get("current_price", info.get("entry_price", 0.0))
-                sl_p = info.get("stop_loss", 0.0)
-                dist_sl = ((sl_p / cur_p) - 1.0) * 100 if cur_p > 0 else 0.0
-                msg += f"• *{ticker}* | Prezzo: {fmt_usd(cur_p)} | Stop: `{fmt_usd(sl_p)}` ({dist_sl:+.2f}%)\n"
+                pnl_pct = ((cur_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
+                w_pct = info.get("weight", 0.0) * 100.0
+                msg += f"• *{ticker}* | Peso: {w_pct:.1f}% | Prezzo: {fmt_usd(cur_p)} | Rendimento: {pnl_pct:+.2f}%\n"
             msg += "\n"
 
-        is_friday, is_rotation = is_rebalancing_schedule()
-        if is_rotation:
-            msg += "🔄 *ROTAZIONE MENSILE ATTIVA*\nAccedi alla Dashboard per completare la rotazione dei titoli.\n\n"
+        _, is_rotation_now = is_rebalancing_schedule()
+        if is_rotation_now:
+            msg += "🔄 *DECISIONE MENSILE ESEGUITA*\nAccedi alla Dashboard per il dettaglio del ribilanciamento.\n\n"
 
         msg += "💡 _Accedi ad Apex Engine per i dettagli operativi._"
 
@@ -731,82 +423,118 @@ def send_telegram_alert(data_dict, action_log):
 def main():
     start_time = time.time()
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    print("=== AVVIO APEX ENGINE (Genesis Core Pipeline) ===")
+    print("=== AVVIO APEX ENGINE v2 (Timing Multi-Asset + Basket Azionario Low-Vol) ===")
+    print("    Vedi APEX_V2_SPEC.md per la specifica completa.")
+
+    is_friday, is_rotation = is_rebalancing_schedule()
+    pf_check = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
+    just_migrating = not pf_check.get("v2_migrated", False)
+    # La decisione (segnale + eventuale ribilanciamento) avviene il venerdi' di fine mese
+    # (§6 della spec), MA anche subito se la migrazione da v1 non e' ancora avvenuta —
+    # altrimenti il portafoglio resterebbe nello stato v1 fino alla prossima rotazione.
+    should_decide = is_rotation or just_migrating
+
+    old_data = load_json_safe(APEX_DATA_FILE, default=None)
+    prev_state = (old_data or {}).get("v2_state", {}) or {}
+    prev_hysteresis = prev_state.get("hysteresis", {})
+    prev_basket = prev_state.get("basket", [])
 
     output = {
         "macro": {},
-        "allocations": {},
-        "macro_dates": {},
+        "allocations": (old_data or {}).get("allocations") or {"Equities": 0, "Bonds": 0, "Gold": 0, "Crypto": 0, "Cash": 100},
+        "macro_dates": (old_data or {}).get("macro_dates", {}),
         "macro_events": [],
-        "top20": [],
-        "crypto_top": [],
-        "timestamp": datetime.datetime.now().strftime("%d %b %Y, %H:%M (UTC)")
+        "top20": prev_basket,
+        "crypto_top": (old_data or {}).get("crypto_top", []),
+        "v2_state": dict(prev_state) if prev_state else {"hysteresis": {}, "basket": [], "basket_quarter": None},
+        "timestamp": datetime.datetime.now().strftime("%d %b %Y, %H:%M (UTC)"),
     }
 
-    # 1. Macro Analysis
-    print("[1/4] Ingestione & Analisi Macro Benchmark...")
-    b_data = fetch_bulk_parallel(BENCHMARK_TICKERS, max_workers=MAX_WORKERS_CRYPTO)
-    b_inds = calc_indicators(b_data)
-    macro, allocations = calculate_macro_allocation(b_data)
-    output["macro"] = macro
-    output["allocations"] = allocations
-    
-    if 'EURUSD=X' in b_data and not b_data['EURUSD=X'].empty:
-        output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4)
+    # 1. Segnale macro (SPY/IEF/GLD/BTC-USD): scaricato sempre per il monitoraggio prezzi;
+    # la decisione (isteresi + vol-target) e' ricalcolata e persistita solo quando should_decide.
+    print("[1/4] Ingestione Segnale Macro (SPY/IEF/GLD/BTC-USD)...")
+    signal_tickers = list(dict.fromkeys(list(V2_CLASS_TICKER.values()) + DISPLAY_TICKERS))
+    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO)
+
+    output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4) if b_data.get('EURUSD=X') is not None and not b_data['EURUSD=X'].empty else 1.0850
+    output["macro"] = {t: {"price": float(b_data[t]['Close'].iloc[-1])} for t in V2_CLASS_TICKER.values() if t in b_data and not b_data[t].empty}
+
+    if should_decide:
+        allocations, new_hysteresis, debug = compute_v2_macro_signal(b_data, prev_hysteresis)
+        output["allocations"] = allocations
+        output["v2_state"]["hysteresis"] = new_hysteresis
+        output["v2_state"]["signal_debug"] = debug
+        macro_dates, macro_events = update_macro_regimes(allocations, old_data, today_str)
+        output["macro_dates"] = macro_dates
+        output["macro_events"] = macro_events
     else:
-        output['eur_usd'] = 1.0850
+        print("    Non e' il venerdi' di fine mese: segnale non ricalcolato, resta l'ultima decisione presa.")
 
-    old_data = load_json_safe(APEX_DATA_FILE, default=None)
-    macro_dates, macro_events = update_macro_regimes(allocations, old_data, today_str)
-    output["macro_dates"] = macro_dates
-    output["macro_events"] = macro_events
+    allocations = output["allocations"]
 
-    # Load current portfolio to detect held open positions needing daily stop monitoring
-    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "macro_positions": {}, "trade_history": []})
-    held_eq = [k for k, v in pf.get("open_positions", {}).items() if not v.get("is_crypto", False)]
-    held_cr = [f"{k}-USD" for k, v in pf.get("open_positions", {}).items() if v.get("is_crypto", False)]
+    pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
+    held_eq = [t for t in pf.get("open_positions", {}).keys() if t not in ("IEF", "GLD", "BTC")]
 
-    # 2. Equities Engine
-    eq_inds = None
-    if allocations["Equities"] > 0:
-        print("[2/4] Elaborazione Universo Azionario S&P 500...")
-        eq_ticks = list(set(get_sp500_tickers() + held_eq))
-        eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
-        eq_inds = calc_indicators(eq_data, roc_period=EQUITIES_ROC_PERIOD)
-        output["top20"] = process_engine(eq_inds, atr_multiplier=ATR_STOP_MULTIPLIER, gap_limit=EQUITIES_GAP_LIMIT)[:MAX_EQUITY_POSITIONS]
+    # 2. Basket azionario: ricalcolato su tutto l'S&P 500 solo a fine trimestre (o alla
+    # primissima decisione dopo la migrazione, se cade fuori trimestre); altrimenti si
+    # mantiene il basket gia' in portafoglio (§4 della spec).
+    basket = prev_basket
+    eq_data = {}
+    if allocations.get("Equities", 0) > 0:
+        need_full_universe = should_decide and (is_quarter_end_month() or not prev_basket)
+        if need_full_universe:
+            print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500...")
+            eq_ticks = list(set(get_sp500_tickers() + held_eq))
+            eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
+            basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N)
+            output["v2_state"]["basket"] = basket
+            output["v2_state"]["basket_quarter"] = today_str[:7]
+        else:
+            print("[2/4] Nessuna rotazione trimestrale oggi: mantengo il basket azionario attuale.")
+            tickers_needed = list(set([row["Ticker"] for row in basket] + held_eq))
+            if tickers_needed:
+                eq_data = fetch_bulk_parallel(tickers_needed, max_workers=MAX_WORKERS_DEFAULT)
     elif held_eq:
-        print("[2/4] Motore Azionario OFF (Semaforo Rosso) - Aggiornamento posizioni aperte...")
+        print("[2/4] Classe Equity disattivata: aggiorno solo i prezzi delle posizioni residue...")
         eq_data = fetch_bulk_parallel(held_eq, max_workers=MAX_WORKERS_DEFAULT)
-        eq_inds = calc_indicators(eq_data, roc_period=EQUITIES_ROC_PERIOD)
+        basket = []
+        output["v2_state"]["basket"] = []
     else:
-        print("[2/4] Motore Azionario OFF (Semaforo Rosso).")
+        print("[2/4] Classe Equity disattivata.")
+        basket = []
+        output["v2_state"]["basket"] = []
 
-    # 3. Crypto Engine
-    cr_inds = None
-    if allocations["Crypto"] > 0:
-        print("[3/4] Elaborazione Universo Crypto (Spot & Perp)...")
-        c_ticks = list(set(get_tradable_crypto_universe() + held_cr))
-        cr_data = fetch_bulk_parallel(c_ticks, max_workers=MAX_WORKERS_CRYPTO)
-        cr_inds = calc_indicators(cr_data, roc_period=CRYPTO_ROC_PERIOD)
-        output["crypto_top"] = process_engine(cr_inds, atr_multiplier=ATR_STOP_MULTIPLIER, gap_limit=CRYPTO_GAP_LIMIT, is_crypto=True)[:MAX_CRYPTO_POSITIONS]
-    elif held_cr:
-        print("[3/4] Motore Crypto OFF (Semaforo Rosso) - Aggiornamento posizioni aperte...")
-        cr_data = fetch_bulk_parallel(held_cr, max_workers=MAX_WORKERS_CRYPTO)
-        cr_inds = calc_indicators(cr_data, roc_period=CRYPTO_ROC_PERIOD)
+    output["top20"] = basket  # compatibilita' di schema con la dashboard esistente
+
+    # 3. Crypto: solo BTC-USD, nessuna rotazione altcoin (testata e respinta — vedi Apex Allocation §7-bis)
+    print("[3/4] Prezzo BTC-USD...")
+    if allocations.get("Crypto", 0) > 0 and b_data.get("BTC-USD") is not None and not b_data["BTC-USD"].empty:
+        output["crypto_top"] = [{"Ticker": "BTC", "Prezzo ($)": round(float(b_data["BTC-USD"]["Close"].iloc[-1]), 2), "Stop Loss ($)": 0.0}]
     else:
-        print("[3/4] Motore Crypto OFF (Semaforo Rosso).")
+        output["crypto_top"] = []
 
-    # Save Output Atomically
+    prices_by_ticker = {}
+    prices_by_ticker.update(latest_prices(b_data))
+    prices_by_ticker.update(latest_prices(eq_data))
+
     save_json_atomic(APEX_DATA_FILE, output)
 
-    # 4. Portfolio State & Equity Curve Tracking
-    print("[4/4] Aggiornamento Portafoglio, Storico ed Equity Curve...")
-    action_log = update_portfolio(output, b_inds, eq_inds, cr_inds, today_str)
-    update_equity_curve(output, b_inds, eq_inds, cr_inds, today_str)
+    # 4. Ribilanciamento (solo alla decisione) + tracking quotidiano dell'equity curve
+    print("[4/4] Aggiornamento Portafoglio ed Equity Curve...")
+    if should_decide:
+        action_log = update_portfolio(allocations, basket, prices_by_ticker, today_str)
+    else:
+        action_log = []
+        pf_mtm = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
+        for ticker, pos in pf_mtm.get("open_positions", {}).items():
+            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+            if sym in prices_by_ticker:
+                pos["current_price"] = prices_by_ticker[sym]
+        save_json_atomic(PORTFOLIO_FILE, pf_mtm)
 
-    # Telegram Notification (Fridays, Regime Shifts, or Actionable Orders)
-    is_friday, _ = is_rebalancing_schedule()
-    has_orders = any(any(k in log for k in ("ACQUISTO", "VENDITA", "BEAR", "STOP LOSS", "HEDGE")) for log in action_log)
+    update_equity_curve(prices_by_ticker, today_str)
+
+    has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "Ribilanciamento", "Uscito")) for log in action_log)
     if is_friday or output.get("macro_events") or has_orders:
         send_telegram_alert(output, action_log)
     else:

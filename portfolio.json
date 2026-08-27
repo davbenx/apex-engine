@@ -3,7 +3,7 @@
         "DELL": {
             "entry_date": "2026-06-01",
             "entry_price": 426.15,
-            "current_price": 463.82000732421875,
+            "current_price": 451.5,
             "shares": 21.8893,
             "stop_price": 309.22,
             "profit_pct": 5.95,
@@ -14,7 +14,7 @@
         "FTNT": {
             "entry_date": "2026-06-01",
             "entry_price": 141.16,
-            "current_price": 157.5399932861328,
+            "current_price": 153.66,
             "shares": 66.7785,
             "stop_price": 135.38,
             "profit_pct": 8.86,
@@ -25,7 +25,7 @@
         "PANW": {
             "entry_date": "2026-07-06",
             "entry_price": 338.96,
-            "current_price": 339.30999755859375,
+            "current_price": 339.9,
             "shares": 26.261,
             "stop_price": 287.11,
             "profit_pct": 0.28,
@@ -36,7 +36,7 @@
         "MPC": {
             "entry_date": "2026-07-20",
             "entry_price": 312.95,
-            "current_price": 362.2699890136719,
+            "current_price": 354.88,
             "shares": 26.7406,
             "stop_price": 299.28,
             "profit_pct": 13.4,
@@ -47,7 +47,7 @@
         "DDOG": {
             "entry_date": "2026-07-20",
             "entry_price": 258.59,
-            "current_price": 227.6699981689453,
+            "current_price": 222.99,
             "shares": 32.3133,
             "stop_price": 200.32,
             "profit_pct": -13.77,
@@ -58,7 +58,7 @@
         "VLO": {
             "entry_date": "2026-07-20",
             "entry_price": 308.99,
-            "current_price": 348.0299987792969,
+            "current_price": 340.41,
             "shares": 26.9954,
             "stop_price": 283.57,
             "profit_pct": 10.17,
@@ -69,7 +69,7 @@
         "STT": {
             "entry_date": "2026-07-20",
             "entry_price": 184.15,
-            "current_price": 193.6199951171875,
+            "current_price": 192.95,
             "shares": 45.8034,
             "stop_price": 167.12,
             "profit_pct": 4.78,
@@ -80,7 +80,7 @@
         "PSX": {
             "entry_date": "2026-07-20",
             "entry_price": 206.07,
-            "current_price": 242.22999572753906,
+            "current_price": 236.9,
             "shares": 40.4096,
             "stop_price": 203.68,
             "profit_pct": 14.96,
@@ -91,7 +91,7 @@
         "BNY": {
             "entry_date": "2026-07-27",
             "entry_price": 158.85,
-            "current_price": 163.0800018310547,
+            "current_price": 163.65,
             "shares": 52.4265,
             "stop_price": 144.75,
             "profit_pct": 3.02,
@@ -102,7 +102,7 @@
         "HUM": {
             "entry_date": "2026-08-03",
             "entry_price": 365.0,
-            "current_price": 391.05999755859375,
+            "current_price": 389.71,
             "shares": 22.5745,
             "stop_price": 344.84,
             "profit_pct": 6.77,
@@ -113,7 +113,7 @@
         "NTAP": {
             "entry_date": "2026-08-03",
             "entry_price": 179.06,
-            "current_price": 193.85000610351562,
+            "current_price": 187.43,
             "shares": 46.0166,
             "stop_price": 163.42,
             "profit_pct": 4.67,
@@ -124,7 +124,7 @@
         "HPE": {
             "entry_date": "2026-08-03",
             "entry_price": 47.51,
-            "current_price": 55.22999954223633,
+            "current_price": 53.44,
             "shares": 171.4816,
             "stop_price": 43.52,
             "profit_pct": 12.48,
@@ -135,7 +135,7 @@
         "CRWD": {
             "entry_date": "2026-08-17",
             "entry_price": 216.53,
-            "current_price": 189.17999267578125,
+            "current_price": 185.38,
             "shares": 38.2438,
             "stop_price": 162.66,
             "profit_pct": -14.39,
@@ -146,7 +146,7 @@
         "MRNA": {
             "entry_date": "2026-08-17",
             "entry_price": 64.78,
-            "current_price": 149.66000366210938,
+            "current_price": 158.83,
             "shares": 56.9001,
             "stop_price": 113.6,
             "profit_pct": 145.2,
@@ -157,7 +157,7 @@
         "MRVL": {
             "entry_date": "2026-08-24",
             "entry_price": 229.22,
-            "current_price": 245.11000061035156,
+            "current_price": 240.38,
             "shares": 34.2843,
             "stop_price": 198.51,
             "profit_pct": 4.87,
@@ -168,7 +168,7 @@
         "CRL": {
             "entry_date": "2026-08-24",
             "entry_price": 297.63,
-            "current_price": 295.1000061035156,
+            "current_price": 297.64,
             "shares": 27.6886,
             "stop_price": 237.34,
             "profit_pct": 0.0,
@@ -179,7 +179,7 @@
         "AMD": {
             "entry_date": "2026-08-24",
             "entry_price": 468.54,
-            "current_price": 480.92999267578125,
+            "current_price": 479.18,
             "shares": 17.1987,
             "stop_price": 370.42,
             "profit_pct": 2.27,
@@ -190,7 +190,7 @@
         "ZBRA": {
             "entry_date": "2026-08-24",
             "entry_price": 365.23,
-            "current_price": 359.8399963378906,
+            "current_price": 360.52,
             "shares": 22.8593,
             "stop_price": 303.11,
             "profit_pct": -1.29,
@@ -201,7 +201,7 @@
         "MET": {
             "entry_date": "2026-08-24",
             "entry_price": 94.87,
-            "current_price": 96.5199966430664,
+            "current_price": 95.87,
             "shares": 85.9628,
             "stop_price": 88.83,
             "profit_pct": 1.05,
@@ -212,7 +212,7 @@
         "EXPE": {
             "entry_date": "2026-08-24",
             "entry_price": 323.55,
-            "current_price": 333.44000244140625,
+            "current_price": 337.97,
             "shares": 24.3846,
             "stop_price": 264.32,
             "profit_pct": 4.46,
@@ -223,7 +223,7 @@
         "ETH": {
             "entry_date": "2026-08-21",
             "entry_price": 2515.28,
-            "current_price": 2493.419921875,
+            "current_price": 2444.48,
             "shares": 4.690141,
             "stop_price": 1920.12,
             "profit_pct": -2.81,
@@ -234,7 +234,7 @@
         "SOL": {
             "entry_date": "2026-08-21",
             "entry_price": 93.65,
-            "current_price": 101.29000091552734,
+            "current_price": 96.6,
             "shares": 125.964454,
             "stop_price": 76.52,
             "profit_pct": 3.15,
@@ -245,7 +245,7 @@
         "BTC": {
             "entry_date": "2026-08-21",
             "entry_price": 78335.19,
-            "current_price": 78833.7890625,
+            "current_price": 78132.21,
             "shares": 0.301194,
             "stop_price": 65104.99,
             "profit_pct": -0.26,
@@ -258,7 +258,7 @@
         "Gold": {
             "entry_date": "2026-08-21",
             "entry_price": 4508.87,
-            "current_price": 4679.0,
+            "current_price": 4675.8,
             "profit_pct": 3.7,
             "weight": 0.1,
             "shares": 2.2179

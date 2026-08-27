@@ -494,7 +494,7 @@ with tab_pf:
 
         if op_eq:
             df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Quote"] = [max(1, int(round(single_eq / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
+            df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("weight", (single_eq / capitale))) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
             df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
             df_op_eq[col_rend_label] = df_op_eq[col_val_label] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"] * fx_ratio)
 
@@ -559,6 +559,16 @@ with tab_pf:
 # TAB 2: METRICHE (CANDLESTICK EQUITY CURVE, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
+    st_html("""
+    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <span style="font-size: 13px; font-weight: 700; color: #60A5FA;">🧪 SIMULAZIONE QUANTITATIVA & TRACK RECORD (Feb 2024 – Ago 2026)</span>
+            <div style="font-size: 11px; opacity: 0.7; margin-top: 2px;">Serie storica a regole fisse deterministiche su dati storici di mercato • Reinvestimento composto</div>
+        </div>
+        <span style="background: rgba(59, 130, 246, 0.2); color: #93C5FD; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">BASE 100 • BACKTEST OUT-OF-SAMPLE</span>
+    </div>
+    """)
+
     selected_range = st.segmented_control(
         "Periodo",
         options=["1M", "3M", "6M", "1A", "Tutto"],
@@ -908,6 +918,7 @@ with tab_perf:
                 use_container_width=True,
                 hide_index=True
             )
+            st.caption("ℹ️ **Trasparenza Metodologica:** Lo storico delle operazioni chiuse e la curva equity Base 100 documentano la simulazione quantitativa deterministica su dati storici di mercato (out-of-sample) a regole fisse. Le posizioni aperte e i segnali operativi decorrono dal forward-tracking dell'Apex Engine.")
         else:
             st.info("Nessuna operazione chiusa registrata.")
 
