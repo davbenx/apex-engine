@@ -22,6 +22,7 @@ V2_VOL_TARGET = 0.13
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
 V2_EQUITY_VOL_LOOKBACK = 26
+V2_EQUITY_BUFFER_RANK = 100  # vedi APEX_V2_SPEC.md §8.3: dimezza il turnover trimestrale senza costo in Sharpe/Calmar
 
 
 def _weekly_close(df: pd.DataFrame) -> pd.Series:
@@ -99,12 +100,22 @@ def select_low_vol_basket(
     eq_data: Dict[str, pd.DataFrame],
     top_n: int = V2_EQUITY_TOP_N,
     lookback_weeks: int = V2_EQUITY_VOL_LOOKBACK,
+    prev_tickers: Optional[set] = None,
+    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
 ) -> List[dict]:
     """
     Seleziona i `top_n` titoli a volatilita' realizzata piu' bassa (§4 di APEX_V2_SPEC.md).
     NON e' selezione per generare alpha (l'audit ha dimostrato che il momentum non ne ha
     su questo universo) — e' solo un modo pratico e liquido di ottenere beta azionario
     con carattere fiscale "redditi diversi".
+
+    Buffer di isteresi sulla rank (§8.3 di APEX_V2_SPEC.md): un titolo gia' detenuto
+    (`prev_tickers`) resta in basket se la sua posizione in classifica resta entro
+    `buffer_rank`, anche se e' scesa fuori dal top-`top_n` esatto — senza buffer, il
+    rinnovo trimestrale misurato in backtest era quasi totale (~93% dei nomi sostituiti
+    ogni trimestre, per rumore di stima della volatilita' vicino alla soglia), un costo
+    fiscale/di transazione mai modellato prima. I NUOVI ingressi restano comunque
+    selezionati solo tra i migliori in assoluto (nessun allentamento sui nuovi nomi).
     """
     scored = []
     for sym, df in eq_data.items():
@@ -114,10 +125,24 @@ def select_low_vol_basket(
             scored.append((sym, v, float(wc.iloc[-1])))
 
     scored.sort(key=lambda t: t[1])  # bassa volatilita' prima
-    top = scored[:top_n]
+    info_by_sym = {sym: (vol, price) for sym, vol, price in scored}
+    ranked_syms = [sym for sym, _, _ in scored]
+    rank_of = {sym: i for i, sym in enumerate(ranked_syms)}
+
+    prev_tickers = prev_tickers or set()
+    kept = [s for s in prev_tickers if rank_of.get(s, 10**9) < buffer_rank]
+    kept_set = set(kept)
+    result = list(kept)
+    for sym in ranked_syms:
+        if len(result) >= top_n:
+            break
+        if sym not in kept_set:
+            result.append(sym)
+
     return [
-        {"Ticker": sym, "Prezzo ($)": round(price, 2), "Volatilita' Ann. (%)": round(vol * 100, 2), "Stop Loss ($)": 0.0}
-        for sym, vol, price in top
+        {"Ticker": sym, "Prezzo ($)": round(info_by_sym[sym][1], 2),
+         "Volatilita' Ann. (%)": round(info_by_sym[sym][0] * 100, 2), "Stop Loss ($)": 0.0}
+        for sym in result[:top_n]
     ]
 
 

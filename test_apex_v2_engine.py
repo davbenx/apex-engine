@@ -91,6 +91,51 @@ def test_select_low_vol_basket_ranks_correctly():
     assert len(basket) == 2
 
 
+def _weekly_close_df(amplitude, n_weeks=60, base=100.0):
+    dates = pd.date_range("2024-01-05", periods=n_weeks, freq="W-FRI")
+    close = base * (1.0 + amplitude * np.sin(np.arange(n_weeks) * 1.3))
+    return pd.DataFrame({"Open": close, "High": close, "Low": close, "Close": close}, index=dates)
+
+
+def test_select_low_vol_basket_buffer_retains_incumbent_within_rank_window():
+    """
+    Senza buffer, un titolo gia' detenuto ma sceso al 3 posto (su top_n=2) verrebbe
+    sostituito dal nuovo 2 in classifica — con buffer_rank=3 resta, perche' la sua
+    rank (2, 0-indexed) e' ancora entro la soglia. Vedi APEX_V2_SPEC.md §8.3: senza
+    questo buffer il basket si rinnovava quasi per intero ogni trimestre in backtest.
+    """
+    eq_data = {
+        "LOWVOL": _weekly_close_df(amplitude=0.001),
+        "MIDVOL2": _weekly_close_df(amplitude=0.006),
+        "MIDVOL": _weekly_close_df(amplitude=0.010),
+        "HIGHVOL": _weekly_close_df(amplitude=0.05),
+    }
+    no_buffer = select_low_vol_basket(eq_data, top_n=2, lookback_weeks=26)
+    assert [b["Ticker"] for b in no_buffer] == ["LOWVOL", "MIDVOL2"], "senza buffer, MIDVOL (rank 3) deve uscire"
+
+    buffered = select_low_vol_basket(
+        eq_data, top_n=2, lookback_weeks=26,
+        prev_tickers={"LOWVOL", "MIDVOL"}, buffer_rank=3,
+    )
+    tickers = [b["Ticker"] for b in buffered]
+    assert "MIDVOL" in tickers, "MIDVOL (rank 3, 0-indexed 2 < buffer_rank 3) deve restare grazie al buffer"
+    assert "MIDVOL2" not in tickers, "il buffer allenta solo la PERMANENZA, non fa entrare candidati fuori dal top_n se non c'e' posto"
+
+
+def test_select_low_vol_basket_buffer_never_relaxes_new_entrants():
+    """Un titolo MAI detenuto prima deve comunque essere tra i migliori assoluti, buffer o no."""
+    eq_data = {
+        "LOWVOL": _weekly_close_df(amplitude=0.001),
+        "MIDVOL": _weekly_close_df(amplitude=0.010),
+        "HIGHVOL": _weekly_close_df(amplitude=0.05),
+    }
+    buffered = select_low_vol_basket(
+        eq_data, top_n=1, lookback_weeks=26,
+        prev_tickers=set(), buffer_rank=100,
+    )
+    assert [b["Ticker"] for b in buffered] == ["LOWVOL"]
+
+
 def test_quarter_end_month():
     assert is_quarter_end_month(datetime.datetime(2026, 3, 15)) is True
     assert is_quarter_end_month(datetime.datetime(2026, 6, 15)) is True

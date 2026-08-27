@@ -486,7 +486,7 @@ def main():
             print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500...")
             eq_ticks = list(set(get_sp500_tickers() + held_eq))
             eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
-            basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N)
+            basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq))
             output["v2_state"]["basket"] = basket
             output["v2_state"]["basket_quarter"] = today_str[:7]
         else:

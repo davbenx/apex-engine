@@ -107,6 +107,14 @@ momentum come criterio di selezione è stato falsificato dall'audit).
 settembre, dicembre). Nei mesi intermedi il paniere resta invariato nella
 composizione — solo la taglia complessiva dello slot si aggiorna mensilmente (§3).
 
+**Buffer di isteresi sulla permanenza (rank < 100, aggiunto dopo il finding di
+turnover del backtest storico — vedi §8.3):** un titolo già in basket resta se la
+sua posizione in classifica di volatilità resta entro il rank 100 (su ~600 titoli
+tracciati storicamente), anche se è scesa fuori dal top-15 esatto. I nuovi ingressi
+restano sempre selezionati solo tra i migliori in assoluto — il buffer allenta solo
+l'uscita, mai l'entrata. Implementato in `apex_v2_engine.select_low_vol_basket`
+(parametro `buffer_rank`, default `V2_EQUITY_BUFFER_RANK = 100`).
+
 **Nessuno stop-loss per singola posizione — ora testato, non solo assunto.**
 L'uscita da una posizione avviene solo (a) quando esce dal paniere alla rotazione
 trimestrale, o (b) quando l'intera classe Equity si disattiva (§2). Aggiungere un
@@ -224,8 +232,13 @@ candidati dopo il deploy, entrambi respinti:
   proxy: SPY+QQQ+IWM per Equity, IEF+TLT per Bond, BTC+ETH per Crypto): peggiora
   Sharpe (1.39→1.29), Calmar (0.94→0.77) e MaxDD (15.9%→17.9%) — diluire il segnale
   con proxy meno puri aggiunge rumore/ritardo invece di ridurlo. Scartato.
+- **Pesatura inverse-vol nel basket azionario** (invece di equal-weight, sul
+  basket isolato — vedi §8.3 per la nota metodologica sull'isolamento): CAGR
+  10.14%→9.01%, Sharpe 0.75→0.65, Calmar 0.38→0.35 — peggiora su ogni metrica,
+  probabilmente perché sovrappesa proprio i nomi con volatilità misurata più
+  bassa, i più esposti al rumore di stima. Scartata.
 
-**Nota metodologica:** dopo 10 tentativi di miglioramento testati sullo stesso
+**Nota metodologica:** dopo 11 tentativi di miglioramento testati sullo stesso
 campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
 contro il rischio di data-snooping crescente (lo stesso principio che ha già
 smascherato il motore di selezione titoli v1). Il disegno deployato resta quello
@@ -261,6 +274,96 @@ o un picco isolato, e se l'alpha misurato regge su un campione più severo.
    BTC nell'universo** (è legittimo, e il segnale lo gestisce con la stessa
    logica delle altre classi), ma ridimensiona l'aspettativa di rendimento da
    comunicare: il 10%+ di alpha annuo storico non va trattato come "normale".
+
+### 8.3 Costruzione del basket azionario: turnover storico e correzione applicata
+
+Backtest storico reale (non un solo punto nel tempo) della selezione per bassa
+volatilità sull'universo S&P 500 point-in-time, 2014-2026, 49 trimestri, verificato
+sui ~600 titoli con dati sufficienti in cache. Due risultati, uno negativo (già in
+§8.1) e uno strutturale che ha portato a una modifica del motore:
+
+**Scoperta non cercata — turnover del basket molto più alto dell'assunto:** in
+media solo 1,4 titoli su 15 sopravvivono da un trimestre al successivo (~93% di
+rinnovo). Verificato non essere un artefatto di dati scadenti (le composizioni
+storiche sono titoli liquidi e noti — MCD, PG, IBM, DUK, AON, ecc.) ma un effetto
+strutturale: centinaia di titoli hanno volatilità realizzata molto simile vicino
+alla soglia dei 15, e il rumore di stima settimana-per-settimana rimescola
+pesantemente la classifica esatta. **Nessun backtest precedente in questo
+documento — inclusa la decisione originale di deploy — aveva mai simulato questo
+turnover**: tutti usano SPY come proxy della gamba azionaria a livello di segnale
+macro, che non cattura il churn a livello di singolo titolo. I costi di
+transazione e gli eventi tassabili reali della gamba azionaria erano quindi
+sottostimati in tutta l'analisi fin qui.
+
+**Correzione applicata — buffer di isteresi sulla rank (stessa idea dell'isteresi
+già validata sul segnale macro, e della buffer rule usata dagli indici MSCI
+Minimum Volatility per lo stesso problema):**
+
+| Buffer di permanenza | CAGR | Sharpe | Calmar | MaxDD | Turnover/trimestre |
+|---|---|---|---|---|---|
+| Nessuno (come deployato inizialmente) | 10.14% | 0.75 | 0.38 | 26.6% | 179.9% |
+| top-75 | 10.90% | 0.79 | 0.39 | 28.1% | 113.2% |
+| **top-100 (adottato)** | 9.95% | 0.77 | 0.39 | 25.3% | **92.1%** |
+| top-150 | 9.81% | 0.78 | 0.40 | 24.4% | 56.0% |
+| Illimitato (mai esce se non per rimozione da S&P 500) | 12.26% | 0.95 | 0.64 | 19.3% | 2.1% |
+
+*(Nota: questi Sharpe/Calmar sono del basket azionario isolato, sempre investito
+al 100%, senza l'overlay di timing/vol-target di portafoglio — non sono
+confrontabili con lo Sharpe 1.39 della strategia intera. Il confronto valido è
+solo relativo, tra le righe di questa tabella.)*
+
+**Adottato: buffer_rank = 100** — dimezza il turnover (179.9%→92.1%) a costo
+sostanzialmente nullo (CAGR/Sharpe/Calmar/MaxDD tutti stabili o leggermente
+migliori). Implementato in `apex_v2_engine.select_low_vol_basket` (parametro
+`buffer_rank`, collegato a `backend.py` passando le posizioni azionarie già
+detenute). I nuovi ingressi restano sempre scelti solo tra i migliori in
+assoluto — il buffer allenta solo la permanenza, mai l'ingresso.
+
+**Scartato: buffer illimitato**, pur avendo i numeri migliori in tabella. Senza
+alcuna soglia di uscita per volatilità, il basket smette di fare sorveglianza
+continua e degenera in "compra i 15 titoli selezionati nel 2014 e non toccarli
+più" — il risultato brillante rischia di riflettere che quella specifica
+selezione iniziale si è rivelata buona col senno di poi, non un edge sistematico
+di rotazione per bassa volatilità. Un titolo il cui rischio aumenta molto nel
+tempo non verrebbe mai rimosso, contraddicendo lo scopo stesso del basket
+(contenere il rischio della gamba azionaria).
+
+### 8.4 To-do — decisioni aperte e miglioramenti non ancora testati
+
+Non azioni immediate: richiedono una scelta esplicita dell'utente o dati non
+ancora disponibili in questo repository.
+
+**Decisioni aperte (testate, trade-off presentato, non ancora decise):**
+- **Decisione di ribilanciamento trimestrale invece di mensile** (§8.2 extra,
+  script `quarterly_decision_test.py`): taglia gli eventi tassabili del segnale
+  macro del 65% (23.4→8.2/anno) e migliora leggermente il CAGR netto (12.61%→
+  13.36% Scenario A), ma MaxDD peggiora (15.9%→20.8%) per reazione più lenta nei
+  mercati "in stillicidio" tipo 2022 (-7.9%→-13.0%). Coerente con l'obiettivo di
+  bassa frequenza + efficienza fiscale, ma non deciso.
+- **Sleeve Commodity aggiuntiva (DBC)** (script `reit_commodity_sleeve_test.py`):
+  sul campione deployato (12 anni) migliora tutto (Sharpe 1.39→1.46, Calmar
+  0.94→1.35, MaxDD 15.9%→10.9%, alpha invariato) e risolve il 2022. Ma sul
+  campione lungo 2006-2026 (GFC inclusa) è sostanzialmente neutro (Sharpe
+  0.97→0.92) perché le commodity sono crollate insieme alle azioni nel 2008 —
+  è un diversificatore regime-dipendente (aiuta in stagflazione/rialzo tassi,
+  non protegge in una crisi da shock di domanda), non un miglioramento pulito.
+- **Dimensione del basket azionario (10 vs 15 titoli)**: nel test isolato (§8.3)
+  top-10 ha Sharpe/Calmar migliori del top-15 deployato, ma non è stato ancora
+  verificato nella strategia completa (con l'overlay di timing/vol-target), e un
+  basket più piccolo aumenta il rischio idiosincratico per singolo titolo (10%
+  invece di 6.7% del portafoglio azionario per nome). Da testare in combinazione
+  prima di decidere.
+
+**Non ancora testati (dati non disponibili o priorità inferiore):**
+- **Vincolo di concentrazione settoriale nel basket**: nessuna mappatura
+  GICS/settore disponibile per i titoli point-in-time in questo repository —
+  richiede una fonte dati aggiuntiva.
+- **Walk-forward vero** (ottimizzazione su finestra scorrevole, non un singolo
+  backtest statico): la griglia MA/isteresi (§8.2) e il confronto campione
+  breve/lungo (§8.2 test 4) coprono parzialmente la robustezza, ma un walk-forward
+  completo non è stato fatto.
+- **Costi di transazione reali del broker in uso**: stress-testati fino a 5x
+  l'assunzione (§8.2 test 2), ma restano stime, non i costi effettivi.
 
 ---
 
