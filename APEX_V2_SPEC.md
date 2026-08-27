@@ -197,8 +197,22 @@ candidati dopo il deploy, entrambi respinti:
   una soglia): alle soglie 20-25% non scatta mai in 12 anni (il vol-targeting tiene
   già il MaxDD sotto soglia); alla soglia 15% scatta ma non migliora nulla — segnale
   reattivo, arriva quando il danno è già fatto. Scartata.
+- **Trend-following simmetrico via ETF inversi** (SH/TBF/DGZ al posto della cash
+  quando Equity/Bond/Gold sono "inattivi", stesso vol-target; crypto esclusa per
+  storico dati insufficiente su BITI): migliora Calmar (0.94→1.06) e MaxDD
+  (15.9%→11.7%) e risolve il punto debole del 2022 (-7.9%→+0.5%), ma **CAGR netto
+  di tasse peggiora di 2.4-2.8 punti percentuali l'anno** (Scenario A: 12.61%→10.16%;
+  Scenario B: 12.42%→9.62%, quest'ultimo dopo aver corretto la classificazione
+  fiscale di SH/TBF/DGZ come "redditi di capitale" non compensabili, stesso
+  involucro ETF di SPY/IEF/GLD) — su $100k in 12 anni, ~$94.300 di ricchezza netta
+  finale in meno (Scenario A). Il gap di alpha CAPM isolato è invece piccolo
+  (10.64%→9.57%, -1.07pp, entrambi p<0.05) — l'alpha da solo sottostima il vero
+  costo, che si vede sul CAGR netto per via del turnover più alto (23.4→30.1
+  eventi/anno). Scartata: il trade-off (drawdown più contenuto) non compensa il
+  costo fiscale/di rendimento composto rispetto agli obiettivi dichiarati
+  (alpha + efficienza fiscale).
 
-**Nota metodologica:** dopo 8 tentativi di miglioramento testati sullo stesso
+**Nota metodologica:** dopo 9 tentativi di miglioramento testati sullo stesso
 campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
 contro il rischio di data-snooping crescente (lo stesso principio che ha già
 smascherato il motore di selezione titoli v1). Il disegno deployato resta quello
