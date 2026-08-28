@@ -382,14 +382,13 @@ with tab_pf:
         except (TypeError, ValueError):
             pass
         capitale_input = st.number_input(
-            "Capitale broker", min_value=1000, value=_default_cap, step=1000, format="%d",
-            label_visibility="collapsed"
+            "Capitale broker reale", min_value=1000, value=_default_cap, step=1000, format="%d"
         )
     with c_cur:
         _default_cur = st.query_params.get("cur", "USD ($)")
         if _default_cur not in ("USD ($)", "EUR (€)"):
             _default_cur = "USD ($)"
-        valuta_sel = st.segmented_control("Valuta", ["USD ($)", "EUR (€)"], default=_default_cur, label_visibility="collapsed")
+        valuta_sel = st.segmented_control("Valuta conto", ["USD ($)", "EUR (€)"], default=_default_cur)
 
     st.query_params["cap"] = str(int(capitale_input))
     st.query_params["cur"] = valuta_sel
@@ -399,6 +398,9 @@ with tab_pf:
     curr_sym = "€" if is_eur else "$"
     fx_ratio = (1.0 / eur_usd_rate) if is_eur else 1.0
     capitale = capitale_input * eur_usd_rate if is_eur else float(capitale_input)
+
+    if is_eur:
+        st.caption(f"Tasso EUR/USD: {eur_usd_rate:.4f} · potere d'acquisto ${capitale:,.0f} USD")
 
     # v2: ogni posizione (azioni, IEF, GLD, BTC) porta il proprio peso reale in
     # portfolio.json ("weight", frazione del capitale) — nessuna quota fissa per
@@ -511,13 +513,23 @@ with tab_pf:
         color = POS if val > 0 else NEG if val < 0 else MUTED
         return f'color: {color}; font-weight: 700;'
 
-    def style_stato(val):
-        if "●" in str(val):
-            return f'color: {ACCENT}; font-size: 15px; text-align: center;'
-        return 'text-align: center; opacity: 0.4;'
+    def style_titolo(val):
+        if str(val).endswith(NEW_MARK):
+            return f'color: {ACCENT}; font-weight: 700;'
+        return ''
 
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
+
+    # Pallino invece di una colonna "Stato" a parte: appeso al Titolo, non in
+    # una colonna dedicata quasi sempre vuota. Colora l'intera cella (Titolo)
+    # perche' la tabella di Streamlit applica lo stile a livello di cella,
+    # non di singolo carattere — non si puo' colorare solo il pallino
+    # lasciando il ticker del colore di default nella stessa cella.
+    NEW_MARK = " ●"
+
+    def _mark(titolo, is_new):
+        return f"{titolo}{NEW_MARK}" if is_new else titolo
 
     unified_rows = []
     # Azioni ordinate per rendimento decrescente: chi sta guadagnando di piu'
@@ -528,10 +540,9 @@ with tab_pf:
     # Sigle invece dei nomi per classe (AZ/BTC/AU/FI/CASH/TOT) — coerenti col
     # vocabolario gia' usato nel cockpit, colonna molto piu' stretta di
     # "Obbligazioni"/"Monetario" per nessuna perdita di informazione.
-    NEW_MARK = "●"
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "AZ", "Titolo": r["Titolo"], "Stato": NEW_MARK if r["Stato"] == "NUOVO" else "",
+            "Classe": "AZ", "Titolo": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -539,7 +550,7 @@ with tab_pf:
     if op_cr:
         r = op_cr[0]
         unified_rows.append({
-            "Classe": "BTC", "Titolo": r["Titolo"], "Stato": NEW_MARK if r["Stato"] == "NUOVO" else "",
+            "Classe": "BTC", "Titolo": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -547,7 +558,7 @@ with tab_pf:
 
     def _detail_row(classe, ticker, detail):
         return {
-            "Classe": classe, "Titolo": ticker, "Stato": NEW_MARK if detail["days"] <= 7 else "",
+            "Classe": classe, "Titolo": _mark(ticker, detail["days"] <= 7),
             "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
@@ -559,7 +570,7 @@ with tab_pf:
         unified_rows.append(_detail_row("FI", "IEF", bond_detail))
 
     unified_rows.append({
-        "Classe": "CASH", "Titolo": "Liquidità", "Stato": "",
+        "Classe": "CASH", "Titolo": "Monetario",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
@@ -568,7 +579,7 @@ with tab_pf:
     # Riga totale — stessa informazione dell'hero (P&L aggregato), calcolata
     # dagli stessi dati della tabella invece che in un riquadro separato.
     unified_rows.append({
-        "Classe": "TOT", "Titolo": "", "Stato": "",
+        "Classe": "TOT", "Titolo": "",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": 100.0, "Rendimento %": tot_pnl_pct,
@@ -580,8 +591,8 @@ with tab_pf:
         return [''] * len(row)
 
     show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
-    compact_cols = ["Classe", "Titolo", "Stato", "Peso (%)", col_val_label, "Rendimento %"]
-    full_cols = ["Classe", "Titolo", "Stato", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+    compact_cols = ["Classe", "Titolo", "Peso (%)", col_val_label, "Rendimento %"]
+    full_cols = ["Classe", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
 
     st_html(section_title("Posizioni"))
@@ -597,7 +608,7 @@ with tab_pf:
         q = row["Quote_raw"]
         if pd.isna(q):
             return "—"
-        return f"{q:.6f}" if row["Classe"] == "Bitcoin" and q < 1 else (f"{q:.4f}" if row["Classe"] == "Bitcoin" else f"{int(round(q)):,}")
+        return f"{q:.6f}" if row["Classe"] == "BTC" and q < 1 else (f"{q:.4f}" if row["Classe"] == "BTC" else f"{int(round(q)):,}")
 
     df_pos["Quote_raw"] = df_pos.apply(_quote_raw, axis=1)
     df_pos["Quote"] = df_pos.apply(_quote_display, axis=1)
@@ -613,7 +624,7 @@ with tab_pf:
         col_val_label: "{:,.0f}",
         "Rendimento %": "{:+.2f}%",
         col_rend_label: "{:+,.0f}",
-    }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_stato, subset=[c for c in ['Stato'] if c in df_pos_display.columns]).apply(style_total_row, axis=1)
+    }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_titolo, subset=['Titolo']).apply(style_total_row, axis=1)
 
     # Altezza fissa invece di mostrare tutte le righe senza limite: ~8 righe
     # visibili, il resto scorre dentro la tabella stessa (nessuna riga
@@ -648,27 +659,21 @@ with tab_perf:
             live_since_str = format_date_italian(_live_dates[0])
 
     if live_since_str:
-        _banner_title = f"SIMULAZIONE STORICA + FORWARD-TRACKING DAL VIVO{track_record_range_str}"
-        _banner_sub = f"Simulazione a regole fisse fino al {live_since_str}, poi decisioni reali eseguite ogni notte in produzione · Reinvestimento composto"
-        _banner_badge = f"BASE 100 · LIVE DAL {live_since_str.upper()}"
+        _banner_text = f"Simulazione a regole fisse{track_record_range_str} fino al {live_since_str}, poi forward-tracking dal vivo in produzione ogni notte · Reinvestimento composto"
     else:
-        _banner_title = f"SIMULAZIONE QUANTITATIVA & TRACK RECORD{track_record_range_str}"
-        _banner_sub = "Serie storica a regole fisse deterministiche su dati storici di mercato · Reinvestimento composto"
-        _banner_badge = "BASE 100 · BACKTEST OUT-OF-SAMPLE"
+        _banner_text = f"Simulazione quantitativa a regole fisse deterministiche{track_record_range_str} · Reinvestimento composto · Backtest out-of-sample"
 
-    st_html(f"""
-    <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-        <div>
-            <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">{_banner_title}</span>
-            <div style="font-size: 11px; opacity: 0.65; margin-top: 2px;">{_banner_sub}</div>
-        </div>
-        <span style="background: rgba(201,164,76,0.16); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: {MONO};">{_banner_badge}</span>
-    </div>
-    """)
+    # Riquadro colorato -> semplice didascalia: e' una nota metodologica, non
+    # la prima cosa che deve saltare all'occhio (quello sono i numeri del
+    # sub-hero sotto). Il contenuto (onesto su simulazione/live) e' rimasto,
+    # solo il peso visivo e' stato ridotto.
+    st.caption(_banner_text)
 
     total_ret_pct = 0.0
     cagr_pct = 0.0
     max_dd = 0.0
+    sharpe_ratio = 0.0
+    calmar_ratio = 0.0
 
     if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
         df_eq = pd.DataFrame(eq_curve["history"])
@@ -693,19 +698,33 @@ with tab_perf:
         if years_elapsed > 0 and initial_val > 0 and final_val > 0:
             cagr_pct = ((final_val / initial_val) ** (1.0 / years_elapsed) - 1.0) * 100
 
+        # Sharpe/Calmar con la stessa convenzione usata in tutta la fase di
+        # ricerca (multi_asset_lab.py::perf_metrics): rendimenti SETTIMANALI,
+        # non giornalieri, annualizzati con sqrt(52), nessun tasso privo di
+        # rischio sottratto. Erano il criterio primario di valutazione in
+        # tutti i test di questa sessione ma non comparivano mai in
+        # dashboard — corretto qui (vedi APEX_V2_SPEC.md §25).
+        _weekly_close = df_eq['close'].resample('W-FRI').last().dropna()
+        _weekly_ret = _weekly_close.pct_change().dropna()
+        if len(_weekly_ret) > 1 and _weekly_ret.std() > 0:
+            sharpe_ratio = (_weekly_ret.mean() / _weekly_ret.std()) * (52 ** 0.5)
+        _max_dd_frac = abs(max_dd) / 100.0
+        calmar_ratio = (cagr_pct / 100.0) / _max_dd_frac if _max_dd_frac > 0 else 0.0
+
     # Stima netto teorica: 26% (aliquota flat italiana) solo sulla quota di
     # guadagno, come se l'intera posizione venisse realizzata oggi. Le
     # perdite non generano beneficio fiscale in questa stima semplificata
     # (non modella riporto perdite 4 anni art. 68 TUIR, vedi APEX_V2_SPEC.md §8.9/§10).
     net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
 
-    # --- Sub-hero: le 3 metriche piu' importanti, in grande, non sepolte in
-    # una striscia di 9 — le altre restano nella striscia sotto.
+    # --- Sub-hero: le 5 metriche piu' importanti, in grande, non sepolte in
+    # una striscia di 9 — le altre (trading mechanics) restano nella
+    # striscia sotto.
     def sub_hero_metric(label, value, subtext="", val_color=None):
         return f"""
-        <div style="flex: 1 1 160px;">
+        <div style="flex: 1 1 150px;">
             <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
-            <div style="font-family: {MONO}; font-size: 28px; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
+            <div style="font-family: {MONO}; font-size: 26px; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
             <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
         </div>
         """
@@ -714,6 +733,8 @@ with tab_perf:
     <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:24px;">
         {sub_hero_metric("Rendimento", f"{total_ret_pct:+.2f}%", f"Netto stimato: {net_ret_pct_est:+.2f}%", POS if total_ret_pct >= 0 else NEG)}
         {sub_hero_metric("CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Composto annuo", POS if cagr_pct >= 0 else NEG)}
+        {sub_hero_metric("Sharpe", f"{sharpe_ratio:.2f}", "Rendimento / volatilità", POS if sharpe_ratio >= 1.0 else None)}
+        {sub_hero_metric("Calmar", f"{calmar_ratio:.2f}", "CAGR / max drawdown", POS if calmar_ratio >= 1.0 else None)}
         {sub_hero_metric("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica")}
     </div>
     """)
@@ -1019,7 +1040,12 @@ with tab_perf:
             if "Motivazione" in df_hist.columns:
                 df_hist["Motivazione"] = df_hist["Motivazione"].apply(_short_reason)
 
-            cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
+            # Stesso switch della tabella posizioni: compatto di default,
+            # prezzi/data ingresso dietro un click.
+            show_trade_details = st.toggle("Mostra dettagli esecuzione (data ingresso, prezzi)", value=False, key="trade_details_toggle")
+            compact_cols_hist = ["Titolo", "Data Uscita", "Durata", "Rendimento %", "Motivazione"]
+            full_cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
+            cols_hist = full_cols_hist if show_trade_details else compact_cols_hist
             df_hist = df_hist[[c for c in cols_hist if c in df_hist.columns]]
 
             # Search & Filter Controls

@@ -263,6 +263,24 @@ candidati dopo il deploy, entrambi respinti:
   taglia tra posizioni (classi a peso uguale, poi diversificazione solo dentro
   lo slot Equity) è per costruzione, non un problema da correggere.
 
+- **Scalare il numero di posizioni invece della loro taglia nello slot
+  azionario** (su domanda esplicita dell'utente: oggi il vol-targeting
+  scala proporzionalmente la taglia di tutte e 15 le posizioni del basket
+  quando lo slot Equities scende sotto il 25% base — script
+  `equity_position_count_scaling_test.py`): variante testata, tenere meno
+  posizioni (le `n_held` a volatilità più bassa nel basket corrente, `n_held
+  = round(15 × peso_slot / 0.25)`) ciascuna quasi a taglia piena (~1/15 del
+  25% base) invece di tutte e 15 a taglia ridotta proporzionalmente. CAGR
+  15,01%→14,75%, netA 12,67%→12,43%, netB 12,49%→12,25%, Sharpe 1,41→1,38,
+  Calmar 1,13→0,97, MaxDD 13,3%→15,3%, alpha CAPM 11,31%→11,06% (entrambi
+  p=0,0001). Unico vantaggio: -19% di eventi tassabili/anno (108,0→87,0),
+  non sufficiente a compensare il peggioramento di rischio. Scartata: stesso
+  meccanismo di rottura già visto con la "banda di non-negoziazione" sopra —
+  concentrare in meno posizioni più grandi aumenta il rischio idiosincratico
+  per singolo titolo proprio quando il vol-targeting ha già segnalato
+  conviction ridotta (volatilità di classe più alta), l'opposto dello scopo
+  del vol-targeting stesso.
+
 **Nota metodologica:** dopo 14 tentativi di miglioramento testati sullo stesso
 campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
 contro il rischio di data-snooping crescente (lo stesso principio che ha già
@@ -763,6 +781,45 @@ scorrere l'intero storico operazioni. Corretto: `backend.py` ora persiste
 `last_action_log`/`last_action_date` in `portfolio.json` ad ogni decisione,
 e `app.py` mostra un riquadro dedicato in cima al Tab Portafoglio ("Ultimo
 ribilanciamento — operazioni da replicare sul tuo broker") quando presente.
+
+### 8.12 Redesign notifica Telegram — due formati invece di uno
+
+Su richiesta esplicita dell'utente ("deve essere tutto lean, frictionless,
+basso carico mentale, perfetto connubio tra professionalità istituzionale e
+consumer retail"), `backend.py::send_telegram_alert` è stato riscritto.
+
+**Prima:** un solo formato inviato ogni venerdì (`is_friday` è vero ogni
+venerdì, non solo nei venerdì di decisione), sempre con: header con emoji
+decorative (🦅/🎛️/💼/🚀/💡), l'intero elenco `open_positions` ripetuto per
+intero (già lungo con 16 posizioni, destinato a crescere), e un footer
+statico identico ogni volta a prescindere dal contenuto.
+
+**Dopo:** due formati distinti a seconda che ci sia qualcosa da fare o meno:
+- **Venerdì silenzioso** (nessun ordine, nessun cambio di regime — la
+  maggioranza dei venerdì): un messaggio breve con il P&L aggregato
+  ponderato sulle posizioni aperte e il numero di posizioni, invece
+  dell'elenco completo.
+- **Venerdì con azione** (ordini da eseguire e/o cambio di regime): elenco
+  ordini e/o alert macro, senza più il riepilogo completo del portafoglio
+  (già ridondante con l'elenco ordini) e con un rimando esplicito alla
+  dashboard per il dettaglio completo.
+
+Entrambi i formati chiudono con una riga di stato sintetico per classe
+(🟢/⚪ per Azioni/Bitcoin/Oro/Obbligazioni).
+
+**Bug di semantica colore corretto nello stesso intervento:** la versione
+precedente usava 🔴 per "classe in pausa" (`alloc.get(classe,0)==0`) —
+esattamente la stessa violazione della regola "il rosso è riservato al P&L
+negativo, mai allo stato attivo/inattivo" già trovata e corretta nella
+dashboard in questa stessa sessione (una classe in pausa è spesso una
+postura difensiva corretta, non una cattiva notizia). Sostituito con ⚪,
+coerente con `app.py`.
+
+Nessun cambio alla logica di trigger dell'invio (`is_friday or
+macro_events or has_orders`, invariata) né al contenuto salvato in
+`action_log`/`portfolio.json` (la stringa con le emoji originali resta
+quella mostrata nella dashboard — solo la versione inviata a Telegram viene
+ripulita localmente prima dell'invio).
 
 ---
 
@@ -1566,3 +1623,66 @@ nessuno dei due), 22/22 test engine (21 + il nuovo test su `live`).
 Mapping "Motivazione" verificato contro le motivazioni reali presenti in
 `portfolio.json` (239 trade, 2 categorie distinte, entrambe mappate
 correttamente).
+
+## 25. Giro completo dell'app: bug reale trovato, Sharpe/Calmar aggiunti, rifiniture (2026-08-28)
+
+Su richiesta esplicita dell'utente di verificare l'intera app per coerenza
+lean/frictionless/basso carico cognitivo, oltre a modifiche puntuali
+richieste direttamente.
+
+**Bug reale trovato durante l'audit — quote Bitcoin mai formattate
+correttamente.** `_quote_display()` controllava `row["Classe"] == "Bitcoin"`
+per decidere se mostrare le quote BTC in formato frazionario — ma dal
+restyle di §22 "Classe" usa le sigle (§24: "BTC", non più "Bitcoin"). Il
+controllo non scattava mai: le quote Bitcoin cadevano nel ramo intero
+arrotondato, mostrando **"0"** invece della quantità reale. Verificato con
+i dati live: peso 19,29%, prezzo ingresso $80.588,67 → quote vere 0,2394
+BTC, con il bug mostrava 0 — visibile a chiunque avesse aperto il toggle
+dettagli da quando è stato pubblicato §24. Corretto il confronto a "BTC".
+Bug introdotto e mai notato nel turno precedente perché quella colonna è
+dietro il toggle "mostra dettagli", non testata nello scenario di default.
+
+**Due regressioni dal restyle di §22, corrette.** Il campo "Capitale
+broker" aveva perso l'etichetta visibile (era `label_visibility="collapsed"`
+senza alcun testo sostitutivo: un numero nudo, senza contesto su cosa
+rappresenti) e la nota sul tasso di cambio EUR/USD era sparita del tutto
+dal passaggio al nuovo layout. Ripristinate entrambe (etichetta visibile,
+didascalia condizionale solo quando la valuta è EUR).
+
+**Modifiche dirette richieste**: "Liquidità" → "Monetario" nella tabella
+posizioni; colonna "Stato" eliminata, il pallino di "nuovo questa
+settimana" ora è appeso al Titolo stesso (`stile applicato alla cella
+intera, non al singolo carattere — limite reale di `st.dataframe`, che non
+supporta HTML nelle celle, documentato anche in §23); switch "mostra
+dettagli esecuzione" aggiunto al Registro Operazioni Chiuse, stesso
+pattern della tabella posizioni (compatto: Titolo/Data Uscita/Durata/
+Rendimento/Motivazione; esteso: + Data Ingresso/Prezzi).
+
+**Card "SIMULAZIONE..." — risposta alla domanda dell'utente.** Sì, il
+contenuto (distinzione onesta simulazione/live di §24) va mantenuto, ma il
+peso visivo era eccessivo per una nota metodologica — non è il primo dato
+che un utente deve vedere. Ridotta da riquadro colorato con badge a una
+singola `st.caption()` sopra il sub-hero.
+
+**Le metriche mostrate erano quelle giuste? No — mancava la coppia
+Sharpe/Calmar.** Rispondendo alla domanda dell'utente: Win Rate/Profit
+Factor/Payoff Ratio sono statistiche di meccanica del trading, utili ma
+secondarie per un investitore. Sharpe e Calmar sono stati il criterio
+*primario* di valutazione in ogni test di questa sessione (dozine di
+citazioni in questo stesso documento) ma non comparivano mai in
+dashboard — un buco reale tra cosa si usa per decidere e cosa si mostra
+all'utente finale. Aggiunti al sub-hero (ora 5 metriche: Rendimento, CAGR,
+Sharpe, Calmar, Max Drawdown), calcolati con la stessa convenzione di
+`multi_asset_lab.py::perf_metrics` (rendimenti settimanali, non
+giornalieri, annualizzati con `sqrt(52)`, nessun tasso privo di rischio
+sottratto) per restare coerenti con tutta la fase di ricerca invece di
+inventare una convenzione nuova solo per la dashboard.
+
+**Verifica**: `py_compile` pulito, `AppTest` su dati reali senza eccezioni
+(2 switch confermati), logica colonne compatte/estese del registro
+operazioni verificata anche direttamente su pandas con i 239 trade reali
+(entrambi i rami, nessun errore). Sharpe/Calmar verificati con uno script
+standalone sui dati reali di `equity.json` (Sharpe 1.35, Calmar 1.78 —
+coerenti con i range 1.39-1.56 / ~1.98 citati nei test di ricerca di
+questa sessione, non identici perché quei test erano su campioni diversi).
+22/22 test engine invariati.

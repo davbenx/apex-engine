@@ -473,7 +473,18 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
 # TELEGRAM NOTIFICATIONS
 # ==============================================================================
 def send_telegram_alert(data_dict, action_log):
-    """Sends concise formatted markdown alerts to the user's Telegram channel with % and stop losses in $ and %."""
+    """Notifica Telegram — due formati invece di uno solo uguale ogni volta
+    (vedi APEX_V2_SPEC.md §26): breve nei venerdi' "silenziosi" (nessun
+    ordine, nessun cambio di regime — la maggioranza dei casi, 3 venerdi'
+    su 4), completa solo quando c'e' davvero qualcosa da guardare. Niente
+    piu' elenco completo del portafoglio a ogni invio: nei venerdi' di
+    ribilanciamento e' gia' tutto nella sezione ordini (ripeterlo sarebbe
+    la stessa informazione due volte), nei venerdi' silenziosi basta
+    l'aggregato. Dettaglio completo sempre disponibile in dashboard.
+    Emoji decorative rimosse (restano solo 🟢/⚪, l'unico modo di colorare
+    uno stato su Telegram senza CSS) — e ⚪ sostituisce il vecchio 🔴 per
+    "in pausa": una classe in pausa non e' una notizia negativa, stessa
+    regola gia' applicata nella dashboard."""
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
@@ -482,51 +493,57 @@ def send_telegram_alert(data_dict, action_log):
         return
 
     try:
-        msg = "🦅 *APEX ENGINE UPDATE* 🦅\n"
-        msg += f"🕒 _{data_dict.get('timestamp', '')}_\n\n"
-
-        macro_evs = data_dict.get('macro_events', [])
-        if macro_evs:
-            msg += "🚨 *ALLERTA MACRO REGIME* 🚨\n"
-            for ev in macro_evs:
-                msg += f"• {ev}\n"
-            msg += "\n"
-
-        if action_log:
-            msg += "🚀 *ORDINI DA ESEGUIRE OGGI*\n"
-            for log in action_log:
-                msg += f"• {log}\n"
-            msg += "\n"
-
         alloc = data_dict.get('allocations', {})
-        eq_icon = "🟢" if alloc.get('Equities', 0) > 0 else "🔴"
-        cr_icon = "🟢" if alloc.get('Crypto', 0) > 0 else "🔴"
-        g_icon = "🟢" if alloc.get('Gold', 0) > 0 else "🔴"
-        b_icon = "🟢" if alloc.get('Bonds', 0) > 0 else "🔴"
+        macro_evs = data_dict.get('macro_events', [])
+        date_str = data_dict.get('timestamp', '').split(',')[0].strip()
+        _, is_rotation_now = is_rebalancing_schedule()
 
-        msg += "🎛️ *COCKPIT MACRO*\n"
-        msg += f"{eq_icon} Azionario: {alloc.get('Equities', 0)}%\n"
-        msg += f"{cr_icon} Crypto: {alloc.get('Crypto', 0)}%\n"
-        msg += f"{g_icon} Oro: {alloc.get('Gold', 0)}%\n"
-        msg += f"{b_icon} Bond: {alloc.get('Bonds', 0)}%\n"
-        msg += f"⚪ Cash: {alloc.get('Cash', 0)}%\n\n"
+        def _dot(pct):
+            return "🟢" if pct > 0 else "⚪"
+
+        signals_line = (
+            f"Segnali: Azioni {_dot(alloc.get('Equities', 0))} · "
+            f"Bitcoin {_dot(alloc.get('Crypto', 0))} · "
+            f"Oro {_dot(alloc.get('Gold', 0))} · "
+            f"Obbligazioni {_dot(alloc.get('Bonds', 0))}"
+        )
 
         pf = load_json_safe(PORTFOLIO_FILE, default={})
         open_pos = pf.get("open_positions", {})
-        if open_pos:
-            msg += "💼 *IL TUO PORTAFOGLIO*\n"
-            for ticker, info in open_pos.items():
-                cur_p = info.get("current_price", info.get("entry_price", 0.0))
-                pnl_pct = ((cur_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
-                w_pct = info.get("weight", 0.0) * 100.0
-                msg += f"• *{ticker}* | Peso: {w_pct:.1f}% | Prezzo: {fmt_usd(cur_p)} | Rendimento: {pnl_pct:+.2f}%\n"
-            msg += "\n"
 
-        _, is_rotation_now = is_rebalancing_schedule()
-        if is_rotation_now:
-            msg += "🔄 *DECISIONE MENSILE ESEGUITA*\nAccedi alla Dashboard per il dettaglio del ribilanciamento.\n\n"
+        if action_log or macro_evs:
+            msg = f"*Apex Engine* · {date_str}"
+            if is_rotation_now:
+                msg += " — ribilanciamento mensile"
+            msg += "\n\n"
 
-        msg += "💡 _Accedi ad Apex Engine per i dettagli operativi._"
+            if macro_evs:
+                msg += "*Cambio di regime*\n"
+                for ev in macro_evs:
+                    msg += f"• {ev.replace('⚠️ ', '')}\n"
+                msg += "\n"
+
+            if action_log:
+                msg += "*Ordini da eseguire*\n"
+                for log in action_log:
+                    clean = log
+                    for e in ("🟢 ", "🔴 ", "🔁 ", "⚖️ ", "🔄 "):
+                        clean = clean.replace(e, "")
+                    msg += f"• {clean}\n"
+                msg += "\n"
+
+            msg += f"{signals_line}\nDettaglio completo → dashboard"
+        else:
+            if open_pos:
+                weighted_pnl = sum(
+                    p.get("weight", 0.0) * (((p.get("current_price", p.get("entry_price", 0.0)) / p["entry_price"]) - 1.0) * 100)
+                    for p in open_pos.values() if p.get("entry_price", 0) > 0
+                )
+                status_line = f"Nessuna operazione questa settimana. Portafoglio invariato, {weighted_pnl:+.2f}% su {len(open_pos)} posizioni."
+            else:
+                status_line = "Nessuna operazione questa settimana. Nessuna posizione aperta."
+
+            msg = f"*Apex Engine* · {date_str}\n\n{status_line}\n{signals_line}"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
