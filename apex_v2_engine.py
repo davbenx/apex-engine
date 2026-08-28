@@ -17,7 +17,10 @@ import pandas as pd
 # --- Parametri (vedi APEX_V2_SPEC.md per la giustificazione di ciascuno) ---
 V2_CLASS_TICKER = {"Equities": "SPY", "Bonds": "IEF", "Gold": "GLD", "Crypto": "BTC-USD"}
 V2_MA_WEEKS = 40
-V2_HYSTERESIS = 0.02
+V2_SHORT_MA_WEEKS = 20  # conferma multi-timeframe — vedi APEX_V2_SPEC.md §8.9
+V2_HYSTERESIS_K = 0.5   # banda adattiva = k * vol settimanale dell'asset, non piu' fissa al 2% per tutti — vedi §8.9
+V2_HYSTERESIS_MIN = 0.005
+V2_HYSTERESIS_MAX = 0.15
 V2_VOL_TARGET = 0.13
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
@@ -47,11 +50,24 @@ def compute_v2_macro_signal(
     """
     Calcola i pesi target per le 4 classi + cash (§2-3 di APEX_V2_SPEC.md).
 
+    Due raffinamenti aggiunti dopo test dedicati (§8.9): banda di isteresi
+    adattiva alla volatilita' di ciascun asset (invece di un 2% fisso uguale
+    per SPY/IEF/GLD/BTC-USD, che ha volatilita' molto diverse), e conferma
+    multi-timeframe (richiede accordo tra MA 40 settimane e MA 20 settimane,
+    non solo la MA lunga).
+
     Ritorna: (allocations_pct 0-100 per classe + Cash, nuovo stato isteresi, debug per classe)
     """
     state = dict(prev_hysteresis_state) if prev_hysteresis_state else {}
     base_weight = {}
     debug = {}
+    vols = {}
+
+    for cls, ticker in V2_CLASS_TICKER.items():
+        wc = _weekly_close(b_data.get(ticker))
+        v = _realized_vol(wc, V2_VOL_WINDOW)
+        if v is not None:
+            vols[cls] = v
 
     for cls, ticker in V2_CLASS_TICKER.items():
         df = b_data.get(ticker)
@@ -61,28 +77,30 @@ def compute_v2_macro_signal(
             debug[cls] = {"note": "dati insufficienti"}
             continue
 
-        ma = wc.rolling(V2_MA_WEEKS, min_periods=V2_MA_WEEKS).mean()
+        ma_long = wc.rolling(V2_MA_WEEKS, min_periods=V2_MA_WEEKS).mean()
+        ma_short = wc.rolling(V2_SHORT_MA_WEEKS, min_periods=V2_SHORT_MA_WEEKS).mean()
         price = float(wc.iloc[-1])
-        ma_val = float(ma.iloc[-1])
-        dist = (price / ma_val - 1.0) if ma_val > 0 else 0.0
+        ma_long_val = float(ma_long.iloc[-1])
+        ma_short_val = float(ma_short.iloc[-1]) if not np.isnan(ma_short.iloc[-1]) else ma_long_val
+        dist = (price / ma_long_val - 1.0) if ma_long_val > 0 else 0.0
+
+        wk_vol = (vols[cls] / float(np.sqrt(52))) if cls in vols else 0.02
+        band = float(max(V2_HYSTERESIS_MIN, min(V2_HYSTERESIS_MAX, V2_HYSTERESIS_K * wk_vol)))
 
         was_active = bool(state.get(cls, False))
-        if was_active:
-            is_active = dist > -V2_HYSTERESIS
-        else:
-            is_active = dist > V2_HYSTERESIS
-        state[cls] = is_active
+        trend_long_on = (dist > -band) if was_active else (dist > band)
+        trend_short_on = price > ma_short_val if ma_short_val > 0 else False
+        is_active = trend_long_on and trend_short_on
+        state[cls] = trend_long_on  # lo stato di isteresi segue solo il trend lungo; il breve e' un filtro extra
 
         base_weight[cls] = 0.25 if is_active else 0.0
-        debug[cls] = {"price": price, "ma40w": ma_val, "distanza_pct": round(dist * 100, 2), "attivo": is_active}
+        debug[cls] = {
+            "price": price, "ma40w": ma_long_val, "ma20w": ma_short_val,
+            "distanza_pct": round(dist * 100, 2), "banda_isteresi_pct": round(band * 100, 2), "attivo": is_active,
+        }
 
-    vols = {}
-    for cls, ticker in V2_CLASS_TICKER.items():
-        wc = _weekly_close(b_data.get(ticker))
-        v = _realized_vol(wc, V2_VOL_WINDOW)
-        if v is not None:
-            vols[cls] = v
-        debug.setdefault(cls, {})["vol_12w_ann_pct"] = round(v * 100, 2) if v is not None else None
+    for cls in V2_CLASS_TICKER:
+        debug.setdefault(cls, {})["vol_12w_ann_pct"] = round(vols[cls] * 100, 2) if cls in vols else None
 
     port_vol = sum(base_weight.get(cls, 0.0) * vols[cls] for cls in V2_CLASS_TICKER if cls in vols)
     scale = min(1.0, V2_VOL_TARGET / port_vol) if port_vol > 1e-6 else 1.0

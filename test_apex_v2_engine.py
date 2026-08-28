@@ -70,6 +70,38 @@ def test_hysteresis_keeps_previously_active_asset_on_small_dip():
     assert state2["Equities"] is True, "isteresi: non deve disattivarsi per un calo minore del 2%"
 
 
+def test_multi_timeframe_blocks_when_short_ma_disagrees():
+    """
+    Trend di lungo periodo ancora sopra la MA40w (isteresi attiva), ma un crollo
+    recente ha portato il prezzo sotto la MA20w — la conferma multi-timeframe deve
+    tenere la classe INATTIVA (attivo=False) anche se lo stato di isteresi (basato
+    solo sulla MA lunga) resta True. Vedi APEX_V2_SPEC.md §8.9.
+    """
+    dates = pd.date_range("2024-01-01", periods=400, freq="D")
+    rng = np.random.default_rng(5)
+    base = 100.0 * np.exp(np.cumsum(rng.normal(0.004, 0.01, 350)))
+    crash = base[-1] * np.exp(np.cumsum(np.full(50, -0.02)))  # crollo ripido recente
+    close = np.concatenate([base, crash])
+    df = pd.DataFrame({"Open": close, "High": close, "Low": close, "Close": close}, index=dates)
+    b_data = {"SPY": df, "IEF": make_flat_df(), "GLD": make_flat_df(), "BTC-USD": make_flat_df()}
+
+    alloc, state, debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=None)
+    assert debug["Equities"]["attivo"] is False, "MA20w sotto prezzo deve bloccare l'attivazione anche con MA40w ancora favorevole"
+
+
+def test_adaptive_hysteresis_band_widens_with_higher_volatility():
+    """Un asset molto volatile deve ricevere una banda di isteresi piu' larga di uno stabile."""
+    b_data = {
+        "SPY": make_trend_df(daily_drift=0.001, daily_vol=0.002, seed=7),   # bassa vol
+        "IEF": make_trend_df(daily_drift=0.001, daily_vol=0.05, seed=8),    # alta vol
+        "GLD": make_flat_df(),
+        "BTC-USD": make_flat_df(),
+    }
+    _, _, debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=None)
+    assert debug["Bonds"]["banda_isteresi_pct"] > debug["Equities"]["banda_isteresi_pct"], \
+        "l'asset piu' volatile (IEF qui) deve avere una banda di isteresi piu' larga"
+
+
 def test_vol_target_scales_down_high_vol_portfolio():
     high_vol = make_trend_df(daily_drift=0.004, daily_vol=0.04, seed=3)  # asset molto volatile e in trend
     b_data = {"SPY": high_vol, "IEF": make_flat_df(), "GLD": make_flat_df(), "BTC-USD": make_flat_df()}

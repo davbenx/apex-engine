@@ -619,6 +619,100 @@ significativo (2,07% vs 1,27% prima, p=0,67) — la correzione ha migliorato
 l'efficienza fiscale e la precisione dei costi, non il problema strutturale
 di beta basso in un bull market discusso in §8.7.
 
+### 8.9 Giro di ottimizzazione "santo graal" — 6 test, 2 adottati
+
+Su richiesta esplicita dell'utente ("ottimizza per alpha, NAV, CAGR, expectancy
+a un rischio inferiore al benchmark, al netto della tassazione italiana"), un
+brainstorm strutturato per categoria (n° posizioni, size, logiche, stop,
+rotazioni, tempi, indicatori) seguito da 6 test validati con l'overlay macro
+completo. Le categorie già coperte da test precedenti (n° posizioni, size,
+stop, rotazioni) non sono state ripetute — vedi §8.1-8.8.
+
+**Adottati:**
+
+1. **Banda di isteresi adattiva alla volatilità** (`V2_HYSTERESIS_K = 0.5`,
+   sostituisce il 2% fisso uguale per tutte le classi): BTC-USD e IEF hanno
+   volatilità settimanale profondamente diverse — una banda unica scattava
+   troppo spesso per IEF e troppo raramente per BTC. Banda = `k × volatilità
+   settimanale realizzata (12w)` dell'asset, clippata tra 0,5% e 15%. Grid
+   test su k da 0,15 a 2,0: plateau stabile da k=0,5 a k=2,0 (non un picco
+   isolato). A k=0,5: Sharpe 1,39→1,45, Calmar 0,94→1,10, MaxDD 15,9%→14,0%,
+   alpha CAPM 10,64%→11,17% (p=0,0001), meglio anche nel Bear 2022 (-5,6% vs
+   -7,9%).
+2. **Conferma multi-timeframe** (`V2_SHORT_MA_WEEKS = 20`): oltre alla MA 40
+   settimane (isteresi), richiede che il prezzo sia anche sopra una MA più
+   corta (20 settimane) — diverso dalla "doppia conferma trend+momentum" già
+   respinta (quella univa due segnali diversi; qui sono due orizzonti dello
+   stesso trend). Plateau reale tra 12 e 24 settimane, degrada oltre le 28
+   quando le due medie convergono (comportamento sensato). A 20w: Sharpe
+   1,39→1,49, Calmar 0,94→1,31, MaxDD 15,9%→12,3%, CAGR 14,92%→16,04%, e
+   **meno** eventi/anno (23,4→21,4).
+
+**Bug trovato durante l'implementazione:** la banda adattiva produceva un
+`np.float64` invece di un float Python, con lo stato di isteresi che diventava
+`np.bool_` — non un problema funzionale, ma avrebbe rotto la serializzazione
+JSON dello stato in produzione (`json.dump` non serializza tipi numpy).
+Corretto con cast espliciti; il bug è stato scoperto dai test automatici
+(2 test falliti su un controllo di identità `is True`), non in produzione.
+
+**Non adottati (con motivazione):**
+
+3. **Tax-loss harvesting a fine dicembre**: vendita e riacquisto immediato dei
+   titoli del basket in perdita non realizzata, per compensare l'anno fiscale
+   corrente. Effetto nullo, verificato **sia prima che dopo** la correzione
+   del riporto minusvalenze a 4 anni (§8.9-bis sotto): netA 12,34%→12,33%,
+   differenza di $16 su $109k di tasse pagate. Il turnover naturale della
+   strategia (108-114 eventi/anno sul basket) è già così alto che le
+   minusvalenze si realizzano quasi sempre entro l'anno fiscale corrente —
+   non c'è quasi nulla da "raccogliere" in più forzando la vendita a
+   dicembre. Confermato con un controllo diretto: **zero minusvalenze sono
+   mai scadute inutilizzate** sui 12 anni testati (né sul segnale macro né
+   sul basket completo) — il limite dei 4 anni (art. 68 TUIR) non è mai
+   vincolante per questo disegno, quindi non ha senso nemmeno ridurre
+   ulteriormente il turnover per "rientrare" in quella finestra: è già
+   ampiamente rispettata.
+4. **Fattore Qualità** (filtro ROE minimo sopra la selezione per bassa
+   volatilità): segnale positivo ma modesto con l'overlay completo (CAGR
+   15,01%→15,19%, netA 12,67%→12,88%, Sharpe 1,41→1,44) — molto più
+   contenuto del test isolato (CAGR 9,52%→11,14%). **Limite dichiarato non
+   risolto**: usa il ROE ATTUALE applicato retroattivamente alle date
+   storiche di selezione (nessuna fonte gratuita di fondamentali
+   point-in-time in questo repository) — bias di look-ahead, il risultato è
+   un limite superiore ottimistico, non una stima realistica. Non adottato:
+   il segnale non è abbastanza forte da giustificare l'uso di dati che non
+   erano disponibili alle date storiche.
+5. **Momentum cross-sectional** (26 settimane, con lo stesso buffer-rank e
+   vincolo settoriale del disegno deployato — un'implementazione più moderna
+   di quanto l'audit originale v1 avesse mai testato): isolato mostra un
+   drawdown quasi doppio (39,9% contro 21-27% del basket low-vol) — il
+   classico "momentum crash" della letteratura. Con l'overlay macro completo
+   il vol-targeting doma parte del rischio (MaxDD scende a 16,2%), e l'alpha
+   non è più nullo come nell'audit v1 (11,04%, p=0,0002, comparabile
+   all'11,31% del disegno deployato) — ma Calmar resta peggiore (0,95 vs
+   1,13) e MaxDD resta peggiore (16,2% vs 13,3%). Non adottato: va contro il
+   vincolo esplicito dell'utente di volatilità inferiore al benchmark; un
+   rendimento netto marginalmente migliore (+0,41pp) non compensa un profilo
+   di rischio peggiore quando il rischio più basso è un requisito, non solo
+   una preferenza.
+
+**Bug fiscale trovato e corretto (§8.9-bis):** durante la verifica del punto
+3, un dubbio dell'utente sul limite dei 4-5 anni ha fatto emergere che il
+`TaxLedger` (usato in *tutti* gli script di backtest di questo progetto)
+resettava il pool minusvalenze a zero ogni fine anno **indipendentemente dal
+segno** — scartando per sempre le perdite non compensate nello stesso anno,
+invece di riportarle fino a 4 anni come previsto dall'art. 68 TUIR. Era una
+semplificazione dichiarata nel codice ("compensabili nello stesso anno", non
+un bug nascosto), ma **sottostimava** il rendimento netto (non lo
+sovrastimava): l'utente aveva più occasioni reali di compensare di quante il
+modello gliene concedesse. Corretto con una coda FIFO che scade dopo 4 anni
+(`multi_asset_lab.TaxLedger`, 3 nuovi test in `tests/test_tax_carryforward.py`,
+tutti passano). Effetto sul disegno deployato: netA 12,61%→12,64% (piccolo,
+la strategia macro ha poche annate in perdita netta).
+
+Track record Feb 2024-oggi (§8.6) rigenerato una quarta volta con entrambi i
+miglioramenti adottati attivi, per coerenza piena: NAV finale $125.308 →
+**$127.112**, eventi tassabili 229 → **193**.
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)

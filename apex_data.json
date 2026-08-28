@@ -14,11 +14,11 @@
     }
   },
   "allocations": {
-    "Equities": 18.26,
-    "Bonds": 18.26,
+    "Equities": 19.29,
+    "Bonds": 0.0,
     "Gold": 0.0,
-    "Crypto": 18.26,
-    "Cash": 45.21
+    "Crypto": 19.29,
+    "Cash": 61.41
   },
   "macro_dates": {
     "Equities": "2026-04-03",
@@ -31,33 +31,13 @@
   ],
   "top20": [
     {
-      "Ticker": "KO",
-      "Prezzo ($)": 91.1,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "MCD",
-      "Prezzo ($)": 270.95,
+      "Ticker": "KIM",
+      "Prezzo ($)": 24.03,
       "Stop Loss ($)": 0.0
     },
     {
       "Ticker": "TJX",
       "Prezzo ($)": 136.83,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "NSC",
-      "Prezzo ($)": 352.68,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "CMS",
-      "Prezzo ($)": 69.23,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "WEC",
-      "Prezzo ($)": 107.52,
       "Stop Loss ($)": 0.0
     },
     {
@@ -76,8 +56,13 @@
       "Stop Loss ($)": 0.0
     },
     {
-      "Ticker": "KIM",
-      "Prezzo ($)": 24.03,
+      "Ticker": "ATO",
+      "Prezzo ($)": 169.46,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "KO",
+      "Prezzo ($)": 91.1,
       "Stop Loss ($)": 0.0
     },
     {
@@ -93,6 +78,21 @@
     {
       "Ticker": "CTVA",
       "Prezzo ($)": 82.88,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "NI",
+      "Prezzo ($)": 41.13,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "MCD",
+      "Prezzo ($)": 270.95,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "NSC",
+      "Prezzo ($)": 352.68,
       "Stop Loss ($)": 0.0
     },
     {
@@ -122,33 +122,13 @@
     },
     "basket": [
       {
-        "Ticker": "KO",
-        "Prezzo ($)": 91.1,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "MCD",
-        "Prezzo ($)": 270.95,
+        "Ticker": "KIM",
+        "Prezzo ($)": 24.03,
         "Stop Loss ($)": 0.0
       },
       {
         "Ticker": "TJX",
         "Prezzo ($)": 136.83,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "NSC",
-        "Prezzo ($)": 352.68,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "CMS",
-        "Prezzo ($)": 69.23,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "WEC",
-        "Prezzo ($)": 107.52,
         "Stop Loss ($)": 0.0
       },
       {
@@ -167,8 +147,13 @@
         "Stop Loss ($)": 0.0
       },
       {
-        "Ticker": "KIM",
-        "Prezzo ($)": 24.03,
+        "Ticker": "ATO",
+        "Prezzo ($)": 169.46,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "KO",
+        "Prezzo ($)": 91.1,
         "Stop Loss ($)": 0.0
       },
       {
@@ -184,6 +169,21 @@
       {
         "Ticker": "CTVA",
         "Prezzo ($)": 82.88,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "NI",
+        "Prezzo ($)": 41.13,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "MCD",
+        "Prezzo ($)": 270.95,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "NSC",
+        "Prezzo ($)": 352.68,
         "Stop Loss ($)": 0.0
       },
       {
