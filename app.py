@@ -217,45 +217,36 @@ d_g = macro_dates.get("Gold", ts_date)
 d_b = macro_dates.get("Bonds", ts_date)
 
 
-def make_engine_card(icon, name, alloc_pct, is_active, since_date, is_cash=False):
+def make_engine_pill(icon, name, alloc_pct, is_active, since_date, is_cash=False):
+    """Pill compatta; il dettaglio 'attivo dal ...' resta accessibile via tooltip (title)."""
     if is_cash:
-        border_color = "#3B82F6" if alloc_pct > 0 else "#4B5563"
+        dot_color = "#3B82F6" if alloc_pct > 0 else "#6B7280"
+        border_color = "#3B82F6" if alloc_pct > 0 else "rgba(107, 114, 128, 0.35)"
         bg_color = "rgba(59, 130, 246, 0.08)" if alloc_pct > 0 else "rgba(107, 114, 128, 0.05)"
-        badge_bg = "#1E40AF" if alloc_pct > 0 else "#374151"
-        status_text = "🟢 ATTIVO" if alloc_pct > 0 else "⚪ STBY"
-        status_color = "#60A5FA" if alloc_pct > 0 else "#9CA3AF"
-        date_str = "Rifugio Sicuro"
-        opacity = "1"
+        tooltip = "Rifugio sicuro e liquidità"
     else:
-        border_color = "#10B981" if is_active else "#EF4444"
+        dot_color = "#10B981" if is_active else "#EF4444"
+        border_color = "#10B981" if is_active else "rgba(239, 68, 68, 0.35)"
         bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(239, 68, 68, 0.06)"
-        badge_bg = "#065F46" if is_active else "#7F1D1D"
-        status_text = "🟢 ATTIVO" if is_active else "🔴 DISATTIVO"
-        status_color = "#34D399" if is_active else "#F87171"
         fmt_d = format_date_italian(since_date)
-        date_str = f"dal {fmt_d}" if since_date and since_date != "-" else ""
-        opacity = "1" if is_active else "0.75"
+        state_str = "Attiva" if is_active else "Disattiva"
+        tooltip = f"{state_str} dal {fmt_d}" if since_date and since_date != "-" else state_str
 
     return f"""
-    <div style="flex: 1 1 180px; min-width: 155px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.12); opacity: {opacity};">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 700; font-size: 13.5px; letter-spacing: 0.2px;">{icon} {name}</span>
-            <span style="background: {badge_bg}; color: #ffffff; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">{alloc_pct}%</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: baseline;">
-            <span style="color: {status_color}; font-weight: 700; font-size: 11.5px; letter-spacing: 0.3px;">{status_text}</span>
-            <span style="opacity: 0.65; font-size: 10.5px;">{date_str}</span>
-        </div>
-    </div>
+    <span title="{tooltip}" style="display: inline-flex; align-items: center; gap: 7px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 20px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap;">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: {dot_color}; flex-shrink: 0;"></span>
+        {icon} {name}
+        <span style="font-weight: 700; font-family: 'JetBrains Mono', monospace; opacity: 0.9;">{alloc_pct}%</span>
+    </span>
     """
 
-card_eq = make_engine_card("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
-card_cr = make_engine_card("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
-card_g = make_engine_card("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
-card_b = make_engine_card("🛡️", "Obbligazioni", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
-card_c = make_engine_card("💵", "Monetario", alloc.get('Cash', 0), False, "", is_cash=True)
+pill_eq = make_engine_pill("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
+pill_cr = make_engine_pill("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
+pill_g = make_engine_pill("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
+pill_b = make_engine_pill("🛡️", "Obbligazioni", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
+pill_c = make_engine_pill("💵", "Monetario", alloc.get('Cash', 0), False, "", is_cash=True)
 
-st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 18px 0;">{card_eq}{card_cr}{card_g}{card_b}{card_c}</div>')
+st_html(f'<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 18px 0;">{pill_eq}{pill_cr}{pill_g}{pill_b}{pill_c}</div>')
 
 
 # ==============================================================================
@@ -303,12 +294,25 @@ if pf:
 
 
 # ==============================================================================
-# MAIN TABS DECLARATION (PORTAFOGLIO, METRICHE, RADAR, GUIDA)
+# LAST REBALANCE CALLOUT (sopra le tab, sempre visibile)
 # ==============================================================================
-tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
+last_actions = (pf or {}).get("last_action_log") or []
+if last_actions:
+    last_action_date = (pf or {}).get("last_action_date", "")
+    st_html(f"""
+    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-bottom: none; border-radius: 8px 8px 0 0; padding: 10px 14px 6px 14px; font-size: 13px;">
+        <div style="font-weight: 700;">🔔 Ultimo ribilanciamento ({last_action_date}) — operazioni da replicare sul tuo broker</div>
+    </div>
+    """)
+    st.code("\n".join(last_actions), language=None)
+    st.write("")
+
+# ==============================================================================
+# MAIN TABS DECLARATION (PORTAFOGLIO, METRICHE, GUIDA)
+# ==============================================================================
+tab_pf, tab_perf, tab_guide = st.tabs([
     "💼 Portafoglio",
     "📊 Metriche",
-    "📡 Radar",
     "📖 Guida"
 ])
 
@@ -317,26 +321,26 @@ tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
 # TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
 with tab_pf:
-    last_actions = (pf or {}).get("last_action_log") or []
-    if last_actions:
-        last_action_date = (pf or {}).get("last_action_date", "")
-        actions_html = "<br>".join(f"• {a}" for a in last_actions)
-        st_html(f"""
-        <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10B981; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 14px; font-size: 13px; line-height: 1.6;">
-            <div style="font-weight: 700; margin-bottom: 4px;">🔔 Ultimo ribilanciamento ({last_action_date}) — operazioni da replicare sul tuo broker</div>
-            {actions_html}
-        </div>
-        """)
-
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         c_val, c_cur = st.columns([3, 2])
         with c_val:
+            _default_cap = 100000
+            try:
+                _default_cap = max(1000, int(st.query_params.get("cap", 100000)))
+            except (TypeError, ValueError):
+                pass
             capitale_input = st.number_input(
-                "💰 Capitale Broker Reale", min_value=1000, value=100000, step=1000, format="%d"
+                "💰 Capitale Broker Reale", min_value=1000, value=_default_cap, step=1000, format="%d"
             )
         with c_cur:
-            valuta_sel = st.segmented_control("Valuta Conto", ["USD ($)", "EUR (€)"], default="USD ($)")
+            _default_cur = st.query_params.get("cur", "USD ($)")
+            if _default_cur not in ("USD ($)", "EUR (€)"):
+                _default_cur = "USD ($)"
+            valuta_sel = st.segmented_control("Valuta Conto", ["USD ($)", "EUR (€)"], default=_default_cur)
+
+        st.query_params["cap"] = str(int(capitale_input))
+        st.query_params["cur"] = valuta_sel
 
         eur_usd_rate = float(data.get("eur_usd", 1.085))
         is_eur = (valuta_sel == "EUR (€)")
@@ -476,6 +480,11 @@ with tab_pf:
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
 
+    show_details = st.toggle("🔍 Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
+    compact_cols = ["Pos", "Titolo", "Peso (%)", col_val_label, "Rendimento %"]
+    full_cols = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+    active_cols = full_cols if show_details else compact_cols
+
     col_az, col_cr = st.columns([2, 1])
 
     with col_az:
@@ -492,8 +501,7 @@ with tab_pf:
             df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
             df_op_eq[col_rend_label] = df_op_eq[col_val_label] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"] * fx_ratio)
 
-            cols_eq = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
-            df_op_eq = df_op_eq[[c for c in cols_eq if c in df_op_eq.columns]]
+            df_op_eq = df_op_eq[[c for c in active_cols if c in df_op_eq.columns]]
 
             df_eq_styled = df_op_eq.style.format({
                 "Quote": "{:d}",
@@ -503,7 +511,7 @@ with tab_pf:
                 col_val_label: "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
                 col_rend_label: "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', col_rend_label]).map(style_pos, subset=['Pos'])
+            }).map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_op_eq.columns]).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
         else:
@@ -523,8 +531,7 @@ with tab_pf:
             df_op_cr[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_cr.iterrows()]
             df_op_cr[col_rend_label] = df_op_cr[col_val_label] - (df_op_cr["Quote"] * df_op_cr["Ingresso ($)"] * fx_ratio)
 
-            cols_cr = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
-            df_op_cr = df_op_cr[[c for c in cols_cr if c in df_op_cr.columns]]
+            df_op_cr = df_op_cr[[c for c in active_cols if c in df_op_cr.columns]]
 
             def format_crypto_shares(val):
                 if val >= 1.0:
@@ -539,11 +546,76 @@ with tab_pf:
                 col_val_label: "{:,.0f}",
                 "Rendimento %": "{:+.2f}%",
                 col_rend_label: "{:+,.0f}"
-            }).map(color_pnl, subset=['Rendimento %', col_rend_label]).map(style_pos, subset=['Pos'])
+            }).map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_op_cr.columns]).map(style_pos, subset=['Pos'])
 
             st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
         else:
             st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo di fine mese.")
+
+    st.write("")
+    with st.expander("📡 Radar Rotazione — basket in arrivo (bassa volatilità, trimestrale) e crypto"):
+        st_html("""
+        <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
+            💡 I titoli già in portafoglio sono contrassegnati con ⭐, i nuovi candidati (🆕) subentrano alla prossima rotazione trimestrale se il segnale macro di classe è attivo.
+        </div>
+        """)
+
+        held_tickers = set(pf.get("open_positions", {}).keys()) if pf else set()
+
+        def style_radar_status(val):
+            if "🆕" in str(val):
+                return 'background-color: rgba(59, 130, 246, 0.15); color: #3B82F6; font-weight: 700; text-align: center;'
+            return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
+
+        rc1, rc2 = st.columns([2, 1])
+        with rc1:
+            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📈 Basket Azionario (bassa volatilità, rotazione trimestrale)</div>')
+            if alloc.get("Equities", 0) > 0:
+                top20 = data.get("top20", [])
+                if top20:
+                    df_radar_eq = pd.DataFrame(top20)
+                    df_radar_eq = df_radar_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
+                    df_radar_eq["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_radar_eq["Titolo"])]
+                    cols = ["Pos", "Titolo", "Prezzo ($)", "Volatilita' Ann. (%)"]
+                    df_radar_eq = df_radar_eq[[c for c in cols if c in df_radar_eq.columns]]
+
+                    fmt = {"Prezzo ($)": "{:.2f}"}
+                    if "Volatilita' Ann. (%)" in df_radar_eq.columns:
+                        fmt["Volatilita' Ann. (%)"] = "{:.1f}%"
+                    st.dataframe(
+                        df_radar_eq.style.format(fmt).map(
+                            style_radar_status, subset=['Pos'] if 'Pos' in df_radar_eq.columns else None
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                else:
+                    st.info("Nessun dato basket disponibile.")
+            else:
+                st.warning("Classe Equity DISATTIVA (segnale sotto la media a 40 settimane).")
+
+        with rc2:
+            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">🪙 Crypto (solo BTC-USD)</div>')
+            if alloc.get("Crypto", 0) > 0:
+                cr_top = data.get("crypto_top", [])
+                if cr_top:
+                    df_radar_cr = pd.DataFrame(cr_top)
+                    df_radar_cr = df_radar_cr.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
+                    df_radar_cr["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_radar_cr["Titolo"])]
+                    cols = ["Pos", "Titolo", "Prezzo ($)"]
+                    df_radar_cr = df_radar_cr[[c for c in cols if c in df_radar_cr.columns]]
+
+                    st.dataframe(
+                        df_radar_cr.style.format({"Prezzo ($)": format_price}).map(
+                            style_radar_status, subset=['Pos'] if 'Pos' in df_radar_cr.columns else None
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                else:
+                    st.info("Nessun dato Crypto disponibile.")
+            else:
+                st.warning("Classe Crypto DISATTIVA (BTC-USD sotto la media a 40 settimane).")
 
 
 # ==============================================================================
@@ -593,6 +665,7 @@ with tab_perf:
     eq_curve = load_equity()
 
     total_ret_pct = 0.0
+    cagr_pct = 0.0
     max_dd = 0.0
 
     if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
@@ -613,6 +686,10 @@ with tab_perf:
         initial_val = df_eq['open'].iloc[0]
         final_val = df_eq['close'].iloc[-1]
         total_ret_pct = ((final_val / initial_val) - 1.0) * 100
+
+        years_elapsed = (df_eq.index[-1] - df_eq.index[0]).days / 365.25
+        if years_elapsed > 0 and initial_val > 0 and final_val > 0:
+            cagr_pct = ((final_val / initial_val) ** (1.0 / years_elapsed) - 1.0) * 100
 
         # Normalizzazione Base 100
         base_val = initial_val if initial_val > 0 else 100000.0
@@ -769,13 +846,28 @@ with tab_perf:
             </div>
             """
 
+        # Stima netto teorica: 26% (aliquota flat italiana) solo sulla quota di
+        # guadagno, come se l'intera posizione venisse realizzata oggi. Le
+        # perdite non generano beneficio fiscale in questa stima semplificata
+        # (non modella riporto perdite 4 anni art. 68 TUIR, vedi §8.9/§10).
+        net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
+
         kpi_ret = make_kpi_card(
-            "📈", "Rendimento Netto", f"{total_ret_pct:+.2f}%", "Performance cumulativa",
+            "📈", "Rendimento Lordo", f"{total_ret_pct:+.2f}%",
+            f"Netto stimato (26%, se realizzato oggi): {net_ret_pct_est:+.2f}%",
             "🟢 POSITIVO" if total_ret_pct >= 0 else "🔴 NEGATIVO",
             "#10B981" if total_ret_pct >= 0 else "#EF4444",
             "rgba(16, 185, 129, 0.08)" if total_ret_pct >= 0 else "rgba(239, 68, 68, 0.06)",
             "#065F46" if total_ret_pct >= 0 else "#7F1D1D",
             "#34D399" if total_ret_pct >= 0 else "#F87171"
+        )
+        kpi_cagr = make_kpi_card(
+            "📆", "CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Rendimento lordo composto annuo",
+            "🟢 POSITIVO" if cagr_pct >= 0 else "🔴 NEGATIVO",
+            "#10B981" if cagr_pct >= 0 else "#EF4444",
+            "rgba(16, 185, 129, 0.08)" if cagr_pct >= 0 else "rgba(239, 68, 68, 0.06)",
+            "#065F46" if cagr_pct >= 0 else "#7F1D1D",
+            "#34D399" if cagr_pct >= 0 else "#F87171"
         )
         kpi_win = make_kpi_card(
             "🎯", "Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
@@ -804,7 +896,7 @@ with tab_perf:
             "#FBBF24" if max_dd > -15 else "#F87171"
         )
 
-        st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">{kpi_ret}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
+        st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">{kpi_ret}{kpi_cagr}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
 
         if hist:
             p_list = [t.get("profit_pct", 0.0) for t in hist]
@@ -905,75 +997,7 @@ with tab_perf:
 
 
 # ==============================================================================
-# TAB 3: RADAR ROTAZIONE
-# ==============================================================================
-with tab_radar:
-    st_html("""
-    <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
-        💡 <strong>Radar di Rotazione:</strong> Basket azionario a bassa volatilità selezionato trimestralmente, e classe Crypto (solo BTC-USD). I titoli già in portafoglio sono contrassegnati con ⭐, i nuovi candidati (🆕) subentrano alla prossima rotazione trimestrale se il segnale macro di classe è attivo.
-    </div>
-    """)
-
-    held_tickers = set(pf.get("open_positions", {}).keys()) if pf else set()
-
-    def style_radar_status(val):
-        if "🆕" in str(val):
-            return 'background-color: rgba(59, 130, 246, 0.15); color: #3B82F6; font-weight: 700; text-align: center;'
-        return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
-
-    rc1, rc2 = st.columns([2, 1])
-    with rc1:
-        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📈 Basket Azionario (bassa volatilità, rotazione trimestrale)</div>')
-        if alloc.get("Equities", 0) > 0:
-            top20 = data.get("top20", [])
-            if top20:
-                df_eq = pd.DataFrame(top20)
-                df_eq = df_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
-                df_eq["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_eq["Titolo"])]
-                cols = ["Pos", "Titolo", "Prezzo ($)", "Volatilita' Ann. (%)"]
-                df_eq = df_eq[[c for c in cols if c in df_eq.columns]]
-
-                fmt = {"Prezzo ($)": "{:.2f}"}
-                if "Volatilita' Ann. (%)" in df_eq.columns:
-                    fmt["Volatilita' Ann. (%)"] = "{:.1f}%"
-                st.dataframe(
-                    df_eq.style.format(fmt).map(
-                        style_radar_status, subset=['Pos'] if 'Pos' in df_eq.columns else None
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
-                st.info("Nessun dato basket disponibile.")
-        else:
-            st.warning("Classe Equity DISATTIVA (segnale sotto la media a 40 settimane).")
-
-    with rc2:
-        st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">🪙 Crypto (solo BTC-USD)</div>')
-        if alloc.get("Crypto", 0) > 0:
-            cr_top = data.get("crypto_top", [])
-            if cr_top:
-                df_c = pd.DataFrame(cr_top)
-                df_c = df_c.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
-                df_c["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_c["Titolo"])]
-                cols = ["Pos", "Titolo", "Prezzo ($)"]
-                df_c = df_c[[c for c in cols if c in df_c.columns]]
-
-                st.dataframe(
-                    df_c.style.format({"Prezzo ($)": format_price}).map(
-                        style_radar_status, subset=['Pos'] if 'Pos' in df_c.columns else None
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
-                st.info("Nessun dato Crypto disponibile.")
-        else:
-            st.warning("Classe Crypto DISATTIVA (BTC-USD sotto la media a 40 settimane).")
-
-
-# ==============================================================================
-# TAB 4: GUIDA & STRATEGIA
+# TAB 3: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
     st_html('''

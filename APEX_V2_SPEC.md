@@ -782,3 +782,76 @@ ribilanciamento — operazioni da replicare sul tuo broker") quando presente.
 non sono compatibili one-to-one con il disegno v2 (basket diverso, nessuno
 stop-loss). Serve una decisione esplicita su come gestire la transizione — non
 implicita nel codice.
+
+---
+
+## 10. TODO — proposte UI/UX e ricerca strategia
+
+Aggiornato 2026-08-28. Tutti i punti "[UX]" e la correzione "[Correttezza]"
+sono stati **implementati** nella stessa sessione in cui erano stati
+proposti (vedi §11 per il dettaglio delle modifiche). Resta aperto solo il
+punto di ricerca strategica.
+
+1. ~~**[Correttezza] Etichetta "Rendimento Netto" fuorviante.**~~ **FATTO** —
+   vedi §11.
+2. **[Ricerca strategia — APERTO] Universo azionario europeo aggiuntivo.**
+   Testare se un basket low-vol europeo (stesso disegno di quello USA,
+   rotazione trimestrale) migliora Sharpe/alpha. L'ipotesi è che il
+   beneficio non stia tanto nella diversificazione di stock-picking (basket
+   low-vol EU/USA storicamente correlati ~0.8+) quanto nella possibilità che
+   il **segnale di timing per regione diverga** (es. EU "spenta" mentre USA
+   è "accesa" o viceversa — 2022 crisi energetica EU, 2011 crisi debito
+   sovrano EU). Fiscalmente neutro (azioni EU singole restano "redditi
+   diversi" come quelle USA). Costo: raddoppia il sourcing dati
+   (fondamentali/settori EU più difficili da reperire gratis via Yahoo) e
+   consuma un altro test del "budget di prove" anti-overfitting.
+   Aspettativa realistica: miglioramento modesto, non trasformativo, perché
+   la decorrelazione principale la fa già l'overlay multi-asset
+   (SPY/IEF/GLD/BTC). Da validare con un backtest dedicato prima di
+   decidere se implementare.
+3. ~~**[UX] Callout azioni fuori dalle tab.**~~ **FATTO** — vedi §11.
+4. ~~**[UX] Capitale/valuta non persistenti.**~~ **FATTO** — vedi §11.
+5. ~~**[UX] Radar isolato in tab separata.**~~ **FATTO** — vedi §11.
+6. ~~**[UX] Tabelle Azioni/Crypto troppo dense.**~~ **FATTO** — vedi §11.
+7. ~~**[UX] Card macro-engine ridondanti.**~~ **FATTO** — vedi §11.
+8. ~~**[UX] Copia ordini manuale.**~~ **FATTO** — vedi §11.
+9. ~~**[Nice-to-have] CAGR mancante.**~~ **FATTO** — vedi §11.
+
+## 11. Implementazione revisione UI/UX (2026-08-28)
+
+Implementati tutti gli 8 punti UI/UX di §10 in `app.py` (il punto 2, ricerca
+di strategia, resta escluso di proposito — non è una modifica UI):
+
+- **Etichetta corretta**: la card KPI in Tab Metriche ora si chiama
+  "Rendimento Lordo" e riporta in sottotitolo una stima netto-teorica
+  (26% solo sulla quota di guadagno, se realizzato oggi — stima
+  semplificata, non modella il riporto perdite a 4 anni di §8.9).
+- **Callout ribilanciamento** spostato sopra le tab (visibile sempre) e reso
+  copiabile con `st.code(...)` (icona copia nativa Streamlit, nessun
+  componente custom).
+- **Capitale/valuta persistenti** via `st.query_params` — sopravvivono al
+  reload della pagina (URL bookmarkabile).
+- **Radar** non è più una tab separata: è un expander collassato in fondo
+  al Tab Portafoglio ("📡 Radar Rotazione — basket in arrivo"). Le tab sono
+  ora 3 (Portafoglio, Metriche, Guida) invece di 4.
+- **Tabelle Azioni/Crypto**: vista compatta di default (Titolo, Peso %,
+  Rendimento %, Valore) con toggle "🔍 Mostra dettagli esecuzione" per le
+  colonne di dettaglio (Quote, Data Ingresso, prezzi ingresso/uscita) —
+  nessuna colonna è stata eliminata, solo nascosta dietro un controllo.
+- **Card macro-engine**: le 5 card bordate sostituite da una "pill bar"
+  compatta; l'informazione "attiva dal ..." non è persa, è nel tooltip
+  (`title=`) di ogni pill.
+- **CAGR annualizzato** aggiunto come nuova card KPI in Tab Metriche,
+  accanto al rendimento cumulato (non lo sostituisce).
+
+**Verifica**: sintassi validata (`py_compile`), rendering testato via
+`streamlit.testing.v1.AppTest` in bare mode con `urllib.request.urlopen`
+mockato per forzare il fallback ai file JSON locali (stesso pattern usato
+nel resto della sessione) — nessuna eccezione su run pulito, 3 tab
+rilevate, toggle/expander presenti, `st.code` presente quando
+`last_action_log` è popolato (verificato iniettando temporaneamente il
+campo in una copia di `portfolio.json`, poi ripristinato il file originale
+intatto). La logica di filtro colonne compatta/estesa è stata verificata
+anche fuori da Streamlit, direttamente su pandas con le 16 posizioni reali
+di `portfolio.json`, per entrambi i rami (compatto ed esteso) — nessun
+`KeyError`.
