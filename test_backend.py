@@ -209,6 +209,32 @@ def test_tiny_weight_change_within_eps_does_not_trade():
     assert pf_after["nav_usd"] == 100000.0, "nessun ribilanciamento -> nessun costo"
 
 
+def test_update_equity_curve_marks_new_entries_as_live(tmp_path):
+    """generate_v2_track_record.py (replay storico) scrive le sue voci
+    direttamente, mai tramite update_equity_curve, quindi non porta mai
+    "live" -> app.py usa questo campo per distinguere onestamente
+    simulazione da forward-tracking reale (vedi APEX_V2_SPEC.md §24)."""
+    _isolate_files(str(tmp_path))
+
+    backend.update_equity_curve(100000.0, "2026-08-25")
+    eq = json.load(open(backend.EQUITY_FILE))
+    assert eq["history"][0]["live"] is True
+
+    backend.update_equity_curve(101000.0, "2026-08-26")
+    eq = json.load(open(backend.EQUITY_FILE))
+    assert len(eq["history"]) == 2
+    assert eq["history"][1]["live"] is True
+    assert eq["history"][1]["open"] == 100000.0, "l'apertura del nuovo giorno deve partire dalla chiusura precedente"
+
+    # stesso giorno rieseguito (es. piu' run nella stessa giornata) -> aggiorna
+    # l'ultima voce e la mantiene marcata live, non ne crea una nuova.
+    backend.update_equity_curve(101500.0, "2026-08-26")
+    eq = json.load(open(backend.EQUITY_FILE))
+    assert len(eq["history"]) == 2
+    assert eq["history"][1]["live"] is True
+    assert eq["history"][1]["close"] == 101500.0
+
+
 if __name__ == "__main__":
     import inspect
     fns = [f for name, f in list(globals().items()) if name.startswith("test_") and inspect.isfunction(f)]

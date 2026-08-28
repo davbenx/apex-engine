@@ -1462,3 +1462,107 @@ esplicita dell'ordine degli elementi nell'albero della tab (hero prima
 del blocco capitale) — nessuna eccezione in nessuno scenario, dati di
 produzione ripristinati byte-identici dopo ogni test sintetico. 21/21 test
 engine invariati.
+
+## 23. Audit colori, allineamento a griglia, pulizia grafico (2026-08-28)
+
+**Audit colori**: verificato ogni valore esadecimale/rgba in `app.py`
+contro la nuova palette calda di §22 — un'unica incoerenza trovata: il
+chip Telegram nell'header usava un blu diverso (`#6FB3D9`) da quello della
+card Telegram in Guida (`#0088cc`, il vero blu di brand). Unificati sullo
+stesso `#0088cc` in entrambi i punti. Nessun colore residuo della vecchia
+palette fredda (`#3B82F6`/`#10B981`/`#EF4444`/`rgba(128,128,128,…)`)
+trovato altrove.
+
+**Allineamento a griglia**: "Segnali per classe" e la striscia KPI sotto
+il grafico in Metriche usavano `display:flex; flex-wrap:wrap` — le voci
+si accodavano in base alla propria larghezza di contenuto, senza
+allinearsi in colonne ne' in righe di altezza uniforme. Passate a
+`display:grid; grid-template-columns:repeat(auto-fit, minmax(…,1fr))`:
+ogni voce occupa ora una colonna di larghezza uguale, allineata sia
+orizzontalmente sia verticalmente. Tolti anche i divisori `border-left`
+manuali della striscia KPI (il trucco "nessun bordo sulla prima voce"
+non reggeva su più righe quando la griglia va a capo) — lo spazio del
+`gap` separa le voci in modo piu' robusto.
+
+**Grafico equity**: tolto il titolo "Base 100" dall'asse Y — il badge
+"BASE 100 · BACKTEST OUT-OF-SAMPLE" sopra il grafico spiega gia' la
+normalizzazione, ripeterlo sull'asse era ridondante.
+
+**Colonne troppo larghe — proposta, non ancora implementata**. "Classe"
+(Azionario/Bitcoin/Oro/Obbligazioni/Monetario/TOTALE) e "Stato" (NUOVO)
+nella tabella posizioni, "Motivazione" nel registro operazioni chiuse
+(valori reali verificati in `backend.py`: "⚖️ Ribilanciamento mensile
+(trim parziale)", "🔄 Uscito da basket/classe disattivata", "🔁 Migrazione
+a v2" — lunghi e con emoji, residuo del formato pensato per i messaggi
+Telegram, non per una colonna di tabella). Proposta con mockup:
+<https://claude.ai/code/artifact/6188ce86-3cce-4aa6-a262-e92e73aa4afa> —
+"Classe" come sigle coerenti col cockpit (AZ/BTC/AU/FI/CASH/TOT), "Stato"
+come pallino colorato invece della parola "NUOVO" (il colore porta gia'
+il significato), "Motivazione" come singola parola di categoria (le sole
+3 motivazioni possibili oggi: Ribilanciamento/Rotazione/Migrazione) —
+verificato che `st.dataframe` non supporta HTML/tooltip nelle celle,
+quindi la versione accorciata deve restare leggibile da sola, non un
+riassunto recuperabile altrove al passaggio del mouse.
+
+**Verifica**: `py_compile` pulito, `AppTest` su dati reali senza
+eccezioni, 21/21 test engine invariati.
+
+## 24. Colore rosso/oro, etichetta backtest/live, range Y del grafico, colonne tabelle (2026-08-28)
+
+**1. Rosso troppo vicino all'oro.** Calcolato lo spazio colore (HSL) di
+`NEG` e `ACCENT`: 38 gradi di distanza sulla ruota cromatica (contro i 112
+tra verde e oro) — troppo vicini per una distinzione istantanea,
+specialmente per chi ha difficolta' nella percezione del rosso. `NEG`
+spostato da `#F2726A` a `#EC657B` (rosa-corallo, stessa luminosita' e
+contrasto, ma 52 gradi da `ACCENT` invece di 38). Aggiornati anche i
+derivati (`BADGE_NEG_BG`, fillcolor del grafico drawdown, bordo del box
+legale) per restare coerenti con la nuova tinta.
+
+**2. Etichetta "backtest" onesta nel tempo.** Il banner diceva sempre
+"BACKTEST OUT-OF-SAMPLE", ma da quando il motore gira in produzione ogni
+notte una parte crescente della curva equity è forward-tracking REALE, non
+simulazione. **Corretto alla fonte**: `backend.py::update_equity_curve`
+ora marca `"live": True` su ogni voce che scrive lei stessa (le uniche
+scritture di produzione — `generate_v2_track_record.py`, il replay
+storico offline, scrive le sue voci direttamente e non porta mai questo
+campo). `app.py` cerca la prima data marcata `live`: se non ce n'è
+ancora nessuna (stato attuale: l'ultima rigenerazione di §8.6/§8.9 non è
+ancora stata seguita da un run notturno reale) il banner resta
+"SIMULAZIONE... BACKTEST OUT-OF-SAMPLE" — corretto, perché ad oggi è
+ancora vero al 100%; da quando compare la prima voce `live`, diventa
+"SIMULAZIONE STORICA + FORWARD-TRACKING DAL VIVO" con la data esatta del
+passaggio. Nuovo test `test_update_equity_curve_marks_new_entries_as_live`
+in `test_backend.py` (22/22 totali). Verificato anche via `AppTest`
+iniettando una voce `live` sintetica in una copia di `equity.json` (poi
+ripristinato, verificato byte-identico) — banner cambia correttamente.
+
+**3. Linea NAV/benchmark schiacciate in alto nel grafico.** La curva
+strategia usa `fill='tozeroy'`, che tirava l'autorange dell'asse Y fino a
+0 anche quando i valori reali stavano tutti tra 90 e 140 — le linee
+finivano compresse nel 30% superiore del grafico. Corretto calcolando un
+range Y esplicito dai valori minimi/massimi effettivamente disegnati
+(strategia + benchmark insieme), con l'8% di margine sopra e sotto,
+invece di affidarsi all'autorange di Plotly.
+
+**4. Colonne "Classe"/"Stato"/"Motivazione" — proposta confermata e
+implementata.** "Classe" ora usa le sigle del cockpit (AZ/BTC/AU/FI/CASH/
+TOT) invece dei nomi per esteso. "Stato" mostra un pallino colorato (●)
+invece della parola "NUOVO" — il colore porta gia' il significato.
+"Motivazione" nel registro operazioni chiuse mappa le 3 motivazioni reali
+generate da `backend.py` (verificate nei dati live: solo
+"Ribilanciamento"/"Rotazione" oggi, "Migrazione" mai ancora accaduta una
+seconda volta) in una singola parola, con un fallback a troncamento per
+qualunque motivazione futura non ancora vista.
+
+**5. Allineamento a griglia e pulizia grafico** (richiesta diretta,
+implementata prima dell'audit sopra): "Segnali per classe" e la striscia
+KPI sotto il grafico passate da `flex-wrap` a `display:grid` per un
+allineamento reale su righe e colonne; tolto il titolo "Base 100"
+dall'asse Y del grafico equity (il badge sopra il grafico lo spiega gia').
+
+**Verifica**: `py_compile` pulito su `app.py` e `backend.py`, `AppTest` su
+dati reali e sullo scenario "live" sintetico (nessuna eccezione in
+nessuno dei due), 22/22 test engine (21 + il nuovo test su `live`).
+Mapping "Motivazione" verificato contro le motivazioni reali presenti in
+`portfolio.json` (239 trade, 2 categorie distinte, entrambe mappate
+correttamente).

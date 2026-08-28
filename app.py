@@ -75,7 +75,10 @@ st_html("""
 # DESIGN TOKENS ("Apex Restyle" — istituzionale + consumer, palette calda)
 # ==============================================================================
 POS = "#3DDC97"                       # verde caldo — riservato al P&L positivo
-NEG = "#F2726A"                       # corallo — riservato al P&L negativo / attenzione reale
+NEG = "#EC657B"                       # rosa-corallo — riservato al P&L negativo / attenzione reale.
+                                       # Spostato da #F2726A: a 38 gradi di distanza sulla ruota
+                                       # cromatica da ACCENT (oro) erano troppo vicini per una
+                                       # distinzione istantanea; ora a 52 gradi.
 MUTED_DOT = "#5B534B"                 # segnale "in pausa" — non e' una notizia negativa
 ACCENT = "#C9A44C"                    # oro tenue — unico accento di marca/interattivo
 ACCENT_SOFT = "rgba(201,164,76,0.10)"
@@ -86,7 +89,7 @@ MUTED = "#9C9187"
 MUTED_2 = "#6E655C"
 BADGE_TEXT = "#F5F1EA"
 BADGE_POS_BG = "#1D5F42"
-BADGE_NEG_BG = "#7A2E28"
+BADGE_NEG_BG = "#7B2836"
 BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
 
 CLASS_COLOR_EQ = POS
@@ -250,7 +253,7 @@ with col_meta:
         <div style="font-size: 11px; color: {MUTED};">
             <span style="width:6px; height:6px; border-radius:50%; background:{engine_status_color}; display:inline-block; margin-right:5px;"></span>{engine_status_text} · Aggiornato {last_update_display}
         </div>
-        <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #6FB3D9; background: rgba(111,179,217,0.1); border: 1px solid rgba(111,179,217,0.25); padding: 3px 10px; border-radius: 20px; margin-top: 6px;">
+        <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #0088cc; background: rgba(0,136,204,0.1); border: 1px solid rgba(0,136,204,0.25); padding: 3px 10px; border-radius: 20px; margin-top: 6px;">
             ✈ @apex_multiasset
         </a>
     </div>
@@ -446,9 +449,10 @@ with tab_pf:
     # --- Segnali per classe (striscia unica, non 5 riquadri) ---
     st_html(section_title("Segnali per classe"))
 
-    def signal_item(label, value_text, dot_color=None):
-        dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px;"></span>' if dot_color else ""
-        return f'<div style="display:flex; align-items:center; gap:7px; font-size:12.5px;">{dot}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED};">{value_text}</span></div>'
+    def signal_item(label, value_text, dot_color=None, title_attr=""):
+        dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>' if dot_color else ""
+        title_html = f' title="{title_attr}"' if title_attr else ""
+        return f'<div{title_html} style="display:flex; align-items:center; gap:7px; font-size:12.5px;">{dot}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED}; margin-left:auto;">{value_text}</span></div>'
 
     def class_state(alloc_pct, since_date):
         is_active = alloc_pct > 0
@@ -462,14 +466,17 @@ with tab_pf:
     _g_active, _g_val, _g_title = class_state(alloc.get('Gold', 0), d_g)
     _b_active, _b_val, _b_title = class_state(alloc.get('Bonds', 0), d_b)
 
+    # Griglia (non flex-wrap): ogni voce occupa una colonna di larghezza
+    # uguale, allineate sia in riga sia in colonna invece di accodarsi in
+    # base alla lunghezza del proprio contenuto.
     signals_html = "".join([
-        f'<span title="{_eq_title}">{signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT)}</span>',
-        f'<span title="{_cr_title}">{signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT)}</span>',
-        f'<span title="{_g_title}">{signal_item("Oro", _g_val, POS if _g_active else MUTED_DOT)}</span>',
-        f'<span title="{_b_title}">{signal_item("Obbligazioni", _b_val, POS if _b_active else MUTED_DOT)}</span>',
+        signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT, _eq_title),
+        signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT, _cr_title),
+        signal_item("Oro", _g_val, POS if _g_active else MUTED_DOT, _g_title),
+        signal_item("Obbligazioni", _b_val, POS if _b_active else MUTED_DOT, _b_title),
         signal_item("Monetario", f"{alloc.get('Cash', 0):.0f}%"),
     ])
-    st_html(f'<div style="display:flex; flex-wrap:wrap; gap:8px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
+    st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
 
     # --- Allocazione (barra singola, composizione — la performance vive
     # nell'hero e nella tabella, non ripetuta qui) ---
@@ -505,8 +512,8 @@ with tab_pf:
         return f'color: {color}; font-weight: 700;'
 
     def style_stato(val):
-        if "NUOVO" in str(val):
-            return f'color: {ACCENT}; font-weight: 700; text-align: center;'
+        if "●" in str(val):
+            return f'color: {ACCENT}; font-size: 15px; text-align: center;'
         return 'text-align: center; opacity: 0.4;'
 
     col_val_label = f"Valore ({curr_sym})"
@@ -518,9 +525,13 @@ with tab_pf:
     # d'occhio senza dover scandire tutte le 15 righe (i pesi sono quasi
     # identici essendo un basket equal-weight, quindi ordinare per peso non
     # li distinguerebbe in modo utile).
+    # Sigle invece dei nomi per classe (AZ/BTC/AU/FI/CASH/TOT) — coerenti col
+    # vocabolario gia' usato nel cockpit, colonna molto piu' stretta di
+    # "Obbligazioni"/"Monetario" per nessuna perdita di informazione.
+    NEW_MARK = "●"
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "Azionario", "Titolo": r["Titolo"], "Stato": r["Stato"],
+            "Classe": "AZ", "Titolo": r["Titolo"], "Stato": NEW_MARK if r["Stato"] == "NUOVO" else "",
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -528,7 +539,7 @@ with tab_pf:
     if op_cr:
         r = op_cr[0]
         unified_rows.append({
-            "Classe": "Bitcoin", "Titolo": r["Titolo"], "Stato": r["Stato"],
+            "Classe": "BTC", "Titolo": r["Titolo"], "Stato": NEW_MARK if r["Stato"] == "NUOVO" else "",
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -536,19 +547,19 @@ with tab_pf:
 
     def _detail_row(classe, ticker, detail):
         return {
-            "Classe": classe, "Titolo": ticker, "Stato": "NUOVO" if detail["days"] <= 7 else "",
+            "Classe": classe, "Titolo": ticker, "Stato": NEW_MARK if detail["days"] <= 7 else "",
             "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
         }
 
     if gold_detail:
-        unified_rows.append(_detail_row("Oro", "GLD", gold_detail))
+        unified_rows.append(_detail_row("AU", "GLD", gold_detail))
     if bond_detail:
-        unified_rows.append(_detail_row("Obbligazioni", "IEF", bond_detail))
+        unified_rows.append(_detail_row("FI", "IEF", bond_detail))
 
     unified_rows.append({
-        "Classe": "Monetario", "Titolo": "Liquidità", "Stato": "",
+        "Classe": "CASH", "Titolo": "Liquidità", "Stato": "",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
@@ -557,14 +568,14 @@ with tab_pf:
     # Riga totale — stessa informazione dell'hero (P&L aggregato), calcolata
     # dagli stessi dati della tabella invece che in un riquadro separato.
     unified_rows.append({
-        "Classe": "TOTALE", "Titolo": "", "Stato": "",
+        "Classe": "TOT", "Titolo": "", "Stato": "",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": 100.0, "Rendimento %": tot_pnl_pct,
     })
 
     def style_total_row(row):
-        if row.get("Classe") == "TOTALE":
+        if row.get("Classe") == "TOT":
             return [f'font-weight: 800; border-top: 2px solid {BORDER_STRONG};'] * len(row)
         return [''] * len(row)
 
@@ -618,19 +629,40 @@ with tab_perf:
 
     # Intervallo calcolato dai dati reali, non un valore fisso in testo che
     # sarebbe rimasto scorretto ogni mese che passa.
+    #
+    # "Backtest out-of-sample" e' vero solo per la parte generata da
+    # generate_v2_track_record.py (replay storico offline). Da quando
+    # backend.py gira in produzione ogni notte, ogni voce che scrive porta
+    # "live": True (vedi update_equity_curve, APEX_V2_SPEC.md §24) — quindi
+    # si puo' distinguere onestamente le due fasi invece di chiamare tutto
+    # "backtest" anche mesi dopo che il forward-tracking reale e' iniziato.
     track_record_range_str = ""
+    live_since_str = None
     if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
         _hist_dates = pd.to_datetime([h["date"] for h in eq_curve["history"]])
         _d0, _d1 = _hist_dates.min(), _hist_dates.max()
         track_record_range_str = f" ({MESI_IT[_d0.month-1]} {_d0.year} – {MESI_IT[_d1.month-1]} {_d1.year})"
 
+        _live_dates = sorted(h["date"] for h in eq_curve["history"] if h.get("live"))
+        if _live_dates:
+            live_since_str = format_date_italian(_live_dates[0])
+
+    if live_since_str:
+        _banner_title = f"SIMULAZIONE STORICA + FORWARD-TRACKING DAL VIVO{track_record_range_str}"
+        _banner_sub = f"Simulazione a regole fisse fino al {live_since_str}, poi decisioni reali eseguite ogni notte in produzione · Reinvestimento composto"
+        _banner_badge = f"BASE 100 · LIVE DAL {live_since_str.upper()}"
+    else:
+        _banner_title = f"SIMULAZIONE QUANTITATIVA & TRACK RECORD{track_record_range_str}"
+        _banner_sub = "Serie storica a regole fisse deterministiche su dati storici di mercato · Reinvestimento composto"
+        _banner_badge = "BASE 100 · BACKTEST OUT-OF-SAMPLE"
+
     st_html(f"""
     <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
         <div>
-            <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">SIMULAZIONE QUANTITATIVA & TRACK RECORD{track_record_range_str}</span>
-            <div style="font-size: 11px; opacity: 0.65; margin-top: 2px;">Serie storica a regole fisse deterministiche su dati storici di mercato · Reinvestimento composto</div>
+            <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">{_banner_title}</span>
+            <div style="font-size: 11px; opacity: 0.65; margin-top: 2px;">{_banner_sub}</div>
         </div>
-        <span style="background: rgba(201,164,76,0.16); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: {MONO};">BASE 100 · BACKTEST OUT-OF-SAMPLE</span>
+        <span style="background: rgba(201,164,76,0.16); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: {MONO};">{_banner_badge}</span>
     </div>
     """)
 
@@ -781,6 +813,13 @@ with tab_perf:
 
         fig = go.Figure()
 
+        # Range Y esplicito calcolato dai dati effettivamente disegnati (non
+        # l'autorange di Plotly): "fill='tozeroy'" sulla curva strategia
+        # tirava l'asse fino a 0 anche quando i valori reali stavano tutti
+        # tra 90 e 140, schiacciando le linee in alto nel grafico invece di
+        # centrarle. Padding 8% sopra/sotto il range dei dati.
+        _y_values = list(df_plot['norm_close'])
+
         # 1. Curva equity Apex — area/linea (piu' convenzionale di una candela per
         # un NAV multi-asset ribilanciato, che non ha un vero OHLC intra-periodo).
         fig.add_trace(go.Scatter(
@@ -803,6 +842,7 @@ with tab_perf:
                 first_spy = df_spy_aligned['close'].iloc[0]
                 df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna() if len(df_spy_aligned) >= 5 else df_spy_aligned['close']
                 df_spy_norm = (df_spy_plot / first_spy) * 100
+                _y_values.extend(df_spy_norm.tolist())
 
                 spy_it_dates = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_spy_plot.index]
                 fig.add_trace(go.Scatter(
@@ -814,6 +854,9 @@ with tab_perf:
                     name="S&P 500 Benchmark",
                     line=dict(color='#7A7266', width=1.5, dash='dot'),
                 ))
+
+        _y_min, _y_max = min(_y_values), max(_y_values)
+        _y_pad = max((_y_max - _y_min) * 0.08, 1.0)
 
         fig.update_layout(
             template="plotly_dark",
@@ -827,7 +870,8 @@ with tab_perf:
                 tickvals=ticks if len(ticks) > 0 else None,
                 ticktext=tick_labels if len(tick_labels) > 0 else None
             ),
-            yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11), title="Base 100"),
+            yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11),
+                       range=[_y_min - _y_pad, _y_max + _y_pad]),
             margin=dict(l=0, r=0, t=10, b=0),
             height=380,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
@@ -843,7 +887,7 @@ with tab_perf:
             x=df_underwater.index, y=df_underwater['drawdown'],
             fill='tozeroy', mode='lines',
             line=dict(color=NEG, width=1.2),
-            fillcolor='rgba(242, 114, 106, 0.15)',
+            fillcolor='rgba(236, 101, 123, 0.15)',
             hovertemplate="%{x|%d %b %Y}<br>Drawdown: %{y:.2f}%<extra></extra>",
             name="Drawdown"
         ))
@@ -881,9 +925,8 @@ with tab_perf:
             if badge_text:
                 bcol = badge_color or BADGE_NEUTRAL_BG
                 badge_html = f'<span style="background:{bcol}; color:{BADGE_TEXT}; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; font-family:{MONO}; margin-left:6px;">{badge_text}</span>'
-            border = "none" if first else f"1px solid {BORDER}"
             return f"""
-            <div style="flex: 1 1 145px; padding: 6px 16px; border-left: {border};">
+            <div style="padding: 6px 4px;">
                 <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap;">{title}{badge_html}</div>
                 <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: {MONO}; margin: 2px 0;">{value}</div>
                 <div style="opacity: 0.6; font-size: 10px;">{subtext}</div>
@@ -925,7 +968,7 @@ with tab_perf:
                 kpi_item("Durata Media Trade", f"{avg_days_val}g", "giorni in posizione"),
             ]
 
-        st_html(f'<div style="display: flex; flex-wrap: wrap; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 4px 0; margin-bottom: 20px;">{"".join(strip_items)}</div>')
+        st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 4px 8px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;">{"".join(strip_items)}</div>')
 
         if hist:
             st_html(section_title("Registro Operazioni Chiuse"))
@@ -957,6 +1000,24 @@ with tab_perf:
                 "profit_pct": "Rendimento %",
                 "reason": "Motivazione"
             })
+
+            def _short_reason(raw):
+                # backend.py scrive motivazioni pensate per i messaggi Telegram
+                # (emoji + dettaglio tra parentesi) — solo 3 possibili oggi
+                # (verificato in backend.py), qui basta la categoria: la
+                # tabella di Streamlit non supporta tooltip nelle celle, quindi
+                # la versione corta deve restare leggibile da sola.
+                s = str(raw)
+                if "Migrazione" in s:
+                    return "Migrazione"
+                if "Ribilanciamento" in s:
+                    return "Ribilanciamento"
+                if "Uscito" in s or "disattivata" in s:
+                    return "Rotazione"
+                return (s[:20] + "…") if len(s) > 20 else s
+
+            if "Motivazione" in df_hist.columns:
+                df_hist["Motivazione"] = df_hist["Motivazione"].apply(_short_reason)
 
             cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
             df_hist = df_hist[[c for c in cols_hist if c in df_hist.columns]]
@@ -1087,7 +1148,7 @@ with tab_guide:
     st.divider()
 
     st_html(f'''
-    <div style="background: rgba(242, 114, 106, 0.04); border: 1px solid rgba(242, 114, 106, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.8; line-height: 1.5;">
+    <div style="background: rgba(236, 101, 123, 0.04); border: 1px solid rgba(236, 101, 123, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.8; line-height: 1.5;">
         <strong>Note Legali ed Esclusione di Responsabilità:</strong><br>
         Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.<br>
         I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.

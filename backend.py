@@ -265,6 +265,13 @@ def update_equity_curve(nav_usd, today_str):
     eq_data = load_json_safe(EQUITY_FILE, default={"history": []})
     history = eq_data.setdefault("history", [])
 
+    # "live": True marca le righe scritte da QUESTA funzione, cioe' dalle
+    # esecuzioni notturne reali in produzione — generate_v2_track_record.py
+    # (replay storico offline) scrive le sue voci direttamente, mai tramite
+    # questa funzione, quindi non porta mai questo campo. app.py lo usa per
+    # distinguere onestamente "simulazione storica" da "forward-tracking dal
+    # vivo" nell'etichetta del grafico invece di chiamare tutto "backtest"
+    # a tempo indeterminato.
     if not history:
         history.append({
             "date": today_str,
@@ -272,7 +279,8 @@ def update_equity_curve(nav_usd, today_str):
             "high": INITIAL_CAPITAL,
             "low": INITIAL_CAPITAL,
             "close": current_portfolio_value,
-            "value": current_portfolio_value
+            "value": current_portfolio_value,
+            "live": True
         })
     else:
         last_entry = history[-1]
@@ -281,6 +289,7 @@ def update_equity_curve(nav_usd, today_str):
             last_entry["value"] = current_portfolio_value
             last_entry["high"] = max(last_entry.get("high", current_portfolio_value), current_portfolio_value)
             last_entry["low"] = min(last_entry.get("low", current_portfolio_value), current_portfolio_value)
+            last_entry["live"] = True
         else:
             prev_close = last_entry["value"]
             history.append({
@@ -289,7 +298,8 @@ def update_equity_curve(nav_usd, today_str):
                 "high": max(prev_close, current_portfolio_value),
                 "low": min(prev_close, current_portfolio_value),
                 "close": current_portfolio_value,
-                "value": current_portfolio_value
+                "value": current_portfolio_value,
+                "live": True
             })
 
     save_json_atomic(EQUITY_FILE, eq_data)
