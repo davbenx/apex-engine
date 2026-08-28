@@ -228,14 +228,31 @@ def mark_to_market_and_compound_nav(pf, prices_by_ticker):
         eq = load_json_safe(EQUITY_FILE, default={"history": []})
         hist = eq.get("history", [])
         nav_usd = hist[-1]["value"] if hist else INITIAL_CAPITAL
+
     daily_return = 0.0
+    price_ratios = {}
     for ticker, pos in pf.get("open_positions", {}).items():
         sym = ticker + "-USD" if pos.get("is_crypto") else ticker
         old_price = pos.get("current_price", pos.get("entry_price", 0.0))
         new_price = prices_by_ticker.get(sym)
         if new_price is not None and old_price and old_price > 0:
-            daily_return += pos.get("weight", 0.0) * (new_price / old_price - 1.0)
+            ratio = new_price / old_price
+            price_ratios[ticker] = ratio
+            daily_return += pos.get("weight", 0.0) * (ratio - 1.0)
             pos["current_price"] = new_price
+
+    # "weight" era congelato al target dell'ultimo ribilanciamento — mai aggiornato per
+    # riflettere la deriva di prezzo tra un ribilanciamento e l'altro. Un titolo che
+    # corre non pesava mai di piu' agli occhi del sistema, e viceversa: la crescita
+    # composta di ogni singola posizione (non solo del NAV totale) veniva sottostimata,
+    # e "Peso (%)" in dashboard mostrava il vecchio target, non il peso vero attuale.
+    # Ora si aggiorna insieme al NAV, con la stessa formula: nuovo peso = vecchio peso *
+    # rendimento della posizione / rendimento del portafoglio.
+    if (1.0 + daily_return) > 1e-9:
+        for ticker, pos in pf.get("open_positions", {}).items():
+            if ticker in price_ratios:
+                pos["weight"] = pos.get("weight", 0.0) * price_ratios[ticker] / (1.0 + daily_return)
+
     nav_usd *= (1.0 + daily_return)
     pf["nav_usd"] = nav_usd
     return nav_usd
@@ -627,6 +644,14 @@ def main():
         action_log = update_portfolio(allocations, basket, prices_by_ticker, today_str)
         pf_after = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
         nav_usd = pf_after.get("nav_usd", nav_usd)
+        if action_log:
+            # Persistito per la dashboard (app.py) — su Telegram le "Ordini da eseguire
+            # oggi" arrivavano solo li'; se l'utente perdeva la notifica non c'era modo
+            # di vedere cosa era stato deciso all'ultimo ribilanciamento senza controllare
+            # lo storico completo delle operazioni.
+            pf_after["last_action_log"] = action_log
+            pf_after["last_action_date"] = today_str
+            save_json_atomic(PORTFOLIO_FILE, pf_after)
     else:
         action_log = []
 

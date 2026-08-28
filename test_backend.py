@@ -28,6 +28,31 @@ def test_nav_compounds_with_weighted_daily_return():
     assert pf["open_positions"]["AAPL"]["current_price"] == 110.0
 
 
+def test_position_weight_drifts_with_price_between_rebalances():
+    """
+    "weight" non deve restare congelato al target dell'ultimo ribilanciamento — un
+    vincitore deve pesare di piu' nei giorni successivi, non essere sempre trattato
+    al suo peso originale. Verificato a mano: A e B partono al 50%, A guadagna 10%
+    per 2 giorni consecutivi, B resta piatta -> NAV vero $110,50 (non $110,25, che
+    sarebbe il risultato del vecchio bug a peso congelato).
+    """
+    pf = {
+        "nav_usd": 100.0,
+        "open_positions": {
+            "A": {"weight": 0.5, "current_price": 100.0, "entry_price": 100.0, "is_crypto": False},
+            "B": {"weight": 0.5, "current_price": 100.0, "entry_price": 100.0, "is_crypto": False},
+        },
+        "trade_history": [],
+    }
+    nav1 = backend.mark_to_market_and_compound_nav(pf, {"A": 110.0, "B": 100.0})
+    assert abs(nav1 - 105.0) < 1e-9
+    assert abs(pf["open_positions"]["A"]["weight"] - 55.0 / 105.0) < 1e-9, "il peso di A deve crescere con il suo guadagno"
+    assert abs(pf["open_positions"]["B"]["weight"] - 50.0 / 105.0) < 1e-9, "il peso di B deve scendere (stesso valore, NAV totale piu' grande)"
+
+    nav2 = backend.mark_to_market_and_compound_nav(pf, {"A": 121.0, "B": 100.0})
+    assert abs(nav2 - 110.5) < 1e-6, f"atteso 110.5 (compounding vero), ottenuto {nav2}"
+
+
 def test_nav_bootstraps_from_equity_history_when_missing(tmp_path=None):
     _isolate_files("/tmp/apex_test_backend_bootstrap")
     json.dump({"history": [{"date": "2026-01-01", "value": 50000.0}]}, open(backend.EQUITY_FILE, "w"))

@@ -317,6 +317,17 @@ tab_pf, tab_perf, tab_radar, tab_guide = st.tabs([
 # TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
 with tab_pf:
+    last_actions = (pf or {}).get("last_action_log") or []
+    if last_actions:
+        last_action_date = (pf or {}).get("last_action_date", "")
+        actions_html = "<br>".join(f"• {a}" for a in last_actions)
+        st_html(f"""
+        <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10B981; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 14px; font-size: 13px; line-height: 1.6;">
+            <div style="font-weight: 700; margin-bottom: 4px;">🔔 Ultimo ribilanciamento ({last_action_date}) — operazioni da replicare sul tuo broker</div>
+            {actions_html}
+        </div>
+        """)
+
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         c_val, c_cur = st.columns([3, 2])

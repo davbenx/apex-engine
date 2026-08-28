@@ -713,6 +713,57 @@ Track record Feb 2024-oggi (§8.6) rigenerato una quarta volta con entrambi i
 miglioramenti adottati attivi, per coerenza piena: NAV finale $125.308 →
 **$127.112**, eventi tassabili 229 → **193**.
 
+### 8.10 Bug di produzione trovato e corretto — il peso non seguiva la deriva di prezzo
+
+Innescato da una domanda diretta dell'utente ("questi ribilanciamenti non
+tagliano la coda grassa dei guadagni?"). Risposta in due parti, una
+rassicurante e una no.
+
+**Parte rassicurante:** il meccanismo di trim confronta il nuovo peso target
+con il vecchio peso target — non con il vero peso attuale — quindi un titolo
+che sale non viene tagliato per pura rivalutazione di prezzo tra un
+ribilanciamento e l'altro. La "coda grassa" non viene sistematicamente
+recisa.
+
+**Parte non rassicurante, un bug reale:** `pos["weight"]` restava congelato
+al valore impostato all'ultimo ribilanciamento, **mai aggiornato per
+riflettere la deriva di prezzo** nel frattempo. Due conseguenze concrete:
+1. Il compounding del NAV (`mark_to_market_and_compound_nav`) pesava OGNI
+   posizione al suo peso congelato per l'intero periodo fino al ribilanciamento
+   successivo, invece che al suo peso vero (crescente per un vincitore,
+   calante per un perdente) — sottostimava sistematicamente il contributo dei
+   vincitori al NAV composto, l'esatto contrario della paura dell'utente ma
+   comunque un errore reale. Verificato a mano: due posizioni al 50%, una
+   guadagna il 10% per 2 giorni consecutivi, l'altra piatta → NAV vero
+   $110,50, NAV con il bug $110,25.
+2. Il "Peso (%)" mostrato in dashboard era il target dell'ultimo
+   ribilanciamento, non il peso vero attuale — poteva discostarsi in modo
+   crescente dalla realtà quanto più tempo passava dall'ultimo
+   ribilanciamento.
+
+**Correzione:** `mark_to_market_and_compound_nav` ora aggiorna `weight` insieme
+al NAV, con la stessa formula usata per il NAV stesso (nuovo peso = vecchio
+peso × rendimento della posizione / rendimento del portafoglio) —
+matematicamente equivalente al tracking per azioni reali (verificato nei
+test), senza bisogno di introdurre un nuovo campo "shares". Come effetto
+collaterale, questo rende anche `update_portfolio` (che legge `weight` per
+decidere trim/incrementi) piu' preciso, perche' ora confronta il target nuovo
+con il peso VERO attuale, non con un target congelato. 2 nuovi test in
+`test_backend.py` (21/21 totali passano). Track record (§8.6) rigenerato una
+quinta volta: NAV $127.112 → **$127.479**.
+
+### 8.11 Gap di chiarezza operativa in dashboard — corretto
+
+Prima parte della stessa domanda dell'utente: non era chiaro in dashboard
+come gestire i ribilanciamenti mensili. Verificato: il messaggio Telegram
+aveva gia' una sezione "🚀 Ordini da eseguire oggi" con il dettaglio delle
+operazioni, ma quella lista non veniva mai salvata su disco — se l'utente
+perdeva la notifica, non c'era modo di recuperarla dalla dashboard senza
+scorrere l'intero storico operazioni. Corretto: `backend.py` ora persiste
+`last_action_log`/`last_action_date` in `portfolio.json` ad ogni decisione,
+e `app.py` mostra un riquadro dedicato in cima al Tab Portafoglio ("Ultimo
+ribilanciamento — operazioni da replicare sul tuo broker") quando presente.
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)
