@@ -351,24 +351,63 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
     def cost_bps(tkr):
         return 8.0 if tkr in ("IEF", "GLD", "BTC") else 10.0
 
-    # Chiudi posizioni non piu' desiderate o il cui peso target e' cambiato
+    def record_trade(ticker, entry_price, exit_price, entry_date, traded_weight, reason):
+        profit_pct = (exit_price / entry_price - 1.0) if entry_price > 0 else 0.0
+        pf.setdefault("trade_history", []).append({
+            "ticker": ticker, "entry_date": entry_date, "exit_date": today_str,
+            "entry_price": entry_price, "exit_price": exit_price,
+            "profit_pct": round(profit_pct * 100, 2), "weight": round(traded_weight, 6),
+            "reason": reason,
+        })
+        action_log.append(f"🔴 CHIUSURA: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
+        return profit_pct
+
+    # Ribilancia le posizioni gia' detenute: NIENTE PIU' chiusura+riapertura totale ad ogni
+    # cambio di peso (bug corretto — vedi APEX_V2_SPEC.md §8.8). Si negozia solo il delta:
+    # un aumento di peso compra solo la quota aggiunta e aggiorna il costo medio ponderato
+    # (PMC) delle azioni gia' detenute; una riduzione vende solo la quota in eccesso e
+    # REALIZZA plusvalenza solo su quella, lasciando il resto con costo/data d'ingresso
+    # originali. Costo di transazione applicato solo sul delta effettivamente negoziato,
+    # non piu' sull'intera posizione ad ogni ribilanciamento mensile.
     for ticker, pos in list(current.items()):
         tgt_w = target.get(ticker)
+        sym = ticker + "-USD" if pos.get("is_crypto") else ticker
+        price = prices_by_ticker.get(sym, pos.get("current_price", pos.get("entry_price", 0.0)))
         cur_w = pos.get("weight", 0.0)
-        if tgt_w is None:
-            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
-            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
-            _close_position(pf, ticker, pos, exit_price, today_str, "🔄 Uscito da basket/classe disattivata", action_log)
-            del current[ticker]
-            turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
-        elif abs(tgt_w - cur_w) > EPS:
-            sym = ticker + "-USD" if pos.get("is_crypto") else ticker
-            exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
-            _close_position(pf, ticker, pos, exit_price, today_str, "⚖️ Ribilanciamento mensile (peso)", action_log)
-            del current[ticker]
-            turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
+        entry_price = pos.get("entry_price", price)
 
-    # Apri (o riapri a nuovo peso) le posizioni target
+        if tgt_w is None:
+            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), cur_w, "🔄 Uscito da basket/classe disattivata")
+            turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
+            del current[ticker]
+            continue
+
+        delta_w = tgt_w - cur_w
+        if abs(delta_w) <= EPS:
+            pos["current_price"] = price
+            continue
+
+        if delta_w > 0:
+            # Incremento: costa solo la quota aggiunta; costo medio ponderato (PMC) sulle
+            # azioni combinate — matematicamente equivalente al calcolo per azioni reali
+            # (vedi test_backend.py), qui espresso in termini di peso/NAV.
+            old_shares_equiv = (cur_w / entry_price) if entry_price > 0 else 0.0
+            new_shares_equiv = (delta_w / price) if price > 0 else 0.0
+            total_shares_equiv = old_shares_equiv + new_shares_equiv
+            if total_shares_equiv > 0:
+                pos["entry_price"] = (cur_w + delta_w) / total_shares_equiv
+            pos["weight"] = tgt_w
+            pos["current_price"] = price
+            action_log.append(f"🟢 INCREMENTO: {ticker} ({cur_w*100:.2f}% → {tgt_w*100:.2f}%) | Prezzo: {fmt_usd(price)}")
+            turnover_cost_frac += delta_w * (cost_bps(ticker) / 10000.0)
+        else:
+            trimmed_w = -delta_w
+            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), trimmed_w, "⚖️ Ribilanciamento mensile (trim parziale)")
+            pos["weight"] = tgt_w
+            pos["current_price"] = price
+            turnover_cost_frac += trimmed_w * (cost_bps(ticker) / 10000.0)
+
+    # Apri le posizioni completamente nuove (non ancora in portafoglio)
     for ticker, tgt_w in target.items():
         if ticker in current or tgt_w <= EPS:
             continue

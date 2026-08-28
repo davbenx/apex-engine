@@ -540,6 +540,69 @@ test in `test_apex_v2_engine.py` (14/14 test totali passano). Il track record
 Feb 2024-oggi (§8.6) è stato rigenerato con il vincolo attivo per coerenza
 piena.
 
+### 8.8 Bug di produzione trovato e corretto — ribilanciamento senza trim parziale
+
+Innescato da una domanda diretta dell'utente sul perché le posizioni in
+portafoglio mostrassero sempre "0 giorni" di detenzione, nonostante il track
+record fosse presentato come continuo dal 2024. La causa era un bug reale, non
+solo un problema di visualizzazione.
+
+**Causa:** `update_portfolio` chiudeva e riapriva l'INTERA posizione ad ogni
+cambio di peso target — anche un titolo detenuto ininterrottamente per mesi,
+al primo ritocco del vol-targeting mensile (che cambia quasi ogni mese),
+veniva formalmente "venduto" per intero e "ricomprato" per intero alla nuova
+taglia. Due conseguenze reali, non solo estetiche:
+- **Costi di transazione sovrastimati**: il costo veniva applicato sull'intera
+  posizione chiusa PIÙ sull'intera posizione riaperta, invece che solo sulla
+  differenza (delta) effettivamente negoziata — per un ritocco minimo del peso
+  (es. 1,67%→1,22%) il costo veniva calcolato su ~2,89% di NAV invece che sullo
+  0,45% realmente scambiato.
+- **Tassazione anticipata rispetto al necessario**: chiudere per intero
+  realizza la plusvalenza sull'intera posizione ogni mese, invece di
+  realizzarla solo sulla quota effettivamente venduta in un trim parziale,
+  lasciando il resto con costo e data di acquisto originali (rinvio della
+  tassazione, il cuore dell'efficienza fiscale che questo intero documento
+  persegue). **Era esattamente l'opposto dell'obiettivo dichiarato del
+  progetto.**
+
+Importante per la fiducia nei test precedenti: gli script di validazione
+(`full_strategy_backtest.py` e derivati, usati per tutte le decisioni di
+questa sessione — buffer, vincolo settoriale, dimensione basket) calcolavano
+il costo correttamente **solo sul delta**, quindi le metriche di CAGR/Sharpe/
+alpha già riportate in questo documento restano valide. Il bug era isolato al
+codice di produzione (`backend.py.update_portfolio`) e allo script che
+replica la stessa logica per il track record (`generate_v2_track_record.py`)
+— cioè proprio nel codice che determina cosa succede ai tuoi soldi, non nei
+test che hanno guidato le decisioni.
+
+**Correzione:** il ribilanciamento ora negozia solo il delta tra peso attuale
+e peso target:
+- **Incremento di peso**: compra solo la quota aggiuntiva; il costo medio
+  della posizione si aggiorna con la media ponderata classica (PMC) tra le
+  azioni già detenute e quelle nuove — nessun evento tassabile (non è una
+  vendita). `entry_date` resta quella originale.
+- **Riduzione di peso**: vende solo la quota in eccesso; la plusvalenza si
+  realizza SOLO su quella quota (`weight` nello storico = la parte venduta,
+  non l'intera posizione); il resto mantiene costo e data d'ingresso
+  originali — la tassazione sulla parte non venduta viene rinviata, non
+  anticipata.
+- **Uscita totale** (il titolo esce dal basket o la classe si disattiva):
+  invariato, chiusura piena corretta perché è una vera liquidazione totale.
+
+Verificato con un esempio a mano nei test (`test_backend.py`, 4 nuovi test,
+18/18 totali passano): 500 azioni a costo $100 + acquisto di altre 250 a $120
+→ costo medio corretto $106,67 (matematicamente identico al calcolo per
+azioni reali).
+
+**Effetto sul track record** (rigenerato una terza volta per coerenza):
+eventi tassabili scesi da 363 a 229 nella finestra Feb 2024-oggi; NAV lordo
+finale $122.761 → **$125.308**; le date di ingresso ora riflettono la
+detenzione reale (es. IEF detenuto ininterrottamente dal 2024-08-05, non più
+resettato ogni mese). L'alpha CAPM sulla stessa finestra breve resta non
+significativo (2,07% vs 1,27% prima, p=0,67) — la correzione ha migliorato
+l'efficienza fiscale e la precisione dei costi, non il problema strutturale
+di beta basso in un bull market discusso in §8.7.
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)
