@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import math
 import os
 import urllib.request
 
@@ -74,12 +75,48 @@ st_html("""
         font-size: 13.5px;
     }
 
-    /* Clean cards transition */
+    /* Flat instrument-panel surfaces: hairline border, subtle hover lift, no heavy chrome */
     div[style*="border-radius"] {
-        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        transition: transform 0.15s ease-in-out, border-color 0.15s ease-in-out;
     }
 </style>
 """)
+
+
+# ==============================================================================
+# DESIGN TOKENS ("Instrument Panel" — palette neutra, colore riservato al segno)
+# ==============================================================================
+POS = "#10B981"       # verde — riservato al P&L positivo
+NEG = "#EF4444"        # rosso — riservato al P&L negativo / attenzione reale
+NEUTRAL_DOT = "rgba(128,128,128,0.45)"   # segnale "in pausa" — non è una notizia negativa
+ACCENT = "#3B82F6"     # unico accento di marca, solo per elementi interattivi
+SURFACE = "rgba(128,128,128,0.045)"
+BORDER = "rgba(128,128,128,0.14)"
+MUTED = "#9CA3AF"
+
+
+def flat_card(inner_html, padding="14px 16px", opacity="1"):
+    return f'<div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: {padding}; opacity: {opacity};">{inner_html}</div>'
+
+
+def monogram(text, active=True, size=26):
+    color = POS if active else NEUTRAL_DOT
+    return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {color}; color:{color}; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
+
+
+def ring_svg(pct, active, size=30, stroke=3):
+    r = (size - stroke) / 2.0
+    circumference = 2 * math.pi * r
+    frac = max(0.0, min(1.0, pct / 100.0))
+    offset = circumference * (1 - frac)
+    color = POS if active else NEUTRAL_DOT
+    c = size / 2.0
+    return f'''<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="flex-shrink:0;">
+        <circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="rgba(128,128,128,0.15)" stroke-width="{stroke}"/>
+        <circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="{color}" stroke-width="{stroke}"
+            stroke-dasharray="{circumference:.2f}" stroke-dashoffset="{offset:.2f}"
+            stroke-linecap="round" transform="rotate(-90 {c} {c})"/>
+    </svg>'''
 
 
 # ==============================================================================
@@ -116,7 +153,7 @@ def load_equity():
 
 data = load_data()
 if not data:
-    st.error("🚨 Dati non disponibili. In attesa del ricalcolo notturno su GitHub.")
+    st.error("Dati non disponibili. In attesa del ricalcolo notturno su GitHub.")
     st.stop()
 
 
@@ -167,13 +204,13 @@ def get_logo_b64():
 # ==============================================================================
 last_update = data.get("timestamp", "Sincronizzazione in corso...")
 logo_b64 = get_logo_b64()
-logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 75px; width: auto; object-fit: contain;" />' if logo_b64 else '🦅'
+logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 75px; width: auto; object-fit: contain;" />' if logo_b64 else monogram("AE", active=True, size=52)
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
     st_html(f"""
     <div style="display: flex; align-items: center; gap: 16px; padding: 6px 0;">
-        <div style="background: rgba(128, 128, 128, 0.08); border: 1px solid rgba(128, 128, 128, 0.18); padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+        <div style="background: rgba(128, 128, 128, 0.06); border: 1px solid {BORDER}; padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
             {logo_tag}
         </div>
         <div>
@@ -181,7 +218,7 @@ with col_title:
             <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px; line-height: 1.35;">
                 Sistema Quantitativo<br>
                 Multi-Asset<br>
-                <span style='color: #3B82F6; font-weight: 700;'>v2.0</span>
+                <span style='color: {ACCENT}; font-weight: 700;'>v2.0</span>
             </div>
         </div>
     </div>
@@ -191,20 +228,22 @@ with col_meta:
     st_html(f"""
     <div style="text-align: right; padding-top: 8px;">
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 5px;">
-            <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 136, 204, 0.12); color: #0088cc; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(0, 136, 204, 0.3);">
-                ✈️ Notifiche @apex_multiasset
+            <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 136, 204, 0.1); color: #0088cc; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid rgba(0, 136, 204, 0.25);">
+                Notifiche Telegram →
             </a>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Motore Attivo</span>
+            <span style="display:inline-flex; align-items:center; gap:5px; background: rgba(128,128,128,0.08); color: {MUTED}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid {BORDER};">
+                <span style="width:6px; height:6px; border-radius:50%; background:{POS}; display:inline-block;"></span> Motore Attivo
+            </span>
         </div>
-        <div style="opacity: 0.75; font-size: 11.5px; line-height: 1.4;">
-            🕒 <strong>Aggiornato:</strong> {last_update}<br>
-            ⏳ <strong>Ricalcolo:</strong> Lun-Ven 23:00 UTC
+        <div style="opacity: 0.65; font-size: 11.5px; line-height: 1.4;">
+            <strong>Aggiornato:</strong> {last_update}<br>
+            <strong>Ricalcolo:</strong> Lun-Ven 23:00 UTC
         </div>
     </div>
     """)
 
 # ==============================================================================
-# MACRO ENGINE CARDS
+# COCKPIT — STATO SEGNALI MACRO PER CLASSE
 # ==============================================================================
 alloc = data.get('allocations', {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 raw_ts = data.get('timestamp', '')
@@ -217,34 +256,34 @@ d_g = macro_dates.get("Gold", ts_date)
 d_b = macro_dates.get("Bonds", ts_date)
 
 
-def make_engine_pill(icon, name, alloc_pct, is_active, since_date, is_cash=False):
-    """Pill compatta; il dettaglio 'attivo dal ...' resta accessibile via tooltip (title)."""
+def cockpit_pill(mono_text, label, alloc_pct, is_active, since_date, is_cash=False):
+    """Anello = peso %, colore = stato (verde=attiva, grigio=in pausa/riserva).
+    La data del segnale è sempre testo visibile — mai solo in tooltip (vedi §12.1)."""
     if is_cash:
-        dot_color = "#3B82F6" if alloc_pct > 0 else "#6B7280"
-        border_color = "#3B82F6" if alloc_pct > 0 else "rgba(107, 114, 128, 0.35)"
-        bg_color = "rgba(59, 130, 246, 0.08)" if alloc_pct > 0 else "rgba(107, 114, 128, 0.05)"
-        tooltip = "Rifugio sicuro e liquidità"
+        state_text = "Riserva di liquidità"
     else:
-        dot_color = "#10B981" if is_active else "#EF4444"
-        border_color = "#10B981" if is_active else "rgba(239, 68, 68, 0.35)"
-        bg_color = "rgba(16, 185, 129, 0.08)" if is_active else "rgba(239, 68, 68, 0.06)"
-        fmt_d = format_date_italian(since_date)
-        state_str = "Attiva" if is_active else "Disattiva"
-        tooltip = f"{state_str} dal {fmt_d}" if since_date and since_date != "-" else state_str
+        fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
+        state_text = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
 
+    ring = ring_svg(alloc_pct, is_active and not is_cash)
     return f"""
-    <span title="{tooltip}" style="display: inline-flex; align-items: center; gap: 7px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 20px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; white-space: nowrap;">
-        <span style="width: 7px; height: 7px; border-radius: 50%; background: {dot_color}; flex-shrink: 0;"></span>
-        {icon} {name}
-        <span style="font-weight: 700; font-family: 'JetBrains Mono', monospace; opacity: 0.9;">{alloc_pct}%</span>
-    </span>
+    <div style="display:flex; align-items:center; gap:9px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 7px 12px 7px 8px; min-width: 172px;">
+        <div style="position:relative; width:30px; height:30px;">
+            {ring}
+            <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; opacity:0.9;">{mono_text}</span>
+        </div>
+        <div style="line-height:1.3;">
+            <div style="font-size:11.5px; font-weight:700; letter-spacing:0.1px;">{label} <span style="font-family:'JetBrains Mono',monospace; font-weight:700; opacity:0.85;">{alloc_pct:.0f}%</span></div>
+            <div style="font-size:10px; opacity:0.6;">{state_text}</div>
+        </div>
+    </div>
     """
 
-pill_eq = make_engine_pill("📈", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
-pill_cr = make_engine_pill("🪙", "Crypto", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
-pill_g = make_engine_pill("🥇", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
-pill_b = make_engine_pill("🛡️", "Obbligazioni", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
-pill_c = make_engine_pill("💵", "Monetario", alloc.get('Cash', 0), False, "", is_cash=True)
+pill_eq = cockpit_pill("EQ", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
+pill_cr = cockpit_pill("₿", "Bitcoin", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
+pill_g = cockpit_pill("AU", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
+pill_b = cockpit_pill("FI", "Obbligazioni", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
+pill_c = cockpit_pill("$", "Monetario", alloc.get('Cash', 0), False, "", is_cash=True)
 
 st_html(f'<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 18px 0;">{pill_eq}{pill_cr}{pill_g}{pill_b}{pill_c}</div>')
 
@@ -253,13 +292,14 @@ st_html(f'<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: cen
 # PORTFOLIO DATA EXTRACTION
 # ==============================================================================
 pf = load_portfolio()
+open_pos_raw = pf.get("open_positions", {}) if pf else {}
 op_eq = []
 op_cr = []
 num_eq = 0
 num_cr = 0
 
 if pf:
-    for ticker, info in pf.get("open_positions", {}).items():
+    for ticker, info in open_pos_raw.items():
         entry_d = info.get("entry_date", "N/A")
         days_open = calculate_days(entry_d) if entry_d != "N/A" else 0
         entry_formatted = f"{entry_d} ({days_open}g)" if entry_d != "N/A" else "N/A"
@@ -269,18 +309,18 @@ if pf:
 
         is_crypto = info.get("is_crypto", False)
         is_new_this_week = days_open <= 7
-        badge_icon = "🆕" if is_new_this_week else "⭐"
 
         if is_crypto:
             num_cr += 1
-            pos_str = f"{badge_icon} {num_cr}"
+            pos_num = num_cr
         else:
             num_eq += 1
-            pos_str = f"{badge_icon} {num_eq}"
+            pos_num = num_eq
 
         row = {
-            "Pos": pos_str,
+            "Pos": pos_num,
             "Titolo": ticker,
+            "Stato": "NUOVO" if is_new_this_week else "",
             "Data Ingresso": entry_formatted,
             "Ingresso ($)": info.get("entry_price", 0.0),
             "Attuale ($)": curr_p,
@@ -293,6 +333,83 @@ if pf:
             op_eq.append(row)
 
 
+def find_crypto_position(open_positions):
+    for tkr, info in open_positions.items():
+        if info.get("is_crypto"):
+            return tkr, info
+    return None, None
+
+
+def position_detail(ticker, capitale_usd):
+    info = open_pos_raw.get(ticker)
+    if not info:
+        return None
+    entry_p = info.get("entry_price", 0.0)
+    curr_p = info.get("current_price", entry_p)
+    weight = info.get("weight", 0.0)
+    entry_d = info.get("entry_date", "N/A")
+    days = calculate_days(entry_d) if entry_d != "N/A" else 0
+    pnl_pct = ((curr_p / entry_p) - 1.0) * 100 if entry_p > 0 else 0.0
+    value_usd = capitale_usd * weight
+    pnl_usd = (pnl_pct / 100.0) * value_usd
+    return {
+        "entry_price": entry_p, "current_price": curr_p, "weight_pct": weight * 100.0,
+        "entry_date": entry_d, "days": days, "pnl_pct": pnl_pct, "pnl_usd": pnl_usd, "value_usd": value_usd,
+    }
+
+
+def instrument_card(mono_text, label, is_active, detail, curr_sym, fx_ratio):
+    if not is_active or detail is None:
+        return f"""
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px; opacity: 0.55;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                {monogram(mono_text, active=False)}
+                <span style="font-weight:600; font-size:11.5px; letter-spacing:0.3px; text-transform:uppercase; color:{MUTED};">{label}</span>
+            </div>
+            <div style="font-size:11.5px; opacity:0.75;">Non allocato — segnale in pausa</div>
+        </div>
+        """
+    val_user = detail["value_usd"] * fx_ratio
+    pnl_user = detail["pnl_usd"] * fx_ratio
+    pnl_color = POS if detail["pnl_pct"] >= 0 else NEG
+    pnl_sign = "+" if pnl_user >= 0 else "-"
+    fmt_d = format_date_italian(detail["entry_date"]) if detail["entry_date"] != "N/A" else "-"
+    return f"""
+    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                {monogram(mono_text, active=True)}
+                <span style="font-weight:600; font-size:11.5px; letter-spacing:0.3px; text-transform:uppercase; color:{MUTED};">{label}</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px;">{detail['weight_pct']:.1f}%</span>
+        </div>
+        <div style="font-size:19px; font-weight:800; font-family:'JetBrains Mono',monospace; margin-bottom:2px;">{curr_sym}{val_user:,.0f}</div>
+        <div style="font-size:12px; font-weight:700; color:{pnl_color}; font-family:'JetBrains Mono',monospace; margin-bottom:7px;">{pnl_sign}{curr_sym}{abs(pnl_user):,.0f} ({detail['pnl_pct']:+.2f}%)</div>
+        <div style="font-size:10.5px; opacity:0.6; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+            <span>{format_price(detail['entry_price'])} → {format_price(detail['current_price'])}</span>
+            <span>dal {fmt_d} · {detail['days']}g</span>
+        </div>
+    </div>
+    """
+
+
+def cash_card(value_usd, weight_pct, curr_sym, fx_ratio):
+    val_user = value_usd * fx_ratio
+    return f"""
+    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                {monogram("$", active=True)}
+                <span style="font-weight:600; font-size:11.5px; letter-spacing:0.3px; text-transform:uppercase; color:{MUTED};">Monetario</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px;">{weight_pct:.1f}%</span>
+        </div>
+        <div style="font-size:19px; font-weight:800; font-family:'JetBrains Mono',monospace; margin-bottom:2px;">{curr_sym}{val_user:,.0f}</div>
+        <div style="font-size:10.5px; opacity:0.6;">Parcheggio strategico e riserve per il target di volatilità</div>
+    </div>
+    """
+
+
 # ==============================================================================
 # LAST REBALANCE CALLOUT (sopra le tab, sempre visibile)
 # ==============================================================================
@@ -300,8 +417,8 @@ last_actions = (pf or {}).get("last_action_log") or []
 if last_actions:
     last_action_date = (pf or {}).get("last_action_date", "")
     st_html(f"""
-    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-bottom: none; border-radius: 8px 8px 0 0; padding: 10px 14px 6px 14px; font-size: 13px;">
-        <div style="font-weight: 700;">🔔 Ultimo ribilanciamento ({last_action_date}) — operazioni da replicare sul tuo broker</div>
+    <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.25); border-bottom: none; border-radius: 8px 8px 0 0; padding: 10px 14px 6px 14px; font-size: 13px;">
+        <div style="font-weight: 700;">Ultimo ribilanciamento ({last_action_date}) — operazioni da replicare sul tuo broker</div>
     </div>
     """)
     st.code("\n".join(last_actions), language=None)
@@ -311,9 +428,9 @@ if last_actions:
 # MAIN TABS DECLARATION (PORTAFOGLIO, METRICHE, GUIDA)
 # ==============================================================================
 tab_pf, tab_perf, tab_guide = st.tabs([
-    "💼 Portafoglio",
-    "📊 Metriche",
-    "📖 Guida"
+    "Portafoglio",
+    "Metriche",
+    "Guida"
 ])
 
 
@@ -321,6 +438,75 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 # TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
 with tab_pf:
+    # --- Treemap: allocazione + performance in un solo colpo d'occhio.
+    # Basato sui pesi di strategia (indipendente dal capitale inserito sotto),
+    # cosi' resta la prima cosa visibile aprendo la tab.
+    tm_ids, tm_labels, tm_parents, tm_values, tm_colors, tm_text, tm_hover = [], [], [], [], [], [], []
+
+    if op_eq:
+        eq_weight_total = sum(r.get("Peso (%)", 0.0) for r in op_eq)
+        eq_pnl_weighted = (sum(r["Rendimento %"] * r.get("Peso (%)", 0.0) for r in op_eq) / eq_weight_total) if eq_weight_total > 0 else 0.0
+        tm_ids.append("AZIONARIO"); tm_labels.append("AZIONARIO"); tm_parents.append("")
+        tm_values.append(eq_weight_total); tm_colors.append(eq_pnl_weighted)
+        tm_text.append(f"{eq_pnl_weighted:+.2f}%")
+        tm_hover.append(f"Azionario — {eq_weight_total:.1f}% del portafoglio<br>Rendimento medio ponderato: {eq_pnl_weighted:+.2f}%")
+        for r in op_eq:
+            tm_ids.append(f"AZ::{r['Titolo']}"); tm_labels.append(r["Titolo"]); tm_parents.append("AZIONARIO")
+            tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
+            tm_text.append(f"{r['Rendimento %']:+.2f}%")
+            tm_hover.append(f"{r['Titolo']} — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
+
+    if op_cr:
+        r = op_cr[0]
+        tm_ids.append("BITCOIN"); tm_labels.append("BITCOIN"); tm_parents.append("")
+        tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
+        tm_text.append(f"{r['Rendimento %']:+.2f}%")
+        tm_hover.append(f"Bitcoin — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
+
+    if alloc.get('Gold', 0) > 0:
+        _gd = open_pos_raw.get("GLD")
+        _g_pct = (((_gd.get("current_price", _gd.get("entry_price", 0.0)) / _gd["entry_price"]) - 1.0) * 100) if _gd and _gd.get("entry_price", 0) > 0 else 0.0
+        tm_ids.append("ORO"); tm_labels.append("ORO"); tm_parents.append("")
+        tm_values.append(alloc.get('Gold', 0)); tm_colors.append(_g_pct)
+        tm_text.append(f"{_g_pct:+.2f}%")
+        tm_hover.append(f"Oro — {alloc.get('Gold', 0):.1f}% del portafoglio<br>Rendimento: {_g_pct:+.2f}%")
+
+    if alloc.get('Bonds', 0) > 0:
+        _bd = open_pos_raw.get("IEF")
+        _b_pct = (((_bd.get("current_price", _bd.get("entry_price", 0.0)) / _bd["entry_price"]) - 1.0) * 100) if _bd and _bd.get("entry_price", 0) > 0 else 0.0
+        tm_ids.append("OBBLIGAZIONI"); tm_labels.append("OBBLIGAZIONI"); tm_parents.append("")
+        tm_values.append(alloc.get('Bonds', 0)); tm_colors.append(_b_pct)
+        tm_text.append(f"{_b_pct:+.2f}%")
+        tm_hover.append(f"Obbligazioni — {alloc.get('Bonds', 0):.1f}% del portafoglio<br>Rendimento: {_b_pct:+.2f}%")
+
+    if alloc.get('Cash', 0) > 0:
+        tm_ids.append("MONETARIO"); tm_labels.append("MONETARIO"); tm_parents.append("")
+        tm_values.append(alloc.get('Cash', 0)); tm_colors.append(0.0)
+        tm_text.append("—")
+        tm_hover.append(f"Monetario — {alloc.get('Cash', 0):.1f}% del portafoglio")
+
+    if tm_ids:
+        fig_tm = go.Figure(go.Treemap(
+            ids=tm_ids, labels=tm_labels, parents=tm_parents, values=tm_values,
+            branchvalues="total",
+            marker=dict(
+                colors=tm_colors,
+                colorscale=[[0, "#7F1D1D"], [0.5, "#374151"], [1, "#065F46"]],
+                cmid=0,
+                line=dict(width=1, color="rgba(0,0,0,0.35)")
+            ),
+            text=tm_text,
+            hovertext=tm_hover,
+            hoverinfo="text",
+            textinfo="label+text",
+            textfont=dict(color="#F3F4F6", family="Inter, sans-serif", size=12),
+            pathbar=dict(visible=True, textfont=dict(size=11)),
+        ))
+        fig_tm.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=270, paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_tm, use_container_width=True)
+
+    st.write("")
+
     c_inp, c_pnl = st.columns([3, 2])
     with c_inp:
         c_val, c_cur = st.columns([3, 2])
@@ -331,7 +517,7 @@ with tab_pf:
             except (TypeError, ValueError):
                 pass
             capitale_input = st.number_input(
-                "💰 Capitale Broker Reale", min_value=1000, value=_default_cap, step=1000, format="%d"
+                "Capitale Broker Reale", min_value=1000, value=_default_cap, step=1000, format="%d"
             )
         with c_cur:
             _default_cur = st.query_params.get("cur", "USD ($)")
@@ -349,15 +535,14 @@ with tab_pf:
 
         if is_eur:
             capitale = capitale_input * eur_usd_rate
-            st.caption(f"💶 Conto: **€{capitale_input:,.0f}** | 💵 Potere d'acquisto: **${capitale:,.0f} USD** (Tasso EUR/USD: `{eur_usd_rate:.4f}`)")
+            st.caption(f"Conto: **€{capitale_input:,.0f}** · Potere d'acquisto: **${capitale:,.0f} USD** (Tasso EUR/USD: `{eur_usd_rate:.4f}`)")
         else:
             capitale = float(capitale_input)
-            st.caption(f"💵 Conto Operativo: **${capitale:,.0f} USD** (Prezzi e quote calcolati in dollari)")
+            st.caption(f"Conto operativo: **${capitale:,.0f} USD** (Prezzi e quote calcolati in dollari)")
 
     # v2: ogni posizione (azioni, IEF, GLD, BTC) porta il proprio peso reale in
     # portfolio.json ("weight", frazione del capitale) — nessuna quota fissa per
     # istanza (v1 assumeva 20 azioni al 5% e crypto al 10%/2.5%, non piu' valido).
-    capitale_azionario = capitale * (alloc.get('Equities', 0) / 100)
     gold_cap = capitale * (alloc.get('Gold', 0) / 100)
     bond_cap = capitale * (alloc.get('Bonds', 0) / 100)
 
@@ -369,266 +554,172 @@ with tab_pf:
         tot_pnl_usd += (r["Rendimento %"] / 100) * size
         tot_invested_usd += size
 
-    # Oro e Obbligazioni vivono in open_positions come le altre posizioni v2 (nessun
-    # "macro_positions" separato): cerca le rispettive righe per calcolare il P&L.
-    open_pos_raw = pf.get("open_positions", {}) if pf else {}
-
-    def _pnl_for(ticker):
-        info = open_pos_raw.get(ticker)
-        if not info:
-            return 0.0, 0.0
-        entry_p = info.get("entry_price", 0.0)
-        curr_p = info.get("current_price", entry_p)
-        if entry_p <= 0 or curr_p <= 0:
-            return 0.0, 0.0
-        pct = ((curr_p / entry_p) - 1.0) * 100
-        return pct, (pct / 100) * (capitale * info.get("weight", 0.0))
-
-    g_pnl_pct, g_pnl_usd = _pnl_for("GLD")
-    if alloc.get('Gold', 0) > 0:
-        tot_pnl_usd += g_pnl_usd
+    gold_detail = position_detail("GLD", capitale) if alloc.get('Gold', 0) > 0 else None
+    if gold_detail:
+        tot_pnl_usd += gold_detail["pnl_usd"]
         tot_invested_usd += gold_cap
 
-    b_pnl_pct, b_pnl_usd = _pnl_for("IEF")
-    if alloc.get('Bonds', 0) > 0:
-        tot_pnl_usd += b_pnl_usd
+    bond_detail = position_detail("IEF", capitale) if alloc.get('Bonds', 0) > 0 else None
+    if bond_detail:
+        tot_pnl_usd += bond_detail["pnl_usd"]
         tot_invested_usd += bond_cap
+
+    btc_ticker, _ = find_crypto_position(open_pos_raw)
+    btc_detail = position_detail(btc_ticker, capitale) if btc_ticker else None
 
     tot_pnl_pct = (tot_pnl_usd / capitale * 100) if capitale > 0 else 0.0
     tot_pnl_user = tot_pnl_usd * fx_ratio
 
     with c_pnl:
-        num_pos = len(op_eq) + len(op_cr) + (1 if alloc.get('Gold', 0) > 0 else 0) + (1 if alloc.get('Bonds', 0) > 0 else 0)
+        num_pos = len(op_eq) + len(op_cr) + (1 if gold_detail else 0) + (1 if bond_detail else 0)
         breakdown_items = []
         if len(op_eq) > 0:
             breakdown_items.append(f"{len(op_eq)} Azioni")
         if len(op_cr) > 0:
-            breakdown_items.append(f"{len(op_cr)} Crypto")
-        if alloc.get('Gold', 0) > 0:
-            breakdown_items.append("1 Oro")
-        if alloc.get('Bonds', 0) > 0:
-            breakdown_items.append("1 Bond")
+            breakdown_items.append("Bitcoin")
+        if gold_detail:
+            breakdown_items.append("Oro")
+        if bond_detail:
+            breakdown_items.append("Obbligazioni")
         breakdown_str = f"({', '.join(breakdown_items)})" if breakdown_items else ""
 
         if num_pos > 0:
             pnl_sign = "+" if tot_pnl_user >= 0 else "-"
-            pnl_col = "#10B981" if tot_pnl_user >= 0 else "#EF4444"
+            pnl_col = POS if tot_pnl_user >= 0 else NEG
             pnl_val_str = f"{pnl_sign}{curr_sym}{abs(tot_pnl_user):,.0f}"
             pnl_pct_str = f"{'+' if tot_pnl_pct>=0 else ''}{tot_pnl_pct:.2f}%"
             if is_eur:
-                sub_text = f"Su {num_pos} posizioni {breakdown_str} • (${tot_pnl_usd:+,.0f} USD)"
+                sub_text = f"Su {num_pos} posizioni {breakdown_str} · (${tot_pnl_usd:+,.0f} USD)"
             else:
                 sub_text = f"Su {num_pos} posizioni {breakdown_str}"
         else:
-            pnl_col = "gray"
+            pnl_col = MUTED
             pnl_val_str = f"{curr_sym}0"
             pnl_pct_str = "0.00%"
             sub_text = "Nessuna posizione aperta (attesa venerdì)"
 
         st_html(f"""
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
-            <div style="opacity: 0.75; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante ({curr_sym})</div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
+            <div style="opacity: 0.7; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante ({curr_sym})</div>
             <div style="font-size: 20px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
                 {pnl_val_str} <span style="font-size: 13px; font-weight: 600;">({pnl_pct_str})</span>
             </div>
-            <div style="opacity: 0.65; font-size: 10.5px;">{sub_text}</div>
+            <div style="opacity: 0.6; font-size: 10.5px;">{sub_text}</div>
         </div>
         """)
 
     st.write("")
 
-    # Coperture Macro & Monetario Cards
-    def make_asset_card(icon, label, amount_usd, subtext, border_col, is_active=True, pnl_pct=0.0, pnl_val_usd=0.0, is_cash=False):
-        opacity = "1" if is_active else "0.55"
-        amount_user = amount_usd * fx_ratio
-        pnl_val_user = pnl_val_usd * fx_ratio
-        pnl_badge = ""
-        if is_active and not is_cash:
-            pnl_col = "#10B981" if pnl_pct >= 0 else "#EF4444"
-            pnl_sign = "+" if pnl_val_user >= 0 else "-"
-            pnl_badge = f'<div style="font-size: 11px; font-weight: 700; color: {pnl_col}; font-family: \'JetBrains Mono\', monospace; margin-top: 3px;">Rendimento: {pnl_sign}{curr_sym}{abs(pnl_val_user):,.0f} ({pnl_pct:+.2f}%)</div>'
-        elif not is_active:
-            pnl_badge = '<div style="font-size: 10.5px; opacity: 0.55; margin-top: 3px;">Copertura non attiva (0%)</div>'
-
-        return f"""
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid {border_col}; border-radius: 8px; padding: 10px 14px; opacity: {opacity}; display: flex; flex-direction: column; justify-content: space-between;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                <span style="font-weight: 600; font-size: 12px; color: #9CA3AF;">{icon} {label}</span>
-                <span style="font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{curr_sym}{amount_user:,.0f}</span>
-            </div>
-            <div style="opacity: 0.65; font-size: 10.5px;">{subtext}</div>
-            {pnl_badge}
-        </div>
-        """
-
+    # --- Card asset singoli: Monetario, Obbligazioni, Oro, Bitcoin — parità
+    # informativa con la tabella Azioni (peso%, data ingresso, prezzo ingr.->attuale).
     real_cash_usd = max(0.0, capitale - tot_invested_usd)
-    card_cash = make_asset_card("💵", "MONETARIO", real_cash_usd, "Parcheggio strategico e riserve", "#3B82F6", True, is_cash=True)
-    card_gold = make_asset_card("🥇", "ORO", gold_cap, "Copertura Macro", "#F59E0B" if alloc.get('Gold', 0) > 0 else "#4B5563", alloc.get('Gold', 0) > 0, g_pnl_pct, g_pnl_usd)
-    card_bond = make_asset_card("🛡️", "OBBLIGAZIONI", bond_cap, "Copertura Tassi", "#8B5CF6" if alloc.get('Bonds', 0) > 0 else "#4B5563", alloc.get('Bonds', 0) > 0, b_pnl_pct, b_pnl_usd)
+    cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
 
-    st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_gold}{card_bond}</div>')
+    card_cash = cash_card(real_cash_usd, cash_weight_pct, curr_sym, fx_ratio)
+    card_bond = instrument_card("FI", "Obbligazioni", bond_detail is not None, bond_detail, curr_sym, fx_ratio)
+    card_gold = instrument_card("AU", "Oro", gold_detail is not None, gold_detail, curr_sym, fx_ratio)
+    card_btc = instrument_card("₿", "Bitcoin", btc_detail is not None, btc_detail, curr_sym, fx_ratio)
+
+    st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_bond}{card_gold}{card_btc}</div>')
 
     def color_pnl(val):
-        color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
+        color = POS if val > 0 else NEG if val < 0 else MUTED
         return f'color: {color}; font-weight: 700;'
 
-    def style_pos(val):
-        if "🆕" in str(val):
-            return 'background-color: rgba(59, 130, 246, 0.15); color: #3B82F6; font-weight: 700; text-align: center;'
-        return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
+    def style_stato(val):
+        if "NUOVO" in str(val):
+            return f'color: {ACCENT}; font-weight: 700; text-align: center;'
+        return 'text-align: center; opacity: 0.4;'
 
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
 
-    show_details = st.toggle("🔍 Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
-    compact_cols = ["Pos", "Titolo", "Peso (%)", col_val_label, "Rendimento %"]
-    full_cols = ["Pos", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+    show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
+    compact_cols = ["Pos", "Titolo", "Stato", "Peso (%)", col_val_label, "Rendimento %"]
+    full_cols = ["Pos", "Titolo", "Stato", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
 
-    col_az, col_cr = st.columns([2, 1])
+    st_html(f"""
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">Basket Azionario (bassa volatilità)</span>
+        <span style="color: {MUTED}; font-size: 11.5px; font-weight: 600; font-family: 'JetBrains Mono', monospace;">{num_eq} / {max(len(data.get('top20', [])), num_eq)} posizioni</span>
+    </div>
+    """)
 
-    with col_az:
-        st_html(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">📈 Basket Azionario (bassa volatilità)</span>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_eq} / {max(len(data.get('top20', [])), num_eq)}</span>
-        </div>
-        """)
+    if op_eq:
+        df_op_eq = pd.DataFrame(op_eq)
+        df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
+        df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
+        df_op_eq[col_rend_label] = df_op_eq[col_val_label] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"] * fx_ratio)
 
-        if op_eq:
-            df_op_eq = pd.DataFrame(op_eq)
-            df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
-            df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
-            df_op_eq[col_rend_label] = df_op_eq[col_val_label] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"] * fx_ratio)
+        df_op_eq = df_op_eq[[c for c in active_cols if c in df_op_eq.columns]]
 
-            df_op_eq = df_op_eq[[c for c in active_cols if c in df_op_eq.columns]]
+        df_eq_styled = df_op_eq.style.format({
+            "Quote": "{:d}",
+            "Ingresso ($)": "{:.2f}",
+            "Attuale ($)": "{:.2f}",
+            "Peso (%)": "{:.2f}%",
+            col_val_label: "{:,.0f}",
+            "Rendimento %": "{:+.2f}%",
+            col_rend_label: "{:+,.0f}"
+        }).map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_op_eq.columns]).map(style_stato, subset=[c for c in ['Stato'] if c in df_op_eq.columns])
 
-            df_eq_styled = df_op_eq.style.format({
-                "Quote": "{:d}",
-                "Ingresso ($)": "{:.2f}",
-                "Attuale ($)": "{:.2f}",
-                "Peso (%)": "{:.2f}%",
-                col_val_label: "{:,.0f}",
-                "Rendimento %": "{:+.2f}%",
-                col_rend_label: "{:+,.0f}"
-            }).map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_op_eq.columns]).map(style_pos, subset=['Pos'])
-
-            st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nessuna azione in portafoglio. In attesa del ricalcolo di fine mese.")
-
-    with col_cr:
-        st_html(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">🪙 Crypto in Portafoglio</span>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace;">{num_cr}</span>
-        </div>
-        """)
-
-        if op_cr:
-            df_op_cr = pd.DataFrame(op_cr)
-            df_op_cr["Quote"] = [(capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"] if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_cr.iterrows()]
-            df_op_cr[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_cr.iterrows()]
-            df_op_cr[col_rend_label] = df_op_cr[col_val_label] - (df_op_cr["Quote"] * df_op_cr["Ingresso ($)"] * fx_ratio)
-
-            df_op_cr = df_op_cr[[c for c in active_cols if c in df_op_cr.columns]]
-
-            def format_crypto_shares(val):
-                if val >= 1.0:
-                    return f"{val:.4f}"
-                return f"{val:.6f}"
-
-            df_cr_styled = df_op_cr.style.format({
-                "Quote": format_crypto_shares,
-                "Ingresso ($)": format_price,
-                "Attuale ($)": format_price,
-                "Peso (%)": "{:.2f}%",
-                col_val_label: "{:,.0f}",
-                "Rendimento %": "{:+.2f}%",
-                col_rend_label: "{:+,.0f}"
-            }).map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_op_cr.columns]).map(style_pos, subset=['Pos'])
-
-            st.dataframe(df_cr_styled, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nessuna crypto in portafoglio. In attesa del ricalcolo di fine mese.")
+        st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nessuna azione in portafoglio. In attesa del ricalcolo di fine mese.")
 
     st.write("")
-    with st.expander("📡 Radar Rotazione — basket in arrivo (bassa volatilità, trimestrale) e crypto"):
-        st_html("""
-        <div style="background: rgba(59, 130, 246, 0.08); border-left: 4px solid #3B82F6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
-            💡 I titoli già in portafoglio sono contrassegnati con ⭐, i nuovi candidati (🆕) subentrano alla prossima rotazione trimestrale se il segnale macro di classe è attivo.
+    with st.expander("Radar Rotazione — basket azionario in arrivo (bassa volatilità, trimestrale)"):
+        st_html(f"""
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
+            I titoli già in portafoglio sono contrassegnati come <strong>IN PORTAFOGLIO</strong>, i nuovi candidati come <strong style="color:{ACCENT};">NUOVO</strong> — subentrano alla prossima rotazione trimestrale se il segnale macro di classe è attivo. Bitcoin non compare qui: è un asset singolo (nessuna rotazione), il suo stato è nel cockpit sopra e nella sua card in portafoglio.
         </div>
         """)
 
-        held_tickers = set(pf.get("open_positions", {}).keys()) if pf else set()
+        held_tickers = set(open_pos_raw.keys())
 
-        def style_radar_status(val):
-            if "🆕" in str(val):
-                return 'background-color: rgba(59, 130, 246, 0.15); color: #3B82F6; font-weight: 700; text-align: center;'
-            return 'background-color: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; text-align: center;'
+        def style_radar_stato(val):
+            if "NUOVO" in str(val):
+                return f'color: {ACCENT}; font-weight: 700; text-align: center;'
+            return 'text-align: center; opacity: 0.4;'
 
-        rc1, rc2 = st.columns([2, 1])
-        with rc1:
-            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📈 Basket Azionario (bassa volatilità, rotazione trimestrale)</div>')
-            if alloc.get("Equities", 0) > 0:
-                top20 = data.get("top20", [])
-                if top20:
-                    df_radar_eq = pd.DataFrame(top20)
-                    df_radar_eq = df_radar_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
-                    df_radar_eq["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_radar_eq["Titolo"])]
-                    cols = ["Pos", "Titolo", "Prezzo ($)", "Volatilita' Ann. (%)"]
-                    df_radar_eq = df_radar_eq[[c for c in cols if c in df_radar_eq.columns]]
+        if alloc.get("Equities", 0) > 0:
+            top20 = data.get("top20", [])
+            if top20:
+                df_radar_eq = pd.DataFrame(top20)
+                df_radar_eq = df_radar_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
+                df_radar_eq["Pos"] = list(range(1, len(df_radar_eq) + 1))
+                df_radar_eq["Stato"] = ["IN PORTAFOGLIO" if tkr in held_tickers else "NUOVO" for tkr in df_radar_eq["Titolo"]]
+                cols = ["Pos", "Titolo", "Stato", "Prezzo ($)", "Volatilita' Ann. (%)"]
+                df_radar_eq = df_radar_eq[[c for c in cols if c in df_radar_eq.columns]]
 
-                    fmt = {"Prezzo ($)": "{:.2f}"}
-                    if "Volatilita' Ann. (%)" in df_radar_eq.columns:
-                        fmt["Volatilita' Ann. (%)"] = "{:.1f}%"
-                    st.dataframe(
-                        df_radar_eq.style.format(fmt).map(
-                            style_radar_status, subset=['Pos'] if 'Pos' in df_radar_eq.columns else None
-                        ),
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                else:
-                    st.info("Nessun dato basket disponibile.")
+                fmt = {"Prezzo ($)": "{:.2f}"}
+                if "Volatilita' Ann. (%)" in df_radar_eq.columns:
+                    fmt["Volatilita' Ann. (%)"] = "{:.1f}%"
+                st.dataframe(
+                    df_radar_eq.style.format(fmt).map(
+                        style_radar_stato, subset=['Stato'] if 'Stato' in df_radar_eq.columns else None
+                    ),
+                    use_container_width=True,
+                    hide_index=True
+                )
             else:
-                st.warning("Classe Equity DISATTIVA (segnale sotto la media a 40 settimane).")
-
-        with rc2:
-            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">🪙 Crypto (solo BTC-USD)</div>')
-            if alloc.get("Crypto", 0) > 0:
-                cr_top = data.get("crypto_top", [])
-                if cr_top:
-                    df_radar_cr = pd.DataFrame(cr_top)
-                    df_radar_cr = df_radar_cr.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
-                    df_radar_cr["Pos"] = [f"⭐ {i+1}" if tkr in held_tickers else f"🆕 {i+1}" for i, tkr in enumerate(df_radar_cr["Titolo"])]
-                    cols = ["Pos", "Titolo", "Prezzo ($)"]
-                    df_radar_cr = df_radar_cr[[c for c in cols if c in df_radar_cr.columns]]
-
-                    st.dataframe(
-                        df_radar_cr.style.format({"Prezzo ($)": format_price}).map(
-                            style_radar_status, subset=['Pos'] if 'Pos' in df_radar_cr.columns else None
-                        ),
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                else:
-                    st.info("Nessun dato Crypto disponibile.")
-            else:
-                st.warning("Classe Crypto DISATTIVA (BTC-USD sotto la media a 40 settimane).")
+                st.info("Nessun dato basket disponibile.")
+        else:
+            st.warning("Classe Azionario in pausa (segnale sotto la media a 40 settimane).")
 
 
 # ==============================================================================
-# TAB 2: METRICHE (CANDLESTICK EQUITY CURVE, KPI, STORICO)
+# TAB 2: METRICHE (EQUITY CURVE, DRAWDOWN, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
-    st_html("""
-    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+    st_html(f"""
+    <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
         <div>
-            <span style="font-size: 13px; font-weight: 700; color: #60A5FA;">🧪 SIMULAZIONE QUANTITATIVA & TRACK RECORD (Feb 2024 – Ago 2026)</span>
-            <div style="font-size: 11px; opacity: 0.7; margin-top: 2px;">Serie storica a regole fisse deterministiche su dati storici di mercato • Reinvestimento composto</div>
+            <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">SIMULAZIONE QUANTITATIVA & TRACK RECORD (Feb 2024 – Ago 2026)</span>
+            <div style="font-size: 11px; opacity: 0.65; margin-top: 2px;">Serie storica a regole fisse deterministiche su dati storici di mercato · Reinvestimento composto</div>
         </div>
-        <span style="background: rgba(59, 130, 246, 0.2); color: #93C5FD; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">BASE 100 • BACKTEST OUT-OF-SAMPLE</span>
+        <span style="background: rgba(59, 130, 246, 0.12); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">BASE 100 · BACKTEST OUT-OF-SAMPLE</span>
     </div>
     """)
 
@@ -698,7 +789,7 @@ with tab_perf:
         df_eq['norm_low'] = (df_eq['low'] / base_val) * 100
         df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
 
-        # Pure Weekly Candlestick Aggregation (W-FRI)
+        # Aggregazione settimanale (W-FRI) per la curva equity
         if len(df_eq) >= 5:
             df_agg = df_eq.resample('W-FRI').agg({
                 'norm_open': 'first',
@@ -750,29 +841,25 @@ with tab_perf:
                 ticks = [d for d in all_days if d.day == 1 and d.month in [1, 4, 7, 10]]
                 tick_labels = [f"{IT_MONTHS[d.month]} '{d.strftime('%y')}" for d in ticks]
 
-        fig = go.Figure()
-
         it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_plot.index]
 
-        # 1. Candele Giapponesi Settimanali per Strategia Apex
-        fig.add_trace(
-            go.Candlestick(
-                x=df_plot.index,
-                open=df_plot['norm_open'],
-                high=df_plot['norm_high'],
-                low=df_plot['norm_low'],
-                close=df_plot['norm_close'],
-                hovertext=it_dates_str,
-                hovertemplate="<b>%{hovertext}</b><br>Apertura: %{open:.2f}<br>Massimo: %{high:.2f}<br>Minimo: %{low:.2f}<br>Chiusura: %{close:.2f}<extra></extra>",
-                increasing_line_color='#10B981',
-                decreasing_line_color='#EF4444',
-                increasing_fillcolor='#10B981',
-                decreasing_fillcolor='#EF4444',
-                name='Strategia Apex'
-            )
-        )
+        fig = go.Figure()
 
-        # 2. Benchmark S&P 500 (Linea di Riferimento Settimanale)
+        # 1. Curva equity Apex — area/linea (piu' convenzionale di una candela per
+        # un NAV multi-asset ribilanciato, che non ha un vero OHLC intra-periodo).
+        fig.add_trace(go.Scatter(
+            x=df_plot.index,
+            y=df_plot['norm_close'],
+            mode='lines',
+            name='Strategia Apex',
+            line=dict(color=ACCENT, width=2),
+            fill='tozeroy',
+            fillcolor='rgba(59, 130, 246, 0.10)',
+            text=it_dates_str,
+            hovertemplate="<b>%{text}</b><br>Base 100: %{y:.2f}<extra></extra>"
+        ))
+
+        # 2. Benchmark S&P 500 (linea di riferimento settimanale, quieta)
         if not df_spy.empty:
             start_date = df_plot.index[0]
             df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
@@ -789,8 +876,7 @@ with tab_perf:
                     hovertemplate="<b>%{text}</b><br>S&P 500: %{y:.2f}<extra></extra>",
                     mode='lines',
                     name="S&P 500 Benchmark",
-                    line=dict(color='#9CA3AF', width=1.8, dash='dot'),
-                    opacity=0.75
+                    line=dict(color='#6B7280', width=1.5, dash='dot'),
                 ))
 
         fig.update_layout(
@@ -798,26 +884,45 @@ with tab_perf:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(128,128,128,0.1)',
+                showgrid=False,
                 tickfont=dict(size=11),
                 tickmode='array' if len(ticks) > 0 else 'auto',
                 tickvals=ticks if len(ticks) > 0 else None,
                 ticktext=tick_labels if len(tick_labels) > 0 else None
             ),
-            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.1)', tickfont=dict(size=11), title="Base 100"),
-            xaxis_rangeslider_visible=False,
+            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.08)', tickfont=dict(size=11), title="Base 100"),
             margin=dict(l=0, r=0, t=10, b=0),
-            height=430,
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(128,128,128,0.08)')
+            height=380,
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
         )
         st.plotly_chart(fig, use_container_width=True)
+
+        # 3. Underwater chart — drawdown dal massimo storico nel tempo (risoluzione
+        # giornaliera per non attenuare la vera profondità intra-settimanale).
+        st.caption("Drawdown dal massimo storico")
+        df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
+        fig_dd = go.Figure()
+        fig_dd.add_trace(go.Scatter(
+            x=df_underwater.index, y=df_underwater['drawdown'],
+            fill='tozeroy', mode='lines',
+            line=dict(color=NEG, width=1.2),
+            fillcolor='rgba(239, 68, 68, 0.16)',
+            hovertemplate="%{x|%d %b %Y}<br>Drawdown: %{y:.2f}%<extra></extra>",
+            name="Drawdown"
+        ))
+        fig_dd.update_layout(
+            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False, tickfont=dict(size=10)),
+            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.06)', tickfont=dict(size=10), ticksuffix="%"),
+            margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
+        )
+        st.plotly_chart(fig_dd, use_container_width=True)
     else:
-        st.info("📊 In attesa del file di tracciamento storico.")
+        st.info("In attesa del file di tracciamento storico.")
 
     st.write("")
 
-    # Mathematical Advantage & Operating KPI Cards
+    # KPI cards — superficie neutra uniforme, colore solo dove il segno conta.
     if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]
@@ -832,68 +937,56 @@ with tab_perf:
         payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
 
-        def make_kpi_card(icon, title, value, subtext, badge_text, border_color, bg_color, badge_bg, val_color):
+        def make_kpi_card(title, value, subtext, badge_text=None, badge_color=None, val_color=None):
+            badge_html = ""
+            if badge_text:
+                bcol = badge_color or "rgba(128,128,128,0.18)"
+                badge_html = f'<span style="background:{bcol}; color:#F3F4F6; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; font-family:\'JetBrains Mono\',monospace;">{badge_text}</span>'
             return f"""
-            <div style="flex: 1 1 180px; min-width: 155px; background: {bg_color}; border: 1px solid {border_color}; border-radius: 10px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
+            <div style="flex: 1 1 175px; min-width: 155px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 700; font-size: 13px; letter-spacing: 0.2px;">{icon} {title}</span>
-                    <span style="background: {badge_bg}; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">{badge_text}</span>
+                    <span style="font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED};">{title}</span>
+                    {badge_html}
                 </div>
-                <div style="font-size: 22px; font-weight: 800; color: {val_color}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
+                <div style="font-size: 21px; font-weight: 800; color: {val_color or 'inherit'}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
                     {value}
                 </div>
-                <div style="opacity: 0.65; font-size: 10.5px; margin-top: 2px;">{subtext}</div>
+                <div style="opacity: 0.6; font-size: 10.5px; margin-top: 2px;">{subtext}</div>
             </div>
             """
 
         # Stima netto teorica: 26% (aliquota flat italiana) solo sulla quota di
         # guadagno, come se l'intera posizione venisse realizzata oggi. Le
         # perdite non generano beneficio fiscale in questa stima semplificata
-        # (non modella riporto perdite 4 anni art. 68 TUIR, vedi §8.9/§10).
+        # (non modella riporto perdite 4 anni art. 68 TUIR, vedi APEX_V2_SPEC.md §8.9/§10).
         net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
 
         kpi_ret = make_kpi_card(
-            "📈", "Rendimento Lordo", f"{total_ret_pct:+.2f}%",
+            "Rendimento Lordo", f"{total_ret_pct:+.2f}%",
             f"Netto stimato (26%, se realizzato oggi): {net_ret_pct_est:+.2f}%",
-            "🟢 POSITIVO" if total_ret_pct >= 0 else "🔴 NEGATIVO",
-            "#10B981" if total_ret_pct >= 0 else "#EF4444",
-            "rgba(16, 185, 129, 0.08)" if total_ret_pct >= 0 else "rgba(239, 68, 68, 0.06)",
-            "#065F46" if total_ret_pct >= 0 else "#7F1D1D",
-            "#34D399" if total_ret_pct >= 0 else "#F87171"
+            val_color=(POS if total_ret_pct >= 0 else NEG)
         )
         kpi_cagr = make_kpi_card(
-            "📆", "CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Rendimento lordo composto annuo",
-            "🟢 POSITIVO" if cagr_pct >= 0 else "🔴 NEGATIVO",
-            "#10B981" if cagr_pct >= 0 else "#EF4444",
-            "rgba(16, 185, 129, 0.08)" if cagr_pct >= 0 else "rgba(239, 68, 68, 0.06)",
-            "#065F46" if cagr_pct >= 0 else "#7F1D1D",
-            "#34D399" if cagr_pct >= 0 else "#F87171"
+            "CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Rendimento lordo composto annuo",
+            val_color=(POS if cagr_pct >= 0 else NEG)
         )
         kpi_win = make_kpi_card(
-            "🎯", "Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
-            f"{len(wins)}/{len(hist)}",
-            "#3B82F6", "rgba(59, 130, 246, 0.08)", "#1E40AF", "#60A5FA"
+            "Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
+            badge_text=f"{len(wins)}/{len(hist)}"
         )
         kpi_pf = make_kpi_card(
-            "⚖️", "Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
-            "ECCELLENTE" if profit_factor >= 1.5 else "STABILE",
-            "#10B981" if profit_factor >= 1.5 else "#F59E0B",
-            "rgba(16, 185, 129, 0.08)" if profit_factor >= 1.5 else "rgba(245, 158, 11, 0.08)",
-            "#065F46" if profit_factor >= 1.5 else "#78350F",
-            "#34D399" if profit_factor >= 1.5 else "#FBBF24"
+            "Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
+            badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
+            badge_color=("#065F46" if profit_factor >= 1.5 else "#374151")
         )
         kpi_po = make_kpi_card(
-            "💎", "Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
-            "ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO",
-            "#8B5CF6", "rgba(139, 92, 246, 0.08)", "#5B21B6", "#A78BFA"
+            "Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
+            badge_text=("ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO")
         )
         kpi_dd = make_kpi_card(
-            "🛡️", "Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica",
-            "PROTETTO" if max_dd > -15 else "ATTENZIONE",
-            "#F59E0B" if max_dd > -15 else "#EF4444",
-            "rgba(245, 158, 11, 0.08)" if max_dd > -15 else "rgba(239, 68, 68, 0.06)",
-            "#78350F" if max_dd > -15 else "#7F1D1D",
-            "#FBBF24" if max_dd > -15 else "#F87171"
+            "Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica",
+            badge_text=("PROTETTO" if max_dd > -15 else "ATTENZIONE"),
+            badge_color=("#374151" if max_dd > -15 else "#7F1D1D")
         )
 
         st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">{kpi_ret}{kpi_cagr}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
@@ -921,22 +1014,22 @@ with tab_perf:
 
             st_html(f"""
             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; font-size: 12.5px;">
-                <div style="flex: 1 1 200px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="opacity: 0.85;">🏆 Miglior Trade</span>
-                    <span style="font-weight: 700; color: #10B981; font-family: 'JetBrains Mono', monospace;">{best_trade_t} ({best_trade_p:+.2f}%)</span>
+                <div style="flex: 1 1 200px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.75; color: {MUTED};">Miglior Trade</span>
+                    <span style="font-weight: 700; color: {POS}; font-family: 'JetBrains Mono', monospace;">{best_trade_t} ({best_trade_p:+.2f}%)</span>
                 </div>
-                <div style="flex: 1 1 200px; background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="opacity: 0.85;">🛑 Peggior Trade</span>
-                    <span style="font-weight: 700; color: #EF4444; font-family: 'JetBrains Mono', monospace;">{worst_trade_t} ({worst_trade_p:+.2f}%)</span>
+                <div style="flex: 1 1 200px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.75; color: {MUTED};">Peggior Trade</span>
+                    <span style="font-weight: 700; color: {NEG}; font-family: 'JetBrains Mono', monospace;">{worst_trade_t} ({worst_trade_p:+.2f}%)</span>
                 </div>
-                <div style="flex: 1 1 200px; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="opacity: 0.85;">⏱️ Durata Media Trade</span>
-                    <span style="font-weight: 700; color: #A78BFA; font-family: 'JetBrains Mono', monospace;">{avg_days_val} giorni</span>
+                <div style="flex: 1 1 200px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="opacity: 0.75; color: {MUTED};">Durata Media Trade</span>
+                    <span style="font-weight: 700; font-family: 'JetBrains Mono', monospace;">{avg_days_val} giorni</span>
                 </div>
             </div>
             """)
 
-            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">📜 Registro Operazioni Chiuse</div>')
+            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">Registro Operazioni Chiuse</div>')
 
             df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
 
@@ -952,7 +1045,7 @@ with tab_perf:
 
             def color_trade_pnl(val):
                 if isinstance(val, (int, float)):
-                    color = '#10B981' if val > 0 else '#EF4444' if val < 0 else 'gray'
+                    color = POS if val > 0 else NEG if val < 0 else MUTED
                     return f'color: {color}; font-weight: 700;'
                 return ''
 
@@ -972,7 +1065,7 @@ with tab_perf:
             # Search & Filter Controls
             c_srch, c_flt = st.columns([2, 1])
             with c_srch:
-                search_t = st.text_input("Cerca Ticker", placeholder="🔍 Cerca per ticker (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
+                search_t = st.text_input("Cerca Ticker", placeholder="Cerca per ticker (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
             with c_flt:
                 reason_options = ["Tutte le Motivazioni"] + sorted(df_hist["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist.columns else ["Tutte le Motivazioni"]
                 flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
@@ -991,7 +1084,7 @@ with tab_perf:
                 use_container_width=True,
                 hide_index=True
             )
-            st.caption("ℹ️ **Trasparenza Metodologica:** Lo storico delle operazioni chiuse e la curva equity Base 100 documentano la simulazione quantitativa deterministica su dati storici di mercato (out-of-sample) a regole fisse. Le posizioni aperte e i segnali operativi decorrono dal forward-tracking dell'Apex Engine.")
+            st.caption("**Trasparenza Metodologica:** Lo storico delle operazioni chiuse e la curva equity Base 100 documentano la simulazione quantitativa deterministica su dati storici di mercato (out-of-sample) a regole fisse. Le posizioni aperte e i segnali operativi decorrono dal forward-tracking dell'Apex Engine.")
         else:
             st.info("Nessuna operazione chiusa registrata.")
 
@@ -1000,102 +1093,102 @@ with tab_perf:
 # TAB 3: GUIDA & STRATEGIA
 # ==============================================================================
 with tab_guide:
-    st_html('''
-    <div style="background: rgba(0, 136, 204, 0.08); border-left: 4px solid #0088cc; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    st_html(f'''
+    <div style="background: rgba(0, 136, 204, 0.06); border: 1px solid rgba(0, 136, 204, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-            <div style="font-weight: 700; font-size: 14px; color: #0088cc; margin-bottom: 2px;">📢 Canale Ufficiale Notifiche Telegram</div>
-            <div style="font-size: 12.5px; opacity: 0.85;">Ricevi in tempo reale i cambi di mercato, gli ordini di rotazione e i livelli di protezione aggiornati.</div>
+            <div style="font-weight: 700; font-size: 14px; color: #0088cc; margin-bottom: 2px;">Canale Ufficiale Notifiche Telegram</div>
+            <div style="font-size: 12.5px; opacity: 0.8;">Ricevi in tempo reale i cambi di mercato, gli ordini di rotazione e i livelli di protezione aggiornati.</div>
         </div>
-        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
-            Unisciti al Canale ✈️
+        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700;">
+            Unisciti al canale →
         </a>
     </div>
     ''')
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">📖 Regole Operative</div>')
-    st_html("""
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">Regole Operative</div>')
+    st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 6px;">📅 1. Controllo mensile</div>
-            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">L'ultimo venerdì del mese l'app vende i titoli deboli e li sostituisce con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">1. Controllo mensile</div>
+            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">L'ultimo venerdì del mese l'app vende i titoli deboli e li sostituisce con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
         </div>
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; color: #8B5CF6; margin-bottom: 6px;">⚙️ 2. Controllo settimanale</div>
-            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Ogni venerdì aggiorna i livelli di protezione. Se in settimana sono state chiuse delle posizioni, queste vengono sostituite con nuovi ingressi.</div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">2. Controllo settimanale</div>
+            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni venerdì aggiorna i livelli di protezione. Se in settimana sono state chiuse delle posizioni, queste vengono sostituite con nuovi ingressi.</div>
         </div>
-        <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; color: #10B981; margin-bottom: 6px;">🛡️ 3. Cambi di Mercato</div>
-            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">3. Cambi di Mercato</div>
+            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
         </div>
     </div>
     """)
 
     st.divider()
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 12px;">🧠 Documentazione Strategica</div>')
-    st_html('''
-    <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">🎯 Obiettivo Primario</div>
-        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Generare alpha reale (indipendente dal semplice beta di mercato) con bassa frequenza di intervento (rotazione mensile/trimestrale, mai giornaliera) e alta efficienza fiscale, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 12px;">Documentazione Strategica</div>')
+    st_html(f'''
+    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+        <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Obiettivo Primario</div>
+        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Generare alpha reale (indipendente dal semplice beta di mercato) con bassa frequenza di intervento (rotazione mensile/trimestrale, mai giornaliera) e alta efficienza fiscale, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
     </div>
 
-    <div style="font-size: 13px; font-weight: 700; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0;">⚙️ Il Sistema — Segnale di Timing per Classe</div>
-    <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 10px;">Ogni classe di attivo (Azioni, Obbligazioni, Oro, Crypto) viene attivata o disattivata in base al proprio trend di lungo periodo — non esiste più un tetto percentuale fisso per classe:</div>
+    <div style="font-size: 12.5px; font-weight: 700; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0;">Il Sistema — Segnale di Timing per Classe</div>
+    <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5; margin-bottom: 10px;">Ogni classe di attivo (Azioni, Obbligazioni, Oro, Bitcoin) viene attivata o disattivata in base al proprio trend di lungo periodo — non esiste più un tetto percentuale fisso per classe:</div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px;">
-        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 8px; padding: 10px 12px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">📈 Azioni</span>
-                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Basket a bassa vol</span>
+                <span style="font-weight: 700; font-size: 13px;">Azioni</span>
+                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">BASKET BASSA VOL</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Attiva se SPY è sopra la media mobile a 40 settimane (con isteresi ±2%).</div>
+            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Attiva se SPY è sopra la media mobile a 40 settimane (con isteresi adattiva).</div>
         </div>
-        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #10B981; border-radius: 8px; padding: 10px 12px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">🪙 Criptovalute</span>
-                <span style="background: #065F46; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Solo BTC-USD</span>
+                <span style="font-weight: 700; font-size: 13px;">Bitcoin</span>
+                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">SOLO BTC-USD</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Nessuna rotazione altcoin (testata e respinta: nessun edge aggiuntivo). Stesso segnale di timing dell'azionario.</div>
+            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Nessuna rotazione altcoin (testata e respinta: nessun edge aggiuntivo). Stesso segnale di timing dell'azionario.</div>
         </div>
-        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid #F59E0B; border-radius: 8px; padding: 10px 12px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">🥇 Oro</span>
-                <span style="background: #78350F; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Segnale di trend</span>
+                <span style="font-weight: 700; font-size: 13px;">Oro</span>
+                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">SEGNALE DI TREND</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Protezione contro inflazione e incertezza, attivata dallo stesso meccanismo di timing.</div>
+            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Protezione contro inflazione e incertezza, attivata dallo stesso meccanismo di timing.</div>
         </div>
-        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid #8B5CF6; border-radius: 8px; padding: 10px 12px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">🛡️ Obbligazioni</span>
-                <span style="background: #5B21B6; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Segnale di trend</span>
+                <span style="font-weight: 700; font-size: 13px;">Obbligazioni</span>
+                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">SEGNALE DI TREND</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Titoli di stato, allocati quando il proprio trend è favorevole.</div>
+            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Titoli di stato, allocati quando il proprio trend è favorevole.</div>
         </div>
-        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid #3B82F6; border-radius: 8px; padding: 10px 12px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">💵 Monetario</span>
-                <span style="background: #1E40AF; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Residuo</span>
+                <span style="font-weight: 700; font-size: 13px;">Monetario</span>
+                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">RESIDUO</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.4;">Rifugio sicuro e liquidità per le classi disattivate o per il target di volatilità.</div>
+            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Rifugio sicuro e liquidità per le classi in pausa o per il target di volatilità.</div>
         </div>
     </div>
 
-    <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
-        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">⚡ Selezione del Basket Azionario</div>
-        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile.</div>
+    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+        <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Selezione del Basket Azionario</div>
+        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile.</div>
     </div>
 
-    <div style="background: rgba(128,128,128,0.06); border: 1px solid rgba(128,128,128,0.18); border-radius: 8px; padding: 14px; margin-bottom: 18px;">
-        <div style="font-weight: 700; font-size: 13.5px; color: #3B82F6; margin-bottom: 4px;">📏 Vol-Targeting di Portafoglio</div>
-        <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">L'esposizione aggregata alle classi rischiose viene scalata mensilmente per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §4).</div>
+    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+        <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Vol-Targeting di Portafoglio</div>
+        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">L'esposizione aggregata alle classi rischiose viene scalata mensilmente per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §4).</div>
     </div>
     ''')
 
     st.divider()
 
-    st_html('''
-    <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.85; line-height: 1.5;">
-        ⚠️ <strong>Note Legali ed Esclusione di Responsabilità:</strong><br>
+    st_html(f'''
+    <div style="background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.8; line-height: 1.5;">
+        <strong>Note Legali ed Esclusione di Responsabilità:</strong><br>
         Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.<br>
         I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.
     </div>

@@ -839,8 +839,11 @@ di strategia, resta escluso di proposito — non è una modifica UI):
   colonne di dettaglio (Quote, Data Ingresso, prezzi ingresso/uscita) —
   nessuna colonna è stata eliminata, solo nascosta dietro un controllo.
 - **Card macro-engine**: le 5 card bordate sostituite da una "pill bar"
-  compatta; l'informazione "attiva dal ..." non è persa, è nel tooltip
-  (`title=`) di ogni pill.
+  compatta; l'informazione "attiva dal ..." è stata spostata nel tooltip
+  (`title=`) di ogni pill. **Rivisto in §12: un tooltip via `title=` non è
+  raggiungibile su dispositivi touch (niente hover) — per chi usa la
+  dashboard da mobile l'informazione è di fatto persa, non solo
+  nascosta.** Correzione proposta in §12.1.
 - **CAGR annualizzato** aggiunto come nuova card KPI in Tab Metriche,
   accanto al rendimento cumulato (non lo sostituisce).
 
@@ -855,3 +858,204 @@ intatto). La logica di filtro colonne compatta/estesa è stata verificata
 anche fuori da Streamlit, direttamente su pandas con le 16 posizioni reali
 di `portfolio.json`, per entrambi i rami (compatto ed esteso) — nessun
 `KeyError`.
+
+## 12. TODO — seconda ondata (IMPLEMENTATO, vedi §14)
+
+Dalla discussione su come mostrare le 5 classi di asset (Monetario,
+Obbligazioni, Azionario, Bitcoin, Oro) dopo la rimozione del basket crypto
+multi-asset (v2 usa solo BTC-USD, nessuna rotazione). Ordine di importanza:
+
+1. **[Correzione — regressione] Data "attiva dal" invisibile su mobile.**
+   La pill bar di §11 mette la data del segnale (`title=` HTML) in un
+   tooltip raggiungibile solo con l'hover del mouse — su touch/mobile non
+   esiste hover, quindi l'informazione non è "nascosta ma recuperabile", è
+   di fatto irraggiungibile per chi apre la dashboard da telefono. Da
+   correggere mostrando la data in modo sempre visibile (es. testo
+   compatto dentro la pill, non più solo nel tooltip) invece di affidarsi a
+   un'interazione hover-only.
+2. **Bitcoin da tabella a card.** La sezione "Crypto in Portafoglio" è oggi
+   una tabella con una riga sola (residuo del vecchio basket multi-crypto
+   v1) — va convertita in una card come Oro/Obbligazioni/Monetario, dato
+   che BTC non ruota mai (nessuna vera "lista" da tabellare).
+3. **Parità informativa nelle card asset singoli.** Le card di
+   Oro/Obbligazioni/Bitcoin oggi mostrano solo importo e rendimento %/$.
+   Vanno arricchite con Peso % esplicito, Data Ingresso (gg) e Prezzo
+   Ingresso → Attuale — le stesse informazioni già disponibili per le
+   azioni in tabella, così nessuna asset class perde dettaglio rispetto
+   alle altre.
+4. **Radar: solo Azionario, niente Bitcoin.** Il Radar esiste per mostrare
+   candidati di rotazione trimestrale — per Bitcoin non esiste candidacy
+   (asset singolo, mai sostituito, solo on/off per segnale macro, già
+   coperto da pill bar + card portafoglio). Va tolto dal Radar, che resta
+   solo la tabella Azionario (⭐ in portafoglio / 🆕 candidati) — stessa
+   tabella oggi duplicata, stesso principio "tabella solo per basket con
+   vera rotazione" applicato in modo coerente sia a Portafoglio sia a
+   Radar.
+5. **Treemap come visual primario in Tab Portafoglio.** `go.Treemap`
+   (Plotly, già in uso in app.py — nessuna nuova dipendenza): blocco
+   esterno = classe di asset, dimensione = peso, colore = rendimento
+   (verde/rosso); il blocco Azionario si apre mostrando i singoli titoli
+   del basket con la stessa logica dimensione/colore. Preferito a un
+   grafico a torta perché mostra allocazione E performance insieme (la
+   torta mostra solo l'allocazione statica). Da posizionare in cima al Tab
+   Portafoglio come vista d'insieme, con card/tabella sotto per il
+   dettaglio numerico esatto.
+6. **Cockpit: anello di progresso + durata segnale.** Ogni pill della
+   macro-engine status bar guadagna un anello di progresso attorno
+   all'icona (riempimento = peso % della classe, colore = stato); la data
+   "attivo dal ..." diventa testo sempre visibile (non più solo tooltip,
+   corregge il punto 1). Opzionale: una barra di durata sottile sotto la
+   pill (scala 0-26 settimane) per un colpo d'occhio su "flip fresco vs
+   stato consolidato".
+7. **Metriche: grafico underwater (drawdown nel tempo).** Il Max Drawdown
+   oggi è solo un numero in una card KPI — aggiungere un'area rossa sotto
+   la curva equity principale che mostra lo scostamento % dal massimo
+   storico nel tempo (standard nei tearsheet istituzionali): quando è
+   successo, quanto in profondità, quanto per recuperare. Opzionale/da
+   valutare: sostituire le candele giapponesi settimanali della curva
+   equity con un'area/linea (più convenzionale per un NAV multi-asset
+   ribilanciato, le candele sono più adatte a uno strumento tradabile con
+   OHLC reale).
+
+## 13. Direzione visiva istituzionale ("Instrument Panel") — proposta (IMPLEMENTATA, vedi §14)
+
+Valutazione richiesta esplicitamente dall'utente: la UI attuale, per quanto
+già rivista per leanness (§10-§12), ha ancora una "veste grafica" da app
+fintech consumer, non da terminale istituzionale. Cinque problemi concreti,
+individuabili nel codice attuale di `app.py`:
+
+1. **Emoji come iconografia funzionale.** 📈🪙🥇🛡️💵🔔📡📖🎯⚖️💎🏆🛑⏱️💡⚙️ compaiono
+   ovunque — su ogni card, ogni intestazione, ogni badge. È il singolo
+   segnale più forte che allontana il prodotto da un terminale
+   istituzionale (Bloomberg, FactSet, Addepar, strumenti interni hedge
+   fund non usano MAI emoji come iconografia): comunicano "app consumer
+   amichevole", non "strumento professionale".
+2. **Colore usato per decorare, non per significare.** Ogni asset class ha
+   oggi un proprio colore identitario fisso (Azioni verde/rosso per stato,
+   Obbligazioni viola, Oro ambra, Monetario blu) — il colore identifica la
+   *categoria* invece di essere riservato al *significato* (positivo/
+   negativo, attivo/attenzione). Un terminale istituzionale usa quasi
+   sempre una palette neutra (grafite/carbone) con un solo accento di
+   marca, e riserva verde/rosso esclusivamente al segno del P&L.
+3. **Chrome eccessivo — box dentro box.** Praticamente ogni elemento (pill
+   macro, card asset, card KPI, mini-stat, box disclaimer) è un riquadro
+   con bordo + ombra + angoli arrotondati proprio. Impilati, creano
+   affaticamento visivo anche quando i contenuti sono già leggibili — va
+   contro l'obiettivo "basso carico mentale" già perseguito in §10.
+4. **Ridondanza di stato.** Un singolo stato (es. "classe attiva") viene
+   comunicato tre volte insieme: pallino verde + bordo verde + badge
+   testuale "🟢 ATTIVO". Un solo segnale, ben scelto, basta.
+5. **Buona base tipografica da preservare.** La coppia Inter/JetBrains Mono
+   con tabular-nums per le cifre è già corretta e coerente con lo standard
+   istituzionale — nessuna modifica necessaria qui, va solo sfruttata
+   meglio (più aria intorno ai numeri-chiave, gerarchia di peso più
+   marcata).
+
+**Proposta di direzione — "Instrument Panel":**
+
+- **Palette**: base quasi monocromatica (grafite/carbone, leggero bias
+  freddo) + un solo accento di marca riservato a elementi interattivi/di
+  brand (tab attiva, link); verde/rosso riservati ESCLUSIVAMENTE al segno
+  del P&L, mai per identificare una categoria. Le classi di asset si
+  distinguono per etichetta + posizione, non per un colore-bordo dedicato
+  a testa.
+- **Iconografia**: sostituire le emoji con un piccolo set di glifi lineari
+  minimali (SVG inline, nessuna nuova dipendenza) solo dove l'icona aiuta
+  davvero la scansione (le 5 classi nel cockpit); ovunque altro (card KPI,
+  intestazioni tabella, badge) l'etichetta tipografica sostituisce
+  l'icona — molti terminali istituzionali (Bloomberg, FactSet, Addepar)
+  non usano icone decorative nelle tabelle/card dati, l'etichetta stessa
+  è sufficiente.
+- **Chrome**: passare da "ogni elemento è una card con bordo+ombra" a
+  sezioni piatte separate da hairline (1px) e spazio bianco; riservare il
+  trattamento a card solo al raggruppamento più esterno (es. l'intera riga
+  KPI come un'unica striscia con divisori interni, non 6 box separati con
+  ombra propria).
+- **Ridondanza**: un solo segnale di stato per fatto (colore O etichetta,
+  non entrambi più un pallino) — libera spazio e riduce il rumore.
+- **Grafici**: disciplina data-ink (Tufte) — griglie sottili o assenti,
+  legenda solo se non ridondante, palette desaturata per il treemap
+  (niente colori neon), linea benchmark grigio tratteggiato quieto contro
+  un solo accento per la curva strategia (schema già vicino a questo
+  nell'equity chart attuale, da estendere a treemap e underwater chart).
+
+Questa direzione non sostituisce i contenuti/le informazioni proposte in
+§10-§12 (treemap, card arricchite, anello di progresso, underwater chart):
+li reinterpreta nel nuovo linguaggio visivo — es. l'anello di progresso del
+punto 12.6 va colorato secondo la nuova regola (verde/rosso solo per
+P&L, non un colore identitario per classe), le card diventano più piatte,
+le emoji nei loro contenuti vanno sostituite dai glifi lineari.
+
+## 14. Implementazione — ondata 2 + direzione visiva istituzionale (2026-08-28)
+
+`app.py` riscritto per intero secondo §12 e §13. Scelte concrete:
+
+- **Design tokens centralizzati** in cima al file: `POS`/`NEG` (verde/rosso,
+  usati SOLO per il segno del P&L), `ACCENT` (blu, solo elementi
+  interattivi/di marca), `SURFACE`/`BORDER` (superficie e bordo neutri
+  unici, riusati ovunque al posto dei colori per-categoria). Helper
+  riutilizzabili: `flat_card()`, `monogram()`, `ring_svg()`.
+- **Emoji rimosse** da ogni elemento funzionale (header, cockpit, card,
+  tabelle, KPI, Guida). Le uniche eccezioni: il colore di marca reale di
+  Telegram sul link esterno (#0088cc, non è un'emoji ma un colore di
+  marca legittimo di terze parti) e la favicon di fallback del browser
+  (`st.set_page_config(page_icon=...)`, fuori dalla superficie applicativa).
+- **Iconografia sostituita da monogrammi tipografici**: EQ (Azioni), ₿
+  (Bitcoin — carattere Unicode reale, non emoji), AU (Oro, simbolo
+  chimico), FI (Obbligazioni), $ (Monetario), AE (logo di fallback). Nessuna
+  nuova dipendenza, nessun set di icone SVG da mantenere.
+- **Cockpit**: pill sostituite da anelli di progresso (`ring_svg`) — il
+  riempimento è il peso %, il colore è lo stato (verde=attiva, grigio
+  neutro=in pausa — **non rosso**: una classe in pausa è il sistema che
+  evita correttamente un downtrend, non una notizia negativa, quindi il
+  rosso resta riservato esclusivamente a P&L negativo reale). La data
+  "attiva dal ..." è ora testo sempre visibile, non più solo in tooltip
+  (corregge la regressione di §12.1).
+- **Bitcoin**: da tabella a card (`instrument_card`), arricchita con
+  Peso %, Data Ingresso, Prezzo Ingresso → Attuale — stessa funzione
+  riusata anche per Oro e Obbligazioni, garantendo parità informativa
+  reale (stesso codice, non solo stesso aspetto).
+- **Radar**: ridotto alla sola tabella Azionario. Bitcoin rimosso (nessuna
+  candidacy di rotazione per un asset singolo). Badge ⭐/🆕 sostituiti da
+  una colonna "Stato" testuale (NUOVO in accento blu, altrimenti vuota) —
+  un solo segnale per fatto invece di pallino+bordo+badge ridondanti.
+- **Treemap** in cima al Tab Portafoglio (`go.Treemap`): dimensione = peso
+  di strategia (indipendente dal capitale inserito, quindi visibile prima
+  ancora di quel campo), colore = rendimento su scala rosso-grigio-verde
+  desaturata (`#7F1D1D`/`#374151`/`#065F46`, non i colori neon di default
+  di Plotly), drill-down nativo sul basket azionario.
+- **Curva equity**: da candela giapponese settimanale ad area/linea
+  (decisione presa in sede di implementazione, era segnata come
+  "opzionale/da valutare" in §12.7) — una candela OHLC comunica un range
+  intra-periodo che per un NAV multi-asset ribilanciato è sintetico, non
+  un vero prezzo tradabile; area/linea è lo standard nei tearsheet
+  istituzionali ed è più leggibile a confronto con il benchmark.
+- **Underwater chart** (drawdown nel tempo) aggiunto sotto la curva
+  equity, risoluzione giornaliera (non settimanale, per non attenuare la
+  vera profondità intra-settimanale del drawdown) filtrata sullo stesso
+  intervallo del periodo selezionato.
+- **KPI cards**: superficie neutra uniforme per tutte e 6 (era: bordo
+  colorato diverso per ciascuna, puramente decorativo). Rimossi i badge
+  "🟢 POSITIVO"/"🔴 NEGATIVO" su Rendimento Lordo e CAGR perché
+  ridondanti col colore già presente sul valore; mantenuti i badge
+  qualitativi (ECCELLENTE/STABILE, PROTETTO/ATTENZIONE, ecc.) perché
+  aggiungono un giudizio soglia, non ripetono il segno.
+- **Guida**: card uniformate alla stessa superficie neutra, badge
+  per-classe (era colore diverso per categoria) ora un unico grigio
+  neutro con testo maiuscolo.
+
+**Verifica**: `py_compile` pulito; `streamlit.testing.v1.AppTest` in bare
+mode (stesso mock di `urllib.request.urlopen` usato nel resto della
+sessione) eseguito in tre scenari — (1) dati reali di produzione (16
+azioni, Oro/Obbligazioni/Bitcoin in pausa — esercita i rami "non
+allocato" delle card e l'assenza dei relativi nodi nel treemap), (2) uno
+scenario sintetico con Oro/Obbligazioni/Bitcoin iniettati attivi in copie
+temporanee di `portfolio.json`/`apex_data.json` (poi ripristinati e
+verificati byte-identici all'originale) per esercitare i rami "attivo"
+delle card e del treemap, (3) `last_action_log` popolato per verificare
+`st.code` — nessuna eccezione in nessuno dei tre scenari. Suite
+`test_backend.py`/`test_apex_v2_engine.py` rieseguita: 21/21 verdi (non
+toccata da questa modifica, solo verifica di non regressione). La
+logica di filtro colonne compatta/estesa della tabella Azionario è stata
+inoltre validata direttamente su pandas con i dati reali di
+`portfolio.json`, per entrambi i rami — nessun `KeyError`.
