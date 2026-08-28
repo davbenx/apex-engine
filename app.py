@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# HTML RENDERING HELPER (PREVENTS UNRENDERED CODE BLOCKS)
+# HTML RENDERING HELPERS
 # ==============================================================================
 def st_html(html_str):
     """Renders raw HTML safely without Markdown parser indentation issues."""
@@ -26,12 +26,20 @@ def st_html(html_str):
         st.markdown(cleaned, unsafe_allow_html=True)
 
 
+def fill_slot(slot, html_str):
+    """Riempie a posteriori un st.empty() riservato prima nel flusso — usato
+    per il valore hero, che deve apparire visivamente PRIMA del controllo
+    capitale ma puo' essere calcolato solo DOPO aver letto il widget."""
+    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
+    slot.markdown(cleaned, unsafe_allow_html=True)
+
+
 # ==============================================================================
 # THEME & GLOBAL STYLING
 # ==============================================================================
 st_html("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
     html, body, [class*="css"], .stApp {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
@@ -44,28 +52,10 @@ st_html("""
         font-variant-numeric: tabular-nums !important;
     }
 
-    /* Standardized typography for section headers */
-    h4, .section-title {
-        font-family: 'Inter', sans-serif !important;
-        font-size: 16px !important;
-        font-weight: 700 !important;
-        letter-spacing: -0.2px !important;
-        margin-top: 14px !important;
-        margin-bottom: 8px !important;
-    }
-
-    h5, .subsection-title {
-        font-family: 'Inter', sans-serif !important;
-        font-size: 14px !important;
-        font-weight: 700 !important;
-        margin-top: 12px !important;
-        margin-bottom: 6px !important;
-    }
-
     /* Tab navigation polish */
     .stTabs [data-baseweb="tab-list"] {
         gap: 6px;
-        border-bottom: 1px solid rgba(128,128,128,0.2);
+        border-bottom: 1px solid rgba(255,247,237,0.12);
     }
     .stTabs [data-baseweb="tab"] {
         padding: 8px 18px;
@@ -74,50 +64,53 @@ st_html("""
         font-size: 13.5px;
     }
 
-    /* Flat instrument-panel surfaces: hairline border, subtle hover lift, no heavy chrome */
     div[style*="border-radius"] {
-        transition: transform 0.15s ease-in-out, border-color 0.15s ease-in-out;
+        transition: border-color 0.15s ease-in-out;
     }
 </style>
 """)
 
 
 # ==============================================================================
-# DESIGN TOKENS ("Instrument Panel" — palette neutra, colore riservato al segno)
+# DESIGN TOKENS ("Apex Restyle" — istituzionale + consumer, palette calda)
 # ==============================================================================
-POS = "#10B981"       # verde — riservato al P&L positivo
-NEG = "#EF4444"        # rosso — riservato al P&L negativo / attenzione reale
-NEUTRAL_DOT = "rgba(128,128,128,0.45)"   # segnale "in pausa" — non è una notizia negativa
-ACCENT = "#3B82F6"     # unico accento di marca, solo per elementi interattivi
-SURFACE = "rgba(128,128,128,0.045)"
-BORDER = "rgba(128,128,128,0.14)"
-MUTED = "#9CA3AF"
+POS = "#3DDC97"                       # verde caldo — riservato al P&L positivo
+NEG = "#F2726A"                       # corallo — riservato al P&L negativo / attenzione reale
+MUTED_DOT = "#5B534B"                 # segnale "in pausa" — non e' una notizia negativa
+ACCENT = "#C9A44C"                    # oro tenue — unico accento di marca/interattivo
+ACCENT_SOFT = "rgba(201,164,76,0.10)"
+SURFACE = "rgba(255,247,237,0.045)"
+BORDER = "rgba(255,247,237,0.09)"
+BORDER_STRONG = "rgba(255,247,237,0.16)"
+MUTED = "#9C9187"
+MUTED_2 = "#6E655C"
+BADGE_TEXT = "#F5F1EA"
+BADGE_POS_BG = "#1D5F42"
+BADGE_NEG_BG = "#7A2E28"
+BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
+
+CLASS_COLOR_EQ = POS
+CLASS_COLOR_BTC = "#2E9E70"
+CLASS_COLOR_GOLD = ACCENT
+CLASS_COLOR_BOND = "#8B7FC7"
+CLASS_COLOR_CASH = "#4A443D"
+
+FRAUNCES = "'Fraunces', Georgia, serif"
+MONO = "'JetBrains Mono', monospace"
 
 
-def monogram(text, active=True, size=26):
-    color = POS if active else NEUTRAL_DOT
-    return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {color}; color:{color}; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
+def section_title(text, top="26px", bottom="10px"):
+    return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
 
 
-# Peso di base massimo per classe attiva in apex_v2_engine.py
-# (base_weight = 0.25, poi scalato dal fattore di vol-target che non supera
-# mai 1.0 — quindi 25% e' davvero il tetto per singola classe, non solo una
-# soglia arbitraria). Vedi APEX_V2_SPEC.md §20.
+def monogram(text, size=26):
+    return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {ACCENT}; color:{ACCENT}; font-family:{MONO}; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
+
+
+# Peso di base massimo per classe attiva in apex_v2_engine.py (base_weight=0.25,
+# poi scalato dal fattore di vol-target che non supera mai 1.0 — 25% e' il
+# vero tetto per singola classe). Vedi APEX_V2_SPEC.md §20.
 V2_MAX_BASE_ALLOC_PCT = 25.0
-
-
-def ring_badge(mono_text, fill_frac, size=30):
-    """Disco CSS a settore circolare (conic-gradient, un solo elemento,
-    nessuna sovrapposizione/posizionamento assoluto): il riempimento verde è
-    la quota del 25% di peso massimo per classe attualmente in uso. A
-    riempimento zero la classe è in pausa; pieno = al tetto consentito dal
-    vol-target (fattore di scala = 1.0, nessuna riduzione per rischio)."""
-    frac = max(0.0, min(1.0, fill_frac))
-    deg = frac * 360.0
-    gradient = f"conic-gradient({POS} {deg:.1f}deg, #374151 {deg:.1f}deg 360deg)"
-    return f'''<div style="width:{size}px; height:{size}px; min-width:{size}px; border-radius:50%; background:{gradient}; box-sizing:border-box; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-        <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:800; color:#F9FAFB; line-height:1;">{mono_text}</span>
-    </div>'''
 
 
 # ==============================================================================
@@ -233,21 +226,19 @@ engine_status_text = "Motore Attivo" if engine_is_fresh else f"Ricalcolo in rita
 engine_status_color = POS if engine_is_fresh else NEG
 
 logo_b64 = get_logo_b64()
-logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 75px; width: auto; object-fit: contain;" />' if logo_b64 else monogram("AE", active=True, size=52)
+logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 60px; width: auto; object-fit: contain;" />' if logo_b64 else monogram("AE", size=42)
 
 col_title, col_meta = st.columns([3, 2])
 with col_title:
     st_html(f"""
-    <div style="display: flex; align-items: center; gap: 16px; padding: 6px 0;">
-        <div style="background: rgba(128, 128, 128, 0.06); border: 1px solid {BORDER}; padding: 6px 10px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+    <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; padding: 5px 9px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
             {logo_tag}
         </div>
         <div>
-            <div style="font-size: 28px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.15;">APEX ENGINE</div>
-            <div style="font-size: 12px; font-weight: 600; opacity: 0.75; letter-spacing: 0.6px; text-transform: uppercase; margin-top: 3px; line-height: 1.35;">
-                Sistema Quantitativo<br>
-                Multi-Asset<br>
-                <span style='color: {ACCENT}; font-weight: 700;'>v2.0</span>
+            <div style="font-family: {FRAUNCES}; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2;">Apex Engine</div>
+            <div style="font-size: 11px; font-weight: 600; opacity: 0.65; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 1px;">
+                Sistema Quantitativo Multi-Asset <span style="color: {ACCENT}; font-weight: 700;">v2.0</span>
             </div>
         </div>
     </div>
@@ -255,24 +246,18 @@ with col_title:
 
 with col_meta:
     st_html(f"""
-    <div style="text-align: right; padding-top: 8px;">
-        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 5px;">
-            <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 136, 204, 0.1); color: #0088cc; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid rgba(0, 136, 204, 0.25);">
-                Notifiche Telegram →
-            </a>
-            <span style="display:inline-flex; align-items:center; gap:5px; background: rgba(128,128,128,0.08); color: {MUTED}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid {BORDER};">
-                <span style="width:6px; height:6px; border-radius:50%; background:{engine_status_color}; display:inline-block;"></span> {engine_status_text}
-            </span>
+    <div style="text-align: right; padding-top: 10px;">
+        <div style="font-size: 11px; color: {MUTED};">
+            <span style="width:6px; height:6px; border-radius:50%; background:{engine_status_color}; display:inline-block; margin-right:5px;"></span>{engine_status_text} · Aggiornato {last_update_display}
         </div>
-        <div style="opacity: 0.65; font-size: 11.5px; line-height: 1.4;">
-            <strong>Aggiornato:</strong> {last_update_display}<br>
-            <strong>Prezzi e NAV:</strong> aggiornati Lun-Ven · <strong>Decisioni:</strong> ultimo venerdì del mese
-        </div>
+        <a href="https://t.me/apex_multiasset" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #6FB3D9; background: rgba(111,179,217,0.1); border: 1px solid rgba(111,179,217,0.25); padding: 3px 10px; border-radius: 20px; margin-top: 6px;">
+            ✈ @apex_multiasset
+        </a>
     </div>
     """)
 
 # ==============================================================================
-# COCKPIT — STATO SEGNALI MACRO PER CLASSE
+# PORTFOLIO DATA EXTRACTION (serve sia al callout sopra le tab sia alla tab)
 # ==============================================================================
 alloc = data.get('allocations', {"Equities": 0, "Crypto": 0, "Gold": 0, "Bonds": 0, "Cash": 100})
 raw_ts = data.get('timestamp', '')
@@ -284,42 +269,6 @@ d_cr = macro_dates.get("Crypto", ts_date)
 d_g = macro_dates.get("Gold", ts_date)
 d_b = macro_dates.get("Bonds", ts_date)
 
-
-def cockpit_pill(mono_text, label, alloc_pct, is_active, since_date, is_cash=False):
-    """Il disco si riempie in proporzione a alloc_pct/25% (il vero tetto per
-    classe, vedi ring_badge) — niente percentuale scritta: il numero esatto
-    resta nella tabella posizioni sotto, qui e' un indicatore visivo, non
-    l'unica fonte del dato (vedi APEX_V2_SPEC.md §20)."""
-    if is_cash:
-        state_text = "Riserva di liquidità"
-    else:
-        fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
-        state_text = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
-
-    fill_frac = 0.0 if is_cash else (alloc_pct / V2_MAX_BASE_ALLOC_PCT)
-    ring = ring_badge(mono_text, fill_frac)
-    return f"""
-    <div style="display:flex; align-items:center; gap:9px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 7px 12px 7px 8px; min-width: 150px;">
-        {ring}
-        <div style="line-height:1.3;">
-            <div style="font-size:11.5px; font-weight:700; letter-spacing:0.1px;">{label}</div>
-            <div style="font-size:10px; opacity:0.6;">{state_text}</div>
-        </div>
-    </div>
-    """
-
-pill_eq = cockpit_pill("EQ", "Azioni", alloc.get('Equities', 0), alloc.get('Equities', 0) > 0, d_eq)
-pill_cr = cockpit_pill("₿", "Bitcoin", alloc.get('Crypto', 0), alloc.get('Crypto', 0) > 0, d_cr)
-pill_g = cockpit_pill("AU", "Oro", alloc.get('Gold', 0), alloc.get('Gold', 0) > 0, d_g)
-pill_b = cockpit_pill("FI", "Obbligazioni", alloc.get('Bonds', 0), alloc.get('Bonds', 0) > 0, d_b)
-pill_c = cockpit_pill("$", "Monetario", alloc.get('Cash', 0), False, "", is_cash=True)
-
-st_html(f'<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 18px 0;">{pill_eq}{pill_cr}{pill_g}{pill_b}{pill_c}</div>')
-
-
-# ==============================================================================
-# PORTFOLIO DATA EXTRACTION
-# ==============================================================================
 pf = load_portfolio()
 open_pos_raw = pf.get("open_positions", {}) if pf else {}
 op_eq = []
@@ -387,17 +336,17 @@ def position_detail(ticker, capitale_usd):
     }
 
 
-
-
 # ==============================================================================
-# LAST REBALANCE CALLOUT (sopra le tab, sempre visibile)
+# LAST REBALANCE CALLOUT (sopra le tab, sempre visibile — e' l'informazione
+# piu' urgente quando presente: cosa comprare/vendere oggi sul broker)
 # ==============================================================================
 last_actions = (pf or {}).get("last_action_log") or []
 if last_actions:
     last_action_date = (pf or {}).get("last_action_date", "")
     st_html(f"""
-    <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.25); border-bottom: none; border-radius: 8px 8px 0 0; padding: 10px 14px 6px 14px; font-size: 13px;">
-        <div style="font-weight: 700;">Ultimo ribilanciamento ({last_action_date}) — operazioni da replicare sul tuo broker</div>
+    <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px 8px 0 0; border-bottom: none; padding: 10px 16px 6px; font-size: 13px;">
+        <span style="width:6px; height:6px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px;"></span>
+        <strong>Ultimo ribilanciamento ({last_action_date})</strong> — operazioni da replicare sul tuo broker
     </div>
     """)
     st.code("\n".join(last_actions), language=None)
@@ -417,83 +366,12 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 # TAB 1: PORTAFOGLIO & ALLOCAZIONE
 # ==============================================================================
 with tab_pf:
-    # --- Treemap: allocazione + performance in un solo colpo d'occhio.
-    # Basato sui pesi di strategia (indipendente dal capitale inserito sotto),
-    # cosi' resta la prima cosa visibile aprendo la tab. Azionario e' un
-    # riquadro con 15 figli (i singoli titoli): "maxdepth=1" mostra solo il
-    # livello classi all'apertura (nessuna sotto-cella minuscola), un clic su
-    # "AZIONARIO" zooma nativamente sui 15 titoli a piena area — niente
-    # secondo grafico separato, e' lo stesso treemap che si apre.
-    tm_ids, tm_labels, tm_parents, tm_values, tm_colors, tm_text, tm_hover = [], [], [], [], [], [], []
+    # Slot riservato per l'hero: deve comparire per primo visivamente ma il
+    # suo valore dipende dal capitale inserito piu' sotto — riempito a
+    # posteriori con fill_slot() una volta noto il capitale.
+    hero_slot = st.empty()
 
-    if op_eq:
-        eq_weight_total = sum(r.get("Peso (%)", 0.0) for r in op_eq)
-        eq_pnl_weighted = (sum(r["Rendimento %"] * r.get("Peso (%)", 0.0) for r in op_eq) / eq_weight_total) if eq_weight_total > 0 else 0.0
-        tm_ids.append("AZIONARIO"); tm_labels.append("AZIONARIO"); tm_parents.append("")
-        tm_values.append(eq_weight_total); tm_colors.append(eq_pnl_weighted)
-        tm_text.append(f"{eq_weight_total:.1f}% · {eq_pnl_weighted:+.2f}%")
-        tm_hover.append(f"Azionario ({len(op_eq)} titoli) — clic per il dettaglio per titolo<br>{eq_weight_total:.1f}% del portafoglio · Rendimento medio ponderato: {eq_pnl_weighted:+.2f}%")
-        for r in op_eq:
-            tm_ids.append(f"AZ::{r['Titolo']}"); tm_labels.append(r["Titolo"]); tm_parents.append("AZIONARIO")
-            tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
-            tm_text.append(f"{r.get('Peso (%)', 0.0):.1f}% · {r['Rendimento %']:+.2f}%")
-            tm_hover.append(f"{r['Titolo']} — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
-
-    if op_cr:
-        r = op_cr[0]
-        tm_ids.append("BITCOIN"); tm_labels.append("BITCOIN"); tm_parents.append("")
-        tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
-        tm_text.append(f"{r.get('Peso (%)', 0.0):.1f}% · {r['Rendimento %']:+.2f}%")
-        tm_hover.append(f"Bitcoin — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
-
-    if alloc.get('Gold', 0) > 0:
-        _gd = open_pos_raw.get("GLD")
-        _g_pct = (((_gd.get("current_price", _gd.get("entry_price", 0.0)) / _gd["entry_price"]) - 1.0) * 100) if _gd and _gd.get("entry_price", 0) > 0 else 0.0
-        tm_ids.append("ORO"); tm_labels.append("ORO"); tm_parents.append("")
-        tm_values.append(alloc.get('Gold', 0)); tm_colors.append(_g_pct)
-        tm_text.append(f"{alloc.get('Gold', 0):.1f}% · {_g_pct:+.2f}%")
-        tm_hover.append(f"Oro — {alloc.get('Gold', 0):.1f}% del portafoglio<br>Rendimento: {_g_pct:+.2f}%")
-
-    if alloc.get('Bonds', 0) > 0:
-        _bd = open_pos_raw.get("IEF")
-        _b_pct = (((_bd.get("current_price", _bd.get("entry_price", 0.0)) / _bd["entry_price"]) - 1.0) * 100) if _bd and _bd.get("entry_price", 0) > 0 else 0.0
-        tm_ids.append("OBBLIGAZIONI"); tm_labels.append("OBBLIGAZIONI"); tm_parents.append("")
-        tm_values.append(alloc.get('Bonds', 0)); tm_colors.append(_b_pct)
-        tm_text.append(f"{alloc.get('Bonds', 0):.1f}% · {_b_pct:+.2f}%")
-        tm_hover.append(f"Obbligazioni — {alloc.get('Bonds', 0):.1f}% del portafoglio<br>Rendimento: {_b_pct:+.2f}%")
-
-    if alloc.get('Cash', 0) > 0:
-        tm_ids.append("MONETARIO"); tm_labels.append("MONETARIO"); tm_parents.append("")
-        tm_values.append(alloc.get('Cash', 0)); tm_colors.append(0.0)
-        tm_text.append(f"{alloc.get('Cash', 0):.1f}%")
-        tm_hover.append(f"Monetario — {alloc.get('Cash', 0):.1f}% del portafoglio (liquidità, nessun rendimento)")
-
-    if tm_ids:
-        fig_tm = go.Figure(go.Treemap(
-            ids=tm_ids, labels=tm_labels, parents=tm_parents, values=tm_values,
-            branchvalues="total",
-            maxdepth=1,
-            marker=dict(
-                colors=tm_colors,
-                colorscale=[[0, "#7F1D1D"], [0.5, "#374151"], [1, "#065F46"]],
-                cmid=0,
-                line=dict(width=1, color="rgba(128,128,128,0.35)")
-            ),
-            text=tm_text,
-            hovertext=tm_hover,
-            hoverinfo="text",
-            textinfo="label+text",
-            textfont=dict(color="#F3F4F6", family="'JetBrains Mono', monospace", size=13),
-            pathbar=dict(visible=True, textfont=dict(size=11, family="Inter, sans-serif", color=MUTED)),
-        ))
-        fig_tm.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=280, paper_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_tm, use_container_width=True)
-        if op_eq:
-            st.caption('Clicca "AZIONARIO" per il dettaglio dei 15 titoli, clicca in alto per tornare alla vista d\'insieme.')
-
-    st.write("")
-
-    c_val, c_cur = st.columns([3, 2])
+    c_val, c_cur = st.columns([2, 1])
     with c_val:
         _default_cap = 100000
         try:
@@ -501,13 +379,14 @@ with tab_pf:
         except (TypeError, ValueError):
             pass
         capitale_input = st.number_input(
-            "Capitale Broker Reale", min_value=1000, value=_default_cap, step=1000, format="%d"
+            "Capitale broker", min_value=1000, value=_default_cap, step=1000, format="%d",
+            label_visibility="collapsed"
         )
     with c_cur:
         _default_cur = st.query_params.get("cur", "USD ($)")
         if _default_cur not in ("USD ($)", "EUR (€)"):
             _default_cur = "USD ($)"
-        valuta_sel = st.segmented_control("Valuta Conto", ["USD ($)", "EUR (€)"], default=_default_cur)
+        valuta_sel = st.segmented_control("Valuta", ["USD ($)", "EUR (€)"], default=_default_cur, label_visibility="collapsed")
 
     st.query_params["cap"] = str(int(capitale_input))
     st.query_params["cur"] = valuta_sel
@@ -516,13 +395,7 @@ with tab_pf:
     is_eur = (valuta_sel == "EUR (€)")
     curr_sym = "€" if is_eur else "$"
     fx_ratio = (1.0 / eur_usd_rate) if is_eur else 1.0
-
-    if is_eur:
-        capitale = capitale_input * eur_usd_rate
-        st.caption(f"Conto: **€{capitale_input:,.0f}** · Potere d'acquisto: **${capitale:,.0f} USD** (Tasso EUR/USD: `{eur_usd_rate:.4f}`)")
-    else:
-        capitale = float(capitale_input)
-        st.caption(f"Conto operativo: **${capitale:,.0f} USD** (Prezzi e quote calcolati in dollari)")
+    capitale = capitale_input * eur_usd_rate if is_eur else float(capitale_input)
 
     # v2: ogni posizione (azioni, IEF, GLD, BTC) porta il proprio peso reale in
     # portfolio.json ("weight", frazione del capitale) — nessuna quota fissa per
@@ -552,13 +425,78 @@ with tab_pf:
     btc_detail = position_detail(btc_ticker, capitale) if btc_ticker else None
 
     tot_pnl_pct = (tot_pnl_usd / capitale * 100) if capitale > 0 else 0.0
+    tot_pnl_user = tot_pnl_usd * fx_ratio
+    num_pos = len(op_eq) + len(op_cr) + (1 if gold_detail else 0) + (1 if bond_detail else 0)
 
-    st.write("")
+    # --- Riempimento dell'hero (valore portafoglio + variazione) ---
+    pnl_col = POS if tot_pnl_user >= 0 else NEG
+    pnl_sign = "+" if tot_pnl_user >= 0 else "-"
+    pnl_pct_str = f"{'+' if tot_pnl_pct >= 0 else ''}{tot_pnl_pct:.2f}%"
+    fill_slot(hero_slot, f"""
+    <div style="padding: 16px 2px 4px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {MUTED}; margin-bottom: 8px;">Valore Portafoglio</div>
+        <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
+            <span style="font-family:{MONO}; font-size:40px; font-weight:800; letter-spacing:-1px;">{curr_sym}{capitale * fx_ratio:,.0f}</span>
+            <span style="font-size:16px; font-weight:700; color:{pnl_col};">{pnl_sign}{curr_sym}{abs(tot_pnl_user):,.0f} <span style="opacity:0.75; font-weight:600;">({pnl_pct_str})</span></span>
+        </div>
+        <div style="font-size:12px; color:{MUTED}; margin-top:8px;">{num_pos} posizioni attive · prossimo ribilanciamento: ultimo venerdì del mese</div>
+    </div>
+    """)
 
-    # --- Tabella unica con tutte le posizioni di tutte le classi (azioni,
-    # Bitcoin, Oro, Obbligazioni, Monetario) — il treemap sopra da' la vista
-    # d'insieme con i numeri, questa e' l'elenco completo, sempre presente,
-    # senza dover sommare card sparse per le classi non-azionarie.
+    # --- Segnali per classe (striscia unica, non 5 riquadri) ---
+    st_html(section_title("Segnali per classe"))
+
+    def signal_item(label, value_text, dot_color=None):
+        dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px;"></span>' if dot_color else ""
+        return f'<div style="display:flex; align-items:center; gap:7px; font-size:12.5px;">{dot}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED};">{value_text}</span></div>'
+
+    def class_state(alloc_pct, since_date):
+        is_active = alloc_pct > 0
+        fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
+        title = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
+        value = f"{alloc_pct:.0f}%" if is_active else "in pausa"
+        return is_active, value, title
+
+    _eq_active, _eq_val, _eq_title = class_state(alloc.get('Equities', 0), d_eq)
+    _cr_active, _cr_val, _cr_title = class_state(alloc.get('Crypto', 0), d_cr)
+    _g_active, _g_val, _g_title = class_state(alloc.get('Gold', 0), d_g)
+    _b_active, _b_val, _b_title = class_state(alloc.get('Bonds', 0), d_b)
+
+    signals_html = "".join([
+        f'<span title="{_eq_title}">{signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT)}</span>',
+        f'<span title="{_cr_title}">{signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT)}</span>',
+        f'<span title="{_g_title}">{signal_item("Oro", _g_val, POS if _g_active else MUTED_DOT)}</span>',
+        f'<span title="{_b_title}">{signal_item("Obbligazioni", _b_val, POS if _b_active else MUTED_DOT)}</span>',
+        signal_item("Monetario", f"{alloc.get('Cash', 0):.0f}%"),
+    ])
+    st_html(f'<div style="display:flex; flex-wrap:wrap; gap:8px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
+
+    # --- Allocazione (barra singola, composizione — la performance vive
+    # nell'hero e nella tabella, non ripetuta qui) ---
+    st_html(section_title("Allocazione"))
+
+    alloc_segments = []
+    if op_eq:
+        alloc_segments.append(("Azionario", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
+    if op_cr:
+        alloc_segments.append(("Bitcoin", op_cr[0].get("Peso (%)", 0.0), CLASS_COLOR_BTC))
+    if alloc.get('Gold', 0) > 0:
+        alloc_segments.append(("Oro", alloc.get('Gold', 0), CLASS_COLOR_GOLD))
+    if alloc.get('Bonds', 0) > 0:
+        alloc_segments.append(("Obbligazioni", alloc.get('Bonds', 0), CLASS_COLOR_BOND))
+    if alloc.get('Cash', 0) > 0:
+        alloc_segments.append(("Monetario", alloc.get('Cash', 0), CLASS_COLOR_CASH))
+
+    if alloc_segments:
+        bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
+        legend_items = "".join(
+            f'<div style="display:flex; align-items:center; gap:6px;"><span style="width:9px; height:9px; border-radius:2px; background:{color}; display:inline-block;"></span><span style="color:{MUTED};">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            for label, pct, color in alloc_segments
+        )
+        st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
+        st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
+
+    # --- Tabella unica con tutte le posizioni di tutte le classi ---
     real_cash_usd = max(0.0, capitale - tot_invested_usd)
     cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
 
@@ -575,7 +513,12 @@ with tab_pf:
     col_rend_label = f"Rendimento ({curr_sym})"
 
     unified_rows = []
-    for r in op_eq:
+    # Azioni ordinate per rendimento decrescente: chi sta guadagnando di piu'
+    # in cima, chi sta perdendo di piu' in fondo — leggibile a colpo
+    # d'occhio senza dover scandire tutte le 15 righe (i pesi sono quasi
+    # identici essendo un basket equal-weight, quindi ordinare per peso non
+    # li distinguerebbe in modo utile).
+    for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
             "Classe": "Azionario", "Titolo": r["Titolo"], "Stato": r["Stato"],
             "Data Ingresso": r["Data Ingresso"],
@@ -611,9 +554,8 @@ with tab_pf:
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
-    # Riga totale al posto della card "Rendimento Galleggiante" — stessa
-    # informazione (P&L aggregato), calcolata dagli stessi dati della
-    # tabella invece che in un riquadro separato sopra.
+    # Riga totale — stessa informazione dell'hero (P&L aggregato), calcolata
+    # dagli stessi dati della tabella invece che in un riquadro separato.
     unified_rows.append({
         "Classe": "TOTALE", "Titolo": "", "Stato": "",
         "Data Ingresso": "—",
@@ -623,7 +565,7 @@ with tab_pf:
 
     def style_total_row(row):
         if row.get("Classe") == "TOTALE":
-            return ['font-weight: 800; border-top: 2px solid rgba(128,128,128,0.3);'] * len(row)
+            return [f'font-weight: 800; border-top: 2px solid {BORDER_STRONG};'] * len(row)
         return [''] * len(row)
 
     show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
@@ -631,7 +573,7 @@ with tab_pf:
     full_cols = ["Classe", "Titolo", "Stato", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">Tutte le posizioni</div>')
+    st_html(section_title("Posizioni"))
 
     df_pos = pd.DataFrame(unified_rows)
 
@@ -662,7 +604,10 @@ with tab_pf:
         col_rend_label: "{:+,.0f}",
     }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_stato, subset=[c for c in ['Stato'] if c in df_pos_display.columns]).apply(style_total_row, axis=1)
 
-    st.dataframe(df_pos_styled, use_container_width=True, hide_index=True)
+    # Altezza fissa invece di mostrare tutte le righe senza limite: ~8 righe
+    # visibili, il resto scorre dentro la tabella stessa (nessuna riga
+    # nascosta, solo non tutte in vista contemporaneamente).
+    st.dataframe(df_pos_styled, use_container_width=True, hide_index=True, height=360)
 
 
 # ==============================================================================
@@ -680,12 +625,64 @@ with tab_perf:
         track_record_range_str = f" ({MESI_IT[_d0.month-1]} {_d0.year} – {MESI_IT[_d1.month-1]} {_d1.year})"
 
     st_html(f"""
-    <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+    <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
         <div>
             <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">SIMULAZIONE QUANTITATIVA & TRACK RECORD{track_record_range_str}</span>
             <div style="font-size: 11px; opacity: 0.65; margin-top: 2px;">Serie storica a regole fisse deterministiche su dati storici di mercato · Reinvestimento composto</div>
         </div>
-        <span style="background: rgba(59, 130, 246, 0.12); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">BASE 100 · BACKTEST OUT-OF-SAMPLE</span>
+        <span style="background: rgba(201,164,76,0.16); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: {MONO};">BASE 100 · BACKTEST OUT-OF-SAMPLE</span>
+    </div>
+    """)
+
+    total_ret_pct = 0.0
+    cagr_pct = 0.0
+    max_dd = 0.0
+
+    if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
+        df_eq = pd.DataFrame(eq_curve["history"])
+        df_eq['date'] = pd.to_datetime(df_eq['date'])
+        df_eq = df_eq.set_index('date')
+
+        if 'open' not in df_eq.columns or df_eq['open'].isna().all():
+            df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
+            df_eq['high'] = df_eq[['open', 'value']].max(axis=1)
+            df_eq['low'] = df_eq[['open', 'value']].min(axis=1)
+            df_eq['close'] = df_eq['value']
+
+        df_eq['roll_max'] = df_eq['close'].cummax()
+        df_eq['drawdown'] = (df_eq['close'] - df_eq['roll_max']) / df_eq['roll_max'] * 100
+        max_dd = df_eq['drawdown'].min()
+
+        initial_val = df_eq['open'].iloc[0]
+        final_val = df_eq['close'].iloc[-1]
+        total_ret_pct = ((final_val / initial_val) - 1.0) * 100
+
+        years_elapsed = (df_eq.index[-1] - df_eq.index[0]).days / 365.25
+        if years_elapsed > 0 and initial_val > 0 and final_val > 0:
+            cagr_pct = ((final_val / initial_val) ** (1.0 / years_elapsed) - 1.0) * 100
+
+    # Stima netto teorica: 26% (aliquota flat italiana) solo sulla quota di
+    # guadagno, come se l'intera posizione venisse realizzata oggi. Le
+    # perdite non generano beneficio fiscale in questa stima semplificata
+    # (non modella riporto perdite 4 anni art. 68 TUIR, vedi APEX_V2_SPEC.md §8.9/§10).
+    net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
+
+    # --- Sub-hero: le 3 metriche piu' importanti, in grande, non sepolte in
+    # una striscia di 9 — le altre restano nella striscia sotto.
+    def sub_hero_metric(label, value, subtext="", val_color=None):
+        return f"""
+        <div style="flex: 1 1 160px;">
+            <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
+            <div style="font-family: {MONO}; font-size: 28px; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
+            <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
+        </div>
+        """
+
+    st_html(f"""
+    <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:24px;">
+        {sub_hero_metric("Rendimento", f"{total_ret_pct:+.2f}%", f"Netto stimato: {net_ret_pct_est:+.2f}%", POS if total_ret_pct >= 0 else NEG)}
+        {sub_hero_metric("CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Composto annuo", POS if cagr_pct >= 0 else NEG)}
+        {sub_hero_metric("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica")}
     </div>
     """)
 
@@ -720,33 +717,7 @@ with tab_perf:
 
     df_spy = load_benchmark()
 
-    total_ret_pct = 0.0
-    cagr_pct = 0.0
-    max_dd = 0.0
-
     if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
-        df_eq = pd.DataFrame(eq_curve["history"])
-        df_eq['date'] = pd.to_datetime(df_eq['date'])
-        df_eq = df_eq.set_index('date')
-
-        if 'open' not in df_eq.columns or df_eq['open'].isna().all():
-            df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
-            df_eq['high'] = df_eq[['open', 'value']].max(axis=1)
-            df_eq['low'] = df_eq[['open', 'value']].min(axis=1)
-            df_eq['close'] = df_eq['value']
-
-        df_eq['roll_max'] = df_eq['close'].cummax()
-        df_eq['drawdown'] = (df_eq['close'] - df_eq['roll_max']) / df_eq['roll_max'] * 100
-        max_dd = df_eq['drawdown'].min()
-
-        initial_val = df_eq['open'].iloc[0]
-        final_val = df_eq['close'].iloc[-1]
-        total_ret_pct = ((final_val / initial_val) - 1.0) * 100
-
-        years_elapsed = (df_eq.index[-1] - df_eq.index[0]).days / 365.25
-        if years_elapsed > 0 and initial_val > 0 and final_val > 0:
-            cagr_pct = ((final_val / initial_val) ** (1.0 / years_elapsed) - 1.0) * 100
-
         # Normalizzazione Base 100
         base_val = initial_val if initial_val > 0 else 100000.0
         df_eq['norm_open'] = (df_eq['open'] / base_val) * 100
@@ -819,7 +790,7 @@ with tab_perf:
             name='Strategia Apex',
             line=dict(color=ACCENT, width=2),
             fill='tozeroy',
-            fillcolor='rgba(59, 130, 246, 0.10)',
+            fillcolor='rgba(201, 164, 76, 0.10)',
             text=it_dates_str,
             hovertemplate="<b>%{text}</b><br>Base 100: %{y:.2f}<extra></extra>"
         ))
@@ -841,13 +812,14 @@ with tab_perf:
                     hovertemplate="<b>%{text}</b><br>S&P 500: %{y:.2f}<extra></extra>",
                     mode='lines',
                     name="S&P 500 Benchmark",
-                    line=dict(color='#6B7280', width=1.5, dash='dot'),
+                    line=dict(color='#7A7266', width=1.5, dash='dot'),
                 ))
 
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Inter, sans-serif"),
             xaxis=dict(
                 showgrid=False,
                 tickfont=dict(size=11),
@@ -855,7 +827,7 @@ with tab_perf:
                 tickvals=ticks if len(ticks) > 0 else None,
                 ticktext=tick_labels if len(tick_labels) > 0 else None
             ),
-            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.08)', tickfont=dict(size=11), title="Base 100"),
+            yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11), title="Base 100"),
             margin=dict(l=0, r=0, t=10, b=0),
             height=380,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
@@ -871,14 +843,15 @@ with tab_perf:
             x=df_underwater.index, y=df_underwater['drawdown'],
             fill='tozeroy', mode='lines',
             line=dict(color=NEG, width=1.2),
-            fillcolor='rgba(239, 68, 68, 0.16)',
+            fillcolor='rgba(242, 114, 106, 0.15)',
             hovertemplate="%{x|%d %b %Y}<br>Drawdown: %{y:.2f}%<extra></extra>",
             name="Drawdown"
         ))
         fig_dd.update_layout(
             template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Inter, sans-serif"),
             xaxis=dict(showgrid=False, tickfont=dict(size=10)),
-            yaxis=dict(showgrid=True, gridcolor='rgba(128,128,128,0.06)', tickfont=dict(size=10), ticksuffix="%"),
+            yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.05)', tickfont=dict(size=10), ticksuffix="%"),
             margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
         )
         st.plotly_chart(fig_dd, use_container_width=True)
@@ -887,7 +860,8 @@ with tab_perf:
 
     st.write("")
 
-    # KPI cards — superficie neutra uniforme, colore solo dove il segno conta.
+    # Striscia secondaria (le statistiche restanti) — stesso principio del
+    # cockpit e della tabella posizioni: un solo contenitore con divisori.
     if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]
@@ -902,45 +876,28 @@ with tab_perf:
         payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
 
-        # Striscia unica invece di 9 card separate (6 KPI + 3 statistiche trade):
-        # stesso principio gia' applicato al cockpit e alla tabella posizioni —
-        # un solo contenitore con divisori interni, non tanti riquadri ripetuti.
         def kpi_item(title, value, subtext="", badge_text=None, badge_color=None, val_color=None, first=False):
             badge_html = ""
             if badge_text:
-                bcol = badge_color or "rgba(128,128,128,0.18)"
-                badge_html = f'<span style="background:{bcol}; color:#F3F4F6; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; font-family:\'JetBrains Mono\',monospace; margin-left:6px;">{badge_text}</span>'
+                bcol = badge_color or BADGE_NEUTRAL_BG
+                badge_html = f'<span style="background:{bcol}; color:{BADGE_TEXT}; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; font-family:{MONO}; margin-left:6px;">{badge_text}</span>'
             border = "none" if first else f"1px solid {BORDER}"
             return f"""
             <div style="flex: 1 1 145px; padding: 6px 16px; border-left: {border};">
                 <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap;">{title}{badge_html}</div>
-                <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">{value}</div>
+                <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: {MONO}; margin: 2px 0;">{value}</div>
                 <div style="opacity: 0.6; font-size: 10px;">{subtext}</div>
             </div>
             """
 
-        # Stima netto teorica: 26% (aliquota flat italiana) solo sulla quota di
-        # guadagno, come se l'intera posizione venisse realizzata oggi. Le
-        # perdite non generano beneficio fiscale in questa stima semplificata
-        # (non modella riporto perdite 4 anni art. 68 TUIR, vedi APEX_V2_SPEC.md §8.9/§10).
-        net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
-
         strip_items = [
-            kpi_item("Rendimento Lordo", f"{total_ret_pct:+.2f}%",
-                     f"Netto stimato: {net_ret_pct_est:+.2f}%",
-                     val_color=(POS if total_ret_pct >= 0 else NEG), first=True),
-            kpi_item("CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Rendimento lordo composto annuo",
-                     val_color=(POS if cagr_pct >= 0 else NEG)),
             kpi_item("Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
-                     badge_text=f"{len(wins)}/{len(hist)}"),
+                     badge_text=f"{len(wins)}/{len(hist)}", first=True),
             kpi_item("Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
                      badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
-                     badge_color=("#065F46" if profit_factor >= 1.5 else "#374151")),
+                     badge_color=(BADGE_POS_BG if profit_factor >= 1.5 else BADGE_NEUTRAL_BG)),
             kpi_item("Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
                      badge_text=("ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO")),
-            kpi_item("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica",
-                     badge_text=("PROTETTO" if max_dd > -15 else "ATTENZIONE"),
-                     badge_color=("#374151" if max_dd > -15 else "#7F1D1D")),
         ]
 
         if hist:
@@ -971,7 +928,7 @@ with tab_perf:
         st_html(f'<div style="display: flex; flex-wrap: wrap; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 4px 0; margin-bottom: 20px;">{"".join(strip_items)}</div>')
 
         if hist:
-            st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">Registro Operazioni Chiuse</div>')
+            st_html(section_title("Registro Operazioni Chiuse"))
 
             df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
 
@@ -1024,7 +981,8 @@ with tab_perf:
                     "Rendimento %": "{:+.2f}%"
                 }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist.columns else None),
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                height=360
             )
             st.caption("**Trasparenza Metodologica:** Lo storico delle operazioni chiuse e la curva equity Base 100 documentano la simulazione quantitativa deterministica su dati storici di mercato (out-of-sample) a regole fisse. Le posizioni aperte e i segnali operativi decorrono dal forward-tracking dell'Apex Engine.")
         else:
@@ -1047,19 +1005,19 @@ with tab_guide:
     </div>
     ''')
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">Cadenza Operativa</div>')
+    st_html(section_title("Cadenza Operativa", top="0"))
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">Ogni giorno (Lun-Ven)</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Ogni giorno (Lun-Ven)</div>
             <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Prezzi e NAV vengono aggiornati. Nessuna decisione di trading in questa fase — solo osservazione.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">Ultimo venerdì del mese</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Ultimo venerdì del mese</div>
             <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Il segnale macro di ogni classe viene ricontrollato (attiva/in pausa) e il peso complessivo viene riscalato per centrare il target di volatilità. Non esiste un controllo settimanale intermedio: le decisioni sono solo qui.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">Ultimo venerdì del trimestre</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Ultimo venerdì del trimestre</div>
             <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">In aggiunta al ribilanciamento mensile, il basket azionario viene rinnovato: i titoli con volatilità realizzata più alta escono, i nuovi primi in classifica entrano. Nessuno stop-loss per singola posizione: l'uscita avviene solo per rotazione o disattivazione della classe.</div>
         </div>
     </div>
@@ -1067,10 +1025,10 @@ with tab_guide:
 
     st.divider()
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 12px;">Documentazione Strategica</div>')
+    st_html(section_title("Documentazione Strategica", top="0"))
     st_html(f'''
     <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-        <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Obiettivo Primario</div>
+        <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">Obiettivo Primario</div>
         <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Generare alpha reale (indipendente dal semplice beta di mercato) con bassa frequenza di intervento (rotazione mensile/trimestrale, mai giornaliera) e alta efficienza fiscale, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
     </div>
 
@@ -1081,47 +1039,47 @@ with tab_guide:
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">Azioni</span>
-                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">BASKET BASSA VOL</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">BASKET BASSA VOL</span>
             </div>
             <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Attiva se SPY è sopra le medie mobili a 40 E 20 settimane insieme (conferma multi-timeframe, isteresi adattiva sulla banda).</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">Bitcoin</span>
-                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">SOLO BTC-USD</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SOLO BTC-USD</span>
             </div>
             <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Nessuna rotazione altcoin (testata e respinta: nessun edge aggiuntivo). Stesso segnale di timing dell'azionario.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">Oro</span>
-                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">SEGNALE DI TREND</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SEGNALE DI TREND</span>
             </div>
             <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Protezione contro inflazione e incertezza, attivata dallo stesso meccanismo di timing.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">Obbligazioni</span>
-                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">SEGNALE DI TREND</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SEGNALE DI TREND</span>
             </div>
             <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Titoli di stato, allocati quando il proprio trend è favorevole.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-weight: 700; font-size: 13px;">Monetario</span>
-                <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">RESIDUO</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">RESIDUO</span>
             </div>
             <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Rifugio sicuro e liquidità per le classi in pausa o per il target di volatilità.</div>
         </div>
     </div>
 
     <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
-        <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Selezione del Basket Azionario</div>
+        <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">Selezione del Basket Azionario</div>
         <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile. Massimo 2 titoli per settore, per non concentrare il basket su un solo comparto.</div>
     </div>
 
     <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
-        <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Vol-Targeting di Portafoglio</div>
+        <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">Vol-Targeting di Portafoglio</div>
         <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni classe attiva parte da un peso di base uguale (25%), poi tutte le classi attive vengono scalate mensilmente dallo stesso fattore per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non è un tetto per classe: se due classi attive mostrano lo stesso peso è perché partono dallo stesso 25% base e vengono scalate allo stesso modo, non per un limite massimo. Non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §3).</div>
     </div>
     ''')
@@ -1129,7 +1087,7 @@ with tab_guide:
     st.divider()
 
     st_html(f'''
-    <div style="background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.8; line-height: 1.5;">
+    <div style="background: rgba(242, 114, 106, 0.04); border: 1px solid rgba(242, 114, 106, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.8; line-height: 1.5;">
         <strong>Note Legali ed Esclusione di Responsabilità:</strong><br>
         Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.<br>
         I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.

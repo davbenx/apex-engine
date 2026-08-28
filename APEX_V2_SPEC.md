@@ -1348,3 +1348,117 @@ aggregato $656.19 / +0.66% su dati reali di `portfolio.json`, coerente
 sia calcolato direttamente sia ricavato dalla formula generica peso%→
 valore→rendimento$ usata per ogni riga della tabella). 21/21 test engine
 invariati.
+
+## 21. Drill-down treemap non funzionante, ordinamento tabella, nuovo cockpit a barre (2026-08-28)
+
+**1. Il clic su "AZIONARIO" non mostrava i 15 titoli.** Lo zoom nativo di
+Plotly (`maxdepth=1` + gerarchia `ids`/`parents`) descritto in §19 non si
+è comportato in modo affidabile — senza un browser reale da ispezionare
+non è stato possibile diagnosticare se il problema fosse `maxdepth`
+stesso, un'interazione con `branchvalues`, o altro. **Rimosso interamente**
+invece di continuare a tentare varianti non verificabili: il treemap
+torna piatto (5 riquadri, nessuna gerarchia, nessun clic necessario) come
+in §18, e il dettaglio per titolo vive solo nella tabella sotto. Non
+c'è più un secondo grafico separato per i titoli (l'idea di §17): con la
+tabella riorganizzata (punto 2) il dettaglio numerico è già lì, un
+secondo treemap sarebbe di nuovo la stessa informazione due volte
+(esattamente il problema di §18).
+
+**2. Tabella riordinata in modo logico.** Le azioni erano nell'ordine
+d'inserimento del dizionario Python (arbitrario). Ora sono ordinate per
+Rendimento % decrescente — chi guadagna di più in cima, chi perde di più
+in fondo. Non ordinate per peso: essendo un basket equal-weight i pesi
+sono quasi identici (~1.3% ciascuno su 15 titoli), un ordinamento per
+peso non le distinguerebbe in modo utile. Le classi restano raggruppate
+nell'ordine già usato dal cockpit (Azionario, Bitcoin, Oro, Obbligazioni,
+Monetario, TOTALE in fondo).
+
+**3. Cockpit: barre orizzontali al posto degli anelli.** Dopo tre
+iterazioni sull'anello (arco SVG parziale §15, cerchio SVG pieno §17,
+disco CSS con conic-gradient §20) senza mai avere conferma visiva diretta
+che rendesse come previsto, sostituito con la costruzione CSS più
+elementare possibile: due `<div>` innestati, riempimento espresso solo
+come `width` in percentuale — nessun SVG, nessun gradiente, nessuna
+sovrapposizione assoluta. Stesso significato di §20 (riempimento =
+peso%/25%, il tetto reale per classe attiva), stesso colore (verde=attiva,
+grigio=in pausa). Monetario non ha un tetto del 25% (è il residuo, non
+una classe con segnale on/off) quindi mostra la percentuale come testo
+invece della barra, unico caso in cui il numero resta scritto nel
+cockpit.
+
+**Verifica**: `py_compile` pulito, `AppTest` su dati reali e su uno
+scenario sintetico con Oro/Obbligazioni iniettati attivi (poi ripristinati,
+verificati byte-identici agli originali) — nessuna eccezione in nessuno
+dei due casi. 21/21 test engine invariati.
+
+## 22. Restyle completo — "istituzionale + consumer, lean" (2026-08-28)
+
+Su richiesta esplicita dell'utente ("lo stile generale non mi convince"),
+`app.py` riscritto per intero applicando una nuova direzione visiva,
+prototipata prima come mockup HTML statico (con dati reali del
+portafoglio) e approvata dall'utente prima di toccare il codice.
+
+**Palette**: da neutra fredda (grigio-blu, accento `#3B82F6`) a calda
+(`SURFACE`/`BORDER` con tinta `rgba(255,247,237,…)`, accento oro tenue
+`#C9A44C`). Verde/rosso P&L ammorbiditi (`#3DDC97`/`#F2726A` al posto di
+`#10B981`/`#EF4444`) — stesso principio di sempre (colore riservato al
+segno), tono meno "neon".
+
+**Tipografia**: aggiunto 'Fraunces' (serif) per i titoli di sezione e
+i nomi delle card — mai sui numeri, che restano sempre in JetBrains Mono.
+Nuovo helper `section_title()` sostituisce le intestazioni scritte a mano
+in ogni sezione (`Tutte le posizioni`, `Registro Operazioni Chiuse`,
+`Cadenza Operativa`, `Documentazione Strategica`, i titoli card in Guida).
+
+**Gerarchia — Tab Portafoglio riorganizzata**:
+1. **Hero**: un solo numero grande (valore portafoglio + variazione),
+   sostituisce la vecchia riga di card/pill di pari peso. Tecnicamente
+   deve apparire PRIMA del controllo capitale ma il suo valore dipende da
+   quel controllo — risolto con `hero_slot = st.empty()` dichiarato prima,
+   riempito a posteriori con `fill_slot()` una volta letto il widget
+   (verificato con `AppTest`: il nodo Markdown dell'hero risulta il primo
+   figlio della tab, prima del blocco colonne del capitale — l'ordine
+   visivo e' quello corretto).
+2. **Capitale broker**: input minimale (senza etichetta visibile, senza
+   cornice propria) subito sotto l'hero, non piu' una card a parte.
+3. **Segnali per classe**: striscia singola con pallino (verde=attiva,
+   grigio=in pausa) + nome + percentuale testuale — niente piu' barre di
+   riempimento ne' anelli. Dopo tre tentativi di indicatore proporzionale
+   (arco SVG §15, cerchio SVG §17, barra CSS §21) senza mai risolvere
+   davvero il problema di percezione, la soluzione piu' semplice
+   (pallino binario + numero) è risultata anche la piu' robusta. La data
+   "attiva dal..." è ora nell'attributo `title` (tooltip) — accettabile
+   qui perché è informazione secondaria, non essenziale come lo era il
+   peso% (vedi memoria `no-hover-only-tooltips-for-info`: il divieto di
+   hover-only vale per informazione essenziale, non per ogni dettaglio).
+4. **Allocazione**: barra orizzontale singola colorata per identità di
+   classe (non piu' un treemap) — la performance vive nell'hero e nella
+   tabella, non ripetuta anche qui.
+5. **Posizioni**: stessa tabella unificata di §19-§21, ora con altezza
+   fissa (`height=360`, scroll interno nativo di Streamlit) invece di
+   mostrare tutte le righe senza limite — stesso obiettivo del "mostra
+   tutti" del mockup, ottenuto senza logica di troncamento fatta a mano.
+
+**Tab Metriche**: le 3 metriche piu' importanti (Rendimento, CAGR, Max
+Drawdown) promosse a "sub-hero" (numeri grandi), le altre 6 (Win Rate,
+Profit Factor, Payoff Ratio, Miglior/Peggior Trade, Durata Media) restano
+in una striscia compatta sotto. Grafici equity/drawdown ricolorati (linea
+oro invece di blu, coerente con il nuovo accento).
+
+**Tab Guida**: stesso linguaggio (superfici calde, titoli in Fraunces),
+contenuto testuale invariato (già corretto in §16). Card Telegram
+prominente qui; nell'header resta solo un piccolo chip.
+
+**Cosa NON e' cambiato**: tutta la logica di calcolo (P&L, CAGR, stima
+netto fiscale, riporto perdite, cadenza operativa) e tutte le
+correzioni fattuali di §16 restano identiche — questo e' stato un
+intervento sulla sola presentazione.
+
+**Verifica**: `py_compile` pulito. `AppTest` in quattro scenari — dati
+reali di produzione, scenario sintetico con Oro/Obbligazioni attivi e
+`last_action_log` popolato (verifica `st.code`), scenario "tutto
+liquidità" (0 posizioni, nessuna divisione per zero), e verifica
+esplicita dell'ordine degli elementi nell'albero della tab (hero prima
+del blocco capitale) — nessuna eccezione in nessuno scenario, dati di
+produzione ripristinati byte-identici dopo ogni test sintetico. 21/21 test
+engine invariati.
