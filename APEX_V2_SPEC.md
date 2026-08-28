@@ -471,6 +471,37 @@ curva storica risultava affetto (il bug si manifesta solo quando la base di
 capitale fissa diverge abbastanza dal NAV reale, cosa emersa con evidenza solo
 nel giorno di migrazione).
 
+### 8.6 Sostituzione del track record — da simulazione v1 a simulazione v2
+
+Su richiesta esplicita dell'utente, l'intero "backtest out-of-sample" mostrato in
+dashboard (storico operazioni chiuse + curva equity, finestra Feb 2024 - oggi,
+etichettato in app.py come "SIMULAZIONE QUANTITATIVA & TRACK RECORD") è stato
+rigenerato usando il motore v2 al posto del v1 — non più solo una migrazione
+delle posizioni, ma un'unica simulazione continua e coerente dall'inizio della
+finestra a oggi.
+
+**Metodo:** replay mese per mese (script `generate_v2_track_record.py`) della
+stessa identica logica di `backend.py.update_portfolio` — stesso segnale macro
+(isteresi + vol-target), stessa selezione basket (top-15, buffer-rank 20),
+stessi costi (8bps ETF, 10bps titoli/crypto) — usando dati di mercato reali
+sull'intera finestra Feb 2024-oggi. Risultato: 358 eventi di chiusura (tutti
+con motivazioni v2 reali, nessuna traccia del motore v1), NAV finale
+$123.865,06 (da $100.000 iniziali), 15 posizioni aperte finali (13 titoli del
+basket + IEF + BTC) diventate il portafoglio "live" attuale — l'ultima
+decisione della simulazione stessa, non più una migrazione ad-hoc.
+
+**Cosa NON cambia:** la struttura del file (`open_positions`, `trade_history`,
+`nav_usd`, `equity.json`) resta identica; il forward-tracking notturno
+(`backend.py`) continua a comporre il NAV da questo punto in poi esattamente
+come già descritto in §8.5.
+
+**Limite dichiarato:** questa simulazione, come ogni backtest in questo
+documento, resta soggetta agli stessi limiti di §8 (nessuna verifica dei costi
+reali del broker su questa specifica finestra breve, nessun test di
+falsificazione dedicato) — è una ri-esecuzione a regole fisse su dati storici,
+non un track record di trading realmente eseguito con il motore v2 (quello
+comincia da oggi in avanti).
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)

@@ -1,268 +1,218 @@
 {
-    "macro": {
-        "SPY": {
-            "price": 771.0999755859375
-        },
-        "IEF": {
-            "price": 93.2300033569336
-        },
-        "GLD": {
-            "price": 422.6000061035156
-        },
-        "BTC-USD": {
-            "price": 80309.703125
-        }
+  "macro": {
+    "SPY": {
+      "price": 771.0999755859375
     },
-    "allocations": {
-        "Equities": 19.69,
-        "Bonds": 0.0,
-        "Gold": 0.0,
-        "Crypto": 19.69,
-        "Cash": 60.62
+    "IEF": {
+      "price": 93.2300033569336
     },
-    "macro_dates": {
-        "Equities": "2026-04-03",
-        "Crypto": "2026-08-21",
-        "Gold": "2026-08-27",
-        "Bonds": "2026-03-13"
+    "GLD": {
+      "price": 422.6000061035156
     },
-    "macro_events": [
-        "\u26a0\ufe0f MACRO REGIME: Il motore Gold \u00e8 passato a \ud83d\udd34 DISATTIVATO"
+    "BTC-USD": {
+      "price": 80309.703125
+    }
+  },
+  "allocations": {
+    "Equities": 15.83,
+    "Bonds": 18.26,
+    "Gold": 0.0,
+    "Crypto": 18.26,
+    "Cash": 47.65
+  },
+  "macro_dates": {
+    "Equities": "2026-04-03",
+    "Crypto": "2026-08-21",
+    "Gold": "2026-08-27",
+    "Bonds": "2026-03-13"
+  },
+  "macro_events": [
+    "\u26a0\ufe0f MACRO REGIME: Il motore Gold \u00e8 passato a \ud83d\udd34 DISATTIVATO"
+  ],
+  "top20": [
+    {
+      "Ticker": "WEC",
+      "Prezzo ($)": 107.52,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "ESS",
+      "Prezzo ($)": 288.17,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "CMS",
+      "Prezzo ($)": 69.23,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "REG",
+      "Prezzo ($)": 76.38,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "DUK",
+      "Prezzo ($)": 121.89,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "ATO",
+      "Prezzo ($)": 169.46,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "CNP",
+      "Prezzo ($)": 39.59,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "SNA",
+      "Prezzo ($)": 397.48,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "KIM",
+      "Prezzo ($)": 24.03,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "PFE",
+      "Prezzo ($)": 28.3,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "NI",
+      "Prezzo ($)": 41.13,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "FRT",
+      "Prezzo ($)": 117.58,
+      "Stop Loss ($)": 0.0
+    },
+    {
+      "Ticker": "KVUE",
+      "Prezzo ($)": 19.22,
+      "Stop Loss ($)": 0.0
+    }
+  ],
+  "crypto_top": [
+    {
+      "Ticker": "BTC",
+      "Prezzo ($)": 80588.67,
+      "Stop Loss ($)": 0.0
+    }
+  ],
+  "v2_state": {
+    "hysteresis": {
+      "Equities": true,
+      "Bonds": false,
+      "Gold": false,
+      "Crypto": true
+    },
+    "basket": [
+      {
+        "Ticker": "WEC",
+        "Prezzo ($)": 107.52,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "ESS",
+        "Prezzo ($)": 288.17,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "CMS",
+        "Prezzo ($)": 69.23,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "REG",
+        "Prezzo ($)": 76.38,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "DUK",
+        "Prezzo ($)": 121.89,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "ATO",
+        "Prezzo ($)": 169.46,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "CNP",
+        "Prezzo ($)": 39.59,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "SNA",
+        "Prezzo ($)": 397.48,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "KIM",
+        "Prezzo ($)": 24.03,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "PFE",
+        "Prezzo ($)": 28.3,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "NI",
+        "Prezzo ($)": 41.13,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "FRT",
+        "Prezzo ($)": 117.58,
+        "Stop Loss ($)": 0.0
+      },
+      {
+        "Ticker": "KVUE",
+        "Prezzo ($)": 19.22,
+        "Stop Loss ($)": 0.0
+      }
     ],
-    "top20": [
-        {
-            "Ticker": "BRK-B",
-            "Prezzo ($)": 503.7,
-            "Volatilita' Ann. (%)": 13.42,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "WBD",
-            "Prezzo ($)": 28.88,
-            "Volatilita' Ann. (%)": 14.15,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "ATO",
-            "Prezzo ($)": 167.22,
-            "Volatilita' Ann. (%)": 15.52,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "SNA",
-            "Prezzo ($)": 395.84,
-            "Volatilita' Ann. (%)": 16.3,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "NEE",
-            "Prezzo ($)": 83.47,
-            "Volatilita' Ann. (%)": 16.7,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "KVUE",
-            "Prezzo ($)": 19.2,
-            "Volatilita' Ann. (%)": 16.73,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "PG",
-            "Prezzo ($)": 143.14,
-            "Volatilita' Ann. (%)": 16.76,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "AWK",
-            "Prezzo ($)": 136.69,
-            "Volatilita' Ann. (%)": 16.89,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "COST",
-            "Prezzo ($)": 934.66,
-            "Volatilita' Ann. (%)": 17.19,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "CHD",
-            "Prezzo ($)": 102.37,
-            "Volatilita' Ann. (%)": 17.24,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "JPM",
-            "Prezzo ($)": 354.22,
-            "Volatilita' Ann. (%)": 17.32,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "CL",
-            "Prezzo ($)": 90.96,
-            "Volatilita' Ann. (%)": 17.38,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "MCD",
-            "Prezzo ($)": 260.06,
-            "Volatilita' Ann. (%)": 17.4,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "PEG",
-            "Prezzo ($)": 73.33,
-            "Volatilita' Ann. (%)": 17.56,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "AIZ",
-            "Prezzo ($)": 285.41,
-            "Volatilita' Ann. (%)": 17.6,
-            "Stop Loss ($)": 0.0
-        }
-    ],
-    "crypto_top": [
-        {
-            "Ticker": "BTC",
-            "Prezzo ($)": 80309.7,
-            "Stop Loss ($)": 0.0
-        }
-    ],
-    "v2_state": {
-        "hysteresis": {
-            "Equities": true,
-            "Bonds": false,
-            "Gold": false,
-            "Crypto": true
-        },
-        "basket": [
-            {
-                "Ticker": "BRK-B",
-                "Prezzo ($)": 503.7,
-                "Volatilita' Ann. (%)": 13.42,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "WBD",
-                "Prezzo ($)": 28.88,
-                "Volatilita' Ann. (%)": 14.15,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "ATO",
-                "Prezzo ($)": 167.22,
-                "Volatilita' Ann. (%)": 15.52,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "SNA",
-                "Prezzo ($)": 395.84,
-                "Volatilita' Ann. (%)": 16.3,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "NEE",
-                "Prezzo ($)": 83.47,
-                "Volatilita' Ann. (%)": 16.7,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "KVUE",
-                "Prezzo ($)": 19.2,
-                "Volatilita' Ann. (%)": 16.73,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "PG",
-                "Prezzo ($)": 143.14,
-                "Volatilita' Ann. (%)": 16.76,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "AWK",
-                "Prezzo ($)": 136.69,
-                "Volatilita' Ann. (%)": 16.89,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "COST",
-                "Prezzo ($)": 934.66,
-                "Volatilita' Ann. (%)": 17.19,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "CHD",
-                "Prezzo ($)": 102.37,
-                "Volatilita' Ann. (%)": 17.24,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "JPM",
-                "Prezzo ($)": 354.22,
-                "Volatilita' Ann. (%)": 17.32,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "CL",
-                "Prezzo ($)": 90.96,
-                "Volatilita' Ann. (%)": 17.38,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "MCD",
-                "Prezzo ($)": 260.06,
-                "Volatilita' Ann. (%)": 17.4,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "PEG",
-                "Prezzo ($)": 73.33,
-                "Volatilita' Ann. (%)": 17.56,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "AIZ",
-                "Prezzo ($)": 285.41,
-                "Volatilita' Ann. (%)": 17.6,
-                "Stop Loss ($)": 0.0
-            }
-        ],
-        "basket_quarter": "2026-08",
-        "signal_debug": {
-            "Equities": {
-                "price": 771.0999755859375,
-                "ma40w": 711.6580001831055,
-                "distanza_pct": 8.35,
-                "attivo": true,
-                "vol_12w_ann_pct": 11.91
-            },
-            "Bonds": {
-                "price": 93.2300033569336,
-                "ma40w": 95.09249954223633,
-                "distanza_pct": -1.96,
-                "attivo": false,
-                "vol_12w_ann_pct": 3.89
-            },
-            "Gold": {
-                "price": 422.6000061035156,
-                "ma40w": 416.56800079345703,
-                "distanza_pct": 1.45,
-                "attivo": false,
-                "vol_12w_ann_pct": 22.24
-            },
-            "Crypto": {
-                "price": 80309.703125,
-                "ma40w": 74441.381640625,
-                "distanza_pct": 7.88,
-                "attivo": true,
-                "vol_12w_ann_pct": 54.13
-            },
-            "_vol_target": {
-                "vol_portafoglio_stimata_pct": 16.51,
-                "fattore_scala": 0.787
-            }
-        }
-    },
-    "timestamp": "27 Aug 2026, 23:42 (UTC)",
-    "eur_usd": 1.1658
+    "basket_quarter": "2026-08",
+    "signal_debug": {
+      "Equities": {
+        "price": 771.0999755859375,
+        "ma40w": 711.6580001831055,
+        "distanza_pct": 8.35,
+        "attivo": true,
+        "vol_12w_ann_pct": 11.91
+      },
+      "Bonds": {
+        "price": 93.2300033569336,
+        "ma40w": 95.09249954223633,
+        "distanza_pct": -1.96,
+        "attivo": false,
+        "vol_12w_ann_pct": 3.89
+      },
+      "Gold": {
+        "price": 422.6000061035156,
+        "ma40w": 416.56800079345703,
+        "distanza_pct": 1.45,
+        "attivo": false,
+        "vol_12w_ann_pct": 22.24
+      },
+      "Crypto": {
+        "price": 80309.703125,
+        "ma40w": 74441.381640625,
+        "distanza_pct": 7.88,
+        "attivo": true,
+        "vol_12w_ann_pct": 54.13
+      },
+      "_vol_target": {
+        "vol_portafoglio_stimata_pct": 16.51,
+        "fattore_scala": 0.787
+      }
+    }
+  },
+  "timestamp": "27 Aug 2026, 23:42 (UTC)",
+  "eur_usd": 1.1658
 }
