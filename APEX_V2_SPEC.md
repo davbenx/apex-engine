@@ -1180,3 +1180,43 @@ l'equivalente timezone-aware.
 con un piccolo script standalone contro `apex_data.json`/`equity.json`
 reali (formattazione italiana corretta, 0 giorni di ritardo rilevati
 correttamente su dato fresco). 21/21 test engine invariati.
+
+## 17. Anello cockpit ancora invisibile dopo §15 + heatmap per titolo (2026-08-28)
+
+**Anello ancora non visibile.** Dopo la correzione di §15 (cerchio SVG
+pieno invece di arco parziale), l'utente ha segnalato che l'anello
+continuava a non vedersi. Il markup generato era corretto (verificato
+stampando l'HTML: `stroke="#10B981"` su un cerchio completo), ma restava
+un SVG con un elemento di testo sovrapposto in posizione assoluta
+(`position:absolute; inset:0`) dentro un contenitore `position:relative` —
+una struttura più fragile del necessario e più difficile da diagnosticare
+senza poter vedere il rendering effettivo. **Sostituito con l'implementazione
+più semplice possibile**: un singolo `<div>` con bordo circolare via CSS
+(`border-radius:50%; border:3px solid <colore>`), sigla centrata dentro con
+flexbox — nessun SVG, nessun overlay assoluto, un solo elemento invece di
+due sovrapposti. `ring_svg()` rinominata `ring_badge()` per riflettere che
+ora produce l'intera pillola (bordo colorato + sigla), non solo l'anello.
+Stesso identico principio (colore = stato, non riempimento = peso%), solo
+implementazione più robusta. Aggiornato anche l'artifact di spiegazione in
+chat con lo stesso markup, in caso l'utente stesse guardando quello.
+
+**Heatmap per titolo eliminata in §15 — spiegazione e correzione.** In §15
+il drill-down per singolo titolo era stato tolto dal treemap principale
+perché i 15 titoli, come sotto-celle di un unico riquadro "Azionario"
+grande quanto Bitcoin da solo (~19% del portafoglio ciascuno), diventavano
+troppo piccoli per un'etichetta leggibile — non un problema di dati, ma di
+spazio: 15 fette dentro il 19% dell'area totale sono per forza minuscole.
+L'utente ha chiesto di riavere la vista per titolo. **Corretto senza
+reintrodurre il bug**: aggiunto un secondo treemap, dedicato, subito sopra
+la tabella "Basket Azionario" — le stesse 15 posizioni, ma come UNICO
+contenuto del proprio grafico invece che sotto-celle di un riquadro
+condiviso con altre 4 classi. Occupando tutta l'area disponibile invece di
+un ritaglio, ogni titolo torna leggibile. Il treemap in cima alla pagina
+resta a 5 riquadri (una per classe, senza drill-down) per la vista
+d'insieme; questo nuovo treemap è il dettaglio, esattamente dove serve
+(accanto alla tabella che già mostra gli stessi 15 titoli in forma
+numerica).
+
+**Verifica**: `py_compile` pulito, `AppTest` su dati reali (15 posizioni
+azionarie) senza eccezioni — esercita sia il nuovo `ring_badge()` sia il
+nuovo treemap per titolo. 21/21 test engine invariati.

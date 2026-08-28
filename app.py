@@ -103,18 +103,15 @@ def monogram(text, active=True, size=26):
     return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {color}; color:{color}; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
 
 
-def ring_svg(active, size=30, stroke=3):
-    """Anello pieno: il colore da solo e' il segnale di stato (verde=attiva,
-    grigio=in pausa). Un riempimento parziale legato al peso% era illeggibile
-    per classi con peso basso (es. 19%: l'arco verde era troppo sottile per
-    essere notato a colpo d'occhio) — il peso% resta comunque leggibile come
-    cifra accanto all'anello, non serve ripeterlo nel disegno."""
-    r = (size - stroke) / 2.0
+def ring_badge(mono_text, active, size=30, stroke=3):
+    """Cerchio CSS (border-radius, non SVG con overlay assoluto) con la sigla
+    al centro: colore = stato (verde=attiva, grigio=in pausa), il peso% resta
+    testo accanto, non codificato nel riempimento (era illeggibile per pesi
+    bassi — vedi APEX_V2_SPEC.md §15)."""
     color = POS if active else NEUTRAL_DOT
-    c = size / 2.0
-    return f'''<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="flex-shrink:0;">
-        <circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="{color}" stroke-width="{stroke}"/>
-    </svg>'''
+    return f'''<div style="width:{size}px; height:{size}px; min-width:{size}px; border-radius:50%; border:{stroke}px solid {color}; box-sizing:border-box; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; line-height:1;">{mono_text}</span>
+    </div>'''
 
 
 # ==============================================================================
@@ -291,13 +288,10 @@ def cockpit_pill(mono_text, label, alloc_pct, is_active, since_date, is_cash=Fal
         fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
         state_text = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
 
-    ring = ring_svg(is_active and not is_cash)
+    ring = ring_badge(mono_text, is_active and not is_cash)
     return f"""
     <div style="display:flex; align-items:center; gap:9px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 7px 12px 7px 8px; min-width: 172px;">
-        <div style="position:relative; width:30px; height:30px;">
-            {ring}
-            <span style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; opacity:0.9;">{mono_text}</span>
-        </div>
+        {ring}
         <div style="line-height:1.3;">
             <div style="font-size:11.5px; font-weight:700; letter-spacing:0.1px;">{label} <span style="font-family:'JetBrains Mono',monospace; font-weight:700; opacity:0.85;">{alloc_pct:.0f}%</span></div>
             <div style="font-size:10px; opacity:0.6;">{state_text}</div>
@@ -669,6 +663,31 @@ with tab_pf:
     """)
 
     if op_eq:
+        # Heatmap dedicata ai singoli titoli: nel treemap in cima alla pagina i
+        # 15 titoli erano sotto-celle di UN SOLO riquadro (Azionario, ~19% del
+        # portafoglio) e finivano troppo piccoli per un'etichetta leggibile.
+        # Qui è un treemap a se' stante — le stesse 15 posizioni occupano tutta
+        # l'area disponibile invece di dividersi un ritaglio di un riquadro più
+        # grande, quindi restano leggibili (vedi APEX_V2_SPEC.md §17).
+        fig_stocks = go.Figure(go.Treemap(
+            labels=[r["Titolo"] for r in op_eq],
+            parents=[""] * len(op_eq),
+            values=[r.get("Peso (%)", 0.0) for r in op_eq],
+            marker=dict(
+                colors=[r["Rendimento %"] for r in op_eq],
+                colorscale=[[0, "#7F1D1D"], [0.5, "#374151"], [1, "#065F46"]],
+                cmid=0,
+                line=dict(width=1, color="rgba(0,0,0,0.35)")
+            ),
+            text=[f"{r['Rendimento %']:+.1f}%" for r in op_eq],
+            hovertext=[f"{r['Titolo']} — {r.get('Peso (%)', 0.0):.2f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%" for r in op_eq],
+            hoverinfo="text",
+            textinfo="label+text",
+            textfont=dict(color="#F3F4F6", family="Inter, sans-serif", size=11),
+        ))
+        fig_stocks.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=190, paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_stocks, use_container_width=True)
+
         df_op_eq = pd.DataFrame(op_eq)
         df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
         df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
