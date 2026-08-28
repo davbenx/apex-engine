@@ -1,218 +1,218 @@
 {
-  "macro": {
-    "SPY": {
-      "price": 771.0999755859375
+    "macro": {
+        "SPY": {
+            "price": 771.0999755859375
+        },
+        "IEF": {
+            "price": 93.2300033569336
+        },
+        "GLD": {
+            "price": 422.6000061035156
+        },
+        "BTC-USD": {
+            "price": 79848.671875
+        }
     },
-    "IEF": {
-      "price": 93.2300033569336
+    "allocations": {
+        "Equities": 19.68,
+        "Bonds": 0.0,
+        "Gold": 0.0,
+        "Crypto": 19.68,
+        "Cash": 60.64
     },
-    "GLD": {
-      "price": 422.6000061035156
+    "macro_dates": {
+        "Equities": "2026-04-03",
+        "Crypto": "2026-08-21",
+        "Gold": "2026-08-27",
+        "Bonds": "2026-08-28"
     },
-    "BTC-USD": {
-      "price": 80309.703125
-    }
-  },
-  "allocations": {
-    "Equities": 15.83,
-    "Bonds": 18.26,
-    "Gold": 0.0,
-    "Crypto": 18.26,
-    "Cash": 47.65
-  },
-  "macro_dates": {
-    "Equities": "2026-04-03",
-    "Crypto": "2026-08-21",
-    "Gold": "2026-08-27",
-    "Bonds": "2026-03-13"
-  },
-  "macro_events": [
-    "\u26a0\ufe0f MACRO REGIME: Il motore Gold \u00e8 passato a \ud83d\udd34 DISATTIVATO"
-  ],
-  "top20": [
-    {
-      "Ticker": "WEC",
-      "Prezzo ($)": 107.52,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "ESS",
-      "Prezzo ($)": 288.17,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "CMS",
-      "Prezzo ($)": 69.23,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "REG",
-      "Prezzo ($)": 76.38,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "DUK",
-      "Prezzo ($)": 121.89,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "ATO",
-      "Prezzo ($)": 169.46,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "CNP",
-      "Prezzo ($)": 39.59,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "SNA",
-      "Prezzo ($)": 397.48,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "KIM",
-      "Prezzo ($)": 24.03,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "PFE",
-      "Prezzo ($)": 28.3,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "NI",
-      "Prezzo ($)": 41.13,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "FRT",
-      "Prezzo ($)": 117.58,
-      "Stop Loss ($)": 0.0
-    },
-    {
-      "Ticker": "KVUE",
-      "Prezzo ($)": 19.22,
-      "Stop Loss ($)": 0.0
-    }
-  ],
-  "crypto_top": [
-    {
-      "Ticker": "BTC",
-      "Prezzo ($)": 80588.67,
-      "Stop Loss ($)": 0.0
-    }
-  ],
-  "v2_state": {
-    "hysteresis": {
-      "Equities": true,
-      "Bonds": false,
-      "Gold": false,
-      "Crypto": true
-    },
-    "basket": [
-      {
-        "Ticker": "WEC",
-        "Prezzo ($)": 107.52,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "ESS",
-        "Prezzo ($)": 288.17,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "CMS",
-        "Prezzo ($)": 69.23,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "REG",
-        "Prezzo ($)": 76.38,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "DUK",
-        "Prezzo ($)": 121.89,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "ATO",
-        "Prezzo ($)": 169.46,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "CNP",
-        "Prezzo ($)": 39.59,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "SNA",
-        "Prezzo ($)": 397.48,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "KIM",
-        "Prezzo ($)": 24.03,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "PFE",
-        "Prezzo ($)": 28.3,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "NI",
-        "Prezzo ($)": 41.13,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "FRT",
-        "Prezzo ($)": 117.58,
-        "Stop Loss ($)": 0.0
-      },
-      {
-        "Ticker": "KVUE",
-        "Prezzo ($)": 19.22,
-        "Stop Loss ($)": 0.0
-      }
+    "macro_events": [
+        "\u26a0\ufe0f MACRO REGIME: Il motore Bonds \u00e8 passato a \ud83d\udd34 DISATTIVATO"
     ],
-    "basket_quarter": "2026-08",
-    "signal_debug": {
-      "Equities": {
-        "price": 771.0999755859375,
-        "ma40w": 711.6580001831055,
-        "distanza_pct": 8.35,
-        "attivo": true,
-        "vol_12w_ann_pct": 11.91
-      },
-      "Bonds": {
-        "price": 93.2300033569336,
-        "ma40w": 95.09249954223633,
-        "distanza_pct": -1.96,
-        "attivo": false,
-        "vol_12w_ann_pct": 3.89
-      },
-      "Gold": {
-        "price": 422.6000061035156,
-        "ma40w": 416.56800079345703,
-        "distanza_pct": 1.45,
-        "attivo": false,
-        "vol_12w_ann_pct": 22.24
-      },
-      "Crypto": {
-        "price": 80309.703125,
-        "ma40w": 74441.381640625,
-        "distanza_pct": 7.88,
-        "attivo": true,
-        "vol_12w_ann_pct": 54.13
-      },
-      "_vol_target": {
-        "vol_portafoglio_stimata_pct": 16.51,
-        "fattore_scala": 0.787
-      }
-    }
-  },
-  "timestamp": "27 Aug 2026, 23:42 (UTC)",
-  "eur_usd": 1.1658
+    "top20": [
+        {
+            "Ticker": "WEC",
+            "Prezzo ($)": 107.52,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "ESS",
+            "Prezzo ($)": 288.17,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "CMS",
+            "Prezzo ($)": 69.23,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "REG",
+            "Prezzo ($)": 76.38,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "DUK",
+            "Prezzo ($)": 121.89,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "ATO",
+            "Prezzo ($)": 169.46,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "CNP",
+            "Prezzo ($)": 39.59,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "SNA",
+            "Prezzo ($)": 397.48,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "KIM",
+            "Prezzo ($)": 24.03,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "PFE",
+            "Prezzo ($)": 28.3,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "NI",
+            "Prezzo ($)": 41.13,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "FRT",
+            "Prezzo ($)": 117.58,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "KVUE",
+            "Prezzo ($)": 19.22,
+            "Stop Loss ($)": 0.0
+        }
+    ],
+    "crypto_top": [
+        {
+            "Ticker": "BTC",
+            "Prezzo ($)": 79848.67,
+            "Stop Loss ($)": 0.0
+        }
+    ],
+    "v2_state": {
+        "hysteresis": {
+            "Equities": true,
+            "Bonds": false,
+            "Gold": false,
+            "Crypto": true
+        },
+        "basket": [
+            {
+                "Ticker": "WEC",
+                "Prezzo ($)": 107.52,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "ESS",
+                "Prezzo ($)": 288.17,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "CMS",
+                "Prezzo ($)": 69.23,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "REG",
+                "Prezzo ($)": 76.38,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "DUK",
+                "Prezzo ($)": 121.89,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "ATO",
+                "Prezzo ($)": 169.46,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "CNP",
+                "Prezzo ($)": 39.59,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "SNA",
+                "Prezzo ($)": 397.48,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "KIM",
+                "Prezzo ($)": 24.03,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "PFE",
+                "Prezzo ($)": 28.3,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "NI",
+                "Prezzo ($)": 41.13,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "FRT",
+                "Prezzo ($)": 117.58,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "KVUE",
+                "Prezzo ($)": 19.22,
+                "Stop Loss ($)": 0.0
+            }
+        ],
+        "basket_quarter": "2026-08",
+        "signal_debug": {
+            "Equities": {
+                "price": 771.0999755859375,
+                "ma40w": 711.6580001831055,
+                "distanza_pct": 8.35,
+                "attivo": true,
+                "vol_12w_ann_pct": 11.91
+            },
+            "Bonds": {
+                "price": 93.2300033569336,
+                "ma40w": 95.09249954223633,
+                "distanza_pct": -1.96,
+                "attivo": false,
+                "vol_12w_ann_pct": 3.89
+            },
+            "Gold": {
+                "price": 422.6000061035156,
+                "ma40w": 416.56800079345703,
+                "distanza_pct": 1.45,
+                "attivo": false,
+                "vol_12w_ann_pct": 22.24
+            },
+            "Crypto": {
+                "price": 79848.671875,
+                "ma40w": 74429.855859375,
+                "distanza_pct": 7.28,
+                "attivo": true,
+                "vol_12w_ann_pct": 54.14
+            },
+            "_vol_target": {
+                "vol_portafoglio_stimata_pct": 16.51,
+                "fattore_scala": 0.787
+            }
+        }
+    },
+    "timestamp": "28 Aug 2026, 06:27 (UTC)",
+    "eur_usd": 1.165
 }
