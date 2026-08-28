@@ -392,20 +392,12 @@ sostanzialmente alla pari — nessuna ragione per cambiare dimensione del basket
   commissione puro — la cifra reale copre solo la commissione del broker, non
   il costo di esecuzione totale.
 
-**Nuova scoperta (prima non testabile, ora confermata con dati reali) — non
-ancora risolta:**
-- **Concentrazione settoriale nel basket, confermata reale**: recuperati i
-  settori (fonte: yfinance) per i 198 titoli distinti mai selezionati nel
-  basket buffer-20 su 12 anni. Il rischio non è teorico: in alcuni trimestri il
-  basket si è concentrato pesantemente in un solo settore — **Utilities al 47%
-  (7/15) nel 2019-Q3, al 53% (8/15) nel 2024-Q3** — perché la selezione per
-  bassa volatilità premia sistematicamente i settori difensivi (Utilities,
-  Consumer Staples) e in certi regimi quei settori dominano l'intero universo a
-  bassa vol. Un vincolo di concentrazione (es. max 3-4 titoli per settore,
-  prassi istituzionale standard) è ben giustificato, ma **non ancora
-  implementato né testato in backtest** — richiede ripetere la selezione con il
-  vincolo su tutti i ~600 titoli dell'universo (non solo i 198 mai scelti), un
-  giro di test aggiuntivo.
+**Risolto (vedi §8.7):**
+- ~~Concentrazione settoriale nel basket~~ — confermata reale con dati Yahoo su
+  tutto l'universo point-in-time (fino all'80% in un solo settore in alcuni
+  trimestri), e collegata direttamente alla perdita di significatività
+  dell'alpha nella finestra Feb 2024-oggi (§8.6/8.7). Vincolo max 2/settore
+  adottato e implementato in produzione.
 
 **Decise (non adottate, con motivazione):**
 - **Decisione di ribilanciamento trimestrale invece di mensile** (§8.2 extra,
@@ -482,13 +474,15 @@ finestra a oggi.
 
 **Metodo:** replay mese per mese (script `generate_v2_track_record.py`) della
 stessa identica logica di `backend.py.update_portfolio` — stesso segnale macro
-(isteresi + vol-target), stessa selezione basket (top-15, buffer-rank 20),
-stessi costi (8bps ETF, 10bps titoli/crypto) — usando dati di mercato reali
-sull'intera finestra Feb 2024-oggi. Risultato: 358 eventi di chiusura (tutti
-con motivazioni v2 reali, nessuna traccia del motore v1), NAV finale
-$123.865,06 (da $100.000 iniziali), 15 posizioni aperte finali (13 titoli del
-basket + IEF + BTC) diventate il portafoglio "live" attuale — l'ultima
-decisione della simulazione stessa, non più una migrazione ad-hoc.
+(isteresi + vol-target), stessa selezione basket (top-15, buffer-rank 20, **poi
+aggiornato con il vincolo max 2/settore — vedi §8.7**), stessi costi (8bps ETF,
+10bps titoli/crypto) — usando dati di mercato reali sull'intera finestra Feb
+2024-oggi. Risultato finale (dopo §8.7): 363 eventi di chiusura (tutti con
+motivazioni v2 reali, nessuna traccia del motore v1), NAV finale $122.761,10
+(da $100.000 iniziali), 14 posizioni aperte finali (12 titoli del basket + IEF
++ BTC, diversificati su 8 settori diversi) diventate il portafoglio "live"
+attuale — l'ultima decisione della simulazione stessa, non più una migrazione
+ad-hoc.
 
 **Cosa NON cambia:** la struttura del file (`open_positions`, `trade_history`,
 `nav_usd`, `equity.json`) resta identica; il forward-tracking notturno
@@ -501,6 +495,50 @@ reali del broker su questa specifica finestra breve, nessun test di
 falsificazione dedicato) — è una ri-esecuzione a regole fisse su dati storici,
 non un track record di trading realmente eseguito con il motore v2 (quello
 comincia da oggi in avanti).
+
+### 8.7 Vincolo di concentrazione settoriale — adottato (max 2 titoli/settore)
+
+Innescato da un caso reale: la prima versione del track record v2 (§8.6) ha
+mostrato un rendimento di +23,9% sulla finestra Feb 2024-oggi contro +52,8% di
+SPY nello stesso periodo, con **alpha CAPM non significativo** (1,70%/anno,
+t=0,34, p=0,73 — indistinguibile da zero, contro il 10,64%/p=0,0002 del
+campione pieno di 12 anni). Causa identificata: il basket finale era
+concentrato al 77% in soli due settori (Utilities 46%, Real Estate 31%) —
+esattamente i settori che soffrono di più in un bull market guidato da
+tech/AI con tassi elevati, il regime di questi due anni e mezzo.
+
+**Test del vincolo (script `sector_cap_test.py` isolato, poi
+`sector_cap_full_test.py` con overlay macro completo, dati settore reali via
+Yahoo Finance su tutto l'universo point-in-time):**
+
+| | Isolato (solo basket, 12 anni) | Con overlay macro completo (12 anni) |
+|---|---|---|
+| Nessun vincolo | CAGR 9,52% Sharpe 0,79 Calmar 0,44, concentrazione peggiore 80% | CAGR 15,01% Sharpe 1,41 Calmar 1,13 alpha 11,31% (p=0,0001) |
+| Max 2/settore | CAGR 10,95% Sharpe 0,84 Calmar 0,53, concentrazione peggiore 13,3% | CAGR 14,65% Sharpe 1,39 Calmar 1,03 alpha 10,92% (p=0,0001) |
+
+**Risultato non pulito, deciso comunque:** isolato sul solo basket il vincolo è
+un miglioramento netto; con l'overlay macro completo (il sistema vero) è un
+piccolo costo medio sui 12 anni (Sharpe -0,02, Calmar -0,10) — la
+concentrazione naturale in settori difensivi tende a complementare bene il
+vol-targeting nella media storica, inclusi periodi come il 2022 dove quei
+settori hanno retto meglio. **Adottato comunque** (`V2_MAX_PER_SECTOR = 2` in
+`apex_v2_engine.py`) su richiesta esplicita dell'utente ("voglio alpha rispetto
+al benchmark"): il costo medio storico è piccolo e l'alpha sui 12 anni resta
+fortemente significativo con o senza vincolo, mentre la concentrazione
+protegge proprio contro il tipo di rischio che ha appena eroso la
+significatività dell'alpha nella finestra recente — un rischio asimmetrico che
+una media di 12 anni non rappresenta bene.
+
+**Implementazione:** `select_low_vol_basket` (in `apex_v2_engine.py`) accetta
+ora `sector_of`/`max_per_sector`; il vincolo allenta solo la *composizione*
+(quali titoli, a parità di rank, entrano), mai l'ammissione di un titolo
+scarso — un titolo senza settore noto non viene mai bloccato (fail-open). I
+settori sono recuperati da `backend.py.fetch_sector_map` (endpoint Yahoo
+quoteSummary/assetProfile, stesso stile HTTP diretto di `fetch_yahoo_history`,
+nessuna nuova dipendenza) solo alla rotazione trimestrale del basket. 4 nuovi
+test in `test_apex_v2_engine.py` (14/14 test totali passano). Il track record
+Feb 2024-oggi (§8.6) è stato rigenerato con il vincolo attivo per coerenza
+piena.
 
 ---
 

@@ -145,6 +145,36 @@ def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asse
 fetch_bulk_parallel = download_universe_batch
 
 
+def fetch_sector(ticker):
+    """Recupera il settore GICS (endpoint Yahoo quoteSummary/assetProfile), stesso stile
+    di fetch_yahoo_history — nessuna dipendenza da yfinance."""
+    try:
+        url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile"
+        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+        res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
+        profile = res['quoteSummary']['result'][0]['assetProfile']
+        return ticker, profile.get('sector')
+    except Exception:
+        return ticker, None
+
+
+def fetch_sector_map(tickers, max_workers=MAX_WORKERS_DEFAULT):
+    """Recupera il settore per una lista di ticker, in parallelo. Fail-open per singolo
+    titolo: select_low_vol_basket tratta un settore mancante come non vincolato, non
+    come motivo per bloccare la selezione (vedi APEX_V2_SPEC.md §8.7)."""
+    sector_of = {}
+    print(f"[*] Recupero settori ({len(tickers)} titoli)...")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(fetch_sector, sym): sym for sym in tickers}
+        for future in as_completed(futures):
+            sym, sector = future.result()
+            if sector:
+                sector_of[sym] = sector
+            time.sleep(random.uniform(0.05, 0.15))
+    print(f"[+] Settori recuperati: {len(sector_of)}/{len(tickers)}")
+    return sector_of
+
+
 # ==============================================================================
 # PREZZI CORRENTI (v2 non ha bisogno degli indicatori pesanti di v1 — nessuno
 # stop-loss per posizione, nessuna selezione per momentum: vedi APEX_V2_SPEC.md)
@@ -510,7 +540,8 @@ def main():
             print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500...")
             eq_ticks = list(set(get_sp500_tickers() + held_eq))
             eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
-            basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq))
+            sector_of = fetch_sector_map(list(eq_data.keys()), max_workers=MAX_WORKERS_DEFAULT)
+            basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
             output["v2_state"]["basket"] = basket
             output["v2_state"]["basket_quarter"] = today_str[:7]
         else:

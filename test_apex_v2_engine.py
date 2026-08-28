@@ -122,6 +122,40 @@ def test_select_low_vol_basket_buffer_retains_incumbent_within_rank_window():
     assert "MIDVOL2" not in tickers, "il buffer allenta solo la PERMANENZA, non fa entrare candidati fuori dal top_n se non c'e' posto"
 
 
+def test_select_low_vol_basket_respects_sector_cap():
+    """
+    Senza vincolo, i due titoli meno volatili in assoluto (entrambi settore A)
+    riempirebbero 2 dei 3 posti. Con max_per_sector=1, il secondo titolo del
+    settore A viene saltato in favore del migliore candidato di un altro settore
+    — vedi APEX_V2_SPEC.md §8.7 (concentrazione fino all'80% in un solo settore
+    misurata in backtest, senza vincolo).
+    """
+    eq_data = {
+        "A1": _weekly_close_df(amplitude=0.001),   # settore A, rank 1
+        "A2": _weekly_close_df(amplitude=0.003),   # settore A, rank 2
+        "B1": _weekly_close_df(amplitude=0.006),   # settore B, rank 3
+        "C1": _weekly_close_df(amplitude=0.010),   # settore C, rank 4
+    }
+    sector_of = {"A1": "A", "A2": "A", "B1": "B", "C1": "C"}
+
+    no_cap = select_low_vol_basket(eq_data, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=99)
+    assert [b["Ticker"] for b in no_cap] == ["A1", "A2", "B1"], "senza vincolo il settore A prende 2 posti su 3"
+
+    capped = select_low_vol_basket(eq_data, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=1)
+    tickers = [b["Ticker"] for b in capped]
+    assert tickers == ["A1", "B1", "C1"], "con max 1/settore, A2 viene saltato a favore del miglior candidato di un altro settore"
+
+
+def test_select_low_vol_basket_sector_cap_fails_open_on_missing_data():
+    """Un titolo senza settore noto non deve mai essere bloccato dal vincolo."""
+    eq_data = {
+        "KNOWN": _weekly_close_df(amplitude=0.001),
+        "UNKNOWN": _weekly_close_df(amplitude=0.003),
+    }
+    basket = select_low_vol_basket(eq_data, top_n=2, lookback_weeks=26, sector_of={"KNOWN": "A"}, max_per_sector=1)
+    assert {b["Ticker"] for b in basket} == {"KNOWN", "UNKNOWN"}
+
+
 def test_select_low_vol_basket_buffer_never_relaxes_new_entrants():
     """Un titolo MAI detenuto prima deve comunque essere tra i migliori assoluti, buffer o no."""
     eq_data = {

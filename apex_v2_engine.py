@@ -96,12 +96,17 @@ def compute_v2_macro_signal(
     return allocations, state, debug
 
 
+V2_MAX_PER_SECTOR = 2  # vedi APEX_V2_SPEC.md §8.7: protegge l'alpha nei regimi sfavorevoli al settore concentrato
+
+
 def select_low_vol_basket(
     eq_data: Dict[str, pd.DataFrame],
     top_n: int = V2_EQUITY_TOP_N,
     lookback_weeks: int = V2_EQUITY_VOL_LOOKBACK,
     prev_tickers: Optional[set] = None,
     buffer_rank: int = V2_EQUITY_BUFFER_RANK,
+    sector_of: Optional[Dict[str, str]] = None,
+    max_per_sector: int = V2_MAX_PER_SECTOR,
 ) -> List[dict]:
     """
     Seleziona i `top_n` titoli a volatilita' realizzata piu' bassa (§4 di APEX_V2_SPEC.md).
@@ -109,15 +114,21 @@ def select_low_vol_basket(
     su questo universo) — e' solo un modo pratico e liquido di ottenere beta azionario
     con carattere fiscale "redditi diversi".
 
-    Buffer di isteresi sulla rank (§8.3 di APEX_V2_SPEC.md): un titolo gia' detenuto
-    (`prev_tickers`) resta in basket se la sua posizione in classifica resta entro
-    `buffer_rank`, anche se e' scesa fuori dal top-`top_n` esatto — senza buffer, il
-    rinnovo trimestrale misurato in backtest era comunque sostanzioso (~60% dei nomi
-    sostituiti ogni trimestre, per rumore di stima della volatilita' vicino alla
-    soglia). Un buffer stretto (rank 20, poco oltre il top-15) riduce il turnover in
-    modo consistente; valori piu' larghi si sono rivelati rumorosi/inaffidabili sul
-    campione testato — vedi §8.3 per la griglia completa. I NUOVI ingressi restano
-    comunque selezionati solo tra i migliori in assoluto (nessun allentamento).
+    Buffer di isteresi sulla rank (§8.3): un titolo gia' detenuto (`prev_tickers`) resta
+    in basket se la sua posizione in classifica resta entro `buffer_rank`, anche se e'
+    scesa fuori dal top-`top_n` esatto — senza buffer il rinnovo trimestrale era
+    comunque sostanzioso (~60% dei nomi sostituiti ogni trimestre, rumore di stima
+    della volatilita' vicino alla soglia).
+
+    Vincolo di concentrazione settoriale (§8.7): la selezione per bassa volatilita', da
+    sola, concentra sistematicamente in 1-2 settori difensivi (Utilities/Real Estate) —
+    fino all'80% del basket in un solo settore in alcuni trimestri storici, un rischio
+    confermato con dati reali (yfinance) e non solo teorico. `max_per_sector` limita
+    quanti titoli dello stesso settore possono coesistere nel basket; se `sector_of` non
+    e' disponibile per un titolo, non viene vincolato (fail-open, non blocca la
+    selezione per un problema di dati sui settori). I NUOVI ingressi restano comunque
+    scelti solo tra i migliori in assoluto — buffer e vincolo settoriale allentano solo
+    la permanenza/composizione, mai l'ammissione di un titolo scarso.
     """
     scored = []
     for sym, df in eq_data.items():
@@ -130,16 +141,41 @@ def select_low_vol_basket(
     info_by_sym = {sym: (vol, price) for sym, vol, price in scored}
     ranked_syms = [sym for sym, _, _ in scored]
     rank_of = {sym: i for i, sym in enumerate(ranked_syms)}
+    sector_of = sector_of or {}
+
+    sector_count: Dict[str, int] = {}
+    result: List[str] = []
+
+    def sector_ok(sym: str) -> bool:
+        s = sector_of.get(sym)
+        if s is None:
+            return True
+        return sector_count.get(s, 0) < max_per_sector
+
+    def add(sym: str):
+        result.append(sym)
+        s = sector_of.get(sym)
+        if s is not None:
+            sector_count[s] = sector_count.get(s, 0) + 1
 
     prev_tickers = prev_tickers or set()
-    kept = [s for s in prev_tickers if rank_of.get(s, 10**9) < buffer_rank]
-    kept_set = set(kept)
-    result = list(kept)
+    incumbents_sorted = sorted(
+        [s for s in prev_tickers if rank_of.get(s, 10**9) < buffer_rank],
+        key=lambda s: rank_of.get(s, 10**9),
+    )
+    for sym in incumbents_sorted:
+        if len(result) >= top_n:
+            break
+        if sector_ok(sym):
+            add(sym)
+
     for sym in ranked_syms:
         if len(result) >= top_n:
             break
-        if sym not in kept_set:
-            result.append(sym)
+        if sym in result:
+            continue
+        if sector_ok(sym):
+            add(sym)
 
     return [
         {"Ticker": sym, "Prezzo ($)": round(info_by_sym[sym][1], 2),
