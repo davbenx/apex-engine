@@ -94,23 +94,29 @@ BORDER = "rgba(128,128,128,0.14)"
 MUTED = "#9CA3AF"
 
 
-def flat_card(inner_html, padding="14px 16px", opacity="1"):
-    return f'<div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: {padding}; opacity: {opacity};">{inner_html}</div>'
-
-
 def monogram(text, active=True, size=26):
     color = POS if active else NEUTRAL_DOT
     return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {color}; color:{color}; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
 
 
-def ring_badge(mono_text, active, size=30, stroke=3):
-    """Cerchio CSS (border-radius, non SVG con overlay assoluto) con la sigla
-    al centro: colore = stato (verde=attiva, grigio=in pausa), il peso% resta
-    testo accanto, non codificato nel riempimento (era illeggibile per pesi
-    bassi — vedi APEX_V2_SPEC.md §15)."""
-    color = POS if active else NEUTRAL_DOT
-    return f'''<div style="width:{size}px; height:{size}px; min-width:{size}px; border-radius:50%; border:{stroke}px solid {color}; box-sizing:border-box; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-        <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; line-height:1;">{mono_text}</span>
+# Peso di base massimo per classe attiva in apex_v2_engine.py
+# (base_weight = 0.25, poi scalato dal fattore di vol-target che non supera
+# mai 1.0 — quindi 25% e' davvero il tetto per singola classe, non solo una
+# soglia arbitraria). Vedi APEX_V2_SPEC.md §20.
+V2_MAX_BASE_ALLOC_PCT = 25.0
+
+
+def ring_badge(mono_text, fill_frac, size=30):
+    """Disco CSS a settore circolare (conic-gradient, un solo elemento,
+    nessuna sovrapposizione/posizionamento assoluto): il riempimento verde è
+    la quota del 25% di peso massimo per classe attualmente in uso. A
+    riempimento zero la classe è in pausa; pieno = al tetto consentito dal
+    vol-target (fattore di scala = 1.0, nessuna riduzione per rischio)."""
+    frac = max(0.0, min(1.0, fill_frac))
+    deg = frac * 360.0
+    gradient = f"conic-gradient({POS} {deg:.1f}deg, #374151 {deg:.1f}deg 360deg)"
+    return f'''<div style="width:{size}px; height:{size}px; min-width:{size}px; border-radius:50%; background:{gradient}; box-sizing:border-box; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:800; color:#F9FAFB; line-height:1;">{mono_text}</span>
     </div>'''
 
 
@@ -280,20 +286,23 @@ d_b = macro_dates.get("Bonds", ts_date)
 
 
 def cockpit_pill(mono_text, label, alloc_pct, is_active, since_date, is_cash=False):
-    """Anello = peso %, colore = stato (verde=attiva, grigio=in pausa/riserva).
-    La data del segnale è sempre testo visibile — mai solo in tooltip (vedi §12.1)."""
+    """Il disco si riempie in proporzione a alloc_pct/25% (il vero tetto per
+    classe, vedi ring_badge) — niente percentuale scritta: il numero esatto
+    resta nella tabella posizioni sotto, qui e' un indicatore visivo, non
+    l'unica fonte del dato (vedi APEX_V2_SPEC.md §20)."""
     if is_cash:
         state_text = "Riserva di liquidità"
     else:
         fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
         state_text = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
 
-    ring = ring_badge(mono_text, is_active and not is_cash)
+    fill_frac = 0.0 if is_cash else (alloc_pct / V2_MAX_BASE_ALLOC_PCT)
+    ring = ring_badge(mono_text, fill_frac)
     return f"""
-    <div style="display:flex; align-items:center; gap:9px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 7px 12px 7px 8px; min-width: 172px;">
+    <div style="display:flex; align-items:center; gap:9px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 7px 12px 7px 8px; min-width: 150px;">
         {ring}
         <div style="line-height:1.3;">
-            <div style="font-size:11.5px; font-weight:700; letter-spacing:0.1px;">{label} <span style="font-family:'JetBrains Mono',monospace; font-weight:700; opacity:0.85;">{alloc_pct:.0f}%</span></div>
+            <div style="font-size:11.5px; font-weight:700; letter-spacing:0.1px;">{label}</div>
             <div style="font-size:10px; opacity:0.6;">{state_text}</div>
         </div>
     </div>
@@ -378,56 +387,6 @@ def position_detail(ticker, capitale_usd):
     }
 
 
-def instrument_card(mono_text, label, is_active, detail, curr_sym, fx_ratio):
-    if not is_active or detail is None:
-        return f"""
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px; opacity: 0.55;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                {monogram(mono_text, active=False)}
-                <span style="font-weight:600; font-size:11.5px; letter-spacing:0.3px; text-transform:uppercase; color:{MUTED};">{label}</span>
-            </div>
-            <div style="font-size:11.5px; opacity:0.75;">Non allocato — segnale in pausa</div>
-        </div>
-        """
-    val_user = detail["value_usd"] * fx_ratio
-    pnl_user = detail["pnl_usd"] * fx_ratio
-    pnl_color = POS if detail["pnl_pct"] >= 0 else NEG
-    pnl_sign = "+" if pnl_user >= 0 else "-"
-    fmt_d = format_date_italian(detail["entry_date"]) if detail["entry_date"] != "N/A" else "-"
-    return f"""
-    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                {monogram(mono_text, active=True)}
-                <span style="font-weight:600; font-size:11.5px; letter-spacing:0.3px; text-transform:uppercase; color:{MUTED};">{label}</span>
-            </div>
-            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px;">{detail['weight_pct']:.1f}%</span>
-        </div>
-        <div style="font-size:19px; font-weight:800; font-family:'JetBrains Mono',monospace; margin-bottom:2px;">{curr_sym}{val_user:,.0f}</div>
-        <div style="font-size:12px; font-weight:700; color:{pnl_color}; font-family:'JetBrains Mono',monospace; margin-bottom:7px;">{pnl_sign}{curr_sym}{abs(pnl_user):,.0f} ({detail['pnl_pct']:+.2f}%)</div>
-        <div style="font-size:10.5px; opacity:0.6; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-            <span>{format_price(detail['entry_price'])} → {format_price(detail['current_price'])}</span>
-            <span>dal {fmt_d} · {detail['days']}g</span>
-        </div>
-    </div>
-    """
-
-
-def cash_card(value_usd, weight_pct, curr_sym, fx_ratio):
-    val_user = value_usd * fx_ratio
-    return f"""
-    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                {monogram("$", active=True)}
-                <span style="font-weight:600; font-size:11.5px; letter-spacing:0.3px; text-transform:uppercase; color:{MUTED};">Monetario</span>
-            </div>
-            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px;">{weight_pct:.1f}%</span>
-        </div>
-        <div style="font-size:19px; font-weight:800; font-family:'JetBrains Mono',monospace; margin-bottom:2px;">{curr_sym}{val_user:,.0f}</div>
-        <div style="font-size:10.5px; opacity:0.6;">Parcheggio strategico e riserve per il target di volatilità</div>
-    </div>
-    """
 
 
 # ==============================================================================
@@ -460,101 +419,110 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 with tab_pf:
     # --- Treemap: allocazione + performance in un solo colpo d'occhio.
     # Basato sui pesi di strategia (indipendente dal capitale inserito sotto),
-    # cosi' resta la prima cosa visibile aprendo la tab.
-    # Un solo riquadro per classe (niente drill-down per singolo titolo: con
-    # 15 posizioni azionarie a peso comparabile a un'unica classe come
-    # Bitcoin, le sotto-celle risultavano troppo piccole per mostrare testo
-    # leggibile — il dettaglio per titolo resta nella tabella subito sotto).
-    # Il testo di ogni riquadro riporta ESPLICITAMENTE "peso% · rendimento%":
-    # l'area del riquadro da sola non basta a comunicare il peso in modo
-    # inequivocabile (un rendimento di +0.00% su una posizione appena aperta
-    # non va confuso con un peso dello 0%).
-    tm_labels, tm_values, tm_colors, tm_text, tm_hover = [], [], [], [], []
+    # cosi' resta la prima cosa visibile aprendo la tab. Azionario e' un
+    # riquadro con 15 figli (i singoli titoli): "maxdepth=1" mostra solo il
+    # livello classi all'apertura (nessuna sotto-cella minuscola), un clic su
+    # "AZIONARIO" zooma nativamente sui 15 titoli a piena area — niente
+    # secondo grafico separato, e' lo stesso treemap che si apre.
+    tm_ids, tm_labels, tm_parents, tm_values, tm_colors, tm_text, tm_hover = [], [], [], [], [], [], []
 
     if op_eq:
         eq_weight_total = sum(r.get("Peso (%)", 0.0) for r in op_eq)
         eq_pnl_weighted = (sum(r["Rendimento %"] * r.get("Peso (%)", 0.0) for r in op_eq) / eq_weight_total) if eq_weight_total > 0 else 0.0
-        tm_labels.append("AZIONARIO"); tm_values.append(eq_weight_total); tm_colors.append(eq_pnl_weighted)
+        tm_ids.append("AZIONARIO"); tm_labels.append("AZIONARIO"); tm_parents.append("")
+        tm_values.append(eq_weight_total); tm_colors.append(eq_pnl_weighted)
         tm_text.append(f"{eq_weight_total:.1f}% · {eq_pnl_weighted:+.2f}%")
-        tm_hover.append(f"Azionario ({len(op_eq)} titoli) — {eq_weight_total:.1f}% del portafoglio<br>Rendimento medio ponderato: {eq_pnl_weighted:+.2f}%<br>Dettaglio per titolo nella tabella sotto")
+        tm_hover.append(f"Azionario ({len(op_eq)} titoli) — clic per il dettaglio per titolo<br>{eq_weight_total:.1f}% del portafoglio · Rendimento medio ponderato: {eq_pnl_weighted:+.2f}%")
+        for r in op_eq:
+            tm_ids.append(f"AZ::{r['Titolo']}"); tm_labels.append(r["Titolo"]); tm_parents.append("AZIONARIO")
+            tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
+            tm_text.append(f"{r.get('Peso (%)', 0.0):.1f}% · {r['Rendimento %']:+.2f}%")
+            tm_hover.append(f"{r['Titolo']} — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
 
     if op_cr:
         r = op_cr[0]
-        tm_labels.append("BITCOIN"); tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
+        tm_ids.append("BITCOIN"); tm_labels.append("BITCOIN"); tm_parents.append("")
+        tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
         tm_text.append(f"{r.get('Peso (%)', 0.0):.1f}% · {r['Rendimento %']:+.2f}%")
         tm_hover.append(f"Bitcoin — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
 
     if alloc.get('Gold', 0) > 0:
         _gd = open_pos_raw.get("GLD")
         _g_pct = (((_gd.get("current_price", _gd.get("entry_price", 0.0)) / _gd["entry_price"]) - 1.0) * 100) if _gd and _gd.get("entry_price", 0) > 0 else 0.0
-        tm_labels.append("ORO"); tm_values.append(alloc.get('Gold', 0)); tm_colors.append(_g_pct)
+        tm_ids.append("ORO"); tm_labels.append("ORO"); tm_parents.append("")
+        tm_values.append(alloc.get('Gold', 0)); tm_colors.append(_g_pct)
         tm_text.append(f"{alloc.get('Gold', 0):.1f}% · {_g_pct:+.2f}%")
         tm_hover.append(f"Oro — {alloc.get('Gold', 0):.1f}% del portafoglio<br>Rendimento: {_g_pct:+.2f}%")
 
     if alloc.get('Bonds', 0) > 0:
         _bd = open_pos_raw.get("IEF")
         _b_pct = (((_bd.get("current_price", _bd.get("entry_price", 0.0)) / _bd["entry_price"]) - 1.0) * 100) if _bd and _bd.get("entry_price", 0) > 0 else 0.0
-        tm_labels.append("OBBLIGAZIONI"); tm_values.append(alloc.get('Bonds', 0)); tm_colors.append(_b_pct)
+        tm_ids.append("OBBLIGAZIONI"); tm_labels.append("OBBLIGAZIONI"); tm_parents.append("")
+        tm_values.append(alloc.get('Bonds', 0)); tm_colors.append(_b_pct)
         tm_text.append(f"{alloc.get('Bonds', 0):.1f}% · {_b_pct:+.2f}%")
         tm_hover.append(f"Obbligazioni — {alloc.get('Bonds', 0):.1f}% del portafoglio<br>Rendimento: {_b_pct:+.2f}%")
 
     if alloc.get('Cash', 0) > 0:
-        tm_labels.append("MONETARIO"); tm_values.append(alloc.get('Cash', 0)); tm_colors.append(0.0)
+        tm_ids.append("MONETARIO"); tm_labels.append("MONETARIO"); tm_parents.append("")
+        tm_values.append(alloc.get('Cash', 0)); tm_colors.append(0.0)
         tm_text.append(f"{alloc.get('Cash', 0):.1f}%")
         tm_hover.append(f"Monetario — {alloc.get('Cash', 0):.1f}% del portafoglio (liquidità, nessun rendimento)")
 
-    if tm_labels:
+    if tm_ids:
         fig_tm = go.Figure(go.Treemap(
-            labels=tm_labels, parents=[""] * len(tm_labels), values=tm_values,
+            ids=tm_ids, labels=tm_labels, parents=tm_parents, values=tm_values,
+            branchvalues="total",
+            maxdepth=1,
             marker=dict(
                 colors=tm_colors,
                 colorscale=[[0, "#7F1D1D"], [0.5, "#374151"], [1, "#065F46"]],
                 cmid=0,
-                line=dict(width=1, color="rgba(0,0,0,0.35)")
+                line=dict(width=1, color="rgba(128,128,128,0.35)")
             ),
             text=tm_text,
             hovertext=tm_hover,
             hoverinfo="text",
             textinfo="label+text",
-            textfont=dict(color="#F3F4F6", family="Inter, sans-serif", size=13),
+            textfont=dict(color="#F3F4F6", family="'JetBrains Mono', monospace", size=13),
+            pathbar=dict(visible=True, textfont=dict(size=11, family="Inter, sans-serif", color=MUTED)),
         ))
-        fig_tm.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=220, paper_bgcolor='rgba(0,0,0,0)')
+        fig_tm.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=280, paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_tm, use_container_width=True)
+        if op_eq:
+            st.caption('Clicca "AZIONARIO" per il dettaglio dei 15 titoli, clicca in alto per tornare alla vista d\'insieme.')
 
     st.write("")
 
-    c_inp, c_pnl = st.columns([3, 2])
-    with c_inp:
-        c_val, c_cur = st.columns([3, 2])
-        with c_val:
-            _default_cap = 100000
-            try:
-                _default_cap = max(1000, int(st.query_params.get("cap", 100000)))
-            except (TypeError, ValueError):
-                pass
-            capitale_input = st.number_input(
-                "Capitale Broker Reale", min_value=1000, value=_default_cap, step=1000, format="%d"
-            )
-        with c_cur:
-            _default_cur = st.query_params.get("cur", "USD ($)")
-            if _default_cur not in ("USD ($)", "EUR (€)"):
-                _default_cur = "USD ($)"
-            valuta_sel = st.segmented_control("Valuta Conto", ["USD ($)", "EUR (€)"], default=_default_cur)
+    c_val, c_cur = st.columns([3, 2])
+    with c_val:
+        _default_cap = 100000
+        try:
+            _default_cap = max(1000, int(st.query_params.get("cap", 100000)))
+        except (TypeError, ValueError):
+            pass
+        capitale_input = st.number_input(
+            "Capitale Broker Reale", min_value=1000, value=_default_cap, step=1000, format="%d"
+        )
+    with c_cur:
+        _default_cur = st.query_params.get("cur", "USD ($)")
+        if _default_cur not in ("USD ($)", "EUR (€)"):
+            _default_cur = "USD ($)"
+        valuta_sel = st.segmented_control("Valuta Conto", ["USD ($)", "EUR (€)"], default=_default_cur)
 
-        st.query_params["cap"] = str(int(capitale_input))
-        st.query_params["cur"] = valuta_sel
+    st.query_params["cap"] = str(int(capitale_input))
+    st.query_params["cur"] = valuta_sel
 
-        eur_usd_rate = float(data.get("eur_usd", 1.085))
-        is_eur = (valuta_sel == "EUR (€)")
-        curr_sym = "€" if is_eur else "$"
-        fx_ratio = (1.0 / eur_usd_rate) if is_eur else 1.0
+    eur_usd_rate = float(data.get("eur_usd", 1.085))
+    is_eur = (valuta_sel == "EUR (€)")
+    curr_sym = "€" if is_eur else "$"
+    fx_ratio = (1.0 / eur_usd_rate) if is_eur else 1.0
 
-        if is_eur:
-            capitale = capitale_input * eur_usd_rate
-            st.caption(f"Conto: **€{capitale_input:,.0f}** · Potere d'acquisto: **${capitale:,.0f} USD** (Tasso EUR/USD: `{eur_usd_rate:.4f}`)")
-        else:
-            capitale = float(capitale_input)
-            st.caption(f"Conto operativo: **${capitale:,.0f} USD** (Prezzi e quote calcolati in dollari)")
+    if is_eur:
+        capitale = capitale_input * eur_usd_rate
+        st.caption(f"Conto: **€{capitale_input:,.0f}** · Potere d'acquisto: **${capitale:,.0f} USD** (Tasso EUR/USD: `{eur_usd_rate:.4f}`)")
+    else:
+        capitale = float(capitale_input)
+        st.caption(f"Conto operativo: **${capitale:,.0f} USD** (Prezzi e quote calcolati in dollari)")
 
     # v2: ogni posizione (azioni, IEF, GLD, BTC) porta il proprio peso reale in
     # portfolio.json ("weight", frazione del capitale) — nessuna quota fissa per
@@ -584,59 +552,15 @@ with tab_pf:
     btc_detail = position_detail(btc_ticker, capitale) if btc_ticker else None
 
     tot_pnl_pct = (tot_pnl_usd / capitale * 100) if capitale > 0 else 0.0
-    tot_pnl_user = tot_pnl_usd * fx_ratio
-
-    with c_pnl:
-        num_pos = len(op_eq) + len(op_cr) + (1 if gold_detail else 0) + (1 if bond_detail else 0)
-        breakdown_items = []
-        if len(op_eq) > 0:
-            breakdown_items.append(f"{len(op_eq)} Azioni")
-        if len(op_cr) > 0:
-            breakdown_items.append("Bitcoin")
-        if gold_detail:
-            breakdown_items.append("Oro")
-        if bond_detail:
-            breakdown_items.append("Obbligazioni")
-        breakdown_str = f"({', '.join(breakdown_items)})" if breakdown_items else ""
-
-        if num_pos > 0:
-            pnl_sign = "+" if tot_pnl_user >= 0 else "-"
-            pnl_col = POS if tot_pnl_user >= 0 else NEG
-            pnl_val_str = f"{pnl_sign}{curr_sym}{abs(tot_pnl_user):,.0f}"
-            pnl_pct_str = f"{'+' if tot_pnl_pct>=0 else ''}{tot_pnl_pct:.2f}%"
-            if is_eur:
-                sub_text = f"Su {num_pos} posizioni {breakdown_str} · (${tot_pnl_usd:+,.0f} USD)"
-            else:
-                sub_text = f"Su {num_pos} posizioni {breakdown_str}"
-        else:
-            pnl_col = MUTED
-            pnl_val_str = f"{curr_sym}0"
-            pnl_pct_str = "0.00%"
-            sub_text = "Nessuna posizione aperta (attesa prossimo ribilanciamento mensile)"
-
-        st_html(f"""
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
-            <div style="opacity: 0.7; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rendimento Galleggiante ({curr_sym})</div>
-            <div style="font-size: 20px; font-weight: 700; color: {pnl_col}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
-                {pnl_val_str} <span style="font-size: 13px; font-weight: 600;">({pnl_pct_str})</span>
-            </div>
-            <div style="opacity: 0.6; font-size: 10.5px;">{sub_text}</div>
-        </div>
-        """)
 
     st.write("")
 
-    # --- Card asset singoli: Monetario, Obbligazioni, Oro, Bitcoin — parità
-    # informativa con la tabella Azioni (peso%, data ingresso, prezzo ingr.->attuale).
+    # --- Tabella unica con tutte le posizioni di tutte le classi (azioni,
+    # Bitcoin, Oro, Obbligazioni, Monetario) — il treemap sopra da' la vista
+    # d'insieme con i numeri, questa e' l'elenco completo, sempre presente,
+    # senza dover sommare card sparse per le classi non-azionarie.
     real_cash_usd = max(0.0, capitale - tot_invested_usd)
     cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
-
-    card_cash = cash_card(real_cash_usd, cash_weight_pct, curr_sym, fx_ratio)
-    card_bond = instrument_card("FI", "Obbligazioni", bond_detail is not None, bond_detail, curr_sym, fx_ratio)
-    card_gold = instrument_card("AU", "Oro", gold_detail is not None, gold_detail, curr_sym, fx_ratio)
-    card_btc = instrument_card("₿", "Bitcoin", btc_detail is not None, btc_detail, curr_sym, fx_ratio)
-
-    st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px;">{card_cash}{card_bond}{card_gold}{card_btc}</div>')
 
     def color_pnl(val):
         color = POS if val > 0 else NEG if val < 0 else MUTED
@@ -650,104 +574,95 @@ with tab_pf:
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
 
+    unified_rows = []
+    for r in op_eq:
+        unified_rows.append({
+            "Classe": "Azionario", "Titolo": r["Titolo"], "Stato": r["Stato"],
+            "Data Ingresso": r["Data Ingresso"],
+            "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
+            "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
+        })
+    if op_cr:
+        r = op_cr[0]
+        unified_rows.append({
+            "Classe": "Bitcoin", "Titolo": r["Titolo"], "Stato": r["Stato"],
+            "Data Ingresso": r["Data Ingresso"],
+            "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
+            "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
+        })
+
+    def _detail_row(classe, ticker, detail):
+        return {
+            "Classe": classe, "Titolo": ticker, "Stato": "NUOVO" if detail["days"] <= 7 else "",
+            "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
+            "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
+            "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
+        }
+
+    if gold_detail:
+        unified_rows.append(_detail_row("Oro", "GLD", gold_detail))
+    if bond_detail:
+        unified_rows.append(_detail_row("Obbligazioni", "IEF", bond_detail))
+
+    unified_rows.append({
+        "Classe": "Monetario", "Titolo": "Liquidità", "Stato": "",
+        "Data Ingresso": "—",
+        "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
+        "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
+    })
+
+    # Riga totale al posto della card "Rendimento Galleggiante" — stessa
+    # informazione (P&L aggregato), calcolata dagli stessi dati della
+    # tabella invece che in un riquadro separato sopra.
+    unified_rows.append({
+        "Classe": "TOTALE", "Titolo": "", "Stato": "",
+        "Data Ingresso": "—",
+        "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
+        "Peso (%)": 100.0, "Rendimento %": tot_pnl_pct,
+    })
+
+    def style_total_row(row):
+        if row.get("Classe") == "TOTALE":
+            return ['font-weight: 800; border-top: 2px solid rgba(128,128,128,0.3);'] * len(row)
+        return [''] * len(row)
+
     show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
-    compact_cols = ["Pos", "Titolo", "Stato", "Peso (%)", col_val_label, "Rendimento %"]
-    full_cols = ["Pos", "Titolo", "Stato", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+    compact_cols = ["Classe", "Titolo", "Stato", "Peso (%)", col_val_label, "Rendimento %"]
+    full_cols = ["Classe", "Titolo", "Stato", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
 
-    st_html(f"""
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <span style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px;">Basket Azionario (bassa volatilità)</span>
-        <span style="color: {MUTED}; font-size: 11.5px; font-weight: 600; font-family: 'JetBrains Mono', monospace;">{num_eq} / {max(len(data.get('top20', [])), num_eq)} posizioni</span>
-    </div>
-    """)
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">Tutte le posizioni</div>')
 
-    if op_eq:
-        # Heatmap dedicata ai singoli titoli: nel treemap in cima alla pagina i
-        # 15 titoli erano sotto-celle di UN SOLO riquadro (Azionario, ~19% del
-        # portafoglio) e finivano troppo piccoli per un'etichetta leggibile.
-        # Qui è un treemap a se' stante — le stesse 15 posizioni occupano tutta
-        # l'area disponibile invece di dividersi un ritaglio di un riquadro più
-        # grande, quindi restano leggibili (vedi APEX_V2_SPEC.md §17).
-        fig_stocks = go.Figure(go.Treemap(
-            labels=[r["Titolo"] for r in op_eq],
-            parents=[""] * len(op_eq),
-            values=[r.get("Peso (%)", 0.0) for r in op_eq],
-            marker=dict(
-                colors=[r["Rendimento %"] for r in op_eq],
-                colorscale=[[0, "#7F1D1D"], [0.5, "#374151"], [1, "#065F46"]],
-                cmid=0,
-                line=dict(width=1, color="rgba(0,0,0,0.35)")
-            ),
-            text=[f"{r['Rendimento %']:+.1f}%" for r in op_eq],
-            hovertext=[f"{r['Titolo']} — {r.get('Peso (%)', 0.0):.2f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%" for r in op_eq],
-            hoverinfo="text",
-            textinfo="label+text",
-            textfont=dict(color="#F3F4F6", family="Inter, sans-serif", size=11),
-        ))
-        fig_stocks.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=190, paper_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_stocks, use_container_width=True)
+    df_pos = pd.DataFrame(unified_rows)
 
-        df_op_eq = pd.DataFrame(op_eq)
-        df_op_eq["Quote"] = [max(1, int(round((capitale * r.get("Peso (%)", 0.0) / 100.0) / r["Ingresso ($)"]))) if r["Ingresso ($)"] > 0 else 0 for _, r in df_op_eq.iterrows()]
-        df_op_eq[col_val_label] = [r["Quote"] * r["Attuale ($)"] * fx_ratio for _, r in df_op_eq.iterrows()]
-        df_op_eq[col_rend_label] = df_op_eq[col_val_label] - (df_op_eq["Quote"] * df_op_eq["Ingresso ($)"] * fx_ratio)
+    def _quote_raw(row):
+        if pd.notna(row["Ingresso ($)"]) and row["Ingresso ($)"] > 0:
+            return (capitale * row["Peso (%)"] / 100.0) / row["Ingresso ($)"]
+        return float("nan")
 
-        df_op_eq = df_op_eq[[c for c in active_cols if c in df_op_eq.columns]]
+    def _quote_display(row):
+        q = row["Quote_raw"]
+        if pd.isna(q):
+            return "—"
+        return f"{q:.6f}" if row["Classe"] == "Bitcoin" and q < 1 else (f"{q:.4f}" if row["Classe"] == "Bitcoin" else f"{int(round(q)):,}")
 
-        df_eq_styled = df_op_eq.style.format({
-            "Quote": "{:d}",
-            "Ingresso ($)": "{:.2f}",
-            "Attuale ($)": "{:.2f}",
-            "Peso (%)": "{:.2f}%",
-            col_val_label: "{:,.0f}",
-            "Rendimento %": "{:+.2f}%",
-            col_rend_label: "{:+,.0f}"
-        }).map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_op_eq.columns]).map(style_stato, subset=[c for c in ['Stato'] if c in df_op_eq.columns])
+    df_pos["Quote_raw"] = df_pos.apply(_quote_raw, axis=1)
+    df_pos["Quote"] = df_pos.apply(_quote_display, axis=1)
+    df_pos[col_val_label] = capitale * (df_pos["Peso (%)"] / 100.0) * fx_ratio
+    df_pos[col_rend_label] = (df_pos["Rendimento %"] / 100.0) * df_pos[col_val_label]
 
-        st.dataframe(df_eq_styled, use_container_width=True, hide_index=True)
-    else:
-        st.info("Nessuna azione in portafoglio. In attesa del ricalcolo di fine mese.")
+    df_pos_display = df_pos[[c for c in active_cols if c in df_pos.columns]]
 
-    st.write("")
-    with st.expander("Radar Rotazione — basket azionario in arrivo (bassa volatilità, trimestrale)"):
-        st_html(f"""
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px; font-size: 13px; line-height: 1.5;">
-            I titoli già in portafoglio sono contrassegnati come <strong>IN PORTAFOGLIO</strong>, i nuovi candidati come <strong style="color:{ACCENT};">NUOVO</strong> — subentrano alla prossima rotazione trimestrale se il segnale macro di classe è attivo. Bitcoin non compare qui: è un asset singolo (nessuna rotazione), il suo stato è nel cockpit sopra e nella sua card in portafoglio.
-        </div>
-        """)
+    df_pos_styled = df_pos_display.style.format({
+        "Ingresso ($)": "{:.2f}",
+        "Attuale ($)": "{:.2f}",
+        "Peso (%)": "{:.2f}%",
+        col_val_label: "{:,.0f}",
+        "Rendimento %": "{:+.2f}%",
+        col_rend_label: "{:+,.0f}",
+    }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_stato, subset=[c for c in ['Stato'] if c in df_pos_display.columns]).apply(style_total_row, axis=1)
 
-        held_tickers = set(open_pos_raw.keys())
-
-        def style_radar_stato(val):
-            if "NUOVO" in str(val):
-                return f'color: {ACCENT}; font-weight: 700; text-align: center;'
-            return 'text-align: center; opacity: 0.4;'
-
-        if alloc.get("Equities", 0) > 0:
-            top20 = data.get("top20", [])
-            if top20:
-                df_radar_eq = pd.DataFrame(top20)
-                df_radar_eq = df_radar_eq.rename(columns={"Ticker": "Titolo", "Prezzo": "Prezzo ($)"})
-                df_radar_eq["Pos"] = list(range(1, len(df_radar_eq) + 1))
-                df_radar_eq["Stato"] = ["IN PORTAFOGLIO" if tkr in held_tickers else "NUOVO" for tkr in df_radar_eq["Titolo"]]
-                cols = ["Pos", "Titolo", "Stato", "Prezzo ($)", "Volatilita' Ann. (%)"]
-                df_radar_eq = df_radar_eq[[c for c in cols if c in df_radar_eq.columns]]
-
-                fmt = {"Prezzo ($)": "{:.2f}"}
-                if "Volatilita' Ann. (%)" in df_radar_eq.columns:
-                    fmt["Volatilita' Ann. (%)"] = "{:.1f}%"
-                st.dataframe(
-                    df_radar_eq.style.format(fmt).map(
-                        style_radar_stato, subset=['Stato'] if 'Stato' in df_radar_eq.columns else None
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
-                st.info("Nessun dato basket disponibile.")
-        else:
-            st.warning("Classe Azionario in pausa (segnale sotto la media a 40 settimane).")
+    st.dataframe(df_pos_styled, use_container_width=True, hide_index=True)
 
 
 # ==============================================================================
@@ -987,21 +902,20 @@ with tab_perf:
         payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
 
-        def make_kpi_card(title, value, subtext, badge_text=None, badge_color=None, val_color=None):
+        # Striscia unica invece di 9 card separate (6 KPI + 3 statistiche trade):
+        # stesso principio gia' applicato al cockpit e alla tabella posizioni —
+        # un solo contenitore con divisori interni, non tanti riquadri ripetuti.
+        def kpi_item(title, value, subtext="", badge_text=None, badge_color=None, val_color=None, first=False):
             badge_html = ""
             if badge_text:
                 bcol = badge_color or "rgba(128,128,128,0.18)"
-                badge_html = f'<span style="background:{bcol}; color:#F3F4F6; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; font-family:\'JetBrains Mono\',monospace;">{badge_text}</span>'
+                badge_html = f'<span style="background:{bcol}; color:#F3F4F6; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; font-family:\'JetBrains Mono\',monospace; margin-left:6px;">{badge_text}</span>'
+            border = "none" if first else f"1px solid {BORDER}"
             return f"""
-            <div style="flex: 1 1 175px; min-width: 155px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED};">{title}</span>
-                    {badge_html}
-                </div>
-                <div style="font-size: 21px; font-weight: 800; color: {val_color or 'inherit'}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">
-                    {value}
-                </div>
-                <div style="opacity: 0.6; font-size: 10.5px; margin-top: 2px;">{subtext}</div>
+            <div style="flex: 1 1 145px; padding: 6px 16px; border-left: {border};">
+                <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap;">{title}{badge_html}</div>
+                <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: 'JetBrains Mono', monospace; margin: 2px 0;">{value}</div>
+                <div style="opacity: 0.6; font-size: 10px;">{subtext}</div>
             </div>
             """
 
@@ -1011,42 +925,28 @@ with tab_perf:
         # (non modella riporto perdite 4 anni art. 68 TUIR, vedi APEX_V2_SPEC.md §8.9/§10).
         net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
 
-        kpi_ret = make_kpi_card(
-            "Rendimento Lordo", f"{total_ret_pct:+.2f}%",
-            f"Netto stimato (26%, se realizzato oggi): {net_ret_pct_est:+.2f}%",
-            val_color=(POS if total_ret_pct >= 0 else NEG)
-        )
-        kpi_cagr = make_kpi_card(
-            "CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Rendimento lordo composto annuo",
-            val_color=(POS if cagr_pct >= 0 else NEG)
-        )
-        kpi_win = make_kpi_card(
-            "Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
-            badge_text=f"{len(wins)}/{len(hist)}"
-        )
-        kpi_pf = make_kpi_card(
-            "Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
-            badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
-            badge_color=("#065F46" if profit_factor >= 1.5 else "#374151")
-        )
-        kpi_po = make_kpi_card(
-            "Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
-            badge_text=("ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO")
-        )
-        kpi_dd = make_kpi_card(
-            "Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica",
-            badge_text=("PROTETTO" if max_dd > -15 else "ATTENZIONE"),
-            badge_color=("#374151" if max_dd > -15 else "#7F1D1D")
-        )
-
-        st_html(f'<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">{kpi_ret}{kpi_cagr}{kpi_win}{kpi_pf}{kpi_po}{kpi_dd}</div>')
+        strip_items = [
+            kpi_item("Rendimento Lordo", f"{total_ret_pct:+.2f}%",
+                     f"Netto stimato: {net_ret_pct_est:+.2f}%",
+                     val_color=(POS if total_ret_pct >= 0 else NEG), first=True),
+            kpi_item("CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Rendimento lordo composto annuo",
+                     val_color=(POS if cagr_pct >= 0 else NEG)),
+            kpi_item("Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
+                     badge_text=f"{len(wins)}/{len(hist)}"),
+            kpi_item("Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
+                     badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
+                     badge_color=("#065F46" if profit_factor >= 1.5 else "#374151")),
+            kpi_item("Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
+                     badge_text=("ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO")),
+            kpi_item("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica",
+                     badge_text=("PROTETTO" if max_dd > -15 else "ATTENZIONE"),
+                     badge_color=("#374151" if max_dd > -15 else "#7F1D1D")),
+        ]
 
         if hist:
             p_list = [t.get("profit_pct", 0.0) for t in hist]
-            max_val = max(p_list)
-            min_val = min(p_list)
-            max_idx = p_list.index(max_val)
-            min_idx = p_list.index(min_val)
+            max_idx = p_list.index(max(p_list))
+            min_idx = p_list.index(min(p_list))
             best_trade_t = hist[max_idx].get("ticker", "-")
             best_trade_p = hist[max_idx].get("profit_pct", 0.0)
             worst_trade_t = hist[min_idx].get("ticker", "-")
@@ -1062,23 +962,15 @@ with tab_perf:
                     pass
             avg_days_val = int(round(sum(durations) / len(durations))) if durations else 0
 
-            st_html(f"""
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; font-size: 12.5px;">
-                <div style="flex: 1 1 200px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="opacity: 0.75; color: {MUTED};">Miglior Trade</span>
-                    <span style="font-weight: 700; color: {POS}; font-family: 'JetBrains Mono', monospace;">{best_trade_t} ({best_trade_p:+.2f}%)</span>
-                </div>
-                <div style="flex: 1 1 200px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="opacity: 0.75; color: {MUTED};">Peggior Trade</span>
-                    <span style="font-weight: 700; color: {NEG}; font-family: 'JetBrains Mono', monospace;">{worst_trade_t} ({worst_trade_p:+.2f}%)</span>
-                </div>
-                <div style="flex: 1 1 200px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 9px 14px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="opacity: 0.75; color: {MUTED};">Durata Media Trade</span>
-                    <span style="font-weight: 700; font-family: 'JetBrains Mono', monospace;">{avg_days_val} giorni</span>
-                </div>
-            </div>
-            """)
+            strip_items += [
+                kpi_item("Miglior Trade", best_trade_t, f"{best_trade_p:+.2f}%", val_color=POS),
+                kpi_item("Peggior Trade", worst_trade_t, f"{worst_trade_p:+.2f}%", val_color=NEG),
+                kpi_item("Durata Media Trade", f"{avg_days_val}g", "giorni in posizione"),
+            ]
 
+        st_html(f'<div style="display: flex; flex-wrap: wrap; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 4px 0; margin-bottom: 20px;">{"".join(strip_items)}</div>')
+
+        if hist:
             st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 8px;">Registro Operazioni Chiuse</div>')
 
             df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
@@ -1230,7 +1122,7 @@ with tab_guide:
 
     <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
         <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Vol-Targeting di Portafoglio</div>
-        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">L'esposizione aggregata alle classi rischiose viene scalata mensilmente per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §3).</div>
+        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni classe attiva parte da un peso di base uguale (25%), poi tutte le classi attive vengono scalate mensilmente dallo stesso fattore per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non è un tetto per classe: se due classi attive mostrano lo stesso peso è perché partono dallo stesso 25% base e vengono scalate allo stesso modo, non per un limite massimo. Non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §3).</div>
     </div>
     ''')
 

@@ -1220,3 +1220,131 @@ numerica).
 **Verifica**: `py_compile` pulito, `AppTest` su dati reali (15 posizioni
 azionarie) senza eccezioni — esercita sia il nuovo `ring_badge()` sia il
 nuovo treemap per titolo. 21/21 test engine invariati.
+
+## 18. Duplicazione reintrodotta dal treemap per titolo — corretta (2026-08-28)
+
+L'utente ha fatto notare, giustamente, che il nuovo treemap per titolo di
+§17 ripeteva peso% e rendimento% di ogni riga **esattamente** come la
+tabella "Basket Azionario" subito sotto — nella stessa tab, uno sopra
+l'altro. Diverso dal caso valutato in §16 (peso% nel cockpit sopra le tab
+vs peso% nel treemap dentro Tab Portafoglio: schermate diverse, stesso
+numero visto da due punti di vista): qui era la stessa schermata, la
+stessa informazione, due volte.
+
+**Corretto in entrambi i treemap** (quello a 5 classi in cima e quello per
+titolo): tolto il numero stampato nei riquadri (`textinfo` da
+`"label+text"` a `"label"`). I treemap restano un riepilogo puramente
+visivo — dimensione = peso, colore = rendimento — senza più stampare la
+cifra esatta, che resta comunque disponibile al passaggio del mouse
+(`hovertext`) e, sempre visibile senza bisogno di hover, nelle card e
+nella tabella sotto. Principio applicato in modo coerente: i treemap
+mostrano *dove* guardare, le card/tabelle mostrano *il numero esatto* —
+una sola volta ciascuno, non entrambi gli stessi dati stampati due volte.
+
+**Verifica**: `py_compile` pulito, `AppTest` su dati reali senza eccezioni,
+21/21 test engine invariati.
+
+## 19. Ristrutturazione su richiesta esplicita dell'utente (2026-08-28)
+
+L'utente ha proposto un'architettura diversa da §15-§18: basket azionario
+di nuovo dentro il treemap principale (sfruttando lo zoom nativo, non un
+secondo grafico), la maggior parte delle informazioni importanti stampate
+direttamente nei riquadri, e un'unica tabella sotto con tutte le posizioni
+di tutti gli asset (non più card separate per Monetario/Obbligazioni/Oro/
+Bitcoin + tabella a parte per le azioni). Implementato:
+
+- **Treemap unico con gerarchia reale**: Azionario torna ad avere 15 figli
+  (`ids`/`parents`), ma con `maxdepth=1` Plotly mostra inizialmente solo il
+  livello classi (5 riquadri, nessuna sotto-cella minuscola) — un clic su
+  "AZIONARIO" zooma nativamente sui 15 titoli a piena area, con
+  `pathbar` per tornare indietro. Nessun secondo treemap separato: risolve
+  sia la richiesta di riportare le azioni nel grafico principale sia il
+  problema di leggibilità di §15 (lo zoom nativo di Plotly, non provato
+  prima, sostituisce la necessità di un grafico dedicato).
+- **Numeri di nuovo nei riquadri** ("peso% · rendimento%"): la scelta di
+  §18 di toglierli era corretta nel contesto di allora (card+tabella
+  duplicavano gli stessi numeri appena sotto), ma con la card sostituite da
+  un'unica tabella la duplicazione non si applica più nello stesso modo —
+  il treemap torna a essere sia vista d'insieme sia fonte diretta dei
+  numeri principali, come richiesto.
+- **Tabella "Tutte le posizioni"**: sostituisce le 4 card per asset singolo
+  (`instrument_card`/`cash_card`, ora rimosse come codice morto) più la
+  vecchia tabella solo-azioni. Righe unificate per Classe (Azionario,
+  Bitcoin, Oro, Obbligazioni, Monetario), stesse colonne per tutte tramite
+  `na_rep="—"` nello style Pandas per le celle che non si applicano
+  (Monetario non ha prezzo di ingresso/uscita né rendimento %, essendo
+  liquidità e non una posizione con costo storico). "Valore" e "Rendimento
+  ($)" calcolati direttamente dal peso% (`capitale × peso/100 × fx_ratio`)
+  invece che da quote×prezzo, cosi' la stessa formula vale per ogni riga
+  senza casi speciali. "Quote" resta una colonna solo testuale (dietro il
+  toggle dettagli), formattata diversamente per Bitcoin (frazionaria) e
+  per tutto il resto (intera).
+
+**Verifica**: somma dei pesi delle righe unificate = 100.0% e somma dei
+"Valore ($)" = capitale inserito, controllati con uno script standalone
+sui dati reali di `portfolio.json` (16 posizioni). `AppTest` eseguito sia
+sui dati reali (azionario+Bitcoin attivi, Oro/Obbligazioni in pausa) sia
+su uno scenario sintetico con Oro/Obbligazioni iniettati attivi (poi
+ripristinati, verificati byte-identici agli originali) — nessuna
+eccezione in nessuno dei due casi. 21/21 test engine invariati.
+
+## 20. Anello proporzionale al vero tetto (25%), rimozione card residue, Radar, uniformità treemap, striscia Metriche (2026-08-28)
+
+Su richiesta esplicita dell'utente, quattro interventi distinti.
+
+**1. Anello del cockpit — riempimento proporzionale al 25% (il vero
+tetto), non più un disco pieno/vuoto.** L'utente ha notato Azioni e
+Bitcoin entrambi al 19% con l'anello "tutto pieno" e ha chiesto se 19%
+fosse un massimo. Verificato in `apex_v2_engine.py`: `base_weight[cls] =
+0.25 if is_active` — ogni classe attiva parte da un peso di base uguale
+del 25%, poi **tutte** le classi attive vengono scalate dallo stesso
+fattore di vol-target (`scale = min(1.0, V2_VOL_TARGET/port_vol)`, mai
+sopra 1.0). Quindi **25% è davvero il tetto per classe** (raggiunto solo
+quando il fattore di scala è 1.0, cioè quando la volatilità di
+portafoglio è già sotto il target senza bisogno di ridurre l'esposizione).
+Azioni e Bitcoin erano uguali non per un limite condiviso ma perché
+partono dallo stesso 25% base e vengono scalati allo stesso modo. Il
+disco ora si riempie con `conic-gradient` in proporzione a `alloc% / 25%`
+— un solo elemento div, nessuna sovrapposizione (`ring_badge()`
+aggiornata, vedi `V2_MAX_BASE_ALLOC_PCT` in app.py). Percentuale scritta
+rimossa dal testo della pill: il numero esatto resta nella tabella
+posizioni. Aggiunta anche una frase sul 25% base nella card
+"Vol-Targeting" della Guida (mancava del tutto).
+**2. Card residue eliminate, informazione spostata nella tabella.** La
+card "Rendimento Galleggiante" (P&L aggregato) è stata sostituita da una
+riga "TOTALE" in fondo alla tabella "Tutte le posizioni" (Peso=100%,
+Rendimento% = P&L aggregato), calcolata dagli stessi dati invece che in
+un riquadro separato — riga in grassetto con bordo superiore per
+distinguerla. La colonna capitale/valuta non ha più bisogno dello split a
+due colonne (`c_inp`/`c_pnl`) dato che non c'è più una card accanto.
+**3. Radar rimosso.** Su giudizio esplicito dell'utente ("non ha valore")
+— l'intera sezione (basket in arrivo, candidati NUOVO/IN PORTAFOGLIO) è
+stata tolta, incluso il codice ora morto (`held_tickers`,
+`style_radar_stato`, `df_radar_eq`).
+**4. Colori/font del treemap uniformati al resto dell'app.** Il bordo tra
+i riquadri usava un nero puro (`rgba(0,0,0,0.35)`) invece del tono
+grigio-neutro (`rgba(128,128,128,…)`) usato ovunque altro per i bordi —
+cambiato in `rgba(128,128,128,0.35)`, stessa tinta di `BORDER`/`SURFACE`
+con opacità più alta per separare riquadri colorati pieni. Font del testo
+nei riquadri e della pathbar cambiato da Inter a 'JetBrains Mono' (i
+numeri, ovunque nell'app, sono sempre in monospace — i riquadri
+mescolavano etichetta+numero nello stesso font Inter). La scala colori
+rosso/grigio/verde (`#7F1D1D`/`#374151`/`#065F46`) restava invece già
+coerente: sono le stesse tinte usate per gli sfondi dei badge KPI
+(ECCELLENTE/ATTENZIONE/ecc.), un sistema a due livelli già esistente
+(colori accesi POS/NEG per il testo, tinte scure per gli sfondi pieni con
+testo chiaro sopra) — non serviva cambiarle, solo il bordo e il font.
+**5. Metriche: 9 card → 1 striscia.** Le 6 card KPI (Rendimento Lordo,
+CAGR, Win Rate, Profit Factor, Payoff Ratio, Max Drawdown) e le 3 card
+statistiche trade (Miglior/Peggior Trade, Durata Media) erano 9 riquadri
+bordati separati — stesso pattern già applicato al cockpit e alla tabella
+posizioni: un solo contenitore con divisori verticali interni (`kpi_item()`),
+non 9 box ripetuti. Stessi dati, stessa logica di calcolo, badge
+qualitativi invariati.
+
+**Verifica**: `py_compile` pulito, `AppTest` su dati reali senza
+eccezioni, riga TOTALE verificata a mano su uno script standalone (P&L
+aggregato $656.19 / +0.66% su dati reali di `portfolio.json`, coerente
+sia calcolato direttamente sia ricavato dalla formula generica peso%→
+valore→rendimento$ usata per ogni riga della tabella). 21/21 test engine
+invariati.
