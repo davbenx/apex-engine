@@ -1,7 +1,6 @@
 import base64
 import datetime
 import json
-import math
 import os
 import urllib.request
 
@@ -104,18 +103,17 @@ def monogram(text, active=True, size=26):
     return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {color}; color:{color}; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
 
 
-def ring_svg(pct, active, size=30, stroke=3):
+def ring_svg(active, size=30, stroke=3):
+    """Anello pieno: il colore da solo e' il segnale di stato (verde=attiva,
+    grigio=in pausa). Un riempimento parziale legato al peso% era illeggibile
+    per classi con peso basso (es. 19%: l'arco verde era troppo sottile per
+    essere notato a colpo d'occhio) — il peso% resta comunque leggibile come
+    cifra accanto all'anello, non serve ripeterlo nel disegno."""
     r = (size - stroke) / 2.0
-    circumference = 2 * math.pi * r
-    frac = max(0.0, min(1.0, pct / 100.0))
-    offset = circumference * (1 - frac)
     color = POS if active else NEUTRAL_DOT
     c = size / 2.0
     return f'''<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="flex-shrink:0;">
-        <circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="rgba(128,128,128,0.15)" stroke-width="{stroke}"/>
-        <circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="{color}" stroke-width="{stroke}"
-            stroke-dasharray="{circumference:.2f}" stroke-dashoffset="{offset:.2f}"
-            stroke-linecap="round" transform="rotate(-90 {c} {c})"/>
+        <circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="{color}" stroke-width="{stroke}"/>
     </svg>'''
 
 
@@ -179,13 +177,30 @@ def calculate_days(entry_date_str):
         return 0
 
 
+MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
+
+
 def format_date_italian(d_str):
     try:
         dt = datetime.datetime.strptime(d_str, "%Y-%m-%d")
-        mesi = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
-        return f"{dt.day} {mesi[dt.month-1]} {dt.year}"
+        return f"{dt.day} {MESI_IT[dt.month-1]} {dt.year}"
     except Exception:
         return d_str
+
+
+def parse_sync_timestamp(ts_str):
+    """Il backend genera il timestamp in inglese (strftime %b, locale server)."""
+    try:
+        return datetime.datetime.strptime(ts_str, "%d %b %Y, %H:%M (UTC)")
+    except Exception:
+        return None
+
+
+def format_sync_timestamp_italian(ts_str):
+    dt = parse_sync_timestamp(ts_str)
+    if not dt:
+        return ts_str
+    return f"{dt.day} {MESI_IT[dt.month-1]} {dt.year}, {dt.strftime('%H:%M')} UTC"
 
 
 def get_logo_b64():
@@ -203,6 +218,17 @@ def get_logo_b64():
 # HEADER & BRANDING
 # ==============================================================================
 last_update = data.get("timestamp", "Sincronizzazione in corso...")
+last_update_display = format_sync_timestamp_italian(last_update)
+
+# "Motore Attivo" e' un segnale reale, non decorativo: confronta l'eta' del
+# timestamp di sync con la cadenza attesa (Lun-Ven). Oltre 4 giorni (copre un
+# weekend + un giorno di margine) senza aggiornamento -> stato di ritardo.
+_sync_dt = parse_sync_timestamp(last_update)
+_days_stale = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - _sync_dt).days if _sync_dt else None
+engine_is_fresh = _days_stale is None or _days_stale <= 4
+engine_status_text = "Motore Attivo" if engine_is_fresh else f"Ricalcolo in ritardo ({_days_stale}g)"
+engine_status_color = POS if engine_is_fresh else NEG
+
 logo_b64 = get_logo_b64()
 logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 75px; width: auto; object-fit: contain;" />' if logo_b64 else monogram("AE", active=True, size=52)
 
@@ -232,12 +258,12 @@ with col_meta:
                 Notifiche Telegram →
             </a>
             <span style="display:inline-flex; align-items:center; gap:5px; background: rgba(128,128,128,0.08); color: {MUTED}; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid {BORDER};">
-                <span style="width:6px; height:6px; border-radius:50%; background:{POS}; display:inline-block;"></span> Motore Attivo
+                <span style="width:6px; height:6px; border-radius:50%; background:{engine_status_color}; display:inline-block;"></span> {engine_status_text}
             </span>
         </div>
         <div style="opacity: 0.65; font-size: 11.5px; line-height: 1.4;">
-            <strong>Aggiornato:</strong> {last_update}<br>
-            <strong>Ricalcolo:</strong> Lun-Ven 23:00 UTC
+            <strong>Aggiornato:</strong> {last_update_display}<br>
+            <strong>Prezzi e NAV:</strong> aggiornati Lun-Ven · <strong>Decisioni:</strong> ultimo venerdì del mese
         </div>
     </div>
     """)
@@ -265,7 +291,7 @@ def cockpit_pill(mono_text, label, alloc_pct, is_active, since_date, is_cash=Fal
         fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
         state_text = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
 
-    ring = ring_svg(alloc_pct, is_active and not is_cash)
+    ring = ring_svg(is_active and not is_cash)
     return f"""
     <div style="display:flex; align-items:center; gap:9px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 7px 12px 7px 8px; min-width: 172px;">
         <div style="position:relative; width:30px; height:30px;">
@@ -441,54 +467,51 @@ with tab_pf:
     # --- Treemap: allocazione + performance in un solo colpo d'occhio.
     # Basato sui pesi di strategia (indipendente dal capitale inserito sotto),
     # cosi' resta la prima cosa visibile aprendo la tab.
-    tm_ids, tm_labels, tm_parents, tm_values, tm_colors, tm_text, tm_hover = [], [], [], [], [], [], []
+    # Un solo riquadro per classe (niente drill-down per singolo titolo: con
+    # 15 posizioni azionarie a peso comparabile a un'unica classe come
+    # Bitcoin, le sotto-celle risultavano troppo piccole per mostrare testo
+    # leggibile — il dettaglio per titolo resta nella tabella subito sotto).
+    # Il testo di ogni riquadro riporta ESPLICITAMENTE "peso% · rendimento%":
+    # l'area del riquadro da sola non basta a comunicare il peso in modo
+    # inequivocabile (un rendimento di +0.00% su una posizione appena aperta
+    # non va confuso con un peso dello 0%).
+    tm_labels, tm_values, tm_colors, tm_text, tm_hover = [], [], [], [], []
 
     if op_eq:
         eq_weight_total = sum(r.get("Peso (%)", 0.0) for r in op_eq)
         eq_pnl_weighted = (sum(r["Rendimento %"] * r.get("Peso (%)", 0.0) for r in op_eq) / eq_weight_total) if eq_weight_total > 0 else 0.0
-        tm_ids.append("AZIONARIO"); tm_labels.append("AZIONARIO"); tm_parents.append("")
-        tm_values.append(eq_weight_total); tm_colors.append(eq_pnl_weighted)
-        tm_text.append(f"{eq_pnl_weighted:+.2f}%")
-        tm_hover.append(f"Azionario — {eq_weight_total:.1f}% del portafoglio<br>Rendimento medio ponderato: {eq_pnl_weighted:+.2f}%")
-        for r in op_eq:
-            tm_ids.append(f"AZ::{r['Titolo']}"); tm_labels.append(r["Titolo"]); tm_parents.append("AZIONARIO")
-            tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
-            tm_text.append(f"{r['Rendimento %']:+.2f}%")
-            tm_hover.append(f"{r['Titolo']} — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
+        tm_labels.append("AZIONARIO"); tm_values.append(eq_weight_total); tm_colors.append(eq_pnl_weighted)
+        tm_text.append(f"{eq_weight_total:.1f}% · {eq_pnl_weighted:+.2f}%")
+        tm_hover.append(f"Azionario ({len(op_eq)} titoli) — {eq_weight_total:.1f}% del portafoglio<br>Rendimento medio ponderato: {eq_pnl_weighted:+.2f}%<br>Dettaglio per titolo nella tabella sotto")
 
     if op_cr:
         r = op_cr[0]
-        tm_ids.append("BITCOIN"); tm_labels.append("BITCOIN"); tm_parents.append("")
-        tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
-        tm_text.append(f"{r['Rendimento %']:+.2f}%")
+        tm_labels.append("BITCOIN"); tm_values.append(r.get("Peso (%)", 0.0)); tm_colors.append(r["Rendimento %"])
+        tm_text.append(f"{r.get('Peso (%)', 0.0):.1f}% · {r['Rendimento %']:+.2f}%")
         tm_hover.append(f"Bitcoin — {r.get('Peso (%)', 0.0):.1f}% del portafoglio<br>Rendimento: {r['Rendimento %']:+.2f}%")
 
     if alloc.get('Gold', 0) > 0:
         _gd = open_pos_raw.get("GLD")
         _g_pct = (((_gd.get("current_price", _gd.get("entry_price", 0.0)) / _gd["entry_price"]) - 1.0) * 100) if _gd and _gd.get("entry_price", 0) > 0 else 0.0
-        tm_ids.append("ORO"); tm_labels.append("ORO"); tm_parents.append("")
-        tm_values.append(alloc.get('Gold', 0)); tm_colors.append(_g_pct)
-        tm_text.append(f"{_g_pct:+.2f}%")
+        tm_labels.append("ORO"); tm_values.append(alloc.get('Gold', 0)); tm_colors.append(_g_pct)
+        tm_text.append(f"{alloc.get('Gold', 0):.1f}% · {_g_pct:+.2f}%")
         tm_hover.append(f"Oro — {alloc.get('Gold', 0):.1f}% del portafoglio<br>Rendimento: {_g_pct:+.2f}%")
 
     if alloc.get('Bonds', 0) > 0:
         _bd = open_pos_raw.get("IEF")
         _b_pct = (((_bd.get("current_price", _bd.get("entry_price", 0.0)) / _bd["entry_price"]) - 1.0) * 100) if _bd and _bd.get("entry_price", 0) > 0 else 0.0
-        tm_ids.append("OBBLIGAZIONI"); tm_labels.append("OBBLIGAZIONI"); tm_parents.append("")
-        tm_values.append(alloc.get('Bonds', 0)); tm_colors.append(_b_pct)
-        tm_text.append(f"{_b_pct:+.2f}%")
+        tm_labels.append("OBBLIGAZIONI"); tm_values.append(alloc.get('Bonds', 0)); tm_colors.append(_b_pct)
+        tm_text.append(f"{alloc.get('Bonds', 0):.1f}% · {_b_pct:+.2f}%")
         tm_hover.append(f"Obbligazioni — {alloc.get('Bonds', 0):.1f}% del portafoglio<br>Rendimento: {_b_pct:+.2f}%")
 
     if alloc.get('Cash', 0) > 0:
-        tm_ids.append("MONETARIO"); tm_labels.append("MONETARIO"); tm_parents.append("")
-        tm_values.append(alloc.get('Cash', 0)); tm_colors.append(0.0)
-        tm_text.append("—")
-        tm_hover.append(f"Monetario — {alloc.get('Cash', 0):.1f}% del portafoglio")
+        tm_labels.append("MONETARIO"); tm_values.append(alloc.get('Cash', 0)); tm_colors.append(0.0)
+        tm_text.append(f"{alloc.get('Cash', 0):.1f}%")
+        tm_hover.append(f"Monetario — {alloc.get('Cash', 0):.1f}% del portafoglio (liquidità, nessun rendimento)")
 
-    if tm_ids:
+    if tm_labels:
         fig_tm = go.Figure(go.Treemap(
-            ids=tm_ids, labels=tm_labels, parents=tm_parents, values=tm_values,
-            branchvalues="total",
+            labels=tm_labels, parents=[""] * len(tm_labels), values=tm_values,
             marker=dict(
                 colors=tm_colors,
                 colorscale=[[0, "#7F1D1D"], [0.5, "#374151"], [1, "#065F46"]],
@@ -499,10 +522,9 @@ with tab_pf:
             hovertext=tm_hover,
             hoverinfo="text",
             textinfo="label+text",
-            textfont=dict(color="#F3F4F6", family="Inter, sans-serif", size=12),
-            pathbar=dict(visible=True, textfont=dict(size=11)),
+            textfont=dict(color="#F3F4F6", family="Inter, sans-serif", size=13),
         ))
-        fig_tm.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=270, paper_bgcolor='rgba(0,0,0,0)')
+        fig_tm.update_layout(margin=dict(l=2, r=2, t=4, b=2), height=220, paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_tm, use_container_width=True)
 
     st.write("")
@@ -596,7 +618,7 @@ with tab_pf:
             pnl_col = MUTED
             pnl_val_str = f"{curr_sym}0"
             pnl_pct_str = "0.00%"
-            sub_text = "Nessuna posizione aperta (attesa venerdì)"
+            sub_text = "Nessuna posizione aperta (attesa prossimo ribilanciamento mensile)"
 
         st_html(f"""
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 16px; margin-top: 2px;">
@@ -713,10 +735,20 @@ with tab_pf:
 # TAB 2: METRICHE (EQUITY CURVE, DRAWDOWN, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
+    eq_curve = load_equity()
+
+    # Intervallo calcolato dai dati reali, non un valore fisso in testo che
+    # sarebbe rimasto scorretto ogni mese che passa.
+    track_record_range_str = ""
+    if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
+        _hist_dates = pd.to_datetime([h["date"] for h in eq_curve["history"]])
+        _d0, _d1 = _hist_dates.min(), _hist_dates.max()
+        track_record_range_str = f" ({MESI_IT[_d0.month-1]} {_d0.year} – {MESI_IT[_d1.month-1]} {_d1.year})"
+
     st_html(f"""
     <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
         <div>
-            <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">SIMULAZIONE QUANTITATIVA & TRACK RECORD (Feb 2024 – Ago 2026)</span>
+            <span style="font-size: 13px; font-weight: 700; color: {ACCENT};">SIMULAZIONE QUANTITATIVA & TRACK RECORD{track_record_range_str}</span>
             <div style="font-size: 11px; opacity: 0.65; margin-top: 2px;">Serie storica a regole fisse deterministiche su dati storici di mercato · Reinvestimento composto</div>
         </div>
         <span style="background: rgba(59, 130, 246, 0.12); color: {ACCENT}; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;">BASE 100 · BACKTEST OUT-OF-SAMPLE</span>
@@ -753,7 +785,6 @@ with tab_perf:
             return pd.DataFrame()
 
     df_spy = load_benchmark()
-    eq_curve = load_equity()
 
     total_ret_pct = 0.0
     cagr_pct = 0.0
@@ -1097,7 +1128,7 @@ with tab_guide:
     <div style="background: rgba(0, 136, 204, 0.06); border: 1px solid rgba(0, 136, 204, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
             <div style="font-weight: 700; font-size: 14px; color: #0088cc; margin-bottom: 2px;">Canale Ufficiale Notifiche Telegram</div>
-            <div style="font-size: 12.5px; opacity: 0.8;">Ricevi in tempo reale i cambi di mercato, gli ordini di rotazione e i livelli di protezione aggiornati.</div>
+            <div style="font-size: 12.5px; opacity: 0.8;">Ricevi in tempo reale i cambi di allocazione e gli ordini di rotazione.</div>
         </div>
         <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700;">
             Unisciti al canale →
@@ -1105,20 +1136,20 @@ with tab_guide:
     </div>
     ''')
 
-    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">Regole Operative</div>')
+    st_html('<div style="font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px;">Cadenza Operativa</div>')
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">1. Controllo mensile</div>
-            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">L'ultimo venerdì del mese l'app vende i titoli deboli e li sostituisce con i nuovi primi in classifica per mantenere il portafoglio forte.</div>
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">Ogni giorno (Lun-Ven)</div>
+            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Prezzi e NAV vengono aggiornati. Nessuna decisione di trading in questa fase — solo osservazione.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">2. Controllo settimanale</div>
-            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni venerdì aggiorna i livelli di protezione. Se in settimana sono state chiuse delle posizioni, queste vengono sostituite con nuovi ingressi.</div>
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">Ultimo venerdì del mese</div>
+            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Il segnale macro di ogni classe viene ricontrollato (attiva/in pausa) e il peso complessivo viene riscalato per centrare il target di volatilità. Non esiste un controllo settimanale intermedio: le decisioni sono solo qui.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">3. Cambi di Mercato</div>
-            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Se l'app spegne un settore, viene liquidato interamente il venerdì. Se il prezzo crolla sotto il livello di protezione, l'app chiude l'investimento.</div>
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 6px;">Ultimo venerdì del trimestre</div>
+            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">In aggiunta al ribilanciamento mensile, il basket azionario viene rinnovato: i titoli con volatilità realizzata più alta escono, i nuovi primi in classifica entrano. Nessuno stop-loss per singola posizione: l'uscita avviene solo per rotazione o disattivazione della classe.</div>
         </div>
     </div>
     """)
@@ -1141,7 +1172,7 @@ with tab_guide:
                 <span style="font-weight: 700; font-size: 13px;">Azioni</span>
                 <span style="background: rgba(128,128,128,0.15); color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">BASKET BASSA VOL</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Attiva se SPY è sopra la media mobile a 40 settimane (con isteresi adattiva).</div>
+            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Attiva se SPY è sopra le medie mobili a 40 E 20 settimane insieme (conferma multi-timeframe, isteresi adattiva sulla banda).</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -1175,12 +1206,12 @@ with tab_guide:
 
     <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
         <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Selezione del Basket Azionario</div>
-        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile.</div>
+        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile. Massimo 2 titoli per settore, per non concentrare il basket su un solo comparto.</div>
     </div>
 
     <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
         <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 4px;">Vol-Targeting di Portafoglio</div>
-        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">L'esposizione aggregata alle classi rischiose viene scalata mensilmente per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §4).</div>
+        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">L'esposizione aggregata alle classi rischiose viene scalata mensilmente per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §3).</div>
     </div>
     ''')
 

@@ -1059,3 +1059,124 @@ toccata da questa modifica, solo verifica di non regressione). La
 logica di filtro colonne compatta/estesa della tabella Azionario è stata
 inoltre validata direttamente su pandas con i dati reali di
 `portfolio.json`, per entrambi i rami — nessun `KeyError`.
+
+## 15. Due bug di leggibilità in §14 — corretti (2026-08-28)
+
+Segnalati dall'utente osservando la dashboard reale (dati live del giorno:
+Azioni 19.29% attiva, Bitcoin 19.29% attivo, Monetario 61.41%, Oro e
+Obbligazioni 0% in pausa).
+
+**1. Anello del cockpit — verde invisibile.** Il riempimento dell'anello era
+proporzionale al peso % (via `stroke-dasharray`/`stroke-dashoffset`). Con un
+peso del 19% l'arco verde copriva solo ~19% della circonferenza — troppo
+sottile su un anello da 30px per essere notato a colpo d'occhio,
+specialmente su sfondo scuro. La dimostrazione confermava il calcolo
+corretto (`stroke-dashoffset` giusto, colore `#10B981` giusto), ma il
+risultato percettivo falliva l'unico scopo del cockpit: far vedere subito
+se una classe è attiva. **Corretto**: `ring_svg()` ora disegna sempre un
+cerchio intero (nessun `stroke-dasharray`), il colore da solo è il segnale
+di stato — il peso % resta leggibile, ma come cifra accanto all'anello, non
+codificato nel disegno. Rimossa anche la dipendenza da `math` (non più
+necessaria).
+
+**2. Treemap — "nessun dato su Azioni", "0% su Bitcoin".** Due problemi
+distinti, stessa causa: il treemap aveva un drill-down per singolo titolo
+(`AZ::<ticker>`, 15 figli sotto il nodo Azionario), e mostrava solo il
+rendimento % come testo di ogni riquadro (mai il peso %). Con Azionario e
+Bitcoin allo stesso peso complessivo (19.29% ciascuno) ma Azionario diviso
+in 15 sotto-celle da ~1.3% l'una, quelle sotto-celle erano troppo piccole
+per mostrare testo leggibile — Plotly nasconde automaticamente le etichette
+che non entrano nel riquadro, quindi il blocco Azionario appariva vuoto.
+Bitcoin, appena entrato in portafoglio con `entry_price == current_price`,
+mostrava "+0.00%" (il suo rendimento, correttamente zero) ma essendo
+l'unico numero visibile nel riquadro poteva essere letto come "0% di
+peso" invece che "0% di rendimento". **Corretto**: rimosso il drill-down
+per titolo (il dettaglio per titolo è già nella tabella Azionario subito
+sotto, non serve duplicarlo in un treemap troppo affollato per mostrarlo
+bene); ogni riquadro ora mostra esplicitamente "peso% · rendimento%"
+(es. "19.3% · +0.00%"), eliminando l'ambiguità.
+
+Verificato con `py_compile`, `AppTest` sui dati reali di produzione, e
+ispezione diretta dell'HTML/dati generati (SVG dell'anello, valori/testi
+del treemap) per i valori attuali (Azioni 19.29%, Bitcoin 19.29%,
+Monetario 61.41%). 21/21 test engine invariati. Aggiornato anche l'artifact
+di spiegazione del cockpit pubblicato in chat, che nel frattempo usava
+`stroke="var(--pos)"` dentro un attributo SVG — non un bug della dashboard
+reale (che usa colori esadecimali letterali, non variabili CSS), ma un
+rischio di affidabilità cross-browser evitabile, sistemato per coerenza.
+
+## 16. Audit completo testi + coerenza dati col motore reale (2026-08-28)
+
+Su richiesta esplicita dell'utente: rilettura di ogni stringa visibile in
+`app.py` verificata contro il comportamento REALE di `backend.py` e
+`apex_v2_engine.py` (non contro quello che si presumeva fosse), più
+eliminazione di ridondanze e testo obsoleto.
+
+**Errori fattuali trovati e corretti (i più rilevanti):**
+
+1. **Cadenza operativa completamente sbagliata in Guida.** Il testo
+   descriveva un "controllo settimanale" con aggiornamento di "livelli di
+   protezione" (stop-loss) ogni venerdì. Verificato in `backend.py`
+   (`is_rebalancing_schedule()`, `should_decide`): non esiste alcun
+   controllo settimanale distinto — le uniche decisioni di trading
+   avvengono **una volta al mese**, l'ultimo venerdì (`is_rotation`), con
+   la rotazione del basket azionario come sottoinsieme di quei giorni
+   quando cade anche a fine trimestre. Il resto della settimana (Lun-Ven)
+   il motore aggiorna solo prezzi/NAV (`mark_to_market_and_compound_nav`),
+   nessun trade. E lo stop-loss per singola posizione **non esiste in v2**
+   — la card "Vol-Targeting" nella stessa tab lo dichiarava già
+   correttamente ("non esiste uno stop-loss per singola posizione: testato
+   esplicitamente e respinto"), quindi il vecchio testo "Regole Operative"
+   si contraddiceva con un'altra card della stessa pagina. Riscritto come
+   "Cadenza Operativa" con 3 voci verificate contro il codice: giornaliero
+   (prezzi/NAV, nessuna decisione), ultimo venerdì del mese (segnale +
+   vol-target), ultimo venerdì del trimestre (rotazione basket).
+2. **Riferimento a sezione sbagliata**: la card Vol-Targeting rimandava a
+   "APEX_V2_SPEC.md §4" (che è in realtà "Selezione del basket azionario")
+   invece di §3 ("Vol-targeting di portafoglio"). Corretto.
+3. **Descrizione del segnale incompleta**: il testo diceva "media mobile a
+   40 settimane" senza menzionare che dal §8.9 il segnale richiede la
+   CONFERMA di MA40w **e** MA20w insieme (multi-timeframe, verificato in
+   `apex_v2_engine.py` — `V2_SHORT_MA_WEEKS=20`). Corretto.
+4. **Cap settore mancante**: `V2_MAX_PER_SECTOR=2` è una regola reale di
+   costruzione del basket (mai più di 2 titoli per settore) non
+   menzionata da nessuna parte in Guida. Aggiunta alla card "Selezione del
+   Basket Azionario".
+5. **Data del track record in testo fisso**: "(Feb 2024 – Ago 2026)" era
+   una stringa statica nel banner di Tab Metriche — sarebbe rimasta
+   scorretta a ogni mese che passa. Ora calcolata dinamicamente dal primo/
+   ultimo giorno reale di `equity.json`.
+6. **Timestamp di sync in inglese in una UI italiana**: il backend genera
+   `"27 Aug 2026, 23:42 (UTC)"` (mese in inglese, locale del server) e
+   veniva mostrato cosi' com'era nell'header. Aggiunto
+   `format_sync_timestamp_italian()` per convertirlo coerentemente col
+   resto della UI ("27 Ago 2026, 23:42 UTC").
+7. **"Motore Attivo" era decorazione statica, sempre verde**, senza alcun
+   controllo reale dietro. Ora calcolato dall'età del timestamp di sync:
+   oltre 4 giorni senza aggiornamento (copre un weekend + un giorno di
+   margine) mostra "Ricalcolo in ritardo (Ng)" invece di affermare uno
+   stato che nessuno stava verificando.
+8. **Testo Telegram e card fallback** ripulite dallo stesso riferimento a
+   "livelli di protezione" inesistenti.
+
+**Ridondanze valutate e non rimosse (motivate):** il peso % di ogni classe
+compare sia nel cockpit (sopra le tab, sempre visibile) sia nel treemap
+(dentro Tab Portafoglio) — non unificato perché il cockpit ha uno scopo
+diverso (stato visibile da qualsiasi tab, senza dover entrare in
+Portafoglio) rispetto al treemap (composizione + performance quando sei
+già in quella tab); è la stessa cifra vista da due schermate diverse, non
+un doppione nello stesso schermo. La card "Rendimento Galleggiante"
+(aggregato) e le card per singolo asset (dettaglio) restano entrambe per
+lo stesso motivo — sintesi vs dettaglio, non lo stesso livello di
+informazione ripetuto due volte.
+
+**Codice**: rimossa una chiamata duplicata a `load_equity()` (stessa
+funzione invocata due volte nello stesso run di `tab_perf`, innocua per la
+cache ma inutile). Sostituito `datetime.datetime.utcnow()` (deprecato) con
+l'equivalente timezone-aware.
+
+**Verifica**: `py_compile` pulito, nessun warning di deprecazione residuo,
+`AppTest` su dati reali senza eccezioni, timestamp/date-range verificati
+con un piccolo script standalone contro `apex_data.json`/`equity.json`
+reali (formattazione italiana corretta, 0 giorni di ritardo rilevati
+correttamente su dato fresco). 21/21 test engine invariati.
