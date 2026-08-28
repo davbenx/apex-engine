@@ -246,8 +246,24 @@ candidati dopo il deploy, entrambi respinti:
   significativi), eventi tassabili/anno 23.4→27.9/26.3. Nessun compenso nei
   regimi difficili (Bear 2022: -7.9% baseline vs -8.4%/-8.7% con più crypto).
   BTC-only domina su tutta la linea. Scartate entrambe.
+- **Risk parity tra classi** (peso base inversamente proporzionale alla
+  volatilità di ciascuna classe — Equity/Bonds/Gold/Crypto — invece di peso
+  uguale tra le classi attive, prima dell'overlay di vol-target di portafoglio;
+  script `class_risk_parity_test.py`): motivata dall'osservazione che BTC
+  (18% su una sola posizione) e i singoli titoli del basket (1,2% ciascuno)
+  hanno taglie molto diverse. Risultato negativo su ogni fronte: CAGR
+  14,92%→9,15%, Sharpe 1,39→1,02, Calmar 0,94→0,40, **MaxDD peggiora**
+  (15,9%→22,8%, il contrario di quanto la risk parity dovrebbe fare), alpha
+  10,64%→4,90% (resta significativo ma molto più debole). Causa: la risk
+  parity ha spostato il peso medio di IEF dal 12,3% al 36,4% proprio perché le
+  obbligazioni avevano bassa volatilità storica — subito prima del 2022, dove
+  il rialzo dei tassi le ha colpite duramente (Bear 2022: -17,9% vs il -7,9%
+  del disegno deployato). Fallimento classico della risk parity ingenua: pesa
+  per la calma recente, non per il rischio futuro. Scartata — l'asimmetria di
+  taglia tra posizioni (classi a peso uguale, poi diversificazione solo dentro
+  lo slot Equity) è per costruzione, non un problema da correggere.
 
-**Nota metodologica:** dopo 13 tentativi di miglioramento testati sullo stesso
+**Nota metodologica:** dopo 14 tentativi di miglioramento testati sullo stesso
 campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
 contro il rischio di data-snooping crescente (lo stesso principio che ha già
 smascherato il motore di selezione titoli v1). Il disegno deployato resta quello
