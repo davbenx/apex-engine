@@ -281,7 +281,26 @@ candidati dopo il deploy, entrambi respinti:
   conviction ridotta (volatilità di classe più alta), l'opposto dello scopo
   del vol-targeting stesso.
 
-**Nota metodologica:** dopo 14 tentativi di miglioramento testati sullo stesso
+- **Ampiezza del basket scalata al contrario, con la volatilità realizzata
+  invece che con lo slot** (su domanda esplicita dell'utente: l'opposto del
+  test precedente — più posizioni quando la volatilità è alta, meno quando è
+  bassa, mantenendo l'esposizione totale in $ allo slot Equities identica a
+  oggi — script `equity_breadth_vol_scaling_test.py`): `n_names` mappato
+  (via interpolazione) sui percentili storici della volatilità realizzata a
+  12 settimane di SPY (p10→pavimento, p50→15 = valore deployato,
+  p90→soffitto), verificato su 3 calibrazioni pavimento/soffitto diverse
+  (10-20, 8-25, 12-18) per escludere un punto isolato fortunato. Risultato
+  **neutro-leggermente peggiore su tutte e 3 le calibrazioni**: CAGR/alpha/
+  Sharpe indistinguibili dal rumore statistico rispetto al disegno
+  deployato, ma Calmar e MaxDD costantemente un poco peggiori (stessa
+  direzione in tutte e 3 le calibrazioni, non un caso isolato) e il
+  risparmio di eventi tassabili è marginale (2-3%, non il ~19% visto nella
+  variante precedente). Scartata: la volatilità di SPY (segnale di classe) è
+  un proxy debole e in ritardo per il rischio di concentrazione che conta
+  davvero dentro il basket — variare l'ampiezza in base ad essa aggiunge
+  complessità senza un beneficio reale in-sample.
+
+**Nota metodologica:** dopo 16 tentativi di miglioramento testati sullo stesso
 campione di 12 anni, tutti respinti o neutri, ulteriori tentativi vanno pesati
 contro il rischio di data-snooping crescente (lo stesso principio che ha già
 smascherato il motore di selezione titoli v1). Il disegno deployato resta quello
@@ -815,11 +834,83 @@ dashboard in questa stessa sessione (una classe in pausa è spesso una
 postura difensiva corretta, non una cattiva notizia). Sostituito con ⚪,
 coerente con `app.py`.
 
-Nessun cambio alla logica di trigger dell'invio (`is_friday or
-macro_events or has_orders`, invariata) né al contenuto salvato in
+Nessun cambio, in questo intervento, al contenuto salvato in
 `action_log`/`portfolio.json` (la stringa con le emoji originali resta
 quella mostrata nella dashboard — solo la versione inviata a Telegram viene
-ripulita localmente prima dell'invio).
+ripulita localmente prima dell'invio). La logica di trigger dell'invio
+(`is_friday or macro_events or has_orders` a quel momento) è stata invece
+corretta subito dopo — vedi §8.13, dove si è scoperto un bug reale proprio
+in quel trigger.
+
+### 8.13 Bug di produzione trovato e corretto — decisione mensile e alert Telegram ancorati al giorno sbagliato
+
+Innescato da una domanda diretta dell'utente ("stanotte l'app si è
+aggiornata ed è stato mandato il messaggio telegram?"). Verificato via API
+GitHub (workflow riuscito, commit pushato con successo) che l'esecuzione
+notturna era andata a buon fine, ma **nessun messaggio Telegram era stato
+inviato** quella notte.
+
+**Causa, in due parti collegate:** `is_rebalancing_schedule()` calcola
+`is_friday` dal giorno della settimana **al momento reale dell'esecuzione**,
+non dallo slot di cron che l'ha innescata. I workflow schedulati di GitHub
+Actions possono slittare di ore rispetto all'orario dichiarato (`0 23 * *
+1-5`, verificato con i timestamp reali delle ultime esecuzioni: run pensate
+per le 23:00 UTC di un giorno feriale partite invece a notte fonda, in un
+caso oltre mezzanotte). L'esecuzione pensata per l'ultimo venerdì di agosto
+2026 (28 agosto) è partita alle 03:58 UTC di **sabato 29 agosto** —
+`is_friday` è quindi risultato falso quella notte, e con esso sia il
+trigger dell'alert settimanale sia (potenzialmente, in un mese con
+slittamento peggiore) la stessa decisione mensile di ribilanciamento
+(`is_rotation`, che richiede `is_friday`).
+
+**Verificato l'impatto reale prima di correggere (per lo standing
+instruction di controllare sempre le conseguenze di un bug):** confrontando
+`apex_data.json` storico via l'API commit di GitHub, la decisione mensile
+di fine agosto **era comunque scattata** — non su questa esecuzione, ma su
+quella precedente (pensata per giovedì 27, slittata anch'essa fino alle
+06:27 UTC di **venerdì** 28 per puro caso di tempistica, quindi `is_friday`
+è risultato vero lì per coincidenza). Nessun ribilanciamento è stato perso
+questo mese, ma **solo per fortuna della direzione dello slittamento** — un
+mese in cui lo slittamento fosse stato anche di un solo giorno in più
+avrebbe potuto saltare la decisione mensile per l'intero mese, senza alcun
+segnale d'errore (il workflow risulta comunque "success"). L'alert
+Telegram settimanale, invece, è stato effettivamente saltato quella notte:
+nessun ordine, nessun cambio di regime, e nessun venerdì rilevato — le tre
+condizioni del trigger erano tutte false.
+
+**Correzione, in `backend.py`:** entrambi i controlli non dipendono più dal
+giorno della settimana al momento esatto dell'esecuzione:
+- `compute_should_decide(now_dt, prev_state, just_migrating)`: finestra
+  negli ultimi 5 giorni del mese + un flag persistito
+  (`v2_state["last_decision_month"]`) che ricorda l'ultimo mese già
+  deciso. La prima esecuzione giornaliera che cade in quella finestra
+  cattura la decisione, una sola volta per mese, indipendentemente da quale
+  giorno esatto della settimana sia quando parte davvero.
+- `compute_weekly_due(today_str, last_alert_str)`: l'heartbeat settimanale
+  ora dipende dai giorni trascorsi dall'ultimo alert Telegram **inviato con
+  successo** (persistito in `portfolio.json["last_telegram_alert_date"]`,
+  aggiornato solo se `send_telegram_alert` ritorna `True` — la funzione ora
+  restituisce lo stato di invio invece di limitarsi a stampare un log),
+  soglia di 6 giorni invece di richiedere che sia letteralmente venerdì.
+
+Entrambe le funzioni sono isolate e testabili (non richiedono più
+`datetime.now()` impliciti): 4 nuovi test in `test_backend.py` (26/26
+totali passano), inclusa la riproduzione esatta dello scenario di
+slittamento del 28-29 agosto 2026.
+
+**Bug collegato trovato durante la stessa verifica, anch'esso corretto:**
+`sync_github.py::FILES_TO_SYNC` includeva `apex_data.json`, `portfolio.json`
+ed `equity.json` — file di dati live scritti ogni notte dal workflow
+"Aggiorna Dati Apex". Un deploy di codice lanciato da questa sessione con
+una copia locale non aggiornata di questi tre file li avrebbe sovrascritti
+con dati vecchi (posizioni, NAV composto, storico equity) al prossimo push.
+Verificato retroattivamente (confronto byte-per-byte tra i commit prima/dopo
+ogni push di questa sessione via l'API GitHub) che **non è mai successo
+finora** — le copie locali erano per puro caso già allineate ad ogni push
+—, ma è un rischio strutturale reale, non solo teorico, per i push futuri.
+Corretto rimuovendo i tre file dalla lista: `sync_github.py` ora sincronizza
+solo codice/documentazione, mai dati di trading live, che restano di
+proprietà esclusiva del workflow schedulato.
 
 ---
 

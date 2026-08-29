@@ -90,6 +90,33 @@ def is_rebalancing_schedule(dt=None):
     return is_friday, is_rotation
 
 
+def compute_should_decide(now_dt, prev_state, just_migrating):
+    """Vero se e' il momento di ricalcolare la decisione mensile (segnale + eventuale
+    ribilanciamento, §6 della spec). Finestra negli ultimi 5 giorni del mese + flag
+    persistito (`last_decision_month`) invece del solo "e' venerdi' adesso": i workflow
+    schedulati di GitHub Actions possono slittare di ore, a volte oltre mezzanotte UTC —
+    un'esecuzione pensata per l'ultimo venerdi' del mese puo' partire di sabato, e con un
+    controllo sul solo giorno corrente la decisione mensile verrebbe saltata per l'intero
+    mese. Con la finestra, la prima esecuzione giornaliera negli ultimi 5 giorni del mese
+    la cattura comunque, una sola volta (vedi APEX_V2_SPEC.md §8.13)."""
+    current_month_str = now_dt.strftime("%Y-%m")
+    near_month_end = (now_dt + datetime.timedelta(days=5)).month != now_dt.month
+    return just_migrating or (near_month_end and prev_state.get("last_decision_month") != current_month_str)
+
+
+def compute_weekly_due(today_str, last_alert_str):
+    """Vero se sono passati almeno 6 giorni dall'ultimo alert Telegram inviato con
+    successo. Sostituisce il controllo "e' venerdi' adesso" per l'heartbeat settimanale,
+    per lo stesso motivo di `compute_should_decide` — vedi APEX_V2_SPEC.md §8.13."""
+    if not last_alert_str:
+        return True
+    try:
+        days_since = (datetime.datetime.strptime(today_str, "%Y-%m-%d") - datetime.datetime.strptime(last_alert_str, "%Y-%m-%d")).days
+    except ValueError:
+        return True
+    return days_since >= 6
+
+
 # ==============================================================================
 # DATA INGESTION & UNIVERSE DISCOVERY
 # ==============================================================================
@@ -472,7 +499,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
 # ==============================================================================
 # TELEGRAM NOTIFICATIONS
 # ==============================================================================
-def send_telegram_alert(data_dict, action_log):
+def send_telegram_alert(data_dict, action_log, is_rotation_now=None):
     """Notifica Telegram — due formati invece di uno solo uguale ogni volta
     (vedi APEX_V2_SPEC.md §26): breve nei venerdi' "silenziosi" (nessun
     ordine, nessun cambio di regime — la maggioranza dei casi, 3 venerdi'
@@ -490,13 +517,14 @@ def send_telegram_alert(data_dict, action_log):
 
     if not token or not chat_id:
         print("[-] Credenziali Telegram non configurate. Skip invio notifica.")
-        return
+        return False
 
     try:
         alloc = data_dict.get('allocations', {})
         macro_evs = data_dict.get('macro_events', [])
         date_str = data_dict.get('timestamp', '').split(',')[0].strip()
-        _, is_rotation_now = is_rebalancing_schedule()
+        if is_rotation_now is None:
+            _, is_rotation_now = is_rebalancing_schedule()
 
         def _dot(pct):
             return "🟢" if pct > 0 else "⚪"
@@ -550,8 +578,10 @@ def send_telegram_alert(data_dict, action_log):
         req = urllib.request.Request(url, data=payload)
         urllib.request.urlopen(req, timeout=HTTP_TIMEOUT)
         print("[+] Notifica Telegram inviata con successo.")
+        return True
     except Exception as e:
         print(f"[!] Errore invio alert Telegram: {e}")
+        return False
 
 
 # ==============================================================================
@@ -559,22 +589,22 @@ def send_telegram_alert(data_dict, action_log):
 # ==============================================================================
 def main():
     start_time = time.time()
-    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    now_dt = datetime.datetime.now()
+    today_str = now_dt.strftime("%Y-%m-%d")
     print("=== AVVIO APEX ENGINE v2 (Timing Multi-Asset + Basket Azionario Low-Vol) ===")
     print("    Vedi APEX_V2_SPEC.md per la specifica completa.")
 
-    is_friday, is_rotation = is_rebalancing_schedule()
+    is_friday, is_rotation = is_rebalancing_schedule(now_dt)
     pf_check = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
     just_migrating = not pf_check.get("v2_migrated", False)
-    # La decisione (segnale + eventuale ribilanciamento) avviene il venerdi' di fine mese
-    # (§6 della spec), MA anche subito se la migrazione da v1 non e' ancora avvenuta —
-    # altrimenti il portafoglio resterebbe nello stato v1 fino alla prossima rotazione.
-    should_decide = is_rotation or just_migrating
 
     old_data = load_json_safe(APEX_DATA_FILE, default=None)
     prev_state = (old_data or {}).get("v2_state", {}) or {}
     prev_hysteresis = prev_state.get("hysteresis", {})
     prev_basket = prev_state.get("basket", [])
+
+    current_month_str = now_dt.strftime("%Y-%m")
+    should_decide = compute_should_decide(now_dt, prev_state, just_migrating)
 
     output = {
         "macro": {},
@@ -583,7 +613,7 @@ def main():
         "macro_events": [],
         "top20": prev_basket,
         "crypto_top": (old_data or {}).get("crypto_top", []),
-        "v2_state": dict(prev_state) if prev_state else {"hysteresis": {}, "basket": [], "basket_quarter": None},
+        "v2_state": dict(prev_state) if prev_state else {"hysteresis": {}, "basket": [], "basket_quarter": None, "last_decision_month": None},
         "timestamp": datetime.datetime.now().strftime("%d %b %Y, %H:%M (UTC)"),
     }
 
@@ -601,11 +631,12 @@ def main():
         output["allocations"] = allocations
         output["v2_state"]["hysteresis"] = new_hysteresis
         output["v2_state"]["signal_debug"] = debug
+        output["v2_state"]["last_decision_month"] = current_month_str
         macro_dates, macro_events = update_macro_regimes(allocations, old_data, today_str)
         output["macro_dates"] = macro_dates
         output["macro_events"] = macro_events
     else:
-        print("    Non e' il venerdi' di fine mese: segnale non ricalcolato, resta l'ultima decisione presa.")
+        print("    Non e' negli ultimi giorni del mese (o la decisione di questo mese e' gia' stata presa): segnale non ricalcolato, resta l'ultima decisione presa.")
 
     allocations = output["allocations"]
 
@@ -685,10 +716,18 @@ def main():
     update_equity_curve(nav_usd, today_str)
 
     has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "Ribilanciamento", "Uscito")) for log in action_log)
-    if is_friday or output.get("macro_events") or has_orders:
-        send_telegram_alert(output, action_log)
+
+    pf_state = load_json_safe(PORTFOLIO_FILE, default={})
+    last_alert_str = pf_state.get("last_telegram_alert_date")
+    weekly_due = compute_weekly_due(today_str, last_alert_str)
+
+    if weekly_due or output.get("macro_events") or has_orders:
+        sent = send_telegram_alert(output, action_log, is_rotation_now=(should_decide and is_friday))
+        if sent:
+            pf_state["last_telegram_alert_date"] = today_str
+            save_json_atomic(PORTFOLIO_FILE, pf_state)
     else:
-        print("[-] Nessun alert Telegram programmato oggi (attesa venerdì o cambio regime).")
+        print("[-] Nessun alert Telegram programmato oggi (nessun ordine/cambio regime, heartbeat settimanale non ancora dovuto).")
 
     elapsed = time.time() - start_time
     print(f"=== ESECUZIONE COMPLETATA CON SUCCESSO IN {elapsed:.2f}s ===")

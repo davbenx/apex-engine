@@ -5,6 +5,7 @@ ogni notte da zero (capitale iniziale + P&L storico su base di capitale fissa),
 ignorando la crescita composta — causa di un crollo fittizio del NAV mostrato in
 dashboard il giorno della migrazione v1->v2 (vedi APEX_V2_SPEC.md §8.3-bis).
 """
+import datetime
 import json
 import os
 
@@ -233,6 +234,42 @@ def test_update_equity_curve_marks_new_entries_as_live(tmp_path):
     assert len(eq["history"]) == 2
     assert eq["history"][1]["live"] is True
     assert eq["history"][1]["close"] == 101500.0
+
+
+def test_should_decide_fires_once_in_month_end_window_even_if_execution_slips():
+    # Bug reale trovato in produzione (APEX_V2_SPEC.md §8.13): un'esecuzione schedulata
+    # pensata per l'ultimo venerdi' del mese puo' slittare oltre mezzanotte UTC e finire
+    # per partire di sabato. Con un controllo sul solo "e' venerdi' adesso" la decisione
+    # mensile verrebbe saltata per l'intero mese. La finestra deve catturarla comunque.
+    last_friday_of_aug_2026 = datetime.datetime(2026, 8, 28, 6, 27)  # slittato da venerdi' 23:00 UTC
+    saturday_after = datetime.datetime(2026, 8, 29, 3, 58)
+    prev_state = {"last_decision_month": None}
+
+    assert backend.compute_should_decide(last_friday_of_aug_2026, prev_state, just_migrating=False) is True
+    # dopo la decisione, lo stato persiste il mese gestito: la stessa finestra non
+    # ridecide una seconda volta nello stesso mese, anche se l'esecuzione successiva
+    # cade ancora dentro gli ultimi giorni del mese.
+    prev_state["last_decision_month"] = "2026-08"
+    assert backend.compute_should_decide(saturday_after, prev_state, just_migrating=False) is False
+
+
+def test_should_decide_false_mid_month():
+    mid_month = datetime.datetime(2026, 8, 15, 12, 0)
+    assert backend.compute_should_decide(mid_month, {"last_decision_month": None}, just_migrating=False) is False
+
+
+def test_should_decide_true_when_just_migrating_regardless_of_date():
+    mid_month = datetime.datetime(2026, 8, 15, 12, 0)
+    assert backend.compute_should_decide(mid_month, {"last_decision_month": "2026-08"}, just_migrating=True) is True
+
+
+def test_weekly_due_tolerates_scheduling_delay_past_a_weekday_boundary():
+    # Stesso bug lato notifica Telegram: l'heartbeat settimanale non deve dipendere da
+    # "e' venerdi' adesso" (falso se l'esecuzione slitta di sabato), ma dai giorni
+    # trascorsi dall'ultimo invio riuscito.
+    assert backend.compute_weekly_due("2026-08-29", "2026-08-22") is True  # 7gg, dovuto
+    assert backend.compute_weekly_due("2026-08-25", "2026-08-22") is False  # 3gg, non ancora
+    assert backend.compute_weekly_due("2026-08-29", None) is True  # mai inviato prima
 
 
 if __name__ == "__main__":
