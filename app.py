@@ -435,15 +435,15 @@ with tab_pf:
     is_recent_rebalance = days_since_rebalance <= 4
 
     PROXIES_DISPLAY = {
-        "GLD": "Oro (8PSE / GLD)",
-        "IEF": "Obbligazioni (LMTH / IEF)",
-        "BTC": "Bitcoin (IB1T / BTC)",
-        "Cash": "Monetario (XEON)",
+        "GLD": "Oro",
+        "IEF": "Obbligazioni",
+        "BTC": "Bitcoin",
+        "Cash": "Monetario",
     }
 
     def style_action_type(val):
         s = str(val)
-        if "CHIUSURA" in s or "TRIM" in s or "VENDITA" in s:
+        if "CHIUSURA" in s or "RIDUZIONE" in s or "TRIM" in s or "VENDITA" in s:
             return f'color: {NEG}; font-weight: 700;'
         if "APERTURA" in s or "INCREMENTO" in s or "ACQUISTO" in s:
             return f'color: {POS}; font-weight: 700;'
@@ -479,6 +479,8 @@ with tab_pf:
                 orders_rows = []
                 for o in pending_orders:
                     act_label = o.get("action", "ORDINE")
+                    if act_label == "TRIM":
+                        act_label = "RIDUZIONE"
                     tkr = o.get("ticker", "")
                     disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
                     px = o.get("price", 0.0)
@@ -491,12 +493,12 @@ with tab_pf:
 
                     orders_rows.append({
                         "Operazione": act_label,
-                        "Strumento / Proxy": disp_name,
+                        "Strumento": disp_name,
                         "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}% pf",
                         f"Controvalore ({curr_sym})": val_user,
                         "Quote": shares_str,
                         "Prezzo Rif. ($)": px,
-                        "Dettaglio Operativo": o.get("desc", ""),
+                        "Dettaglio Operativo": o.get("desc", "").replace("TRIM:", "RIDUZIONE:"),
                     })
                 df_orders = pd.DataFrame(orders_rows)
                 st.dataframe(
@@ -508,11 +510,11 @@ with tab_pf:
                     hide_index=True
                 )
             elif last_actions:
-                st.code("\n".join(last_actions), language=None)
+                st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
         else:
             with st.expander(f"Archivio ultimo ribilanciamento ({last_action_date})"):
                 st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-                st.code("\n".join(last_actions), language=None)
+                st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
 
     # --- Segnali per classe (striscia unica, non 5 riquadri) ---
     st_html(section_title("Regimi e Segnali Macro"))
@@ -591,7 +593,7 @@ with tab_pf:
     unified_rows = []
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "Azionario", "Strumento / Proxy": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
+            "Classe": "Azionario", "Strumento": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -599,7 +601,7 @@ with tab_pf:
     if op_cr:
         r = op_cr[0]
         unified_rows.append({
-            "Classe": "Bitcoin", "Strumento / Proxy": _mark("Bitcoin (IB1T / BTC)", r["Stato"] == "NUOVO"),
+            "Classe": "Bitcoin", "Strumento": _mark("Bitcoin", r["Stato"] == "NUOVO"),
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -607,27 +609,27 @@ with tab_pf:
 
     def _detail_row(classe, disp_name, detail):
         return {
-            "Classe": classe, "Strumento / Proxy": _mark(disp_name, detail["days"] <= 7),
+            "Classe": classe, "Strumento": _mark(disp_name, detail["days"] <= 7),
             "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
         }
 
     if gold_detail:
-        unified_rows.append(_detail_row("Oro", "Oro (8PSE / GLD)", gold_detail))
+        unified_rows.append(_detail_row("Oro", "Oro", gold_detail))
     if bond_detail:
-        unified_rows.append(_detail_row("Obbligazioni", "Obbligazioni (LMTH / IEF)", bond_detail))
+        unified_rows.append(_detail_row("Obbligazioni", "Obbligazioni", bond_detail))
 
     unified_rows.append({
-        "Classe": "Monetario", "Strumento / Proxy": "Monetario (XEON)",
+        "Classe": "Monetario", "Strumento": "Monetario",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
     show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
-    compact_cols = ["Classe", "Strumento / Proxy", "Peso (%)", col_val_label, "Rendimento %"]
-    full_cols = ["Classe", "Strumento / Proxy", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+    compact_cols = ["Classe", "Strumento", "Peso (%)", col_val_label, "Rendimento %"]
+    full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
 
     df_pos = pd.DataFrame(unified_rows)
@@ -660,7 +662,7 @@ with tab_pf:
     }, na_rep="—").map(
         color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]
     ).map(
-        style_titolo, subset=['Strumento / Proxy']
+        style_titolo, subset=['Strumento']
     ).map(
         style_classe, subset=['Classe']
     )
@@ -1145,7 +1147,7 @@ with tab_guide:
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px;">Azioni (S&P 500)</span>
+                <span style="font-weight: 700; font-size: 13.5px;">Azioni</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 TITOLI LOW-VOL</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale dei 15 titoli a minore oscillazione dell'S&P 500 (max 2 per settore). Efficienza fiscale massima (minusvalenze compensabili).</div>
@@ -1153,28 +1155,28 @@ with tab_guide:
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px;">Bitcoin</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">BTC-USD</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">DIGITAL ASSET</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte asimmetria dei cicli di liquidità globale. Disattivato tempestivamente durante i mercati ribassisti prolungati.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px;">Oro</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">GLD</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">COMMODITY</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Protezione contro svalutazione monetaria, inflazione e shock geopolitici. Attivo nei trend rialzisti dei metalli preziosi.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px;">Obbligazioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">IEF</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">GOVERNMENT BOND</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Titoli di Stato USA a 7-10 anni, allocati quando il trend dei tassi e del credito è favorevole.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px;">Monetario</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SHY / XEON</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">OVERNIGHT CASH</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Parcheggio sicuro per la liquidità non impiegata. Rende gli interessi di mercato a zero rischio di capitale.</div>
         </div>

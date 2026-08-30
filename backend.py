@@ -512,15 +512,15 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
 
 
 PROXIES = {
-    "GLD": {"name": "Oro", "ucits": "8PSE", "full": "Oro (8PSE / GLD)"},
-    "IEF": {"name": "Obbligazioni", "ucits": "LMTH", "full": "Obbligazioni (LMTH / IEF)"},
-    "BTC": {"name": "Bitcoin", "ucits": "IB1T", "full": "Bitcoin (IB1T / BTC)"},
-    "Cash": {"name": "Monetario", "ucits": "XEON", "full": "Monetario (XEON)"},
+    "GLD": {"name": "Oro", "full": "Oro"},
+    "IEF": {"name": "Obbligazioni", "full": "Obbligazioni"},
+    "BTC": {"name": "Bitcoin", "full": "Bitcoin"},
+    "Cash": {"name": "Monetario", "full": "Monetario"},
 }
 
 
 def get_display_ticker(ticker):
-    """Restituisce il nome dello strumento comprensivo di proxy UCITS per gli asset macro."""
+    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Bitcoin, Obbligazioni, Monetario) o il ticker per le azioni."""
     if ticker in PROXIES:
         return PROXIES[ticker]["full"]
     return ticker
@@ -586,7 +586,7 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
             action_log.append(f"CHIUSURA: {display_name} | Vende {cur_w_pct:.2f}% pf (100% posizione) | Prezzo rif: {fmt_usd(price)} | P&L: {pnl_pct:+0.2f}%")
         elif delta_w < -EPS:
             order_info = {
-                "action": "TRIM",
+                "action": "RIDUZIONE",
                 "action_type": "SELL",
                 "ticker": ticker,
                 "display_name": display_name,
@@ -598,7 +598,7 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "desc": f"Riduzione a {tgt_w_pct:.2f}% pf (-{abs(delta_w_pct):.2f}% pf)"
             }
             sells.append(order_info)
-            action_log.append(f"TRIM: {display_name} | Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo rif: {fmt_usd(price)}")
+            action_log.append(f"RIDUZIONE: {display_name} | Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo rif: {fmt_usd(price)}")
         elif cur_w <= EPS and tgt_w > EPS:
             order_info = {
                 "action": "APERTURA",
