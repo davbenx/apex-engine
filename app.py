@@ -441,6 +441,12 @@ with tab_pf:
         "Cash": "Monetario",
     }
 
+    def color_pnl(val):
+        if isinstance(val, (int, float)):
+            color = POS if val > 0 else NEG if val < 0 else MUTED
+            return f'color: {color}; font-weight: 700;'
+        return ''
+
     def style_action_type(val):
         s = str(val)
         if "CHIUSURA" in s or "RIDUZIONE" in s or "TRIM" in s or "VENDITA" in s:
@@ -622,10 +628,6 @@ with tab_pf:
     st_html(section_title("Posizioni Attive nel Portafoglio"))
     real_cash_usd = max(0.0, capitale - tot_invested_usd)
     cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
-
-    def color_pnl(val):
-        color = POS if val > 0 else NEG if val < 0 else MUTED
-        return f'color: {color}; font-weight: 700;'
 
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
