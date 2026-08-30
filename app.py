@@ -1035,7 +1035,7 @@ with tab_perf:
     </div>
     """)
 
-    st_html(section_title("Crescita Patrimoniale nel Tempo (Base 100)", top="8px", bottom="8px"))
+    st_html(section_title("Crescita Patrimoniale nel Tempo", top="8px", bottom="8px"))
 
     selected_range = st.segmented_control(
         "Periodo",
@@ -1197,9 +1197,7 @@ with tab_perf:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # 3. Underwater chart — drawdown dal massimo storico nel tempo (risoluzione
-        # giornaliera per non attenuare la vera profondità intra-settimanale).
-        st.caption("Drawdown dal massimo storico")
+        st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
         df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
         dd_it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_underwater.index]
         fig_dd = go.Figure()
@@ -1397,11 +1395,11 @@ with tab_guide:
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">1. Venerdì Sera (ore 23:00 CET)</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">1. Venerdì Sera</div>
             <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Il motore analizza le chiusure settimanali. Se c'è un ribilanciamento, ricevi la notifica Telegram con gli ordini esatti (vendite e acquisti) e le quote calcolate sul tuo capitale.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">2. Lunedì Pomeriggio (ore 15:30 CET)</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">2. Lunedì Pomeriggio</div>
             <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">All'apertura dei mercati USA, esegui gli ordini sul tuo broker (es. Fineco, IBKR, Trade Republic). Se il venerdì non c'erano ordini, <strong>non fai nulla</strong>.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
@@ -1460,11 +1458,11 @@ with tab_guide:
 
     st.divider()
 
-    st_html(section_title("I 3 Pilastri di Sicurezza Quantitativa", top="0"))
+    st_html(section_title("Sicurezza Quantitativa", top="0"))
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Controllo della Volatilità Adattivo (Target 22%)</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Controllo della Volatilità Adattivo</div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Il peso di ciascun asset viene scalato periodicamente in base alla volatilità del mercato: nei periodi turbolenti l'esposizione si riduce in automatico, comprimendo i drawdown storici al 13.5%.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
@@ -1472,7 +1470,7 @@ with tab_guide:
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">La somma dei pesi di portafoglio è vincolata matematicamente a non superare mai il 100% (&Sigma; w &le; 1.0). Zero rischio di margin call o liquidazione forzata.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Filtro di Tendenza a Doppio Orizzonte con Isteresi</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Tendenza a Doppio Orizzonte con Isteresi</div>
             <div style="font-family: Inter, sans-serif; font-size: 12px; opacity: 0.85; line-height: 1.5;">Richiede l'accordo contemporaneo delle medie mobili a 40 e 20 settimane con una banda di tolleranza anti-rumore, evitando ingressi e uscite repentine sui falsi segnali.</div>
         </div>
     </div>
