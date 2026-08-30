@@ -110,15 +110,19 @@ def get_class_svg(classe, size=15, color="currentColor"):
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polygon points="5 8 19 8 22 13 2 13"></polygon><polygon points="2 13 22 13 19 20 5 20"></polygon><line x1="8" y1="16.5" x2="16" y2="16.5"></line></svg>'
     if classe == "Obbligazioni":
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>'
+    # Liquidità / Monetario / Cash
     return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
 
 
 def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_rend_label):
-    """Genera la tabella HTML istituzionale del portafoglio con icone SVG per classe."""
+    """Genera la tabella HTML istituzionale del portafoglio con icone SVG per classe (senza testo ridondante nella colonna classe)."""
     th_cells = []
     for c in active_cols:
-        align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
-        th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+        if c == "Classe":
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Classe</th>')
+        else:
+            align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
     
     rows_html = []
     for _, r in df.iterrows():
@@ -129,8 +133,8 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
             align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
             
             if c == "Classe":
-                svg = get_class_svg(classe, size=14)
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; white-space:nowrap;"><span style="display:inline-flex; align-items:center; gap:7px;">{svg}<span style="font-weight:600;">{classe}</span></span></td>')
+                svg = get_class_svg(classe, size=15)
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;"><span title="{classe}" style="display:inline-flex; align-items:center; justify-content:center;">{svg}</span></td>')
             elif c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c == "Data Ingresso":
@@ -504,7 +508,7 @@ with tab_pf:
         "GLD": "Oro",
         "IEF": "Obbligazioni",
         "BTC": "Bitcoin",
-        "Cash": "Monetario",
+        "Cash": "Liquidità",
     }
 
     def color_pnl(val):
@@ -523,7 +527,7 @@ with tab_pf:
 
     def style_classe(val):
         v = str(val)
-        if v == "Azionario":
+        if v in ("Azionario", "Azioni"):
             return f'color: {POS}; font-weight: 600;'
         if v == "Bitcoin":
             return f'color: #2E9E70; font-weight: 600;'
@@ -568,7 +572,7 @@ with tab_pf:
         signal_item("Bitcoin", _cr_val, _cr_title),
         signal_item("Oro", _g_val, _g_title),
         signal_item("Obbligazioni", _b_val, _b_title),
-        signal_item("Monetario", f"{alloc.get('Cash', 0):.0f}%"),
+        signal_item("Liquidità", f"{alloc.get('Cash', 0):.0f}%"),
     ])
     st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
 
@@ -577,7 +581,7 @@ with tab_pf:
 
     alloc_segments = []
     if op_eq:
-        alloc_segments.append(("Azionario", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
+        alloc_segments.append(("Azioni", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
     if op_cr:
         alloc_segments.append(("Bitcoin", op_cr[0].get("Peso (%)", 0.0), CLASS_COLOR_BTC))
     if alloc.get('Gold', 0) > 0:
@@ -585,7 +589,7 @@ with tab_pf:
     if alloc.get('Bonds', 0) > 0:
         alloc_segments.append(("Obbligazioni", alloc.get('Bonds', 0), CLASS_COLOR_BOND))
     if alloc.get('Cash', 0) > 0:
-        alloc_segments.append(("Monetario", alloc.get('Cash', 0), CLASS_COLOR_CASH))
+        alloc_segments.append(("Liquidità", alloc.get('Cash', 0), CLASS_COLOR_CASH))
 
     if alloc_segments:
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
@@ -665,7 +669,7 @@ with tab_pf:
     unified_rows = []
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "Azionario", "Strumento": r["Titolo"],
+            "Classe": "Azioni", "Strumento": r["Titolo"],
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -693,7 +697,7 @@ with tab_pf:
         unified_rows.append(_detail_row("Obbligazioni", "Obbligazioni", bond_detail))
 
     unified_rows.append({
-        "Classe": "Monetario", "Strumento": "Monetario",
+        "Classe": "Liquidità", "Strumento": "Liquidità",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
@@ -1266,7 +1270,7 @@ with tab_guide:
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Monetario", 15)} Monetario</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Liquidità", 15)} Liquidità</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">OVERNIGHT CASH</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Parcheggio sicuro per la liquidità non impiegata. Rende gli interessi di mercato a zero rischio di capitale.</div>

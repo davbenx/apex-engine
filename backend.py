@@ -515,12 +515,12 @@ PROXIES = {
     "GLD": {"name": "Oro", "full": "Oro"},
     "IEF": {"name": "Obbligazioni", "full": "Obbligazioni"},
     "BTC": {"name": "Bitcoin", "full": "Bitcoin"},
-    "Cash": {"name": "Monetario", "full": "Monetario"},
+    "Cash": {"name": "Liquidità", "full": "Liquidità"},
 }
 
 
 def get_display_ticker(ticker):
-    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Bitcoin, Obbligazioni, Monetario) o il ticker per le azioni."""
+    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Bitcoin, Obbligazioni, Liquidità) o il ticker per le azioni."""
     if ticker in PROXIES:
         return PROXIES[ticker]["full"]
     return ticker
@@ -663,7 +663,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             f"• Bitcoin: {_dot(alloc.get('Crypto', 0))} {alloc.get('Crypto', 0):.0f}%\n"
             f"• Oro: {_dot(alloc.get('Gold', 0))} {alloc.get('Gold', 0):.0f}%\n"
             f"• Obbligazioni: {_dot(alloc.get('Bonds', 0))} {alloc.get('Bonds', 0):.0f}%\n"
-            f"• Monetario: [—] {alloc.get('Cash', 0):.0f}%"
+            f"• Liquidità: [—] {alloc.get('Cash', 0):.0f}%"
         )
 
         pf = load_json_safe(PORTFOLIO_FILE, default={})
