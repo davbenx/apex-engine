@@ -703,8 +703,8 @@ with tab_pf:
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
-    show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
-    compact_cols = ["Classe", "Strumento", "Peso (%)", col_val_label, "Rendimento %"]
+    show_details = st.toggle("Mostra dettagli esecuzione (classe, quote, data ingresso, prezzi)", value=False)
+    compact_cols = ["Strumento", "Peso (%)", col_val_label, "Rendimento %"]
     full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
 
@@ -726,7 +726,7 @@ with tab_pf:
     df_pos[col_val_label] = capitale * (df_pos["Peso (%)"] / 100.0) * fx_ratio
     df_pos[col_rend_label] = (df_pos["Rendimento %"] / 100.0) * df_pos[col_val_label]
 
-    # Tabella HTML con icone SVG per ciascuna classe di attivo
+    # Tabella HTML istituzionale e lean (4 colonne di default, dettagli su richiesta)
     st_html(render_positions_html_table(df_pos, active_cols, curr_sym, col_val_label, col_rend_label))
 
     # --- 5. Ultime Operazioni Eseguite ---
@@ -739,6 +739,7 @@ with tab_pf:
         rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
         with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
             st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            show_rec_details = st.toggle("Mostra dettagli prezzi e pesi", value=False, key="rec_details_toggle")
             recent_rows = []
             for t in latest_hist_trades:
                 reason = t.get("reason", "")
@@ -746,16 +747,21 @@ with tab_pf:
                 recent_rows.append({
                     "Operazione": op_type,
                     "Strumento": t.get("ticker", ""),
-                    "Data Ingresso": t.get("entry_date", ""),
-                    "Data Uscita": t.get("exit_date", ""),
+                    "Data Ingresso": format_date_italian(t.get("entry_date", "")),
+                    "Data Uscita": format_date_italian(t.get("exit_date", "")),
                     "Ingresso ($)": t.get("entry_price", 0.0),
                     "Uscita ($)": t.get("exit_price", 0.0),
                     "Rendimento %": t.get("profit_pct", 0.0),
                     "Peso (% pf)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
                 })
             df_rec = pd.DataFrame(recent_rows)
+            rec_compact = ["Operazione", "Strumento", "Data Uscita", "Rendimento %"]
+            rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (% pf)"]
+            rec_cols = rec_full if show_rec_details else rec_compact
+            df_rec_display = df_rec[[c for c in rec_cols if c in df_rec.columns]]
+
             st.dataframe(
-                df_rec.style.format({
+                df_rec_display.style.format({
                     "Ingresso ($)": "${:.2f}",
                     "Uscita ($)": "${:.2f}",
                     "Rendimento %": "{:+.2f}%",
@@ -1167,27 +1173,32 @@ with tab_perf:
             compact_cols_hist = ["Titolo", "Data Uscita", "Durata", "Rendimento %", "Motivazione"]
             full_cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
             cols_hist = full_cols_hist if show_trade_details else compact_cols_hist
-            df_hist = df_hist[[c for c in cols_hist if c in df_hist.columns]]
+            
+            df_hist["Data Uscita"] = df_hist["Data Uscita"].apply(lambda d: format_date_italian(d) if d else "—")
+            if "Data Ingresso" in df_hist.columns:
+                df_hist["Data Ingresso"] = df_hist["Data Ingresso"].apply(lambda d: format_date_italian(d) if d else "—")
+
+            df_hist_display = df_hist[[c for c in cols_hist if c in df_hist.columns]]
 
             # Search & Filter Controls
             c_srch, c_flt = st.columns([2, 1])
             with c_srch:
                 search_t = st.text_input("Cerca Ticker", placeholder="Cerca per ticker (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
             with c_flt:
-                reason_options = ["Tutte le Motivazioni"] + sorted(df_hist["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist.columns else ["Tutte le Motivazioni"]
+                reason_options = ["Tutte le Motivazioni"] + sorted(df_hist_display["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist_display.columns else ["Tutte le Motivazioni"]
                 flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
 
             if search_t:
-                df_hist = df_hist[df_hist["Titolo"].str.contains(search_t.strip().upper(), na=False)]
+                df_hist_display = df_hist_display[df_hist_display["Titolo"].str.contains(search_t.strip().upper(), na=False)]
             if flt_reason != "Tutte le Motivazioni":
-                df_hist = df_hist[df_hist["Motivazione"] == flt_reason]
+                df_hist_display = df_hist_display[df_hist_display["Motivazione"] == flt_reason]
 
             st.dataframe(
-                df_hist.style.format({
+                df_hist_display.style.format({
                     "Prezzo Ingresso": format_price,
                     "Prezzo Uscita": format_price,
                     "Rendimento %": "{:+.2f}%"
-                }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist.columns else None),
+                }).map(color_trade_pnl, subset=['Rendimento %'] if 'Rendimento %' in df_hist_display.columns else None),
                 use_container_width=True,
                 hide_index=True,
                 height=360
