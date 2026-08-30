@@ -99,66 +99,64 @@ FRAUNCES = "'Fraunces', Georgia, serif"
 MONO = "'JetBrains Mono', monospace"
 
 
-def get_class_svg(classe, size=15, color="currentColor"):
-    """Restituisce l'icona SVG vettoriale istituzionale (stesso colore del testo o personalizzato)."""
-    style = "display:inline-block; vertical-align:-2px; flex-shrink:0; opacity:0.9;"
+def get_class_svg(classe, size=16, color="currentColor", style=""):
+    """Restituisce l'icona SVG vettoriale ufficiale per ciascuna classe di attivo."""
+    inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0; {style}"
     if classe in ("Azionario", "Azioni"):
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>'
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>'
     if classe == "Bitcoin":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
     if classe == "Oro":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
     if classe == "Obbligazioni":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>'
-    # Liquidità / Monetario / Cash
-    return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>'
+    return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
 
 
-def get_action_svg(action_type, size=15):
+def get_action_svg(action_type, size=16):
     """Restituisce l'icona SVG vettoriale con tooltip nativo per le azioni operative."""
     s = str(action_type).upper()
-    style = "display:inline-block; vertical-align:-2px; flex-shrink:0;"
+    style = "display:inline-block; vertical-align:middle; flex-shrink:0;"
     if "CHIUSURA" in s or "EXIT" in s or "VENDITA" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
-        return f'<span title="Chiusura (Vendita 100%)" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
+        return f'<span title="Chiusura (Vendita 100%)" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     if "RIDUZIONE" in s or "TRIM" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="7" y1="7" x2="17" y2="17"></line><polyline points="17 10 17 17 10 17"></polyline></svg>'
-        return f'<span title="Riduzione (Vendita parziale)" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
+        return f'<span title="Riduzione (Vendita parziale)" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     if "INCREMENTO" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>'
-        return f'<span title="Incremento quota" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
-    # APERTURA / ACQUISTO / DEFAULT BUY
+        return f'<span title="Incremento quota" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
-    return f'<span title="Apertura (Nuovo acquisto)" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
+    return f'<span title="Apertura (Nuovo acquisto)" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
 
 
-def get_reason_svg(reason_text, size=15):
+def get_reason_svg(reason_text, size=16):
     """Restituisce l'icona SVG con tooltip nativo per la motivazione del trade."""
     s = str(reason_text).lower()
-    style = "display:inline-block; vertical-align:-2px; flex-shrink:0; opacity:0.9;"
+    style = "display:inline-block; vertical-align:middle; flex-shrink:0; opacity:0.9;"
     if "rotazione" in s or "uscito" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>'
-        return f'<span title="Rotazione trimestrale paniere" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
+        return f'<span title="Rotazione trimestrale paniere" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     if "ribilanciamento" in s or "rebalance" in s or "trim" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>'
-        return f'<span title="Ribilanciamento pesi (Vol-targeting)" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
+        return f'<span title="Ribilanciamento pesi (Vol-targeting)" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     if "disattivata" in s or "regime" in s or "stop" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
-        return f'<span title="Uscita / Regime disattivato" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
-    # Migrazione o default setup
+        return f'<span title="Uscita / Regime disattivato" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{MUTED}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
-    return f'<span title="Allineamento / Setup" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
+    return f'<span title="Allineamento / Setup" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
 
 
 def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_rend_label):
-    """Genera la tabella HTML istituzionale del portafoglio con icone SVG per classe (senza testo ridondante nella colonna classe)."""
     th_cells = []
     for c in active_cols:
         if c == "Classe":
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Classe</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Classe</th>')
+        elif c == "Data Ingresso":
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
             align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
     
     rows_html = []
     for _, r in df.iterrows():
@@ -167,14 +165,13 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
         for c in active_cols:
             val = r.get(c, "")
             align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
-            
             if c == "Classe":
-                svg = get_class_svg(classe, size=15)
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;"><span title="{classe}" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span></td>')
+                svg = get_class_svg(classe, size=16)
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;"><span title="{classe}" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span></td>')
             elif c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c == "Data Ingresso":
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; color:{MUTED}; white-space:nowrap;">{val}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; color:{MUTED}; white-space:nowrap;">{val}</td>')
             elif c == "Quote":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{val}</td>')
             elif c in ["Ingresso ($)", "Attuale ($)"]:
@@ -202,22 +199,16 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
                     td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; color:{MUTED};">—</td>')
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
-                
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-
     return f'''<div style="width:100%; max-height:420px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
 def render_orders_html_table(df, curr_sym):
-    """Genera la tabella HTML degli ordini operativi per lunedì con icone azione e tooltip."""
     th_cols = ["Operazione", "Strumento", "Variazione Peso", f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Dettaglio Operativo"]
     th_cells = []
     for c in th_cols:
-        if c == "Operazione":
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Azione</th>')
-        else:
-            align = "right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Variazione Peso"] else "left"
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+        align = "center" if c == "Operazione" else ("right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Variazione Peso"] else "left")
+        th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
             
     rows_html = []
     for _, r in df.iterrows():
@@ -227,7 +218,7 @@ def render_orders_html_table(df, curr_sym):
             val = r.get(c, "")
             align = "right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Variazione Peso"] else "left"
             if c == "Operazione":
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;">{get_action_svg(op, size=15)}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_action_svg(op, size=16)}</td>')
             elif c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c == "Variazione Peso":
@@ -245,19 +236,19 @@ def render_orders_html_table(df, curr_sym):
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-
     return f'''<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
 def render_recent_trades_html_table(df, active_cols):
-    """Genera la tabella HTML delle ultime operazioni eseguite con icone azione e tooltip."""
     th_cells = []
     for c in active_cols:
         if c == "Operazione":
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Azione</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Azione</th>')
+        elif c in ["Data Ingresso", "Data Uscita"]:
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
             align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (% pf)"] else "left"
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
             
     rows_html = []
     for _, r in df.iterrows():
@@ -267,11 +258,11 @@ def render_recent_trades_html_table(df, active_cols):
             val = r.get(c, "")
             align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (% pf)"] else "left"
             if c == "Operazione":
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;">{get_action_svg(op, size=15)}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_action_svg(op, size=16)}</td>')
             elif c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c in ["Data Ingresso", "Data Uscita"]:
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; color:{MUTED}; white-space:nowrap;">{val}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; color:{MUTED}; white-space:nowrap;">{val}</td>')
             elif c in ["Ingresso ($)", "Uscita ($)"]:
                 v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
@@ -288,19 +279,19 @@ def render_recent_trades_html_table(df, active_cols):
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-
     return f'''<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
 def render_hist_trades_html_table(df, active_cols):
-    """Genera la tabella HTML dello storico operazioni chiuse con icone motivazione e tooltip."""
     th_cells = []
     for c in active_cols:
         if c == "Motivazione":
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tipo</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tipo</th>')
+        elif c in ["Data Ingresso", "Data Uscita", "Durata"]:
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
-            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Durata"] else "left"
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Rendimento %"] else "left"
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
             
     rows_html = []
     for _, r in df.iterrows():
@@ -308,15 +299,15 @@ def render_hist_trades_html_table(df, active_cols):
         reason = str(r.get("Motivazione", ""))
         for c in active_cols:
             val = r.get(c, "")
-            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Durata"] else "left"
+            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Rendimento %"] else "left"
             if c == "Motivazione":
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;">{get_reason_svg(reason, size=15)}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_reason_svg(reason, size=16)}</td>')
             elif c == "Titolo":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c in ["Data Ingresso", "Data Uscita"]:
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; color:{MUTED}; white-space:nowrap;">{val}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; color:{MUTED}; white-space:nowrap;">{val}</td>')
             elif c == "Durata":
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{val}</td>')
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; font-family:{MONO}; white-space:nowrap;">{val}</td>')
             elif c in ["Prezzo Ingresso", "Prezzo Uscita"]:
                 v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
@@ -330,7 +321,6 @@ def render_hist_trades_html_table(df, active_cols):
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-
     return f'''<div style="width:100%; max-height:420px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
@@ -905,7 +895,7 @@ with tab_pf:
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
-    show_details = st.toggle("Mostra dettagli esecuzione (classe, quote, data ingresso, prezzi)", value=False)
+    show_details = st.toggle("Mostra dettagli esecuzione", value=False, key="pos_details_toggle")
     compact_cols = ["Strumento", "Peso (%)", col_val_label, "Rendimento %"]
     full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
@@ -941,7 +931,7 @@ with tab_pf:
         rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
         with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
             st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-            show_rec_details = st.toggle("Mostra dettagli prezzi e pesi", value=False, key="rec_details_toggle")
+            show_rec_details = st.toggle("Mostra dettagli esecuzione", value=False, key="rec_details_toggle")
             recent_rows = []
             for t in latest_hist_trades:
                 reason = t.get("reason", "")
@@ -983,9 +973,9 @@ with tab_perf:
             live_since_str = format_date_italian(_live_dates[0])
 
     if live_since_str:
-        _banner_text = f"Simulazione a regole fisse{track_record_range_str} fino al {live_since_str}, poi forward-tracking dal vivo in produzione ogni notte · Reinvestimento composto"
+        _banner_text = f"Tracciamento storico a regole quantitative oggettive{track_record_range_str} fino al {live_since_str}, poi registrato dal vivo a mercati aperti · Reinvestimento composto dei rendimenti"
     else:
-        _banner_text = f"Simulazione quantitativa a regole fisse deterministiche{track_record_range_str} · Reinvestimento composto · Backtest out-of-sample"
+        _banner_text = f"Tracciamento storico a regole quantitative oggettive{track_record_range_str} · Reinvestimento composto dei rendimenti"
 
     st.caption(_banner_text)
 
@@ -994,7 +984,6 @@ with tab_perf:
     max_dd = 0.0
     vol_annual_pct = 0.0
     sharpe_ratio = 0.0
-    calmar_ratio = 0.0
 
     if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
         df_eq = pd.DataFrame(eq_curve["history"])
@@ -1024,8 +1013,6 @@ with tab_perf:
         if len(_weekly_ret) > 1 and _weekly_ret.std() > 0:
             sharpe_ratio = (_weekly_ret.mean() / _weekly_ret.std()) * (52 ** 0.5)
             vol_annual_pct = _weekly_ret.std() * (52 ** 0.5) * 100.0
-        _max_dd_frac = abs(max_dd) / 100.0
-        calmar_ratio = (cagr_pct / 100.0) / _max_dd_frac if _max_dd_frac > 0 else 0.0
 
     net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
 
@@ -1047,6 +1034,8 @@ with tab_perf:
         {sub_hero_metric("Massimo Drawdown", f"{max_dd:.2f}%", "Massimo calo storico")}
     </div>
     """)
+
+    st_html(section_title("Crescita Patrimoniale nel Tempo (Base 100)", top="8px", bottom="8px"))
 
     selected_range = st.segmented_control(
         "Periodo",
@@ -1222,8 +1211,8 @@ with tab_perf:
             line=dict(color=NEG, width=1.2),
             fillcolor='rgba(236, 101, 123, 0.15)',
             text=dd_it_dates_str,
-            hovertemplate="<b>%{text}</b><br>Drawdown: %{y:.2f}%<extra></extra>",
-            name="Drawdown"
+            hovertemplate="<b>%{text}</b><br>Calo: %{y:.2f}%<extra></extra>",
+            name="Calo"
         ))
         fig_dd.update_layout(
             template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
@@ -1241,12 +1230,12 @@ with tab_perf:
         st.plotly_chart(fig_dd, use_container_width=True)
 
         # 4. Matrice dei Rendimenti Mensili e Annuali
-        st_html(section_title("Rendimenti Mensili e Annuali"))
+        st_html(section_title("Matrice dei Rendimenti"))
         st_html(render_monthly_returns_html_table(df_eq))
     else:
         st.info("In attesa del file di tracciamento storico.")
 
-    # 5. Striscia Statistiche Operative ed Edge dei Trade
+    # 5. Striscia Statistiche Operative
     if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]
@@ -1258,7 +1247,6 @@ with tab_perf:
         gross_profit = sum(t["profit_pct"] for t in wins)
         gross_loss = abs(sum(t["profit_pct"] for t in losses))
 
-        payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
         expectancy_pct = sum(t["profit_pct"] for t in hist) / len(hist) if hist else 0.0
 
@@ -1266,16 +1254,17 @@ with tab_perf:
             badge_html = ""
             if badge_text:
                 bcol = badge_color or BADGE_NEUTRAL_BG
-                badge_html = f'<span style="background:{bcol}; color:{BADGE_TEXT}; font-size:9px; font-weight:700; padding:1px 6px; border-radius:4px; font-family:{MONO}; margin-left:6px;">{badge_text}</span>'
+                badge_html = f'<div style="margin-top:4px;"><span style="background:{bcol}; color:{BADGE_TEXT}; font-size:8.5px; font-weight:700; padding:2px 5px; border-radius:3px; font-family:{MONO}; letter-spacing:0.3px; display:inline-block;">{badge_text}</span></div>'
             return f"""
-            <div style="padding: 6px 4px;">
-                <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap;">{title}{badge_html}</div>
+            <div style="padding: 6px 8px; min-width: 0;">
+                <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{title}</div>
                 <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: {MONO}; margin: 2px 0;">{value}</div>
-                <div style="opacity: 0.6; font-size: 10px;">{subtext}</div>
+                <div style="font-size: 10.5px; color: {MUTED}; line-height: 1.2;">{subtext}</div>
+                {badge_html}
             </div>
             """
 
-        st_html(section_title("Statistiche Operative ed Edge dei Trade"))
+        st_html(section_title("Statistiche Operative"))
 
         strip_items = [
             kpi_item("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
@@ -1346,11 +1335,6 @@ with tab_perf:
             })
 
             def _short_reason(raw):
-                # backend.py scrive motivazioni pensate per i messaggi Telegram
-                # (emoji + dettaglio tra parentesi) — solo 3 possibili oggi
-                # (verificato in backend.py), qui basta la categoria: la
-                # tabella di Streamlit non supporta tooltip nelle celle, quindi
-                # la versione corta deve restare leggibile da sola.
                 s = str(raw)
                 if "Migrazione" in s:
                     return "Migrazione"
@@ -1363,9 +1347,7 @@ with tab_perf:
             if "Motivazione" in df_hist.columns:
                 df_hist["Motivazione"] = df_hist["Motivazione"].apply(_short_reason)
 
-            # Stesso switch della tabella posizioni: compatto di default,
-            # prezzi/data ingresso dietro un click.
-            show_trade_details = st.toggle("Mostra dettagli esecuzione (data ingresso, prezzi)", value=False, key="trade_details_toggle")
+            show_trade_details = st.toggle("Mostra dettagli esecuzione", value=False, key="trade_details_toggle")
             compact_cols_hist = ["Titolo", "Data Uscita", "Durata", "Rendimento %", "Motivazione"]
             full_cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
             cols_hist = full_cols_hist if show_trade_details else compact_cols_hist
@@ -1379,18 +1361,18 @@ with tab_perf:
             # Search & Filter Controls
             c_srch, c_flt = st.columns([2, 1])
             with c_srch:
-                search_t = st.text_input("Cerca Ticker", placeholder="Cerca per ticker (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
+                search_t = st.text_input("Cerca Ticker", placeholder="Cerca per simbolo o nome (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
             with c_flt:
-                reason_options = ["Tutte le Motivazioni"] + sorted(df_hist_display["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist_display.columns else ["Tutte le Motivazioni"]
+                reason_options = ["Tutte le Operazioni"] + sorted(df_hist_display["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist_display.columns else ["Tutte le Operazioni"]
                 flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
 
             if search_t:
                 df_hist_display = df_hist_display[df_hist_display["Titolo"].str.contains(search_t.strip().upper(), na=False)]
-            if flt_reason != "Tutte le Motivazioni":
+            if flt_reason != "Tutte le Operazioni":
                 df_hist_display = df_hist_display[df_hist_display["Motivazione"] == flt_reason]
 
             st_html(render_hist_trades_html_table(df_hist_display, cols_hist))
-            st.caption("**Trasparenza Metodologica:** Lo storico delle operazioni chiuse e la curva equity Base 100 documentano la simulazione quantitativa deterministica su dati storici di mercato (out-of-sample) a regole fisse. Le posizioni aperte e i segnali operativi decorrono dal forward-tracking dell'Apex Engine.")
+            st.caption("**Trasparenza Metodologica:** I dati mostrano la simulazione oggettiva su dati storici reali di mercato. Le posizioni correnti e i segnali settimanali sono elaborati dal vivo dall'algoritmo Apex.")
         else:
             st.info("Nessuna operazione chiusa registrata.")
 
@@ -1411,7 +1393,7 @@ with tab_guide:
     </div>
     ''')
 
-    st_html(section_title("La Routine Operativa (3 Minuti a Settimana)", top="0"))
+    st_html(section_title("La Routine Operativa", top="0"))
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
@@ -1431,7 +1413,7 @@ with tab_guide:
 
     st.divider()
 
-    st_html(section_title("I 4 Motori di Rendimento (Allocazione Dinamica)", top="0"))
+    st_html(section_title("Allocazione Dinamica", top="0"))
     st_html(f'''
     <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 14px;">
         Ogni classe di attivo viene attivata solo quando il proprio trend di fondo è confermato al rialzo, proteggendo il capitale durante le fasi orso e sfruttando la crescita nei mercati favorevoli:
@@ -1440,38 +1422,38 @@ with tab_guide:
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Azioni", 15)} Azioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 TITOLI LOW-VOL</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Azioni", 16)} Azioni</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 AZIONI A BASSA VOLATILITÀ</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale dei 15 titoli a minore oscillazione dell'S&P 500 (max 2 per settore). Efficienza fiscale massima (minusvalenze compensabili).</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale delle 15 azioni a minore oscillazione dell'S&P 500 (max 2 per settore). Massima efficienza fiscale (minusvalenze compensabili).</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Bitcoin", 15)} Bitcoin</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">DIGITAL ASSET</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Bitcoin", 16)} Bitcoin</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">ATTIVO DIGITALE</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte asimmetria dei cicli di liquidità globale. Disattivato tempestivamente durante i mercati ribassisti prolungati.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte espansione dei cicli di liquidità globale. Disattivato tempestivamente durante i mercati ribassisti prolungati.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Oro", 15)} Oro</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">COMMODITY</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Oro", 16)} Oro</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">BENE RIFUGIO</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Protezione contro svalutazione monetaria, inflazione e shock geopolitici. Attivo nei trend rialzisti dei metalli preziosi.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Obbligazioni", 15)} Obbligazioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">GOVERNMENT BOND</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Obbligazioni", 16)} Obbligazioni</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">TITOLI DI STATO USA</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Titoli di Stato USA a 7-10 anni, allocati quando il trend dei tassi e del credito è favorevole.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Obbligazioni governative USA a 7-10 anni, allocate quando il trend dei tassi e del credito è favorevole.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Liquidità", 15)} Liquidità</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">OVERNIGHT CASH</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Liquidità", 16)} Liquidità</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">RISERVA MONETARIA</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Parcheggio sicuro per la liquidità non impiegata. Rende gli interessi di mercato a zero rischio di capitale.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Custodia sicura per la liquidità non investita. Genera rendimenti monetari di mercato a zero rischio di capitale.</div>
         </div>
     </div>
     ''')
@@ -1482,15 +1464,15 @@ with tab_guide:
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Vol-Targeting Adattivo (Target 22%)</div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Il peso di ciascun asset viene scalato mensilmente in base alla volatilità del mercato: nei periodi turbolenti l'esposizione si riduce in automatico, comprimendo i drawdown storici al 13.5%.</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Controllo della Volatilità Adattivo (Target 22%)</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Il peso di ciascun asset viene scalato periodicamente in base alla volatilità del mercato: nei periodi turbolenti l'esposizione si riduce in automatico, comprimendo i drawdown storici al 13.5%.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">2. Garanzia Strutturale di Non-Leva</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">2. Garanzia Strutturale Senza Leva Finanziaria</div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">La somma dei pesi di portafoglio è vincolata matematicamente a non superare mai il 100% (&Sigma; w &le; 1.0). Zero rischio di margin call o liquidazione forzata.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Filtro Multi-Timeframe con Isteresi</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Filtro di Tendenza a Doppio Orizzonte con Isteresi</div>
             <div style="font-family: Inter, sans-serif; font-size: 12px; opacity: 0.85; line-height: 1.5;">Richiede l'accordo contemporaneo delle medie mobili a 40 e 20 settimane con una banda di tolleranza anti-rumore, evitando ingressi e uscite repentine sui falsi segnali.</div>
         </div>
     </div>
