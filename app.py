@@ -334,6 +334,51 @@ def render_hist_trades_html_table(df, active_cols):
     return f'''<div style="width:100%; max-height:420px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
+def render_monthly_returns_html_table(df_eq):
+    """Genera la matrice HTML istituzionale dei rendimenti mensili e annuali."""
+    if df_eq is None or df_eq.empty:
+        return ''
+    df = df_eq.copy()
+    years = sorted(df.index.year.unique(), reverse=True)
+    months = list(range(1, 13))
+    month_names = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+    
+    th_cells = [f'<th style="padding:8px 10px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Anno</th>']
+    for m_name in month_names:
+        th_cells.append(f'<th style="padding:8px 8px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{m_name}</th>')
+    th_cells.append(f'<th style="padding:8px 12px; font-weight:700; color:{ACCENT}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; border-left:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tot Anno</th>')
+    
+    rows_html = []
+    for y in years:
+        td_cells = [f'<td style="padding:8px 10px; font-size:12px; font-weight:700; color:{BADGE_TEXT}; font-family:{MONO};">{y}</td>']
+        df_y = df[df.index.year == y]
+        df_prev = df[df.index.year < y]
+        y_start_val = df_prev['value'].iloc[-1] if not df_prev.empty else df_y['value'].iloc[0]
+        y_end_val = df_y['value'].iloc[-1]
+        y_ret = ((y_end_val / y_start_val) - 1.0) * 100.0 if y_start_val > 0 else 0.0
+        
+        for m in months:
+            df_ym = df[(df.index.year == y) & (df.index.month == m)]
+            if df_ym.empty:
+                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:center; color:{MUTED}; font-family:{MONO}; opacity:0.4;">—</td>')
+            else:
+                df_before = df[df.index < df_ym.index[0]]
+                m_start_val = df_before['value'].iloc[-1] if not df_before.empty else df_ym['value'].iloc[0]
+                m_end_val = df_ym['value'].iloc[-1]
+                m_ret = ((m_end_val / m_start_val) - 1.0) * 100.0 if m_start_val > 0 else 0.0
+                
+                col = POS if m_ret > 0 else NEG if m_ret < 0 else MUTED
+                bg = 'rgba(61,220,151,0.07)' if m_ret > 0 else 'rgba(224,108,117,0.07)' if m_ret < 0 else 'transparent'
+                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:right; font-family:{MONO}; font-weight:600; color:{col}; background:{bg}; white-space:nowrap;">{m_ret:+.1f}%</td>')
+                
+        y_col = POS if y_ret > 0 else NEG if y_ret < 0 else MUTED
+        y_bg = 'rgba(61,220,151,0.12)' if y_ret > 0 else 'rgba(224,108,117,0.12)' if y_ret < 0 else 'transparent'
+        td_cells.append(f'<td style="padding:8px 12px; font-size:12px; text-align:right; font-family:{MONO}; font-weight:700; color:{y_col}; background:{y_bg}; border-left:1px solid {BORDER_STRONG}; white-space:nowrap;">{y_ret:+.1f}%</td>')
+        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
+
+    return f'''<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:22px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
+
+
 def section_title(text, top="26px", bottom="10px"):
     return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
 
@@ -998,9 +1043,9 @@ with tab_perf:
         {sub_hero_metric("Rendimento Totale", f"{total_ret_pct:+.2f}%", f"Netto stimato: {net_ret_pct_est:+.2f}%", POS if total_ret_pct >= 0 else NEG)}
         {sub_hero_metric("CAGR Annuo", f"{cagr_pct:+.2f}%", "Composto annualizzato", POS if cagr_pct >= 0 else NEG)}
         {sub_hero_metric("Volatilità Annua", f"{vol_annual_pct:.1f}%", "Oscillazione realizzata")}
-        {sub_hero_metric("Sharpe Ratio", f"{sharpe_ratio:.2f}", "Efficienza rendimento/rischio", POS if sharpe_ratio >= 1.0 else None)}
-        {sub_hero_metric("Calmar Ratio", f"{calmar_ratio:.2f}", "Rendimento / max perdita", POS if calmar_ratio >= 1.0 else None)}
-        {sub_hero_metric("Max Drawdown", f"{max_dd:.2f}%", "Massimo calo storico")}
+        {sub_hero_metric("Indice di Sharpe", f"{sharpe_ratio:.2f}", "Efficienza rendimento/rischio", POS if sharpe_ratio >= 1.0 else None)}
+        {sub_hero_metric("Indice di Calmar", f"{calmar_ratio:.2f}", "Rendimento / max perdita", POS if calmar_ratio >= 1.0 else None)}
+        {sub_hero_metric("Massimo Drawdown", f"{max_dd:.2f}%", "Massimo calo storico")}
     </div>
     """)
 
@@ -1195,13 +1240,14 @@ with tab_perf:
             margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
         )
         st.plotly_chart(fig_dd, use_container_width=True)
+
+        # 4. Matrice dei Rendimenti Mensili e Annuali
+        st_html(section_title("Rendimenti Mensili e Annuali"))
+        st_html(render_monthly_returns_html_table(df_eq))
     else:
         st.info("In attesa del file di tracciamento storico.")
 
-    st.write("")
-
-    # Striscia secondaria (le statistiche restanti) — stesso principio del
-    # cockpit e della tabella posizioni: un solo contenitore con divisori.
+    # 5. Striscia Statistiche Operative ed Edge dei Trade
     if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]
@@ -1215,6 +1261,7 @@ with tab_perf:
 
         payoff_ratio = avg_win / abs(avg_loss) if avg_loss != 0 else 0.0
         profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
+        expectancy_pct = sum(t["profit_pct"] for t in hist) / len(hist) if hist else 0.0
 
         def kpi_item(title, value, subtext="", badge_text=None, badge_color=None, val_color=None, first=False):
             badge_html = ""
@@ -1229,13 +1276,17 @@ with tab_perf:
             </div>
             """
 
+        st_html(section_title("Statistiche Operative ed Edge dei Trade"))
+
         strip_items = [
-            kpi_item("Win Rate", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
+            kpi_item("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}",
                      badge_text=f"{len(wins)}/{len(hist)}", first=True),
-            kpi_item("Profit Factor", f"{profit_factor:.2f}", "Profitti lordi / perdite",
+            kpi_item("Aspettativa per Trade", f"{expectancy_pct:+.2f}%", "Rendimento atteso medio",
+                     badge_text="EDGE STATISTICO", badge_color=BADGE_POS_BG, val_color=POS if expectancy_pct > 0 else NEG),
+            kpi_item("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite",
                      badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
                      badge_color=(BADGE_POS_BG if profit_factor >= 1.5 else BADGE_NEUTRAL_BG)),
-            kpi_item("Payoff Ratio", f"{payoff_ratio:.2f}x", "Vincita media / perdita media",
+            kpi_item("Rapporto Vincita/Perdita", f"{payoff_ratio:.2f}x", "Guadagno medio / perdita",
                      badge_text=("ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO")),
         ]
 
@@ -1259,9 +1310,9 @@ with tab_perf:
             avg_days_val = int(round(sum(durations) / len(durations))) if durations else 0
 
             strip_items += [
-                kpi_item("Miglior Trade", best_trade_t, f"{best_trade_p:+.2f}%", val_color=POS),
-                kpi_item("Peggior Trade", worst_trade_t, f"{worst_trade_p:+.2f}%", val_color=NEG),
-                kpi_item("Durata Media Trade", f"{avg_days_val}g", "giorni in posizione"),
+                kpi_item("Miglior Operazione", best_trade_t, f"{best_trade_p:+.2f}%", val_color=POS),
+                kpi_item("Peggior Operazione", worst_trade_t, f"{worst_trade_p:+.2f}%", val_color=NEG),
+                kpi_item("Durata Media", f"{avg_days_val}g", "giorni in posizione"),
             ]
 
         st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 4px 8px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;">{"".join(strip_items)}</div>')
