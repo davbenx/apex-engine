@@ -461,60 +461,109 @@ with tab_pf:
             return f'color: #8B7FC7; font-weight: 600;'
         return f'color: {MUTED}; font-weight: 600;'
 
-    if pending_orders or last_actions:
-        if is_recent_rebalance:
-            st_html(f"""
-            <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px; padding: 12px 16px; margin: 14px 0 10px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                    <div>
-                        <span style="width:7px; height:7px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px;"></span>
-                        <strong style="font-size:13.5px;">Ordini Operativi per Lunedì ({last_action_date})</strong>
-                        <span style="background:{BADGE_NEUTRAL_BG}; color:{ACCENT}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:{MONO}; margin-left:8px;">DA ESEGUIRE ORE 15:30 CET</span>
-                    </div>
-                    <div style="font-size:11.5px; color:{MUTED};">Quote e importi calcolati sul tuo capitale ({curr_sym}{capitale * fx_ratio:,.0f})</div>
-                </div>
-            </div>
-            """)
-            if pending_orders:
-                orders_rows = []
-                for o in pending_orders:
-                    act_label = o.get("action", "ORDINE")
-                    if act_label == "TRIM":
-                        act_label = "RIDUZIONE"
-                    tkr = o.get("ticker", "")
-                    disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
-                    px = o.get("price", 0.0)
-                    delta_w = abs(o.get("delta_w_pct", 0.0))
-                    val_usd = (delta_w / 100.0) * capitale
-                    val_user = val_usd * fx_ratio
-                    is_cr = o.get("is_crypto", False) or tkr == "BTC"
-                    shares = (val_usd / px) if px > 0 else 0.0
-                    shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
+    # Find latest execution from trade_history if last_actions is empty
+    hist_trades = (pf or {}).get("trade_history") or []
+    latest_hist_exit_date = ""
+    latest_hist_trades = []
+    if hist_trades:
+        exit_dates = [t.get("exit_date") for t in hist_trades if t.get("exit_date")]
+        if exit_dates:
+            latest_hist_exit_date = max(exit_dates)
+            latest_hist_trades = [t for t in hist_trades if t.get("exit_date") == latest_hist_exit_date]
 
-                    orders_rows.append({
-                        "Operazione": act_label,
-                        "Strumento": disp_name,
-                        "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}% pf",
-                        f"Controvalore ({curr_sym})": val_user,
-                        "Quote": shares_str,
-                        "Prezzo Rif. ($)": px,
-                        "Dettaglio Operativo": o.get("desc", "").replace("TRIM:", "RIDUZIONE:"),
-                    })
-                df_orders = pd.DataFrame(orders_rows)
-                st.dataframe(
-                    df_orders.style.format({
-                        f"Controvalore ({curr_sym})": f"{curr_sym}{{:,.0f}}",
-                        "Prezzo Rif. ($)": "${:,.2f}",
-                    }).map(style_action_type, subset=['Operazione']),
-                    use_container_width=True,
-                    hide_index=True
-                )
-            elif last_actions:
-                st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
-        else:
-            with st.expander(f"Archivio ultimo ribilanciamento ({last_action_date})"):
-                st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-                st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
+    if pending_orders:
+        st_html(f"""
+        <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px; padding: 12px 16px; margin: 14px 0 10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <span style="width:7px; height:7px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px;"></span>
+                    <strong style="font-size:13.5px;">Ordini Operativi per Lunedì ({last_action_date})</strong>
+                    <span style="background:{BADGE_NEUTRAL_BG}; color:{ACCENT}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:{MONO}; margin-left:8px;">DA ESEGUIRE ORE 15:30 CET</span>
+                </div>
+                <div style="font-size:11.5px; color:{MUTED};">Quote e importi calcolati sul tuo capitale ({curr_sym}{capitale * fx_ratio:,.0f})</div>
+            </div>
+        </div>
+        """)
+        orders_rows = []
+        for o in pending_orders:
+            act_label = o.get("action", "ORDINE")
+            if act_label == "TRIM":
+                act_label = "RIDUZIONE"
+            tkr = o.get("ticker", "")
+            disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
+            px = o.get("price", 0.0)
+            delta_w = abs(o.get("delta_w_pct", 0.0))
+            val_usd = (delta_w / 100.0) * capitale
+            val_user = val_usd * fx_ratio
+            is_cr = o.get("is_crypto", False) or tkr == "BTC"
+            shares = (val_usd / px) if px > 0 else 0.0
+            shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
+
+            orders_rows.append({
+                "Operazione": act_label,
+                "Strumento": disp_name,
+                "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}% pf",
+                f"Controvalore ({curr_sym})": val_user,
+                "Quote": shares_str,
+                "Prezzo Rif. ($)": px,
+                "Dettaglio Operativo": o.get("desc", "").replace("TRIM:", "RIDUZIONE:"),
+            })
+        df_orders = pd.DataFrame(orders_rows)
+        st.dataframe(
+            df_orders.style.format({
+                f"Controvalore ({curr_sym})": f"{curr_sym}{{:,.0f}}",
+                "Prezzo Rif. ($)": "${:,.2f}",
+            }).map(style_action_type, subset=['Operazione']),
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st_html(f"""
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 16px; margin: 12px 0 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px;">
+                <span style="width: 7px; height: 7px; border-radius: 50%; background: {POS}; display: inline-block;"></span>
+                <strong>Nessun ordine pendente per Lunedì</strong>
+                <span style="color: {MUTED};">— Portafoglio allineato ai target quantitativi</span>
+            </div>
+            <div style="font-size: 11.5px; color: {MUTED};">Prossimo controllo: Venerdì ore 23:00 CET</div>
+        </div>
+        """)
+
+    # Always show Last Executed Operations in an elegant expander
+    if last_actions:
+        rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
+        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
+            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
+    elif latest_hist_trades:
+        rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
+        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
+            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            recent_rows = []
+            for t in latest_hist_trades:
+                reason = t.get("reason", "")
+                op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
+                recent_rows.append({
+                    "Operazione": op_type,
+                    "Strumento": t.get("ticker", ""),
+                    "Data Ingresso": t.get("entry_date", ""),
+                    "Data Uscita": t.get("exit_date", ""),
+                    "Ingresso ($)": t.get("entry_price", 0.0),
+                    "Uscita ($)": t.get("exit_price", 0.0),
+                    "Rendimento %": t.get("profit_pct", 0.0),
+                    "Peso (% pf)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
+                })
+            df_rec = pd.DataFrame(recent_rows)
+            st.dataframe(
+                df_rec.style.format({
+                    "Ingresso ($)": "${:.2f}",
+                    "Uscita ($)": "${:.2f}",
+                    "Rendimento %": "{:+.2f}%",
+                    "Peso (% pf)": "{:.2f}%",
+                }).map(style_action_type, subset=['Operazione']).map(color_pnl, subset=['Rendimento %']),
+                use_container_width=True,
+                hide_index=True
+            )
 
     # --- Segnali per classe (striscia unica, non 5 riquadri) ---
     st_html(section_title("Regimi e Segnali Macro"))
@@ -578,22 +627,13 @@ with tab_pf:
         color = POS if val > 0 else NEG if val < 0 else MUTED
         return f'color: {color}; font-weight: 700;'
 
-    def style_titolo(val):
-        if str(val).endswith(NEW_MARK):
-            return f'color: {ACCENT}; font-weight: 700;'
-        return ''
-
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
-    NEW_MARK = " ●"
-
-    def _mark(titolo, is_new):
-        return f"{titolo}{NEW_MARK}" if is_new else titolo
 
     unified_rows = []
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "Azionario", "Strumento": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
+            "Classe": "Azionario", "Strumento": r["Titolo"],
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -601,7 +641,7 @@ with tab_pf:
     if op_cr:
         r = op_cr[0]
         unified_rows.append({
-            "Classe": "Bitcoin", "Strumento": _mark("Bitcoin", r["Stato"] == "NUOVO"),
+            "Classe": "Bitcoin", "Strumento": "Bitcoin",
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -609,7 +649,7 @@ with tab_pf:
 
     def _detail_row(classe, disp_name, detail):
         return {
-            "Classe": classe, "Strumento": _mark(disp_name, detail["days"] <= 7),
+            "Classe": classe, "Strumento": disp_name,
             "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
@@ -661,8 +701,6 @@ with tab_pf:
         col_rend_label: "{:+,.0f}",
     }, na_rep="—").map(
         color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]
-    ).map(
-        style_titolo, subset=['Strumento']
     ).map(
         style_classe, subset=['Classe']
     )
