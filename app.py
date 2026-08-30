@@ -107,10 +107,65 @@ def get_class_svg(classe, size=15, color="currentColor"):
     if classe == "Bitcoin":
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
     if classe == "Oro":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M4 17l4-10h12l-4 10H4z"></path><path d="M4 17l2 3h12l2-3"></path><path d="M20 7l2 3-2 10"></path></svg>'
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polygon points="5 8 19 8 22 13 2 13"></polygon><polygon points="2 13 22 13 19 20 5 20"></polygon><line x1="8" y1="16.5" x2="16" y2="16.5"></line></svg>'
     if classe == "Obbligazioni":
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>'
     return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
+
+
+def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_rend_label):
+    """Genera la tabella HTML istituzionale del portafoglio con icone SVG per classe."""
+    th_cells = []
+    for c in active_cols:
+        align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
+        th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+    
+    rows_html = []
+    for _, r in df.iterrows():
+        td_cells = []
+        classe = str(r.get("Classe", ""))
+        for c in active_cols:
+            val = r.get(c, "")
+            align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
+            
+            if c == "Classe":
+                svg = get_class_svg(classe, size=14)
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; white-space:nowrap;"><span style="display:inline-flex; align-items:center; gap:7px;">{svg}<span style="font-weight:600;">{classe}</span></span></td>')
+            elif c == "Strumento":
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
+            elif c == "Data Ingresso":
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; color:{MUTED}; white-space:nowrap;">{val}</td>')
+            elif c == "Quote":
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{val}</td>')
+            elif c in ["Ingresso ($)", "Attuale ($)"]:
+                v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
+            elif c == "Peso (%)":
+                v_str = f"{val:.2f}%" if pd.notna(val) else "—"
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{v_str}</td>')
+            elif c == col_val_label:
+                v_str = f"{curr_sym}{val:,.0f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{v_str}</td>')
+            elif c == "Rendimento %":
+                if pd.notna(val) and isinstance(val, (int, float)):
+                    color = POS if val > 0 else NEG if val < 0 else MUTED
+                    v_str = f"{val:+.2f}%"
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:700; color:{color}; white-space:nowrap;">{v_str}</td>')
+                else:
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; color:{MUTED};">—</td>')
+            elif c == col_rend_label:
+                if pd.notna(val) and isinstance(val, (int, float)):
+                    color = POS if val > 0 else NEG if val < 0 else MUTED
+                    v_str = f"{curr_sym}{val:+,.0f}"
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:700; color:{color}; white-space:nowrap;">{v_str}</td>')
+                else:
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; color:{MUTED};">—</td>')
+            else:
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
+                
+        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
+
+    return f'''<div style="width:100%; max-height:420px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
 def section_title(text, top="26px", bottom="10px"):
@@ -667,23 +722,8 @@ with tab_pf:
     df_pos[col_val_label] = capitale * (df_pos["Peso (%)"] / 100.0) * fx_ratio
     df_pos[col_rend_label] = (df_pos["Rendimento %"] / 100.0) * df_pos[col_val_label]
 
-    df_pos_display = df_pos[[c for c in active_cols if c in df_pos.columns]]
-
-    df_pos_styled = df_pos_display.style.format({
-        "Ingresso ($)": "{:.2f}",
-        "Attuale ($)": "{:.2f}",
-        "Peso (%)": "{:.2f}%",
-        col_val_label: "{:,.0f}",
-        "Rendimento %": "{:+.2f}%",
-        col_rend_label: "{:+,.0f}",
-    }, na_rep="—").map(
-        color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]
-    ).map(
-        style_classe, subset=['Classe']
-    )
-
-    # Altezza fissa: ~8 righe visibili, il resto scorre dentro la tabella
-    st.dataframe(df_pos_styled, use_container_width=True, hide_index=True, height=360)
+    # Tabella HTML con icone SVG per ciascuna classe di attivo
+    st_html(render_positions_html_table(df_pos, active_cols, curr_sym, col_val_label, col_rend_label))
 
     # --- 5. Ultime Operazioni Eseguite ---
     if last_actions:
