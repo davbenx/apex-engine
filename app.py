@@ -332,10 +332,9 @@ def render_monthly_returns_html_table(df_eq):
     df = df_eq.copy()
     years = sorted(df.index.year.unique(), reverse=True)
     months = list(range(1, 13))
-    month_names = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
     
     th_cells = [f'<th style="padding:8px 10px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Anno</th>']
-    for m_name in month_names:
+    for m_name in MESI_IT:
         th_cells.append(f'<th style="padding:8px 8px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{m_name}</th>')
     th_cells.append(f'<th style="padding:8px 12px; font-weight:700; color:{ACCENT}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; border-left:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tot Anno</th>')
     
@@ -359,11 +358,11 @@ def render_monthly_returns_html_table(df_eq):
                 m_ret = ((m_end_val / m_start_val) - 1.0) * 100.0 if m_start_val > 0 else 0.0
                 
                 col = POS if m_ret > 0 else NEG if m_ret < 0 else MUTED
-                bg = 'rgba(61,220,151,0.07)' if m_ret > 0 else 'rgba(224,108,117,0.07)' if m_ret < 0 else 'transparent'
+                bg = 'rgba(61,220,151,0.07)' if m_ret > 0 else 'rgba(236,101,123,0.08)' if m_ret < 0 else 'transparent'
                 td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:right; font-family:{MONO}; font-weight:600; color:{col}; background:{bg}; white-space:nowrap;">{m_ret:+.1f}%</td>')
                 
         y_col = POS if y_ret > 0 else NEG if y_ret < 0 else MUTED
-        y_bg = 'rgba(61,220,151,0.12)' if y_ret > 0 else 'rgba(224,108,117,0.12)' if y_ret < 0 else 'transparent'
+        y_bg = 'rgba(61,220,151,0.12)' if y_ret > 0 else 'rgba(236,101,123,0.12)' if y_ret < 0 else 'transparent'
         td_cells.append(f'<td style="padding:8px 12px; font-size:12px; text-align:right; font-family:{MONO}; font-weight:700; color:{y_col}; background:{y_bg}; border-left:1px solid {BORDER_STRONG}; white-space:nowrap;">{y_ret:+.1f}%</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
 
@@ -1032,7 +1031,7 @@ with tab_perf:
         {sub_hero_metric("CAGR Annuo", f"{cagr_pct:+.2f}%", "Composto annualizzato", POS if cagr_pct >= 0 else NEG)}
         {sub_hero_metric("Volatilità Annua", f"{vol_annual_pct:.1f}%", "Oscillazione realizzata")}
         {sub_hero_metric("Indice di Sharpe", f"{sharpe_ratio:.2f}", "Efficienza rendimento/rischio", POS if sharpe_ratio >= 1.0 else None)}
-        {sub_hero_metric("Massimo Drawdown", f"{max_dd:.2f}%", "Massimo calo storico")}
+        {sub_hero_metric("Calo Massimo Storico", f"{max_dd:.2f}%", "Drawdown dal picco")}
     </div>
     """)
 

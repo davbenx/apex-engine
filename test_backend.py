@@ -6,8 +6,11 @@ ignorando la crescita composta — causa di un crollo fittizio del NAV mostrato 
 dashboard il giorno della migrazione v1->v2 (vedi APEX_V2_SPEC.md §8.3-bis).
 """
 import datetime
+import io
 import json
 import os
+import urllib.error
+import urllib.request
 
 import backend
 
@@ -314,6 +317,33 @@ def test_compute_rebalance_orders_structured():
     nvda_order = next(o for o in res["buys"] if o["ticker"] == "NVDA")
     assert nvda_order["action"] == "APERTURA"
     assert nvda_order["delta_w_pct"] == 2.5
+
+
+def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch):
+    """Verifica che se Telegram rifiuta il payload Markdown, il sistema effettua
+    immediatamente il fallback a testo semplice per non perdere l'allerta."""
+    monkeypatch.setenv("TELEGRAM_TOKEN", "dummy_token")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "dummy_chat_id")
+
+    calls = []
+    def fake_urlopen(req, timeout=10):
+        calls.append(req.data.decode("utf-8"))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError("https://api.telegram.org", 400, "Bad Request: can't parse entities", {}, None)
+        return io.BytesIO(b'{"ok": true}')
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+
+    data_dict = {
+        "allocations": {"Equities": 50, "Crypto": 12, "Gold": 18, "Bonds": 0, "Cash": 20},
+        "macro_events": ["Segnale test"],
+        "timestamp": "28 Ago 2026",
+    }
+    sent = backend.send_telegram_alert(data_dict, ["Log test"])
+    assert sent is True
+    assert len(calls) == 2, "deve tentare prima Markdown poi fallback plain text"
+    assert "parse_mode=Markdown" in calls[0]
+    assert "parse_mode" not in calls[1]
 
 
 if __name__ == "__main__":

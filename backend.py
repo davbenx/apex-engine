@@ -149,24 +149,27 @@ def get_sp500_tickers():
 
 
 def fetch_yahoo_history(ticker, period='2y', interval='1d'):
-    """Retrieves OHLC price series from Yahoo Finance Chart API."""
-    try:
-        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?range={period}&interval={interval}"
-        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-        res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
-        result = res['chart']['result'][0]
-        timestamps = pd.to_datetime(result['timestamp'], unit='s')
-        quote = result['indicators']['quote'][0]
+    """Retrieves OHLC price series from Yahoo Finance Chart API with transient retry."""
+    for attempt in range(2):
+        try:
+            url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?range={period}&interval={interval}"
+            req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+            res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
+            result = res['chart']['result'][0]
+            timestamps = pd.to_datetime(result['timestamp'], unit='s')
+            quote = result['indicators']['quote'][0]
 
-        df = pd.DataFrame({
-            'Open': quote['open'],
-            'High': quote['high'],
-            'Low': quote['low'],
-            'Close': quote['close']
-        }, index=timestamps).ffill().dropna()
-        return ticker, df
-    except Exception:
-        return ticker, pd.DataFrame()
+            df = pd.DataFrame({
+                'Open': quote['open'],
+                'High': quote['high'],
+                'Low': quote['low'],
+                'Close': quote['close']
+            }, index=timestamps).ffill().dropna()
+            return ticker, df
+        except Exception:
+            if attempt == 0:
+                time.sleep(0.3)
+    return ticker, pd.DataFrame()
 
 
 def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asset"):
@@ -188,16 +191,19 @@ fetch_bulk_parallel = download_universe_batch
 
 
 def fetch_sector(ticker):
-    """Recupera il settore GICS (endpoint Yahoo quoteSummary/assetProfile), stesso stile
+    """Recupera il settore GICS (endpoint Yahoo quoteSummary/assetProfile) con retry, stesso stile
     di fetch_yahoo_history — nessuna dipendenza da yfinance."""
-    try:
-        url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile"
-        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-        res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
-        profile = res['quoteSummary']['result'][0]['assetProfile']
-        return ticker, profile.get('sector')
-    except Exception:
-        return ticker, None
+    for attempt in range(2):
+        try:
+            url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile"
+            req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+            res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
+            profile = res['quoteSummary']['result'][0]['assetProfile']
+            return ticker, profile.get('sector')
+        except Exception:
+            if attempt == 0:
+                time.sleep(0.3)
+    return ticker, None
 
 
 def fetch_sector_map(tickers, max_workers=MAX_WORKERS_DEFAULT):
@@ -733,9 +739,18 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
         req = urllib.request.Request(url, data=payload)
-        urllib.request.urlopen(req, timeout=HTTP_TIMEOUT)
-        print("[+] Notifica Telegram inviata con successo.")
-        return True
+        try:
+            urllib.request.urlopen(req, timeout=HTTP_TIMEOUT)
+            print("[+] Notifica Telegram inviata con successo.")
+            return True
+        except Exception as e_md:
+            print(f"[!] Errore invio Markdown ({e_md}), riprovo in modalità testo semplice...")
+            plain_msg = msg.replace("*", "").replace("`", "")
+            payload_plain = urllib.parse.urlencode({"chat_id": chat_id, "text": plain_msg}).encode('utf-8')
+            req_plain = urllib.request.Request(url, data=payload_plain)
+            urllib.request.urlopen(req_plain, timeout=HTTP_TIMEOUT)
+            print("[+] Notifica Telegram (fallback testo) inviata con successo.")
+            return True
     except Exception as e:
         print(f"[!] Errore invio alert Telegram: {e}")
         return False
