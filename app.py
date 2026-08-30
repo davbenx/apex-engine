@@ -18,12 +18,9 @@ st.set_page_config(
 # HTML RENDERING HELPERS
 # ==============================================================================
 def st_html(html_str):
-    """Renders raw HTML safely without Markdown parser indentation issues."""
+    """Renders raw HTML safely via st.markdown(unsafe_allow_html=True) to guarantee full SVG rendering without DOMPurify stripping."""
     cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    try:
-        st.html(cleaned)
-    except AttributeError:
-        st.markdown(cleaned, unsafe_allow_html=True)
+    st.markdown(cleaned, unsafe_allow_html=True)
 
 
 def fill_slot(slot, html_str):
