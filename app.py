@@ -1106,8 +1106,6 @@ with tab_perf:
 
         df_plot = df_agg[df_agg.index >= start_dt].copy()
 
-        IT_MONTHS = {1: 'Gen', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Mag', 6: 'Giu', 7: 'Lug', 8: 'Ago', 9: 'Set', 10: 'Ott', 11: 'Nov', 12: 'Dic'}
-
         ticks = []
         tick_labels = []
         if not df_plot.empty:
@@ -1118,18 +1116,18 @@ with tab_perf:
 
             if total_days <= 45:
                 ticks = [all_days[i] for i in range(0, len(all_days), 7)]
-                tick_labels = [f"{d.day} {IT_MONTHS[d.month]}" for d in ticks]
+                tick_labels = [f"{d.day} {MESI_IT[d.month-1]}" for d in ticks]
             elif total_days <= 120:
                 ticks = [d for d in all_days if d.day in [1, 15]]
-                tick_labels = [f"{d.day:02d} {IT_MONTHS[d.month]}" for d in ticks]
+                tick_labels = [f"{d.day:02d} {MESI_IT[d.month-1]}" for d in ticks]
             elif total_days <= 450:
                 ticks = [d for d in all_days if d.day == 1]
-                tick_labels = [f"{IT_MONTHS[d.month]} '{d.strftime('%y')}" if (d.month in [1, 7] or (len(ticks) > 0 and d == ticks[0])) else IT_MONTHS[d.month] for d in ticks]
+                tick_labels = [f"{MESI_IT[d.month-1]} '{d.strftime('%y')}" if (d.month in [1, 7] or (len(ticks) > 0 and d == ticks[0])) else MESI_IT[d.month-1] for d in ticks]
             else:
                 ticks = [d for d in all_days if d.day == 1 and d.month in [1, 4, 7, 10]]
-                tick_labels = [f"{IT_MONTHS[d.month]} '{d.strftime('%y')}" for d in ticks]
+                tick_labels = [f"{MESI_IT[d.month-1]} '{d.strftime('%y')}" for d in ticks]
 
-        it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_plot.index]
+        it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_plot.index]
 
         fig = go.Figure()
 
@@ -1164,7 +1162,7 @@ with tab_perf:
                 df_spy_norm = (df_spy_plot / first_spy) * 100
                 _y_values.extend(df_spy_norm.tolist())
 
-                spy_it_dates = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_spy_plot.index]
+                spy_it_dates = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_spy_plot.index]
                 fig.add_trace(go.Scatter(
                     x=df_spy_plot.index,
                     y=df_spy_norm,
@@ -1200,7 +1198,7 @@ with tab_perf:
 
         st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
         df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
-        dd_it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_underwater.index]
+        dd_it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_underwater.index]
         fig_dd = go.Figure()
         fig_dd.add_trace(go.Scatter(
             x=df_underwater.index,
