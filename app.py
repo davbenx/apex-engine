@@ -110,12 +110,6 @@ def monogram(text, size=26):
     return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {ACCENT}; color:{ACCENT}; font-family:{MONO}; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
 
 
-# Peso di base massimo per classe attiva in apex_v2_engine.py (base_weight=0.25,
-# poi scalato dal fattore di vol-target che non supera mai 1.0 — 25% e' il
-# vero tetto per singola classe). Vedi APEX_V2_SPEC.md §20.
-V2_MAX_BASE_ALLOC_PCT = 25.0
-
-
 # ==============================================================================
 # DATA LOADING & SYNC
 # ==============================================================================
@@ -340,22 +334,6 @@ def position_detail(ticker, capitale_usd):
 
 
 # ==============================================================================
-# LAST REBALANCE CALLOUT (sopra le tab, sempre visibile — e' l'informazione
-# piu' urgente quando presente: cosa comprare/vendere oggi sul broker)
-# ==============================================================================
-last_actions = (pf or {}).get("last_action_log") or []
-if last_actions:
-    last_action_date = (pf or {}).get("last_action_date", "")
-    st_html(f"""
-    <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px 8px 0 0; border-bottom: none; padding: 10px 16px 6px; font-size: 13px;">
-        <span style="width:6px; height:6px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px;"></span>
-        <strong>Ultimo ribilanciamento ({last_action_date})</strong> — operazioni da replicare sul tuo broker
-    </div>
-    """)
-    st.code("\n".join(last_actions), language=None)
-    st.write("")
-
-# ==============================================================================
 # MAIN TABS DECLARATION (PORTAFOGLIO, METRICHE, GUIDA)
 # ==============================================================================
 tab_pf, tab_perf, tab_guide = st.tabs([
@@ -448,8 +426,69 @@ with tab_pf:
     </div>
     """)
 
+    # --- Ordini di Ribilanciamento / Operatività Broker ---
+    pending_orders = (pf or {}).get("pending_orders") or []
+    last_actions = (pf or {}).get("last_action_log") or []
+    last_action_date = (pf or {}).get("pending_orders_date") or (pf or {}).get("last_action_date") or ""
+    days_since_rebalance = calculate_days(last_action_date) if last_action_date else 999
+    is_recent_rebalance = days_since_rebalance <= 4
+
+    if pending_orders or last_actions:
+        if is_recent_rebalance:
+            st_html(f"""
+            <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px; padding: 12px 16px; margin: 14px 0 10px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <span style="width:7px; height:7px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px;"></span>
+                        <strong style="font-size:13.5px;">Ordini Operativi per Lunedì ({last_action_date})</strong>
+                        <span style="background:{BADGE_NEUTRAL_BG}; color:{ACCENT}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:{MONO}; margin-left:8px;">DA ESEGUIRE ORE 15:30 CET</span>
+                    </div>
+                    <div style="font-size:11.5px; color:{MUTED};">Quote e importi calcolati sul tuo capitale ({curr_sym}{capitale * fx_ratio:,.0f})</div>
+                </div>
+            </div>
+            """)
+            if pending_orders:
+                orders_rows = []
+                for o in pending_orders:
+                    act_type = o.get("action_type", "BUY")
+                    act_label = o.get("action", "ORDINE")
+                    icon = "🔴" if act_type == "SELL" else "🟢"
+                    tkr = o.get("ticker", "")
+                    px = o.get("price", 0.0)
+                    delta_w = abs(o.get("delta_w_pct", 0.0))
+                    val_usd = (delta_w / 100.0) * capitale
+                    val_user = val_usd * fx_ratio
+                    is_cr = o.get("is_crypto", False) or tkr == "BTC"
+                    shares = (val_usd / px) if px > 0 else 0.0
+                    shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
+
+                    orders_rows.append({
+                        "Tipo": f"{icon} {act_label}",
+                        "Titolo": tkr,
+                        "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}% pf",
+                        f"Controvalore ({curr_sym})": val_user,
+                        "Quote": shares_str,
+                        "Prezzo Rif. ($)": px,
+                        "Dettaglio Operativo": o.get("desc", ""),
+                    })
+                df_orders = pd.DataFrame(orders_rows)
+                st.dataframe(
+                    df_orders.style.format({
+                        f"Controvalore ({curr_sym})": f"{curr_sym}{{:,.0f}}",
+                        "Prezzo Rif. ($)": "${:,.2f}",
+                    }),
+                    use_container_width=True,
+                    hide_index=True
+                )
+            elif last_actions:
+                st.code("\n".join(last_actions), language=None)
+        else:
+            with st.expander(f"📁 Archivio ultimo ribilanciamento ({last_action_date})"):
+                st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+                st.code("\n".join(last_actions), language=None)
+
     # --- Segnali per classe (striscia unica, non 5 riquadri) ---
-    st_html(section_title("Segnali per classe"))
+    st_html(section_title("Regimi e Segnali Macro"))
 
     def signal_item(label, value_text, dot_color=None, title_attr=""):
         dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>' if dot_color else ""
@@ -468,9 +507,6 @@ with tab_pf:
     _g_active, _g_val, _g_title = class_state(alloc.get('Gold', 0), d_g)
     _b_active, _b_val, _b_title = class_state(alloc.get('Bonds', 0), d_b)
 
-    # Griglia (non flex-wrap): ogni voce occupa una colonna di larghezza
-    # uguale, allineate sia in riga sia in colonna invece di accodarsi in
-    # base alla lunghezza del proprio contenuto.
     signals_html = "".join([
         signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT, _eq_title),
         signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT, _cr_title),
@@ -480,9 +516,8 @@ with tab_pf:
     ])
     st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
 
-    # --- Allocazione (barra singola, composizione — la performance vive
-    # nell'hero e nella tabella, non ripetuta qui) ---
-    st_html(section_title("Allocazione"))
+    # --- Allocazione ---
+    st_html(section_title("Composizione del Portafoglio"))
 
     alloc_segments = []
     if op_eq:
@@ -506,6 +541,7 @@ with tab_pf:
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
 
     # --- Tabella unica con tutte le posizioni di tutte le classi ---
+    st_html(section_title("Posizioni Attive nel Portafoglio"))
     real_cash_usd = max(0.0, capitale - tot_invested_usd)
     cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
 
@@ -520,26 +556,12 @@ with tab_pf:
 
     col_val_label = f"Valore ({curr_sym})"
     col_rend_label = f"Rendimento ({curr_sym})"
-
-    # Pallino invece di una colonna "Stato" a parte: appeso al Titolo, non in
-    # una colonna dedicata quasi sempre vuota. Colora l'intera cella (Titolo)
-    # perche' la tabella di Streamlit applica lo stile a livello di cella,
-    # non di singolo carattere — non si puo' colorare solo il pallino
-    # lasciando il ticker del colore di default nella stessa cella.
     NEW_MARK = " ●"
 
     def _mark(titolo, is_new):
         return f"{titolo}{NEW_MARK}" if is_new else titolo
 
     unified_rows = []
-    # Azioni ordinate per rendimento decrescente: chi sta guadagnando di piu'
-    # in cima, chi sta perdendo di piu' in fondo — leggibile a colpo
-    # d'occhio senza dover scandire tutte le 15 righe (i pesi sono quasi
-    # identici essendo un basket equal-weight, quindi ordinare per peso non
-    # li distinguerebbe in modo utile).
-    # Sigle invece dei nomi per classe (AZ/BTC/AU/FI/CASH/TOT) — coerenti col
-    # vocabolario gia' usato nel cockpit, colonna molto piu' stretta di
-    # "Obbligazioni"/"Monetario" per nessuna perdita di informazione.
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
             "Classe": "AZ", "Titolo": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
@@ -576,20 +598,6 @@ with tab_pf:
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
-    # Riga totale — stessa informazione dell'hero (P&L aggregato), calcolata
-    # dagli stessi dati della tabella invece che in un riquadro separato.
-    unified_rows.append({
-        "Classe": "TOT", "Titolo": "",
-        "Data Ingresso": "—",
-        "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
-        "Peso (%)": 100.0, "Rendimento %": tot_pnl_pct,
-    })
-
-    def style_total_row(row):
-        if row.get("Classe") == "TOT":
-            return [f'font-weight: 800; border-top: 2px solid {BORDER_STRONG};'] * len(row)
-        return [''] * len(row)
-
     show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
     compact_cols = ["Classe", "Titolo", "Peso (%)", col_val_label, "Rendimento %"]
     full_cols = ["Classe", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
@@ -624,11 +632,9 @@ with tab_pf:
         col_val_label: "{:,.0f}",
         "Rendimento %": "{:+.2f}%",
         col_rend_label: "{:+,.0f}",
-    }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_titolo, subset=['Titolo']).apply(style_total_row, axis=1)
+    }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_titolo, subset=['Titolo'])
 
-    # Altezza fissa invece di mostrare tutte le righe senza limite: ~8 righe
-    # visibili, il resto scorre dentro la tabella stessa (nessuna riga
-    # nascosta, solo non tutte in vista contemporaneamente).
+    # Altezza fissa: ~8 righe visibili, il resto scorre dentro la tabella
     st.dataframe(df_pos_styled, use_container_width=True, hide_index=True, height=360)
 
 
@@ -638,15 +644,6 @@ with tab_pf:
 with tab_perf:
     eq_curve = load_equity()
 
-    # Intervallo calcolato dai dati reali, non un valore fisso in testo che
-    # sarebbe rimasto scorretto ogni mese che passa.
-    #
-    # "Backtest out-of-sample" e' vero solo per la parte generata da
-    # generate_v2_track_record.py (replay storico offline). Da quando
-    # backend.py gira in produzione ogni notte, ogni voce che scrive porta
-    # "live": True (vedi update_equity_curve, APEX_V2_SPEC.md §24) — quindi
-    # si puo' distinguere onestamente le due fasi invece di chiamare tutto
-    # "backtest" anche mesi dopo che il forward-tracking reale e' iniziato.
     track_record_range_str = ""
     live_since_str = None
     if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
@@ -663,15 +660,12 @@ with tab_perf:
     else:
         _banner_text = f"Simulazione quantitativa a regole fisse deterministiche{track_record_range_str} · Reinvestimento composto · Backtest out-of-sample"
 
-    # Riquadro colorato -> semplice didascalia: e' una nota metodologica, non
-    # la prima cosa che deve saltare all'occhio (quello sono i numeri del
-    # sub-hero sotto). Il contenuto (onesto su simulazione/live) e' rimasto,
-    # solo il peso visivo e' stato ridotto.
     st.caption(_banner_text)
 
     total_ret_pct = 0.0
     cagr_pct = 0.0
     max_dd = 0.0
+    vol_annual_pct = 0.0
     sharpe_ratio = 0.0
     calmar_ratio = 0.0
 
@@ -698,31 +692,19 @@ with tab_perf:
         if years_elapsed > 0 and initial_val > 0 and final_val > 0:
             cagr_pct = ((final_val / initial_val) ** (1.0 / years_elapsed) - 1.0) * 100
 
-        # Sharpe/Calmar con la stessa convenzione usata in tutta la fase di
-        # ricerca (multi_asset_lab.py::perf_metrics): rendimenti SETTIMANALI,
-        # non giornalieri, annualizzati con sqrt(52), nessun tasso privo di
-        # rischio sottratto. Erano il criterio primario di valutazione in
-        # tutti i test di questa sessione ma non comparivano mai in
-        # dashboard — corretto qui (vedi APEX_V2_SPEC.md §25).
         _weekly_close = df_eq['close'].resample('W-FRI').last().dropna()
         _weekly_ret = _weekly_close.pct_change().dropna()
         if len(_weekly_ret) > 1 and _weekly_ret.std() > 0:
             sharpe_ratio = (_weekly_ret.mean() / _weekly_ret.std()) * (52 ** 0.5)
+            vol_annual_pct = _weekly_ret.std() * (52 ** 0.5) * 100.0
         _max_dd_frac = abs(max_dd) / 100.0
         calmar_ratio = (cagr_pct / 100.0) / _max_dd_frac if _max_dd_frac > 0 else 0.0
 
-    # Stima netto teorica: 26% (aliquota flat italiana) solo sulla quota di
-    # guadagno, come se l'intera posizione venisse realizzata oggi. Le
-    # perdite non generano beneficio fiscale in questa stima semplificata
-    # (non modella riporto perdite 4 anni art. 68 TUIR, vedi APEX_V2_SPEC.md §8.9/§10).
     net_ret_pct_est = total_ret_pct * (1.0 - 0.26) if total_ret_pct > 0 else total_ret_pct
 
-    # --- Sub-hero: le 5 metriche piu' importanti, in grande, non sepolte in
-    # una striscia di 9 — le altre (trading mechanics) restano nella
-    # striscia sotto.
     def sub_hero_metric(label, value, subtext="", val_color=None):
         return f"""
-        <div style="flex: 1 1 150px;">
+        <div style="flex: 1 1 140px;">
             <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
             <div style="font-family: {MONO}; font-size: 26px; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
             <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
@@ -730,12 +712,13 @@ with tab_perf:
         """
 
     st_html(f"""
-    <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:24px;">
-        {sub_hero_metric("Rendimento", f"{total_ret_pct:+.2f}%", f"Netto stimato: {net_ret_pct_est:+.2f}%", POS if total_ret_pct >= 0 else NEG)}
-        {sub_hero_metric("CAGR Annualizzato", f"{cagr_pct:+.2f}%", "Composto annuo", POS if cagr_pct >= 0 else NEG)}
-        {sub_hero_metric("Sharpe", f"{sharpe_ratio:.2f}", "Rendimento / volatilità", POS if sharpe_ratio >= 1.0 else None)}
-        {sub_hero_metric("Calmar", f"{calmar_ratio:.2f}", "CAGR / max drawdown", POS if calmar_ratio >= 1.0 else None)}
-        {sub_hero_metric("Max Drawdown", f"{max_dd:.2f}%", "Massima perdita storica")}
+    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px;">
+        {sub_hero_metric("Rendimento Totale", f"{total_ret_pct:+.2f}%", f"Netto stimato: {net_ret_pct_est:+.2f}%", POS if total_ret_pct >= 0 else NEG)}
+        {sub_hero_metric("CAGR Annuo", f"{cagr_pct:+.2f}%", "Composto annualizzato", POS if cagr_pct >= 0 else NEG)}
+        {sub_hero_metric("Volatilità Annua", f"{vol_annual_pct:.1f}%", "Oscillazione realizzata")}
+        {sub_hero_metric("Sharpe Ratio", f"{sharpe_ratio:.2f}", "Efficienza rendimento/rischio", POS if sharpe_ratio >= 1.0 else None)}
+        {sub_hero_metric("Calmar Ratio", f"{calmar_ratio:.2f}", "Rendimento / max perdita", POS if calmar_ratio >= 1.0 else None)}
+        {sub_hero_metric("Max Drawdown", f"{max_dd:.2f}%", "Massimo calo storico")}
     </div>
     """)
 
@@ -903,19 +886,29 @@ with tab_perf:
         # giornaliera per non attenuare la vera profondità intra-settimanale).
         st.caption("Drawdown dal massimo storico")
         df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
+        dd_it_dates_str = [f"{d.day:02d} {IT_MONTHS[d.month]} {d.year}" for d in df_underwater.index]
         fig_dd = go.Figure()
         fig_dd.add_trace(go.Scatter(
-            x=df_underwater.index, y=df_underwater['drawdown'],
-            fill='tozeroy', mode='lines',
+            x=df_underwater.index,
+            y=df_underwater['drawdown'],
+            fill='tozeroy',
+            mode='lines',
             line=dict(color=NEG, width=1.2),
             fillcolor='rgba(236, 101, 123, 0.15)',
-            hovertemplate="%{x|%d %b %Y}<br>Drawdown: %{y:.2f}%<extra></extra>",
+            text=dd_it_dates_str,
+            hovertemplate="<b>%{text}</b><br>Drawdown: %{y:.2f}%<extra></extra>",
             name="Drawdown"
         ))
         fig_dd.update_layout(
             template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Inter, sans-serif"),
-            xaxis=dict(showgrid=False, tickfont=dict(size=10)),
+            xaxis=dict(
+                showgrid=False,
+                tickfont=dict(size=10),
+                tickmode='array' if len(ticks) > 0 else 'auto',
+                tickvals=ticks if len(ticks) > 0 else None,
+                ticktext=tick_labels if len(tick_labels) > 0 else None
+            ),
             yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.05)', tickfont=dict(size=10), ticksuffix="%"),
             margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
         )
@@ -1081,102 +1074,117 @@ with tab_perf:
 # ==============================================================================
 with tab_guide:
     st_html(f'''
-    <div style="background: rgba(0, 136, 204, 0.06); border: 1px solid rgba(0, 136, 204, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div style="background: rgba(0, 136, 204, 0.06); border: 1px solid rgba(0, 136, 204, 0.25); border-radius: 8px; padding: 14px 18px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <div>
-            <div style="font-weight: 700; font-size: 14px; color: #0088cc; margin-bottom: 2px;">Canale Ufficiale Notifiche Telegram</div>
-            <div style="font-size: 12.5px; opacity: 0.8;">Ricevi in tempo reale i cambi di allocazione e gli ordini di rotazione.</div>
+            <div style="font-weight: 700; font-size: 14.5px; color: #0088cc; margin-bottom: 3px;">Canale Ufficiale Notifiche Telegram</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.4;">Ricevi in tempo reale i cambi di regime macro e gli ordini operativi del venerdì sera.</div>
         </div>
-        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 700;">
-            Unisciti al canale →
+        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 7px 16px; border-radius: 6px; font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            ✈ Unisciti al Canale
         </a>
     </div>
     ''')
 
-    st_html(section_title("Cadenza Operativa", top="0"))
+    st_html(section_title("La Routine Operativa (3 Minuti a Settimana)", top="0"))
     st_html(f"""
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Ogni giorno (Lun-Ven)</div>
-            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Prezzi e NAV vengono aggiornati. Nessuna decisione di trading in questa fase — solo osservazione.</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span style="font-size:16px;">📅</span>
+                <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px;">1. Venerdì Sera (ore 23:00 CET)</div>
+            </div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Il motore analizza le chiusure settimanali. Se c'è un ribilanciamento, ricevi la notifica Telegram con gli ordini esatti (vendite e acquisti) e le quote calcolate sul tuo capitale.</div>
         </div>
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Ultimo venerdì del mese</div>
-            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Il segnale macro di ogni classe viene ricontrollato (attiva/in pausa) e il peso complessivo viene riscalato per centrare il target di volatilità. Non esiste un controllo settimanale intermedio: le decisioni sono solo qui.</div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span style="font-size:16px;">⚡</span>
+                <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px;">2. Lunedì Pomeriggio (ore 15:30 CET)</div>
+            </div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">All'apertura dei mercati USA, esegui gli ordini sul tuo broker (es. Fineco, IBKR, Trade Republic). Se il venerdì non c'erano ordini, <strong>non fai nulla</strong>.</div>
         </div>
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">Ultimo venerdì del trimestre</div>
-            <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">In aggiunta al ribilanciamento mensile, il basket azionario viene rinnovato: i titoli con volatilità realizzata più alta escono, i nuovi primi in classifica entrano. Nessuno stop-loss per singola posizione: l'uscita avviene solo per rotazione o disattivazione della classe.</div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span style="font-size:16px;">🛡️</span>
+                <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px;">3. Durante la Settimana</div>
+            </div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Nessun intervento necessario. L'algoritmo non fa micro-trading intraday: zero stress, zero decisioni emotive e piena serenità.</div>
         </div>
     </div>
     """)
 
     st.divider()
 
-    st_html(section_title("Documentazione Strategica", top="0"))
+    st_html(section_title("I 4 Motori di Rendimento (Allocazione Dinamica)", top="0"))
     st_html(f'''
-    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-        <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">Obiettivo Primario</div>
-        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Generare alpha reale (indipendente dal semplice beta di mercato) con bassa frequenza di intervento (rotazione mensile/trimestrale, mai giornaliera) e alta efficienza fiscale, eliminando ogni componente emotiva attraverso l'allocazione dinamica quantitativa.</div>
+    <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 14px;">
+        Ogni classe di attivo viene attivata solo quando il proprio trend di fondo è confermato al rialzo, proteggendo il capitale durante le fasi orso e sfruttando la crescita nei mercati favorevoli:
     </div>
 
-    <div style="font-size: 12.5px; font-weight: 700; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 0;">Il Sistema — Segnale di Timing per Classe</div>
-    <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5; margin-bottom: 10px;">Ogni classe di attivo (Azioni, Obbligazioni, Oro, Bitcoin) viene attivata o disattivata in base al proprio trend di lungo periodo — non esiste più un tetto percentuale fisso per classe:</div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px;">
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">Azioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">BASKET BASSA VOL</span>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 24px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 13.5px;">Azioni (S&P 500)</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 TITOLI LOW-VOL</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Attiva se SPY è sopra le medie mobili a 40 E 20 settimane insieme (conferma multi-timeframe, isteresi adattiva sulla banda).</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale dei 15 titoli a minore oscillazione dell'S&P 500 (max 2 per settore). Efficienza fiscale massima (minusvalenze compensabili).</div>
         </div>
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">Bitcoin</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SOLO BTC-USD</span>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 13.5px;">Bitcoin</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">BTC-USD</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Nessuna rotazione altcoin (testata e respinta: nessun edge aggiuntivo). Stesso segnale di timing dell'azionario.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte asimmetria dei cicli di liquidità globale. Disattivato tempestivamente durante i mercati ribassisti prolungati.</div>
         </div>
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">Oro</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SEGNALE DI TREND</span>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 13.5px;">Oro</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">GLD</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Protezione contro inflazione e incertezza, attivata dallo stesso meccanismo di timing.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Protezione contro svalutazione monetaria, inflazione e shock geopolitici. Attivo nei trend rialzisti dei metalli preziosi.</div>
         </div>
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">Obbligazioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SEGNALE DI TREND</span>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 13.5px;">Obbligazioni</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">IEF</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Titoli di stato, allocati quando il proprio trend è favorevole.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Titoli di Stato USA a 7-10 anni, allocati quando il trend dei tassi e del credito è favorevole.</div>
         </div>
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span style="font-weight: 700; font-size: 13px;">Monetario</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">RESIDUO</span>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 13.5px;">Monetario</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">SHY / XEON</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.8; line-height: 1.4;">Rifugio sicuro e liquidità per le classi in pausa o per il target di volatilità.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Parcheggio sicuro per la liquidità non impiegata. Rende gli interessi di mercato a zero rischio di capitale.</div>
         </div>
-    </div>
-
-    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 10px;">
-        <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">Selezione del Basket Azionario</div>
-        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni trimestre, tra i titoli dell'universo tracciato il sistema seleziona i 15 con la volatilità realizzata più bassa (26 settimane), non i più momentum-forti: l'obiettivo è mantenere il carattere fiscale di "redditi diversi" (azioni singole, compensabili) con un profilo di rischio stabile. Massimo 2 titoli per settore, per non concentrare il basket su un solo comparto.</div>
-    </div>
-
-    <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
-        <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">Vol-Targeting di Portafoglio</div>
-        <div style="font-size: 12.5px; opacity: 0.8; line-height: 1.5;">Ogni classe attiva parte da un peso di base uguale (25%), poi tutte le classi attive vengono scalate mensilmente dallo stesso fattore per centrare una volatilità target del 13% annualizzato (finestra 12 settimane) — non è un tetto per classe: se due classi attive mostrano lo stesso peso è perché partono dallo stesso 25% base e vengono scalate allo stesso modo, non per un limite massimo. Non esiste uno stop-loss per singola posizione: testato esplicitamente e respinto perché riduce l'edge senza migliorare il rischio aggiustato per rendimento (dettagli in APEX_V2_SPEC.md §3).</div>
     </div>
     ''')
 
     st.divider()
 
+    st_html(section_title("I 3 Pilastri di Sicurezza Quantitativa", top="0"))
+    st_html(f"""
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Vol-Targeting Adattivo (Target 22%)</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Il peso di ciascun asset viene scalato mensilmente in base alla volatilità del mercato: nei periodi turbolenti l'esposizione si riduce in automatico, comprimendo i drawdown storici al 13.5%.</div>
+        </div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">2. Garanzia Strutturale di Non-Leva</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">La somma dei pesi di portafoglio è vincolata matematicamente a non superare mai il 100% (&Sigma; w &le; 1.0). Zero rischio di margin call o liquidazione forzata.</div>
+        </div>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Filtro Multi-Timeframe con Isteresi</div>
+            <div style="font-family: Inter, sans-serif; font-size: 12px; opacity: 0.85; line-height: 1.5;">Richiede l'accordo contemporaneo delle medie mobili a 40 e 20 settimane con una banda di tolleranza anti-rumore, evitando ingressi e uscite repentine sui falsi segnali.</div>
+        </div>
+    </div>
+    """)
+
+    st.divider()
+
     st_html(f'''
-    <div style="background: rgba(236, 101, 123, 0.04); border: 1px solid rgba(236, 101, 123, 0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; opacity: 0.8; line-height: 1.5;">
+    <div style="background: rgba(236, 101, 123, 0.04); border: 1px solid rgba(236, 101, 123, 0.18); border-radius: 8px; padding: 12px 16px; font-size: 11.5px; opacity: 0.85; line-height: 1.5;">
         <strong>Note Legali ed Esclusione di Responsabilità:</strong><br>
-        Questa piattaforma ha scopo puramente informativo e di analisi statistica. Non fornisce consulenza finanziaria né raccomandazioni personalizzate ai sensi delle normative vigenti.<br>
-        I rendimenti passati non garantiscono risultati futuri. Ogni investimento comporta il rischio di perdita del capitale ed è effettuato sotto la totale ed esclusiva responsabilità dell'utente. L'autore declina qualsiasi responsabilità per eventuali perdite derivanti dall'uso di questi dati.
+        Questa piattaforma ha scopo puramente informativo e di analisi statistica quantitativa. Non costituisce consulenza finanziaria personalizzata, sollecitazione al pubblico risparmio né raccomandazione d'investimento ai sensi delle normative vigenti.<br>
+        I rendimenti passati e le simulazioni storiche non costituiscono garanzia di risultati futuri. Ogni decisione di investimento comporta il rischio di perdita del capitale ed è effettuata sotto la totale ed esclusiva responsabilità dell'utente.
     </div>
     ''')

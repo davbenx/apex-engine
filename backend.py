@@ -511,22 +511,115 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
     return action_log
 
 
+def compute_rebalance_orders_structured(open_positions, target_allocations, basket, prices_by_ticker):
+    """
+    Calcola gli ordini di ribilanciamento in formato strutturato (percentuali, quote,
+    prezzi, suddivisione Vendite/Acquisti) sin dal venerdì sera della decisione,
+    permettendo all'utente di inserire gli ordini con calma per il lunedì.
+    """
+    target = {}
+    n_basket = max(1, len(basket))
+    eq_slot = target_allocations.get("Equities", 0.0) / 100.0
+    for row in basket:
+        target[row["Ticker"]] = eq_slot / n_basket
+    if target_allocations.get("Bonds", 0.0) > 0:
+        target["IEF"] = target_allocations["Bonds"] / 100.0
+    if target_allocations.get("Gold", 0.0) > 0:
+        target["GLD"] = target_allocations["Gold"] / 100.0
+    if target_allocations.get("Crypto", 0.0) > 0:
+        target["BTC"] = target_allocations["Crypto"] / 100.0
+
+    EPS = 1e-4
+    sells = []
+    buys = []
+    action_log = []
+
+    all_tickers = sorted(list(set(list(open_positions.keys()) + list(target.keys()))))
+    for ticker in all_tickers:
+        cur_w = open_positions.get(ticker, {}).get("weight", 0.0)
+        tgt_w = target.get(ticker, 0.0)
+        delta_w = tgt_w - cur_w
+        if abs(delta_w) <= EPS:
+            continue
+
+        is_crypto = (ticker == "BTC") or open_positions.get(ticker, {}).get("is_crypto", False)
+        sym = ticker + "-USD" if is_crypto else ticker
+        price = prices_by_ticker.get(sym, open_positions.get(ticker, {}).get("current_price", open_positions.get(ticker, {}).get("entry_price", 0.0)))
+        
+        cur_w_pct = cur_w * 100.0
+        tgt_w_pct = tgt_w * 100.0
+        delta_w_pct = delta_w * 100.0
+
+        if tgt_w <= EPS and cur_w > EPS:
+            entry_p = open_positions.get(ticker, {}).get("entry_price", price)
+            pnl_pct = ((price / entry_p) - 1.0) * 100 if entry_p > 0 else 0.0
+            order_info = {
+                "action": "CHIUSURA",
+                "action_type": "SELL",
+                "ticker": ticker,
+                "cur_w_pct": round(cur_w_pct, 2),
+                "tgt_w_pct": 0.0,
+                "delta_w_pct": round(delta_w_pct, 2),
+                "price": price,
+                "pnl_pct": round(pnl_pct, 2),
+                "is_crypto": is_crypto,
+                "desc": f"Vende il 100% della posizione ({cur_w_pct:.2f}% del portafoglio)"
+            }
+            sells.append(order_info)
+            action_log.append(f"🔴 CHIUSURA: {ticker} | Vende {cur_w_pct:.2f}% pf (100% posizione) | Prezzo: {fmt_usd(price)} | P&L: {pnl_pct:+0.2f}%")
+        elif delta_w < -EPS:
+            order_info = {
+                "action": "TRIM",
+                "action_type": "SELL",
+                "ticker": ticker,
+                "cur_w_pct": round(cur_w_pct, 2),
+                "tgt_w_pct": round(tgt_w_pct, 2),
+                "delta_w_pct": round(delta_w_pct, 2),
+                "price": price,
+                "is_crypto": is_crypto,
+                "desc": f"Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% a {tgt_w_pct:.2f}%)"
+            }
+            sells.append(order_info)
+            action_log.append(f"🔴 TRIM: {ticker} | Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo: {fmt_usd(price)}")
+        elif cur_w <= EPS and tgt_w > EPS:
+            order_info = {
+                "action": "APERTURA",
+                "action_type": "BUY",
+                "ticker": ticker,
+                "cur_w_pct": 0.0,
+                "tgt_w_pct": round(tgt_w_pct, 2),
+                "delta_w_pct": round(delta_w_pct, 2),
+                "price": price,
+                "is_crypto": is_crypto,
+                "desc": f"Acquista quota del {tgt_w_pct:.2f}% del portafoglio"
+            }
+            buys.append(order_info)
+            action_log.append(f"🟢 APERTURA: {ticker} | Acquista {tgt_w_pct:.2f}% pf | Prezzo: {fmt_usd(price)}")
+        elif delta_w > EPS:
+            order_info = {
+                "action": "INCREMENTO",
+                "action_type": "BUY",
+                "ticker": ticker,
+                "cur_w_pct": round(cur_w_pct, 2),
+                "tgt_w_pct": round(tgt_w_pct, 2),
+                "delta_w_pct": round(delta_w_pct, 2),
+                "price": price,
+                "is_crypto": is_crypto,
+                "desc": f"Aumenta di +{delta_w_pct:.2f}% pf (da {cur_w_pct:.2f}% a {tgt_w_pct:.2f}%)"
+            }
+            buys.append(order_info)
+            action_log.append(f"🟢 INCREMENTO: {ticker} | Aumenta di +{delta_w_pct:.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo: {fmt_usd(price)}")
+
+    return {"sells": sells, "buys": buys, "orders": sells + buys, "action_log": action_log}
+
+
 # ==============================================================================
 # TELEGRAM NOTIFICATIONS
 # ==============================================================================
-def send_telegram_alert(data_dict, action_log, is_rotation_now=None):
-    """Notifica Telegram — due formati invece di uno solo uguale ogni volta
-    (vedi APEX_V2_SPEC.md §26): breve nei venerdi' "silenziosi" (nessun
-    ordine, nessun cambio di regime — la maggioranza dei casi, 3 venerdi'
-    su 4), completa solo quando c'e' davvero qualcosa da guardare. Niente
-    piu' elenco completo del portafoglio a ogni invio: nei venerdi' di
-    ribilanciamento e' gia' tutto nella sezione ordini (ripeterlo sarebbe
-    la stessa informazione due volte), nei venerdi' silenziosi basta
-    l'aggregato. Dettaglio completo sempre disponibile in dashboard.
-    Emoji decorative rimosse (restano solo 🟢/⚪, l'unico modo di colorare
-    uno stato su Telegram senza CSS) — e ⚪ sostituisce il vecchio 🔴 per
-    "in pausa": una classe in pausa non e' una notizia negativa, stessa
-    regola gia' applicata nella dashboard."""
+def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_orders_struct=None):
+    """Notifica Telegram istituzionale e lean: ordini suddivisi rigorosamente in
+    1. VENDITE (fai prima cassa) e 2. ACQUISTI (impiega liquidità), con percentuali
+    di portafoglio esatte e timing esplicito per l'apertura di Lunedì."""
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
@@ -545,29 +638,58 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None):
             return "🟢" if pct > 0 else "⚪"
 
         signals_line = (
-            f"Segnali: Azioni {_dot(alloc.get('Equities', 0))} · "
-            f"Bitcoin {_dot(alloc.get('Crypto', 0))} · "
-            f"Oro {_dot(alloc.get('Gold', 0))} · "
-            f"Obbligazioni {_dot(alloc.get('Bonds', 0))}"
+            f"*Regimi di Mercato:*\n"
+            f"• Azioni: {_dot(alloc.get('Equities', 0))} {alloc.get('Equities', 0):.0f}%\n"
+            f"• Bitcoin: {_dot(alloc.get('Crypto', 0))} {alloc.get('Crypto', 0):.0f}%\n"
+            f"• Oro: {_dot(alloc.get('Gold', 0))} {alloc.get('Gold', 0):.0f}%\n"
+            f"• Obbligazioni: {_dot(alloc.get('Bonds', 0))} {alloc.get('Bonds', 0):.0f}%\n"
+            f"• Monetario: 💵 {alloc.get('Cash', 0):.0f}%"
         )
 
         pf = load_json_safe(PORTFOLIO_FILE, default={})
         open_pos = pf.get("open_positions", {})
+        
+        # Recupera ordini strutturati se disponibili
+        struct = pending_orders_struct
+        if not struct and pf.get("pending_orders"):
+            sells = [o for o in pf.get("pending_orders", []) if o.get("action_type") == "SELL"]
+            buys = [o for o in pf.get("pending_orders", []) if o.get("action_type") == "BUY"]
+            if sells or buys:
+                struct = {"sells": sells, "buys": buys}
 
-        if action_log or macro_evs:
-            msg = f"*Apex Engine* · {date_str}"
-            if is_rotation_now:
-                msg += " — ribilanciamento mensile"
-            msg += "\n\n"
+        if action_log or macro_evs or struct:
+            msg = f"🦅 *Apex Engine* · {date_str}\n\n"
 
             if macro_evs:
-                msg += "*Cambio di regime*\n"
+                msg += "*Cambio di Regime Macro:*\n"
                 for ev in macro_evs:
-                    msg += f"• {ev.replace('⚠️ ', '')}\n"
+                    clean_ev = ev.replace("⚠️ MACRO REGIME: ", "").replace("⚠️ ", "")
+                    msg += f"• {clean_ev}\n"
                 msg += "\n"
 
-            if action_log:
-                msg += "*Ordini da eseguire*\n"
+            if struct and (struct.get("sells") or struct.get("buys")):
+                msg += "📋 *Ordini Operativi per Lunedì*\n"
+                msg += "⏰ *Da eseguire all'apertura USA (15:30 CET)*\n\n"
+                if struct.get("sells"):
+                    msg += "🔴 *1. VENDITE (Fai prima cassa)*\n"
+                    for o in struct["sells"]:
+                        act = o.get("action", "VENDITA")
+                        tkr = o.get("ticker")
+                        desc = o.get("desc", "")
+                        px = fmt_usd(o.get("price"))
+                        msg += f"• {act}: `{tkr}` | {desc} | Prezzo rif: {px}\n"
+                    msg += "\n"
+                if struct.get("buys"):
+                    msg += "🟢 *2. ACQUISTI (Impiega liquidità)*\n"
+                    for o in struct["buys"]:
+                        act = o.get("action", "ACQUISTO")
+                        tkr = o.get("ticker")
+                        desc = o.get("desc", "")
+                        px = fmt_usd(o.get("price"))
+                        msg += f"• {act}: `{tkr}` | {desc} | Prezzo rif: {px}\n"
+                    msg += "\n"
+            elif action_log:
+                msg += "📋 *Ordini da Eseguire:*\n"
                 for log in action_log:
                     clean = log
                     for e in ("🟢 ", "🔴 ", "🔁 ", "⚖️ ", "🔄 "):
@@ -575,18 +697,18 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None):
                     msg += f"• {clean}\n"
                 msg += "\n"
 
-            msg += f"{signals_line}\nDettaglio completo → dashboard"
+            msg += f"{signals_line}\n\n👉 *Dettaglio quote e importi in €/$ sulla Dashboard*"
         else:
             if open_pos:
                 weighted_pnl = sum(
                     p.get("weight", 0.0) * (((p.get("current_price", p.get("entry_price", 0.0)) / p["entry_price"]) - 1.0) * 100)
                     for p in open_pos.values() if p.get("entry_price", 0) > 0
                 )
-                status_line = f"Nessuna operazione questa settimana. Portafoglio invariato, {weighted_pnl:+.2f}% su {len(open_pos)} posizioni."
+                status_line = f"Portafoglio invariato ({weighted_pnl:+.2f}% su {len(open_pos)} posizioni attive).\n\n🛡️ *Nessuna operazione richiesta sul broker per Lunedì. Buon weekend!*"
             else:
-                status_line = "Nessuna operazione questa settimana. Nessuna posizione aperta."
+                status_line = "Nessuna posizione aperta al momento.\n\n🛡️ *Nessuna operazione richiesta per Lunedì. Buon weekend!*"
 
-            msg = f"*Apex Engine* · {date_str}\n\n{status_line}\n{signals_line}"
+            msg = f"🦅 *Apex Engine* · {date_str}\n\n{status_line}\n\n{signals_line}"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
@@ -670,6 +792,7 @@ def main():
     # mantiene il basket gia' in portafoglio (§4 della spec). La riselezione avviene
     # SOLO nel giorno della decisione (deciding_new), non in quello dell'esecuzione:
     # stessa separazione i / i+1 usata nei backtest validati.
+    pending_orders_struct = None
     if deciding_new:
         allocations_new, new_hysteresis, debug = compute_v2_macro_signal(b_data, prev_hysteresis)
         print(f"    Decisione calcolata: {allocations_new} — in attesa della prossima barra di mercato per l'esecuzione.")
@@ -752,15 +875,21 @@ def main():
     prices_by_ticker.update(latest_prices(b_data))
     prices_by_ticker.update(latest_prices(eq_data))
 
+    # Calcola ordini pendenti se oggi è giorno di decisione
+    if deciding_new:
+        pending_orders_struct = compute_rebalance_orders_structured(pf.get("open_positions", {}), allocations_new, new_basket, prices_by_ticker)
+        if new_pending:
+            new_pending["orders"] = pending_orders_struct["orders"]
+            new_pending["action_log"] = pending_orders_struct["action_log"]
+        pf["pending_orders"] = pending_orders_struct["orders"]
+        pf["pending_orders_date"] = today_str
+        pf["last_action_log"] = pending_orders_struct["action_log"]
+        pf["last_action_date"] = today_str
+
     save_json_atomic(APEX_DATA_FILE, output)
 
     # 4. Ribilanciamento (solo il giorno dell'esecuzione) + tracking quotidiano dell'equity curve
     print("[4/4] Aggiornamento Portafoglio ed Equity Curve...")
-    # Mark-to-market PRIMA di un eventuale ribilanciamento: compone il NAV sul
-    # rendimento pesato del giorno usando i prezzi di ieri (gia' in pf) come base —
-    # cosi' la rotazione stessa (chiusura/riapertura) non altera il NAV, solo i costi
-    # lo fanno (vedi update_portfolio). Vedi mark_to_market_and_compound_nav per il
-    # bug che questo sostituisce (NAV non composto, crollo fittizio in migrazione).
     nav_usd = mark_to_market_and_compound_nav(pf, prices_by_ticker)
     save_json_atomic(PORTFOLIO_FILE, pf)
 
@@ -768,27 +897,24 @@ def main():
         action_log = update_portfolio(allocations, basket, prices_by_ticker, today_str)
         pf_after = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
         nav_usd = pf_after.get("nav_usd", nav_usd)
+        pf_after["pending_orders"] = []  # ordini eseguiti
         if action_log:
-            # Persistito per la dashboard (app.py) — su Telegram le "Ordini da eseguire
-            # oggi" arrivavano solo li'; se l'utente perdeva la notifica non c'era modo
-            # di vedere cosa era stato deciso all'ultimo ribilanciamento senza controllare
-            # lo storico completo delle operazioni.
             pf_after["last_action_log"] = action_log
             pf_after["last_action_date"] = today_str
-            save_json_atomic(PORTFOLIO_FILE, pf_after)
+        save_json_atomic(PORTFOLIO_FILE, pf_after)
     else:
-        action_log = []
+        action_log = (pending_orders_struct["action_log"] if pending_orders_struct else [])
 
     update_equity_curve(nav_usd, today_str)
 
-    has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "Ribilanciamento", "Uscito")) for log in action_log)
+    has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "Ribilanciamento", "Uscito", "TRIM", "INCREMENTO")) for log in action_log) or bool(pending_orders_struct and pending_orders_struct.get("orders"))
 
     pf_state = load_json_safe(PORTFOLIO_FILE, default={})
     last_alert_str = pf_state.get("last_telegram_alert_date")
     weekly_due = compute_weekly_due(today_str, last_alert_str)
 
     if weekly_due or output.get("macro_events") or has_orders:
-        sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending)
+        sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct)
         if sent:
             pf_state["last_telegram_alert_date"] = today_str
             save_json_atomic(PORTFOLIO_FILE, pf_state)

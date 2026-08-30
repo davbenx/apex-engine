@@ -294,6 +294,28 @@ def test_weekly_due_tolerates_scheduling_delay_past_a_weekday_boundary():
     assert backend.compute_weekly_due("2026-08-29", None) is True  # mai inviato prima
 
 
+def test_compute_rebalance_orders_structured():
+    current_pos = {
+        "TSLA": {"weight": 0.05, "entry_price": 200.0, "current_price": 250.0, "is_crypto": False},
+        "AAPL": {"weight": 0.05, "entry_price": 150.0, "current_price": 180.0, "is_crypto": False},
+    }
+    target_alloc = {"Equities": 5.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}
+    basket = [{"Ticker": "AAPL"}, {"Ticker": "NVDA"}]
+    prices = {"TSLA": 250.0, "AAPL": 180.0, "NVDA": 100.0}
+
+    res = backend.compute_rebalance_orders_structured(current_pos, target_alloc, basket, prices)
+    assert len(res["sells"]) == 2  # TSLA closed (0.05 -> 0.0), AAPL trimmed (0.05 -> 0.025)
+    assert len(res["buys"]) == 1   # NVDA opened (0.0 -> 0.025)
+    
+    tsla_order = next(o for o in res["sells"] if o["ticker"] == "TSLA")
+    assert tsla_order["action"] == "CHIUSURA"
+    assert tsla_order["delta_w_pct"] == -5.0
+    
+    nvda_order = next(o for o in res["buys"] if o["ticker"] == "NVDA")
+    assert nvda_order["action"] == "APERTURA"
+    assert nvda_order["delta_w_pct"] == 2.5
+
+
 if __name__ == "__main__":
     import inspect
     fns = [f for name, f in list(globals().items()) if name.startswith("test_") and inspect.isfunction(f)]
