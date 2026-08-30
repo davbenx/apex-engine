@@ -467,6 +467,16 @@ with tab_pf:
             return f'color: #8B7FC7; font-weight: 600;'
         return f'color: {MUTED}; font-weight: 600;'
 
+    # Find latest execution from trade_history if last_actions is empty
+    hist_trades = (pf or {}).get("trade_history") or []
+    latest_hist_exit_date = ""
+    latest_hist_trades = []
+    if hist_trades:
+        exit_dates = [t.get("exit_date") for t in hist_trades if t.get("exit_date")]
+        if exit_dates:
+            latest_hist_exit_date = max(exit_dates)
+            latest_hist_trades = [t for t in hist_trades if t.get("exit_date") == latest_hist_exit_date]
+
     # --- 1. Regimi e Segnali Macro ---
     st_html(section_title("Regimi e Segnali Macro"))
 
