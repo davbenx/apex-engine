@@ -140,7 +140,7 @@ def get_reason_svg(reason_text, size=15):
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>'
         return f'<span title="Rotazione trimestrale paniere" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
     if "ribilanciamento" in s or "rebalance" in s or "trim" in s:
-        svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>'
+        svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>'
         return f'<span title="Ribilanciamento pesi (Vol-targeting)" style="display:inline-flex; align-items:center; justify-content:center; cursor:help;">{svg}</span>'
     if "disattivata" in s or "regime" in s or "stop" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
@@ -509,7 +509,8 @@ if pf:
     for ticker, info in open_pos_raw.items():
         entry_d = info.get("entry_date", "N/A")
         days_open = calculate_days(entry_d) if entry_d != "N/A" else 0
-        entry_formatted = f"{entry_d} ({days_open}g)" if entry_d != "N/A" else "N/A"
+        fmt_entry_d = format_date_italian(entry_d) if entry_d != "N/A" else "—"
+        entry_formatted = f"{fmt_entry_d} ({days_open}g)" if entry_d != "N/A" else "—"
 
         curr_p = info.get("current_price", info.get("entry_price", 0.0))
         pnl_pct = ((curr_p / info["entry_price"]) - 1.0) * 100 if info.get("entry_price", 0) > 0 else 0.0
@@ -756,7 +757,7 @@ with tab_pf:
     if alloc_segments:
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;">{get_class_svg(label, size=13)}<span style="color:{MUTED};">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            f'<div style="display:flex; align-items:center; gap:6px; cursor:help;" title="{label}">{get_class_svg(label, size=14)} <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
             for label, pct, color in alloc_segments
         )
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
@@ -839,9 +840,10 @@ with tab_pf:
         })
 
     def _detail_row(classe, disp_name, detail):
+        fmt_d = format_date_italian(detail['entry_date']) if detail.get('entry_date') and detail['entry_date'] != "N/A" else "—"
         return {
             "Classe": classe, "Strumento": disp_name,
-            "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
+            "Data Ingresso": f"{fmt_d} ({detail['days']}g)" if fmt_d != "—" else "—",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
         }
