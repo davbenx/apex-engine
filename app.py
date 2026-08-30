@@ -9,9 +9,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 st.set_page_config(
-    page_title="Apex Multi-Asset",
-    page_icon="logo_icon.png" if os.path.exists("logo_icon.png") else "🦅",
-    layout="wide"
+    page_title="Apex Engine",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # ==============================================================================
@@ -204,10 +205,10 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
 
 
 def render_orders_html_table(df, curr_sym):
-    th_cols = ["Operazione", "Strumento", "Variazione Peso", f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Dettaglio Operativo"]
+    th_cols = ["Operazione", "Strumento", "Variazione Peso", f"Controvalore ({curr_sym})", "Quote", "Prezzo ($)", "Dettaglio Operativo"]
     th_cells = []
     for c in th_cols:
-        align = "center" if c == "Operazione" else ("right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Variazione Peso"] else "left")
+        align = "center" if c == "Operazione" else ("right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo ($)", "Variazione Peso"] else "left")
         th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
             
     rows_html = []
@@ -216,7 +217,7 @@ def render_orders_html_table(df, curr_sym):
         op = str(r.get("Operazione", ""))
         for c in th_cols:
             val = r.get(c, "")
-            align = "right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo Rif. ($)", "Variazione Peso"] else "left"
+            align = "right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo ($)", "Variazione Peso"] else "left"
             if c == "Operazione":
                 td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_action_svg(op, size=16)}</td>')
             elif c == "Strumento":
@@ -228,7 +229,7 @@ def render_orders_html_table(df, curr_sym):
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{v_str}</td>')
             elif c == "Quote":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{val}</td>')
-            elif c == "Prezzo Rif. ($)":
+            elif c == "Prezzo ($)":
                 v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
             elif c == "Dettaglio Operativo":
@@ -247,7 +248,7 @@ def render_recent_trades_html_table(df, active_cols):
         elif c in ["Data Ingresso", "Data Uscita"]:
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
-            align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (% pf)"] else "left"
+            align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"] else "left"
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
             
     rows_html = []
@@ -256,7 +257,7 @@ def render_recent_trades_html_table(df, active_cols):
         op = str(r.get("Operazione", ""))
         for c in active_cols:
             val = r.get(c, "")
-            align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (% pf)"] else "left"
+            align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"] else "left"
             if c == "Operazione":
                 td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_action_svg(op, size=16)}</td>')
             elif c == "Strumento":
@@ -266,7 +267,7 @@ def render_recent_trades_html_table(df, active_cols):
             elif c in ["Ingresso ($)", "Uscita ($)"]:
                 v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
-            elif c == "Peso (% pf)":
+            elif c == "Peso (%)":
                 v_str = f"{val:.2f}%" if pd.notna(val) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{v_str}</td>')
             elif c == "Rendimento %":
@@ -830,10 +831,10 @@ with tab_pf:
             orders_rows.append({
                 "Operazione": act_label,
                 "Strumento": disp_name,
-                "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}% pf",
+                "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}%",
                 f"Controvalore ({curr_sym})": val_user,
                 "Quote": shares_str,
-                "Prezzo Rif. ($)": px,
+                "Prezzo ($)": px,
                 "Dettaglio Operativo": o.get("desc", "").replace("TRIM:", "RIDUZIONE:"),
             })
         df_orders = pd.DataFrame(orders_rows)
@@ -944,11 +945,11 @@ with tab_pf:
                     "Ingresso ($)": t.get("entry_price", 0.0),
                     "Uscita ($)": t.get("exit_price", 0.0),
                     "Rendimento %": t.get("profit_pct", 0.0),
-                    "Peso (% pf)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
+                    "Peso (%)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
                 })
             df_rec = pd.DataFrame(recent_rows)
             rec_compact = ["Operazione", "Strumento", "Data Uscita", "Rendimento %"]
-            rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (% pf)"]
+            rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"]
             rec_cols = rec_full if show_rec_details else rec_compact
             df_rec_display = df_rec[[c for c in rec_cols if c in df_rec.columns]]
 

@@ -580,10 +580,10 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "price": price,
                 "pnl_pct": round(pnl_pct, 2),
                 "is_crypto": is_crypto,
-                "desc": f"Liquidazione 100% della posizione ({cur_w_pct:.2f}% del portafoglio)"
+                "desc": f"Liquidazione 100% della posizione ({cur_w_pct:.2f}% del capitale)"
             }
             sells.append(order_info)
-            action_log.append(f"CHIUSURA: {display_name} | Vende {cur_w_pct:.2f}% pf (100% posizione) | Prezzo rif: {fmt_usd(price)} | P&L: {pnl_pct:+0.2f}%")
+            action_log.append(f"CHIUSURA: {display_name} | Vende {cur_w_pct:.2f}% del capitale (100% posizione) | Prezzo: {fmt_usd(price)} | P&L: {pnl_pct:+0.2f}%")
         elif delta_w < -EPS:
             order_info = {
                 "action": "RIDUZIONE",
@@ -595,10 +595,10 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "is_crypto": is_crypto,
-                "desc": f"Riduzione a {tgt_w_pct:.2f}% pf (-{abs(delta_w_pct):.2f}% pf)"
+                "desc": f"Riduzione a {tgt_w_pct:.2f}% (-{abs(delta_w_pct):.2f}% del capitale)"
             }
             sells.append(order_info)
-            action_log.append(f"RIDUZIONE: {display_name} | Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo rif: {fmt_usd(price)}")
+            action_log.append(f"RIDUZIONE: {display_name} | Riduce di {abs(delta_w_pct):.2f}% (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}% del capitale) | Prezzo: {fmt_usd(price)}")
         elif cur_w <= EPS and tgt_w > EPS:
             order_info = {
                 "action": "APERTURA",
@@ -610,10 +610,10 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "is_crypto": is_crypto,
-                "desc": f"Nuovo acquisto quota {tgt_w_pct:.2f}% del portafoglio"
+                "desc": f"Nuovo acquisto (+{tgt_w_pct:.2f}% del capitale)"
             }
             buys.append(order_info)
-            action_log.append(f"APERTURA: {display_name} | Acquista {tgt_w_pct:.2f}% pf | Prezzo rif: {fmt_usd(price)}")
+            action_log.append(f"APERTURA: {display_name} | Acquista {tgt_w_pct:.2f}% del capitale | Prezzo: {fmt_usd(price)}")
         elif delta_w > EPS:
             order_info = {
                 "action": "INCREMENTO",
@@ -625,10 +625,10 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "is_crypto": is_crypto,
-                "desc": f"Aumento a {tgt_w_pct:.2f}% pf (+{delta_w_pct:.2f}% pf)"
+                "desc": f"Aumento a {tgt_w_pct:.2f}% (+{delta_w_pct:.2f}% del capitale)"
             }
             buys.append(order_info)
-            action_log.append(f"INCREMENTO: {display_name} | Aumenta di +{delta_w_pct:.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo rif: {fmt_usd(price)}")
+            action_log.append(f"INCREMENTO: {display_name} | Aumenta di +{delta_w_pct:.2f}% (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}% del capitale) | Prezzo: {fmt_usd(price)}")
 
     return {"sells": sells, "buys": buys, "orders": sells + buys, "action_log": action_log}
 
@@ -638,8 +638,8 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
 # ==============================================================================
 def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_orders_struct=None):
     """Notifica Telegram istituzionale e lean: ordini suddivisi rigorosamente in
-    1. VENDITE (fai prima cassa) e 2. ACQUISTI (impiega liquidità), con percentuali
-    di portafoglio esatte e timing esplicito per l'apertura di Lunedì."""
+    1. VENDITE e 2. ACQUISTI, con percentuali di capitale esatte e timing
+    esplicito per l'apertura di Lunedì."""
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
 
@@ -678,7 +678,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                 struct = {"sells": sells, "buys": buys}
 
         if action_log or macro_evs or struct:
-            msg = f"*APEX QUANTITATIVE ENGINE* · {date_str}\n\n"
+            msg = f"*APEX ENGINE* · {date_str}\n\n"
 
             if macro_evs:
                 msg += "*CAMBIO DI REGIME MACRO*\n"
@@ -691,22 +691,22 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                 msg += "*ORDINI OPERATIVI PER LUNEDÌ*\n"
                 msg += "Esecuzione: Apertura mercati USA (15:30 CET)\n\n"
                 if struct.get("sells"):
-                    msg += "*1. VENDITE (Fai prima cassa)*\n"
+                    msg += "*1. VENDITE*\n"
                     for o in struct["sells"]:
                         act = o.get("action", "VENDITA")
                         disp = o.get("display_name") or get_display_ticker(o.get("ticker", ""))
                         desc = o.get("desc", "")
                         px = fmt_usd(o.get("price"))
-                        msg += f"• {act}: `{disp}` | {desc} | Prezzo rif: {px}\n"
+                        msg += f"• {act}: `{disp}` | {desc} | Prezzo: {px}\n"
                     msg += "\n"
                 if struct.get("buys"):
-                    msg += "*2. ACQUISTI (Impiega liquidità)*\n"
+                    msg += "*2. ACQUISTI*\n"
                     for o in struct["buys"]:
                         act = o.get("action", "ACQUISTO")
                         disp = o.get("display_name") or get_display_ticker(o.get("ticker", ""))
                         desc = o.get("desc", "")
                         px = fmt_usd(o.get("price"))
-                        msg += f"• {act}: `{disp}` | {desc} | Prezzo rif: {px}\n"
+                        msg += f"• {act}: `{disp}` | {desc} | Prezzo: {px}\n"
                     msg += "\n"
             elif action_log:
                 msg += "*ORDINI DA ESEGUIRE*\n"
@@ -728,7 +728,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             else:
                 status_line = "Nessuna posizione aperta al momento.\nNessuna operazione richiesta per Lunedì."
 
-            msg = f"*APEX QUANTITATIVE ENGINE* · {date_str}\n\n{status_line}\n\n{signals_line}"
+            msg = f"*APEX ENGINE* · {date_str}\n\n{status_line}\n\n{signals_line}"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
