@@ -1044,7 +1044,6 @@ with tab_perf:
         {sub_hero_metric("CAGR Annuo", f"{cagr_pct:+.2f}%", "Composto annualizzato", POS if cagr_pct >= 0 else NEG)}
         {sub_hero_metric("Volatilità Annua", f"{vol_annual_pct:.1f}%", "Oscillazione realizzata")}
         {sub_hero_metric("Indice di Sharpe", f"{sharpe_ratio:.2f}", "Efficienza rendimento/rischio", POS if sharpe_ratio >= 1.0 else None)}
-        {sub_hero_metric("Indice di Calmar", f"{calmar_ratio:.2f}", "Rendimento / max perdita", POS if calmar_ratio >= 1.0 else None)}
         {sub_hero_metric("Massimo Drawdown", f"{max_dd:.2f}%", "Massimo calo storico")}
     </div>
     """)
@@ -1286,8 +1285,6 @@ with tab_perf:
             kpi_item("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite",
                      badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
                      badge_color=(BADGE_POS_BG if profit_factor >= 1.5 else BADGE_NEUTRAL_BG)),
-            kpi_item("Rapporto Vincita/Perdita", f"{payoff_ratio:.2f}x", "Guadagno medio / perdita",
-                     badge_text=("ASIMMETRIA" if payoff_ratio >= 2.0 else "EQUILIBRATO")),
         ]
 
         if hist:
