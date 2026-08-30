@@ -427,11 +427,39 @@ with tab_pf:
     """)
 
     # --- Ordini di Ribilanciamento / Operatività Broker ---
+    # --- Ordini di Ribilanciamento / Operatività Broker ---
     pending_orders = (pf or {}).get("pending_orders") or []
     last_actions = (pf or {}).get("last_action_log") or []
     last_action_date = (pf or {}).get("pending_orders_date") or (pf or {}).get("last_action_date") or ""
     days_since_rebalance = calculate_days(last_action_date) if last_action_date else 999
     is_recent_rebalance = days_since_rebalance <= 4
+
+    PROXIES_DISPLAY = {
+        "GLD": "Oro (8PSE / GLD)",
+        "IEF": "Obbligazioni (LMTH / IEF)",
+        "BTC": "Bitcoin (IB1T / BTC)",
+        "Cash": "Monetario (XEON)",
+    }
+
+    def style_action_type(val):
+        s = str(val)
+        if "CHIUSURA" in s or "TRIM" in s or "VENDITA" in s:
+            return f'color: {NEG}; font-weight: 700;'
+        if "APERTURA" in s or "INCREMENTO" in s or "ACQUISTO" in s:
+            return f'color: {POS}; font-weight: 700;'
+        return ''
+
+    def style_classe(val):
+        v = str(val)
+        if v == "Azionario":
+            return f'color: {POS}; font-weight: 600;'
+        if v == "Bitcoin":
+            return f'color: #2E9E70; font-weight: 600;'
+        if v == "Oro":
+            return f'color: {ACCENT}; font-weight: 600;'
+        if v == "Obbligazioni":
+            return f'color: #8B7FC7; font-weight: 600;'
+        return f'color: {MUTED}; font-weight: 600;'
 
     if pending_orders or last_actions:
         if is_recent_rebalance:
@@ -450,10 +478,9 @@ with tab_pf:
             if pending_orders:
                 orders_rows = []
                 for o in pending_orders:
-                    act_type = o.get("action_type", "BUY")
                     act_label = o.get("action", "ORDINE")
-                    icon = "🔴" if act_type == "SELL" else "🟢"
                     tkr = o.get("ticker", "")
+                    disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
                     px = o.get("price", 0.0)
                     delta_w = abs(o.get("delta_w_pct", 0.0))
                     val_usd = (delta_w / 100.0) * capitale
@@ -463,8 +490,8 @@ with tab_pf:
                     shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
 
                     orders_rows.append({
-                        "Tipo": f"{icon} {act_label}",
-                        "Titolo": tkr,
+                        "Operazione": act_label,
+                        "Strumento / Proxy": disp_name,
                         "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}% pf",
                         f"Controvalore ({curr_sym})": val_user,
                         "Quote": shares_str,
@@ -476,14 +503,14 @@ with tab_pf:
                     df_orders.style.format({
                         f"Controvalore ({curr_sym})": f"{curr_sym}{{:,.0f}}",
                         "Prezzo Rif. ($)": "${:,.2f}",
-                    }),
+                    }).map(style_action_type, subset=['Operazione']),
                     use_container_width=True,
                     hide_index=True
                 )
             elif last_actions:
                 st.code("\n".join(last_actions), language=None)
         else:
-            with st.expander(f"📁 Archivio ultimo ribilanciamento ({last_action_date})"):
+            with st.expander(f"Archivio ultimo ribilanciamento ({last_action_date})"):
                 st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
                 st.code("\n".join(last_actions), language=None)
 
@@ -564,7 +591,7 @@ with tab_pf:
     unified_rows = []
     for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "AZ", "Titolo": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
+            "Classe": "Azionario", "Strumento / Proxy": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
@@ -572,38 +599,36 @@ with tab_pf:
     if op_cr:
         r = op_cr[0]
         unified_rows.append({
-            "Classe": "BTC", "Titolo": _mark(r["Titolo"], r["Stato"] == "NUOVO"),
+            "Classe": "Bitcoin", "Strumento / Proxy": _mark("Bitcoin (IB1T / BTC)", r["Stato"] == "NUOVO"),
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
         })
 
-    def _detail_row(classe, ticker, detail):
+    def _detail_row(classe, disp_name, detail):
         return {
-            "Classe": classe, "Titolo": _mark(ticker, detail["days"] <= 7),
+            "Classe": classe, "Strumento / Proxy": _mark(disp_name, detail["days"] <= 7),
             "Data Ingresso": f"{detail['entry_date']} ({detail['days']}g)",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
         }
 
     if gold_detail:
-        unified_rows.append(_detail_row("AU", "GLD", gold_detail))
+        unified_rows.append(_detail_row("Oro", "Oro (8PSE / GLD)", gold_detail))
     if bond_detail:
-        unified_rows.append(_detail_row("FI", "IEF", bond_detail))
+        unified_rows.append(_detail_row("Obbligazioni", "Obbligazioni (LMTH / IEF)", bond_detail))
 
     unified_rows.append({
-        "Classe": "CASH", "Titolo": "Monetario",
+        "Classe": "Monetario", "Strumento / Proxy": "Monetario (XEON)",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
     show_details = st.toggle("Mostra dettagli esecuzione (quote, data ingresso, prezzi)", value=False)
-    compact_cols = ["Classe", "Titolo", "Peso (%)", col_val_label, "Rendimento %"]
-    full_cols = ["Classe", "Titolo", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+    compact_cols = ["Classe", "Strumento / Proxy", "Peso (%)", col_val_label, "Rendimento %"]
+    full_cols = ["Classe", "Strumento / Proxy", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
     active_cols = full_cols if show_details else compact_cols
-
-    st_html(section_title("Posizioni"))
 
     df_pos = pd.DataFrame(unified_rows)
 
@@ -616,7 +641,7 @@ with tab_pf:
         q = row["Quote_raw"]
         if pd.isna(q):
             return "—"
-        return f"{q:.6f}" if row["Classe"] == "BTC" and q < 1 else (f"{q:.4f}" if row["Classe"] == "BTC" else f"{int(round(q)):,}")
+        return f"{q:.6f}" if row["Classe"] == "Bitcoin" and q < 1 else (f"{q:.4f}" if row["Classe"] == "Bitcoin" else f"{int(round(q)):,}")
 
     df_pos["Quote_raw"] = df_pos.apply(_quote_raw, axis=1)
     df_pos["Quote"] = df_pos.apply(_quote_display, axis=1)
@@ -632,7 +657,13 @@ with tab_pf:
         col_val_label: "{:,.0f}",
         "Rendimento %": "{:+.2f}%",
         col_rend_label: "{:+,.0f}",
-    }, na_rep="—").map(color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]).map(style_titolo, subset=['Titolo'])
+    }, na_rep="—").map(
+        color_pnl, subset=[c for c in ['Rendimento %', col_rend_label] if c in df_pos_display.columns]
+    ).map(
+        style_titolo, subset=['Strumento / Proxy']
+    ).map(
+        style_classe, subset=['Classe']
+    )
 
     # Altezza fissa: ~8 righe visibili, il resto scorre dentro la tabella
     st.dataframe(df_pos_styled, use_container_width=True, hide_index=True, height=360)
@@ -1079,8 +1110,8 @@ with tab_guide:
             <div style="font-weight: 700; font-size: 14.5px; color: #0088cc; margin-bottom: 3px;">Canale Ufficiale Notifiche Telegram</div>
             <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.4;">Ricevi in tempo reale i cambi di regime macro e gli ordini operativi del venerdì sera.</div>
         </div>
-        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 7px 16px; border-radius: 6px; font-size: 12.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-            ✈ Unisciti al Canale
+        <a href="https://t.me/apex_multiasset" target="_blank" style="background: #0088cc; color: #ffffff; text-decoration: none; padding: 7px 16px; border-radius: 6px; font-size: 12.5px; font-weight: 700;">
+            Unisciti al Canale →
         </a>
     </div>
     ''')
@@ -1089,24 +1120,15 @@ with tab_guide:
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <span style="font-size:16px;">📅</span>
-                <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px;">1. Venerdì Sera (ore 23:00 CET)</div>
-            </div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">1. Venerdì Sera (ore 23:00 CET)</div>
             <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Il motore analizza le chiusure settimanali. Se c'è un ribilanciamento, ricevi la notifica Telegram con gli ordini esatti (vendite e acquisti) e le quote calcolate sul tuo capitale.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <span style="font-size:16px;">⚡</span>
-                <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px;">2. Lunedì Pomeriggio (ore 15:30 CET)</div>
-            </div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">2. Lunedì Pomeriggio (ore 15:30 CET)</div>
             <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">All'apertura dei mercati USA, esegui gli ordini sul tuo broker (es. Fineco, IBKR, Trade Republic). Se il venerdì non c'erano ordini, <strong>non fai nulla</strong>.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <span style="font-size:16px;">🛡️</span>
-                <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px;">3. Durante la Settimana</div>
-            </div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">3. Durante la Settimana</div>
             <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Nessun intervento necessario. L'algoritmo non fa micro-trading intraday: zero stress, zero decisioni emotive e piena serenità.</div>
         </div>
     </div>

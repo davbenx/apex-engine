@@ -511,6 +511,21 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
     return action_log
 
 
+PROXIES = {
+    "GLD": {"name": "Oro", "ucits": "8PSE", "full": "Oro (8PSE / GLD)"},
+    "IEF": {"name": "Obbligazioni", "ucits": "LMTH", "full": "Obbligazioni (LMTH / IEF)"},
+    "BTC": {"name": "Bitcoin", "ucits": "IB1T", "full": "Bitcoin (IB1T / BTC)"},
+    "Cash": {"name": "Monetario", "ucits": "XEON", "full": "Monetario (XEON)"},
+}
+
+
+def get_display_ticker(ticker):
+    """Restituisce il nome dello strumento comprensivo di proxy UCITS per gli asset macro."""
+    if ticker in PROXIES:
+        return PROXIES[ticker]["full"]
+    return ticker
+
+
 def compute_rebalance_orders_structured(open_positions, target_allocations, basket, prices_by_ticker):
     """
     Calcola gli ordini di ribilanciamento in formato strutturato (percentuali, quote,
@@ -549,6 +564,7 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
         cur_w_pct = cur_w * 100.0
         tgt_w_pct = tgt_w * 100.0
         delta_w_pct = delta_w * 100.0
+        display_name = get_display_ticker(ticker)
 
         if tgt_w <= EPS and cur_w > EPS:
             entry_p = open_positions.get(ticker, {}).get("entry_price", price)
@@ -557,58 +573,62 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "action": "CHIUSURA",
                 "action_type": "SELL",
                 "ticker": ticker,
+                "display_name": display_name,
                 "cur_w_pct": round(cur_w_pct, 2),
                 "tgt_w_pct": 0.0,
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "pnl_pct": round(pnl_pct, 2),
                 "is_crypto": is_crypto,
-                "desc": f"Vende il 100% della posizione ({cur_w_pct:.2f}% del portafoglio)"
+                "desc": f"Liquidazione 100% della posizione ({cur_w_pct:.2f}% del portafoglio)"
             }
             sells.append(order_info)
-            action_log.append(f"🔴 CHIUSURA: {ticker} | Vende {cur_w_pct:.2f}% pf (100% posizione) | Prezzo: {fmt_usd(price)} | P&L: {pnl_pct:+0.2f}%")
+            action_log.append(f"CHIUSURA: {display_name} | Vende {cur_w_pct:.2f}% pf (100% posizione) | Prezzo rif: {fmt_usd(price)} | P&L: {pnl_pct:+0.2f}%")
         elif delta_w < -EPS:
             order_info = {
                 "action": "TRIM",
                 "action_type": "SELL",
                 "ticker": ticker,
+                "display_name": display_name,
                 "cur_w_pct": round(cur_w_pct, 2),
                 "tgt_w_pct": round(tgt_w_pct, 2),
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "is_crypto": is_crypto,
-                "desc": f"Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% a {tgt_w_pct:.2f}%)"
+                "desc": f"Riduzione a {tgt_w_pct:.2f}% pf (-{abs(delta_w_pct):.2f}% pf)"
             }
             sells.append(order_info)
-            action_log.append(f"🔴 TRIM: {ticker} | Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo: {fmt_usd(price)}")
+            action_log.append(f"TRIM: {display_name} | Riduce di {abs(delta_w_pct):.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo rif: {fmt_usd(price)}")
         elif cur_w <= EPS and tgt_w > EPS:
             order_info = {
                 "action": "APERTURA",
                 "action_type": "BUY",
                 "ticker": ticker,
+                "display_name": display_name,
                 "cur_w_pct": 0.0,
                 "tgt_w_pct": round(tgt_w_pct, 2),
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "is_crypto": is_crypto,
-                "desc": f"Acquista quota del {tgt_w_pct:.2f}% del portafoglio"
+                "desc": f"Nuovo acquisto quota {tgt_w_pct:.2f}% del portafoglio"
             }
             buys.append(order_info)
-            action_log.append(f"🟢 APERTURA: {ticker} | Acquista {tgt_w_pct:.2f}% pf | Prezzo: {fmt_usd(price)}")
+            action_log.append(f"APERTURA: {display_name} | Acquista {tgt_w_pct:.2f}% pf | Prezzo rif: {fmt_usd(price)}")
         elif delta_w > EPS:
             order_info = {
                 "action": "INCREMENTO",
                 "action_type": "BUY",
                 "ticker": ticker,
+                "display_name": display_name,
                 "cur_w_pct": round(cur_w_pct, 2),
                 "tgt_w_pct": round(tgt_w_pct, 2),
                 "delta_w_pct": round(delta_w_pct, 2),
                 "price": price,
                 "is_crypto": is_crypto,
-                "desc": f"Aumenta di +{delta_w_pct:.2f}% pf (da {cur_w_pct:.2f}% a {tgt_w_pct:.2f}%)"
+                "desc": f"Aumento a {tgt_w_pct:.2f}% pf (+{delta_w_pct:.2f}% pf)"
             }
             buys.append(order_info)
-            action_log.append(f"🟢 INCREMENTO: {ticker} | Aumenta di +{delta_w_pct:.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo: {fmt_usd(price)}")
+            action_log.append(f"INCREMENTO: {display_name} | Aumenta di +{delta_w_pct:.2f}% pf (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}%) | Prezzo rif: {fmt_usd(price)}")
 
     return {"sells": sells, "buys": buys, "orders": sells + buys, "action_log": action_log}
 
@@ -635,15 +655,15 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             _, is_rotation_now = is_rebalancing_schedule()
 
         def _dot(pct):
-            return "🟢" if pct > 0 else "⚪"
+            return "[●]" if pct > 0 else "[○]"
 
         signals_line = (
-            f"*Regimi di Mercato:*\n"
+            f"*REGIMI DI MERCATO*\n"
             f"• Azioni: {_dot(alloc.get('Equities', 0))} {alloc.get('Equities', 0):.0f}%\n"
             f"• Bitcoin: {_dot(alloc.get('Crypto', 0))} {alloc.get('Crypto', 0):.0f}%\n"
             f"• Oro: {_dot(alloc.get('Gold', 0))} {alloc.get('Gold', 0):.0f}%\n"
             f"• Obbligazioni: {_dot(alloc.get('Bonds', 0))} {alloc.get('Bonds', 0):.0f}%\n"
-            f"• Monetario: 💵 {alloc.get('Cash', 0):.0f}%"
+            f"• Monetario: [—] {alloc.get('Cash', 0):.0f}%"
         )
 
         pf = load_json_safe(PORTFOLIO_FILE, default={})
@@ -658,38 +678,38 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                 struct = {"sells": sells, "buys": buys}
 
         if action_log or macro_evs or struct:
-            msg = f"🦅 *Apex Engine* · {date_str}\n\n"
+            msg = f"*APEX QUANTITATIVE ENGINE* · {date_str}\n\n"
 
             if macro_evs:
-                msg += "*Cambio di Regime Macro:*\n"
+                msg += "*CAMBIO DI REGIME MACRO*\n"
                 for ev in macro_evs:
-                    clean_ev = ev.replace("⚠️ MACRO REGIME: ", "").replace("⚠️ ", "")
+                    clean_ev = ev.replace("⚠️ MACRO REGIME: ", "").replace("⚠️ ", "").replace("🟢 ", "").replace("🔴 ", "")
                     msg += f"• {clean_ev}\n"
                 msg += "\n"
 
             if struct and (struct.get("sells") or struct.get("buys")):
-                msg += "📋 *Ordini Operativi per Lunedì*\n"
-                msg += "⏰ *Da eseguire all'apertura USA (15:30 CET)*\n\n"
+                msg += "*ORDINI OPERATIVI PER LUNEDÌ*\n"
+                msg += "Esecuzione: Apertura mercati USA (15:30 CET)\n\n"
                 if struct.get("sells"):
-                    msg += "🔴 *1. VENDITE (Fai prima cassa)*\n"
+                    msg += "*1. VENDITE (Fai prima cassa)*\n"
                     for o in struct["sells"]:
                         act = o.get("action", "VENDITA")
-                        tkr = o.get("ticker")
+                        disp = o.get("display_name") or get_display_ticker(o.get("ticker", ""))
                         desc = o.get("desc", "")
                         px = fmt_usd(o.get("price"))
-                        msg += f"• {act}: `{tkr}` | {desc} | Prezzo rif: {px}\n"
+                        msg += f"• {act}: `{disp}` | {desc} | Prezzo rif: {px}\n"
                     msg += "\n"
                 if struct.get("buys"):
-                    msg += "🟢 *2. ACQUISTI (Impiega liquidità)*\n"
+                    msg += "*2. ACQUISTI (Impiega liquidità)*\n"
                     for o in struct["buys"]:
                         act = o.get("action", "ACQUISTO")
-                        tkr = o.get("ticker")
+                        disp = o.get("display_name") or get_display_ticker(o.get("ticker", ""))
                         desc = o.get("desc", "")
                         px = fmt_usd(o.get("price"))
-                        msg += f"• {act}: `{tkr}` | {desc} | Prezzo rif: {px}\n"
+                        msg += f"• {act}: `{disp}` | {desc} | Prezzo rif: {px}\n"
                     msg += "\n"
             elif action_log:
-                msg += "📋 *Ordini da Eseguire:*\n"
+                msg += "*ORDINI DA ESEGUIRE*\n"
                 for log in action_log:
                     clean = log
                     for e in ("🟢 ", "🔴 ", "🔁 ", "⚖️ ", "🔄 "):
@@ -697,18 +717,18 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                     msg += f"• {clean}\n"
                 msg += "\n"
 
-            msg += f"{signals_line}\n\n👉 *Dettaglio quote e importi in €/$ sulla Dashboard*"
+            msg += f"{signals_line}\n\nQuote, controvalori e dettagli operativi su Dashboard."
         else:
             if open_pos:
                 weighted_pnl = sum(
                     p.get("weight", 0.0) * (((p.get("current_price", p.get("entry_price", 0.0)) / p["entry_price"]) - 1.0) * 100)
                     for p in open_pos.values() if p.get("entry_price", 0) > 0
                 )
-                status_line = f"Portafoglio invariato ({weighted_pnl:+.2f}% su {len(open_pos)} posizioni attive).\n\n🛡️ *Nessuna operazione richiesta sul broker per Lunedì. Buon weekend!*"
+                status_line = f"Portafoglio invariato ({weighted_pnl:+.2f}% su {len(open_pos)} posizioni attive).\nNessuna operazione richiesta sul broker per Lunedì."
             else:
-                status_line = "Nessuna posizione aperta al momento.\n\n🛡️ *Nessuna operazione richiesta per Lunedì. Buon weekend!*"
+                status_line = "Nessuna posizione aperta al momento.\nNessuna operazione richiesta per Lunedì."
 
-            msg = f"🦅 *Apex Engine* · {date_str}\n\n{status_line}\n\n{signals_line}"
+            msg = f"*APEX QUANTITATIVE ENGINE* · {date_str}\n\n{status_line}\n\n{signals_line}"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = urllib.parse.urlencode({"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"}).encode('utf-8')
