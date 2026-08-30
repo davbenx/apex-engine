@@ -467,22 +467,66 @@ with tab_pf:
             return f'color: #8B7FC7; font-weight: 600;'
         return f'color: {MUTED}; font-weight: 600;'
 
-    # Find latest execution from trade_history if last_actions is empty
-    hist_trades = (pf or {}).get("trade_history") or []
-    latest_hist_exit_date = ""
-    latest_hist_trades = []
-    if hist_trades:
-        exit_dates = [t.get("exit_date") for t in hist_trades if t.get("exit_date")]
-        if exit_dates:
-            latest_hist_exit_date = max(exit_dates)
-            latest_hist_trades = [t for t in hist_trades if t.get("exit_date") == latest_hist_exit_date]
+    # --- 1. Regimi e Segnali Macro ---
+    st_html(section_title("Regimi e Segnali Macro"))
 
+    def signal_item(label, value_text, dot_color=None, title_attr=""):
+        dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>' if dot_color else ""
+        title_html = f' title="{title_attr}"' if title_attr else ""
+        return f'<div{title_html} style="display:flex; align-items:center; gap:7px; font-size:12.5px;">{dot}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED}; margin-left:auto;">{value_text}</span></div>'
+
+    def class_state(alloc_pct, since_date):
+        is_active = alloc_pct > 0
+        fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
+        title = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
+        value = f"{alloc_pct:.0f}%" if is_active else "in pausa"
+        return is_active, value, title
+
+    _eq_active, _eq_val, _eq_title = class_state(alloc.get('Equities', 0), d_eq)
+    _cr_active, _cr_val, _cr_title = class_state(alloc.get('Crypto', 0), d_cr)
+    _g_active, _g_val, _g_title = class_state(alloc.get('Gold', 0), d_g)
+    _b_active, _b_val, _b_title = class_state(alloc.get('Bonds', 0), d_b)
+
+    signals_html = "".join([
+        signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT, _eq_title),
+        signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT, _cr_title),
+        signal_item("Oro", _g_val, POS if _g_active else MUTED_DOT, _g_title),
+        signal_item("Obbligazioni", _b_val, POS if _b_active else MUTED_DOT, _b_title),
+        signal_item("Monetario", f"{alloc.get('Cash', 0):.0f}%"),
+    ])
+    st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
+
+    # --- 2. Composizione del Portafoglio ---
+    st_html(section_title("Composizione del Portafoglio"))
+
+    alloc_segments = []
+    if op_eq:
+        alloc_segments.append(("Azionario", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
+    if op_cr:
+        alloc_segments.append(("Bitcoin", op_cr[0].get("Peso (%)", 0.0), CLASS_COLOR_BTC))
+    if alloc.get('Gold', 0) > 0:
+        alloc_segments.append(("Oro", alloc.get('Gold', 0), CLASS_COLOR_GOLD))
+    if alloc.get('Bonds', 0) > 0:
+        alloc_segments.append(("Obbligazioni", alloc.get('Bonds', 0), CLASS_COLOR_BOND))
+    if alloc.get('Cash', 0) > 0:
+        alloc_segments.append(("Monetario", alloc.get('Cash', 0), CLASS_COLOR_CASH))
+
+    if alloc_segments:
+        bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
+        legend_items = "".join(
+            f'<div style="display:flex; align-items:center; gap:6px;"><span style="width:9px; height:9px; border-radius:2px; background:{color}; display:inline-block;"></span><span style="color:{MUTED};">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            for label, pct, color in alloc_segments
+        )
+        st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
+        st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
+
+    # --- 3. Ordini Operativi / Stato Allineamento ---
     if pending_orders:
         st_html(f"""
         <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px; padding: 12px 16px; margin: 14px 0 10px;">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                 <div>
-                    <span style="width:7px; height:7px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px;"></span>
+                    <span style="width:7px; height:7px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>
                     <strong style="font-size:13.5px;">Ordini Operativi per Lunedì ({last_action_date})</strong>
                     <span style="background:{BADGE_NEUTRAL_BG}; color:{ACCENT}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:{MONO}; margin-left:8px;">DA ESEGUIRE ORE 15:30 CET</span>
                 </div>
@@ -525,106 +569,16 @@ with tab_pf:
         )
     else:
         st_html(f"""
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 16px; margin: 12px 0 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px;">
-                <span style="width: 7px; height: 7px; border-radius: 50%; background: {POS}; display: inline-block;"></span>
-                <strong>Nessun ordine pendente per Lunedì</strong>
-                <span style="color: {MUTED};">— Portafoglio allineato ai target quantitativi</span>
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 11px 16px; margin: 14px 0 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 9px; font-size: 13px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <strong>Portafoglio allineato ai target quantitativi</strong>
+                <span style="color: {MUTED}; font-size: 12px;">— Nessun ordine da eseguire per lunedì</span>
             </div>
-            <div style="font-size: 11.5px; color: {MUTED};">Prossimo controllo: Venerdì ore 23:00 CET</div>
         </div>
         """)
 
-    # Always show Last Executed Operations in an elegant expander
-    if last_actions:
-        rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
-        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
-            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-            st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
-    elif latest_hist_trades:
-        rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
-        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
-            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-            recent_rows = []
-            for t in latest_hist_trades:
-                reason = t.get("reason", "")
-                op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
-                recent_rows.append({
-                    "Operazione": op_type,
-                    "Strumento": t.get("ticker", ""),
-                    "Data Ingresso": t.get("entry_date", ""),
-                    "Data Uscita": t.get("exit_date", ""),
-                    "Ingresso ($)": t.get("entry_price", 0.0),
-                    "Uscita ($)": t.get("exit_price", 0.0),
-                    "Rendimento %": t.get("profit_pct", 0.0),
-                    "Peso (% pf)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
-                })
-            df_rec = pd.DataFrame(recent_rows)
-            st.dataframe(
-                df_rec.style.format({
-                    "Ingresso ($)": "${:.2f}",
-                    "Uscita ($)": "${:.2f}",
-                    "Rendimento %": "{:+.2f}%",
-                    "Peso (% pf)": "{:.2f}%",
-                }).map(style_action_type, subset=['Operazione']).map(color_pnl, subset=['Rendimento %']),
-                use_container_width=True,
-                hide_index=True
-            )
-
-    # --- Segnali per classe (striscia unica, non 5 riquadri) ---
-    st_html(section_title("Regimi e Segnali Macro"))
-
-    def signal_item(label, value_text, dot_color=None, title_attr=""):
-        dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>' if dot_color else ""
-        title_html = f' title="{title_attr}"' if title_attr else ""
-        return f'<div{title_html} style="display:flex; align-items:center; gap:7px; font-size:12.5px;">{dot}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED}; margin-left:auto;">{value_text}</span></div>'
-
-    def class_state(alloc_pct, since_date):
-        is_active = alloc_pct > 0
-        fmt_d = format_date_italian(since_date) if since_date and since_date != "-" else ""
-        title = f"{'Attiva' if is_active else 'In pausa'}{(' dal ' + fmt_d) if fmt_d else ''}"
-        value = f"{alloc_pct:.0f}%" if is_active else "in pausa"
-        return is_active, value, title
-
-    _eq_active, _eq_val, _eq_title = class_state(alloc.get('Equities', 0), d_eq)
-    _cr_active, _cr_val, _cr_title = class_state(alloc.get('Crypto', 0), d_cr)
-    _g_active, _g_val, _g_title = class_state(alloc.get('Gold', 0), d_g)
-    _b_active, _b_val, _b_title = class_state(alloc.get('Bonds', 0), d_b)
-
-    signals_html = "".join([
-        signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT, _eq_title),
-        signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT, _cr_title),
-        signal_item("Oro", _g_val, POS if _g_active else MUTED_DOT, _g_title),
-        signal_item("Obbligazioni", _b_val, POS if _b_active else MUTED_DOT, _b_title),
-        signal_item("Monetario", f"{alloc.get('Cash', 0):.0f}%"),
-    ])
-    st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
-
-    # --- Allocazione ---
-    st_html(section_title("Composizione del Portafoglio"))
-
-    alloc_segments = []
-    if op_eq:
-        alloc_segments.append(("Azionario", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
-    if op_cr:
-        alloc_segments.append(("Bitcoin", op_cr[0].get("Peso (%)", 0.0), CLASS_COLOR_BTC))
-    if alloc.get('Gold', 0) > 0:
-        alloc_segments.append(("Oro", alloc.get('Gold', 0), CLASS_COLOR_GOLD))
-    if alloc.get('Bonds', 0) > 0:
-        alloc_segments.append(("Obbligazioni", alloc.get('Bonds', 0), CLASS_COLOR_BOND))
-    if alloc.get('Cash', 0) > 0:
-        alloc_segments.append(("Monetario", alloc.get('Cash', 0), CLASS_COLOR_CASH))
-
-    if alloc_segments:
-        bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
-        legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;"><span style="width:9px; height:9px; border-radius:2px; background:{color}; display:inline-block;"></span><span style="color:{MUTED};">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
-            for label, pct, color in alloc_segments
-        )
-        st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
-        st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
-
-    # --- Tabella unica con tutte le posizioni di tutte le classi ---
+    # --- 4. Posizioni Attive nel Portafoglio ---
     st_html(section_title("Posizioni Attive nel Portafoglio"))
     real_cash_usd = max(0.0, capitale - tot_invested_usd)
     cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
@@ -709,6 +663,42 @@ with tab_pf:
 
     # Altezza fissa: ~8 righe visibili, il resto scorre dentro la tabella
     st.dataframe(df_pos_styled, use_container_width=True, hide_index=True, height=360)
+
+    # --- 5. Ultime Operazioni Eseguite ---
+    if last_actions:
+        rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
+        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
+            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
+    elif latest_hist_trades:
+        rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
+        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
+            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            recent_rows = []
+            for t in latest_hist_trades:
+                reason = t.get("reason", "")
+                op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
+                recent_rows.append({
+                    "Operazione": op_type,
+                    "Strumento": t.get("ticker", ""),
+                    "Data Ingresso": t.get("entry_date", ""),
+                    "Data Uscita": t.get("exit_date", ""),
+                    "Ingresso ($)": t.get("entry_price", 0.0),
+                    "Uscita ($)": t.get("exit_price", 0.0),
+                    "Rendimento %": t.get("profit_pct", 0.0),
+                    "Peso (% pf)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
+                })
+            df_rec = pd.DataFrame(recent_rows)
+            st.dataframe(
+                df_rec.style.format({
+                    "Ingresso ($)": "${:.2f}",
+                    "Uscita ($)": "${:.2f}",
+                    "Rendimento %": "{:+.2f}%",
+                    "Peso (% pf)": "{:.2f}%",
+                }).map(style_action_type, subset=['Operazione']).map(color_pnl, subset=['Rendimento %']),
+                use_container_width=True,
+                hide_index=True
+            )
 
 
 # ==============================================================================
