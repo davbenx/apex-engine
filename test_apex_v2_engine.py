@@ -110,6 +110,26 @@ def test_vol_target_scales_down_high_vol_portfolio():
     assert alloc["Cash"] > 0.0
 
 
+def test_allocations_never_exceed_100_percent_even_with_base_weight_50():
+    # Bug reale trovato negli script di ricerca prima dell'adozione del Percorso B
+    # (base_weight 0.50, vol-target 0.22 — vedi APEX_V2_SPEC.md §8.25/§10.13): con 4
+    # classi attive e volatilita' realizzata moderata (non abbastanza alta da far
+    # scattare abbastanza il vol-target), la somma dei pesi puo' superare 100% per
+    # costruzione algebrica — a differenza di base_weight=0.25 (4x25%=100% esatto,
+    # mai di piu'). Il limite esplicito di rinormalizzazione deve impedirlo sempre.
+    import apex_v2_engine as engine
+    b_data = {
+        "SPY": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=20),
+        "IEF": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=21),
+        "GLD": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=22),
+        "BTC-USD": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=23),
+    }
+    alloc, state, debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=None)
+    assert all(state.values()), "il test presuppone tutte e 4 le classi attive"
+    total = sum(alloc[cls] for cls in engine.V2_CLASS_TICKER)
+    assert total <= 100.0 + 1e-6, f"la somma dei pesi non deve mai superare 100% (leva non dichiarata), trovato {total}"
+
+
 def test_select_low_vol_basket_ranks_correctly():
     eq_data = {
         "LOWVOL": make_trend_df(daily_drift=0.0005, daily_vol=0.002, seed=10),

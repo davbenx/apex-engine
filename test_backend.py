@@ -263,6 +263,28 @@ def test_should_decide_true_when_just_migrating_regardless_of_date():
     assert backend.compute_should_decide(mid_month, {"last_decision_month": "2026-08"}, just_migrating=True) is True
 
 
+def test_executing_pending_waits_for_a_real_new_market_bar():
+    # Bug reale trovato in produzione (APEX_V2_SPEC.md §8.14): il motore decideva ed
+    # eseguiva nella STESSA esecuzione, usando l'ultima chiusura disponibile — se
+    # l'esecuzione cade di venerdi' (il caso comune), decisione ed esecuzione usano lo
+    # STESSO prezzo di chiusura, un ritardo zero mai testato/validato nei backtest
+    # (che usano sempre almeno un giorno di borsa di ritardo tra segnale ed esecuzione).
+    pending = {"decided_date": "2026-08-28", "allocations": {"Equities": 20.0}}
+
+    # nessuna decisione in attesa -> mai in esecuzione
+    assert backend.compute_executing_pending(None, "2026-08-31") is False
+
+    # stessa barra del giorno della decisione (es. esecuzione ritardata nel weekend,
+    # nessun nuovo giorno di borsa e' ancora passato) -> resta in attesa
+    assert backend.compute_executing_pending(pending, "2026-08-28") is False
+
+    # nessun dato di mercato disponibile -> resta in attesa, non esegue alla cieca
+    assert backend.compute_executing_pending(pending, None) is False
+
+    # prima barra di borsa realmente successiva (il lunedi' seguente) -> esegue
+    assert backend.compute_executing_pending(pending, "2026-08-31") is True
+
+
 def test_weekly_due_tolerates_scheduling_delay_past_a_weekday_boundary():
     # Stesso bug lato notifica Telegram: l'heartbeat settimanale non deve dipendere da
     # "e' venerdi' adesso" (falso se l'esecuzione slitta di sabato), ma dai giorni

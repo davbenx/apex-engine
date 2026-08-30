@@ -117,6 +117,21 @@ def compute_weekly_due(today_str, last_alert_str):
     return days_since >= 6
 
 
+def compute_executing_pending(prev_pending, latest_market_date_str):
+    """Vero se una decisione in attesa (§8.14 di APEX_V2_SPEC.md) va eseguita ORA: serve
+    che l'ultima barra di mercato realmente disponibile (tipicamente la chiusura SPY, che
+    segue il calendario borsistico USA) sia successiva al giorno in cui la decisione e'
+    stata presa — non basta che sia passato un giorno di calendario, altrimenti
+    un'esecuzione ritardata nel weekend (nessun nuovo giorno di borsa) eseguirebbe
+    comunque alla stessa identica chiusura del venerdi' usata per decidere, con ritardo
+    zero reale nonostante il ritardo di calendario. Cosi' un'esecuzione di sabato/domenica
+    resta in attesa fino al primo vero giorno di borsa successivo (lunedi')."""
+    if not prev_pending:
+        return False
+    decided_date = prev_pending.get("decided_date", "")
+    return bool(latest_market_date_str) and latest_market_date_str > decided_date
+
+
 # ==============================================================================
 # DATA INGESTION & UNIVERSE DISCOVERY
 # ==============================================================================
@@ -594,7 +609,6 @@ def main():
     print("=== AVVIO APEX ENGINE v2 (Timing Multi-Asset + Basket Azionario Low-Vol) ===")
     print("    Vedi APEX_V2_SPEC.md per la specifica completa.")
 
-    is_friday, is_rotation = is_rebalancing_schedule(now_dt)
     pf_check = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
     just_migrating = not pf_check.get("v2_migrated", False)
 
@@ -602,9 +616,22 @@ def main():
     prev_state = (old_data or {}).get("v2_state", {}) or {}
     prev_hysteresis = prev_state.get("hysteresis", {})
     prev_basket = prev_state.get("basket", [])
+    prev_pending = prev_state.get("pending_decision")
 
     current_month_str = now_dt.strftime("%Y-%m")
     should_decide = compute_should_decide(now_dt, prev_state, just_migrating)
+    # Decisione ed esecuzione NON avvengono piu' nella stessa esecuzione (vedi
+    # APEX_V2_SPEC.md §8.14): la decisione si calcola oggi sull'ultima chiusura
+    # settimanale disponibile, ma resta "in attesa" (`pending_decision`) finche' non
+    # e' disponibile una barra di mercato realmente successiva al giorno della
+    # decisione — per una decisione presa di venerdi', e' la chiusura di lunedi'
+    # (primo vero giorno di borsa successivo). Corregge un disallineamento reale con
+    # i backtest validati (che usano esattamente questo ritardo, mai zero) e rende i
+    # prezzi comunicati all'utente realistici (non piu' l'ultima chiusura del
+    # venerdi', irraggiungibile nel weekend). Nessun trattamento speciale per BTC
+    # (negoziabile nel weekend): testato esplicitamente e la parita' con le altre
+    # classi (esecuzione al lunedi' per tutti) e' risultata la scelta migliore.
+    deciding_new = should_decide and not prev_pending
 
     output = {
         "macro": {},
@@ -613,12 +640,14 @@ def main():
         "macro_events": [],
         "top20": prev_basket,
         "crypto_top": (old_data or {}).get("crypto_top", []),
-        "v2_state": dict(prev_state) if prev_state else {"hysteresis": {}, "basket": [], "basket_quarter": None, "last_decision_month": None},
+        "v2_state": dict(prev_state) if prev_state else {"hysteresis": {}, "basket": [], "basket_quarter": None, "last_decision_month": None, "pending_decision": None},
         "timestamp": datetime.datetime.now().strftime("%d %b %Y, %H:%M (UTC)"),
     }
 
-    # 1. Segnale macro (SPY/IEF/GLD/BTC-USD): scaricato sempre per il monitoraggio prezzi;
-    # la decisione (isteresi + vol-target) e' ricalcolata e persistita solo quando should_decide.
+    # 1. Segnale macro (SPY/IEF/GLD/BTC-USD): scaricato sempre per il monitoraggio prezzi
+    # e per sapere se la barra di mercato e' avanzata abbastanza da eseguire una
+    # decisione in attesa; la decisione stessa (isteresi + vol-target) e' ricalcolata
+    # solo quando deciding_new.
     print("[1/4] Ingestione Segnale Macro (SPY/IEF/GLD/BTC-USD)...")
     signal_tickers = list(dict.fromkeys(list(V2_CLASS_TICKER.values()) + DISPLAY_TICKERS))
     b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO)
@@ -626,53 +655,90 @@ def main():
     output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4) if b_data.get('EURUSD=X') is not None and not b_data['EURUSD=X'].empty else 1.0850
     output["macro"] = {t: {"price": float(b_data[t]['Close'].iloc[-1])} for t in V2_CLASS_TICKER.values() if t in b_data and not b_data[t].empty}
 
-    if should_decide:
-        allocations, new_hysteresis, debug = compute_v2_macro_signal(b_data, prev_hysteresis)
-        output["allocations"] = allocations
-        output["v2_state"]["hysteresis"] = new_hysteresis
-        output["v2_state"]["signal_debug"] = debug
-        output["v2_state"]["last_decision_month"] = current_month_str
-        macro_dates, macro_events = update_macro_regimes(allocations, old_data, today_str)
-        output["macro_dates"] = macro_dates
-        output["macro_events"] = macro_events
-    else:
-        print("    Non e' negli ultimi giorni del mese (o la decisione di questo mese e' gia' stata presa): segnale non ricalcolato, resta l'ultima decisione presa.")
-
-    allocations = output["allocations"]
+    spy_df = b_data.get("SPY")
+    latest_market_date_str = spy_df.index[-1].strftime("%Y-%m-%d") if spy_df is not None and not spy_df.empty else None
+    executing_pending = compute_executing_pending(prev_pending, latest_market_date_str)
 
     pf = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
     held_eq = [t for t in pf.get("open_positions", {}).keys() if t not in ("IEF", "GLD", "BTC")]
 
+    new_pending = prev_pending
+    eq_data = {}
+
     # 2. Basket azionario: ricalcolato su tutto l'S&P 500 solo a fine trimestre (o alla
     # primissima decisione dopo la migrazione, se cade fuori trimestre); altrimenti si
-    # mantiene il basket gia' in portafoglio (§4 della spec).
-    basket = prev_basket
-    eq_data = {}
-    if allocations.get("Equities", 0) > 0:
-        need_full_universe = should_decide and (is_quarter_end_month() or not prev_basket)
-        if need_full_universe:
-            print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500...")
-            eq_ticks = list(set(get_sp500_tickers() + held_eq))
-            eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
-            sector_of = fetch_sector_map(list(eq_data.keys()), max_workers=MAX_WORKERS_DEFAULT)
-            basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
-            output["v2_state"]["basket"] = basket
-            output["v2_state"]["basket_quarter"] = today_str[:7]
-        else:
-            print("[2/4] Nessuna rotazione trimestrale oggi: mantengo il basket azionario attuale.")
-            tickers_needed = list(set([row["Ticker"] for row in basket] + held_eq))
-            if tickers_needed:
-                eq_data = fetch_bulk_parallel(tickers_needed, max_workers=MAX_WORKERS_DEFAULT)
-    elif held_eq:
-        print("[2/4] Classe Equity disattivata: aggiorno solo i prezzi delle posizioni residue...")
-        eq_data = fetch_bulk_parallel(held_eq, max_workers=MAX_WORKERS_DEFAULT)
-        basket = []
-        output["v2_state"]["basket"] = []
-    else:
-        print("[2/4] Classe Equity disattivata.")
-        basket = []
-        output["v2_state"]["basket"] = []
+    # mantiene il basket gia' in portafoglio (§4 della spec). La riselezione avviene
+    # SOLO nel giorno della decisione (deciding_new), non in quello dell'esecuzione:
+    # stessa separazione i / i+1 usata nei backtest validati.
+    if deciding_new:
+        allocations_new, new_hysteresis, debug = compute_v2_macro_signal(b_data, prev_hysteresis)
+        print(f"    Decisione calcolata: {allocations_new} — in attesa della prossima barra di mercato per l'esecuzione.")
 
+        if allocations_new.get("Equities", 0) > 0:
+            need_full_universe = is_quarter_end_month(now_dt) or not prev_basket
+            if need_full_universe:
+                print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500 (decisione)...")
+                eq_ticks = list(set(get_sp500_tickers() + held_eq))
+                eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
+                sector_of = fetch_sector_map(list(eq_data.keys()), max_workers=MAX_WORKERS_DEFAULT)
+                new_basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
+            else:
+                print("[2/4] Nessuna rotazione trimestrale in questa decisione: mantengo il basket azionario attuale.")
+                new_basket = prev_basket
+                tickers_needed = list(set([row["Ticker"] for row in prev_basket] + held_eq))
+                if tickers_needed:
+                    eq_data = fetch_bulk_parallel(tickers_needed, max_workers=MAX_WORKERS_DEFAULT)
+        else:
+            print("[2/4] Classe Equity disattivata nella nuova decisione.")
+            new_basket = []
+            if held_eq:
+                eq_data = fetch_bulk_parallel(held_eq, max_workers=MAX_WORKERS_DEFAULT)
+
+        new_pending = {
+            "allocations": allocations_new,
+            "hysteresis": new_hysteresis,
+            "signal_debug": debug,
+            "basket": new_basket,
+            "decided_date": today_str,
+            "decided_month": current_month_str,
+        }
+        output["v2_state"]["last_decision_month"] = current_month_str
+    elif executing_pending:
+        print(f"[2/4] Esecuzione della decisione presa il {prev_pending['decided_date']}: {prev_pending['allocations']}")
+        incoming_basket = prev_pending.get("basket", [])
+        tickers_needed = list(set([row["Ticker"] for row in incoming_basket] + [row["Ticker"] for row in prev_basket] + held_eq))
+        if tickers_needed:
+            eq_data = fetch_bulk_parallel(tickers_needed, max_workers=MAX_WORKERS_DEFAULT)
+    else:
+        if prev_pending:
+            print(f"    Decisione del {prev_pending['decided_date']} ancora in attesa della prossima barra di mercato: nessuna nuova decisione oggi.")
+        else:
+            print("    Non e' negli ultimi giorni del mese (o la decisione di questo mese e' gia' stata presa): resta l'ultima decisione attiva.")
+        tickers_needed = list(set([row["Ticker"] for row in prev_basket] + held_eq))
+        if tickers_needed:
+            eq_data = fetch_bulk_parallel(tickers_needed, max_workers=MAX_WORKERS_DEFAULT)
+
+    # L'allocazione/basket "attivi" (mostrati in dashboard, usati per il ribilanciamento
+    # vero) diventano quelli della decisione SOLO il giorno dell'esecuzione — nel giorno
+    # in cui viene solo decisa, il portafoglio reale non e' ancora cambiato, quindi
+    # dashboard e Telegram continuano a mostrare i valori precedenti.
+    if executing_pending:
+        allocations = prev_pending["allocations"]
+        basket = prev_pending.get("basket", [])
+        macro_dates, macro_events = update_macro_regimes(allocations, old_data, today_str)
+        output["allocations"] = allocations
+        output["macro_dates"] = macro_dates
+        output["macro_events"] = macro_events
+        output["v2_state"]["hysteresis"] = prev_pending["hysteresis"]
+        output["v2_state"]["signal_debug"] = prev_pending["signal_debug"]
+        if basket != prev_basket:
+            output["v2_state"]["basket_quarter"] = prev_pending.get("decided_month")
+    else:
+        allocations = output["allocations"]
+        basket = prev_basket
+
+    output["v2_state"]["pending_decision"] = None if executing_pending else new_pending
+    output["v2_state"]["basket"] = basket
     output["top20"] = basket  # compatibilita' di schema con la dashboard esistente
 
     # 3. Crypto: solo BTC-USD, nessuna rotazione altcoin (testata e respinta — vedi Apex Allocation §7-bis)
@@ -688,7 +754,7 @@ def main():
 
     save_json_atomic(APEX_DATA_FILE, output)
 
-    # 4. Ribilanciamento (solo alla decisione) + tracking quotidiano dell'equity curve
+    # 4. Ribilanciamento (solo il giorno dell'esecuzione) + tracking quotidiano dell'equity curve
     print("[4/4] Aggiornamento Portafoglio ed Equity Curve...")
     # Mark-to-market PRIMA di un eventuale ribilanciamento: compone il NAV sul
     # rendimento pesato del giorno usando i prezzi di ieri (gia' in pf) come base —
@@ -698,7 +764,7 @@ def main():
     nav_usd = mark_to_market_and_compound_nav(pf, prices_by_ticker)
     save_json_atomic(PORTFOLIO_FILE, pf)
 
-    if should_decide:
+    if executing_pending:
         action_log = update_portfolio(allocations, basket, prices_by_ticker, today_str)
         pf_after = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
         nav_usd = pf_after.get("nav_usd", nav_usd)
@@ -722,7 +788,7 @@ def main():
     weekly_due = compute_weekly_due(today_str, last_alert_str)
 
     if weekly_due or output.get("macro_events") or has_orders:
-        sent = send_telegram_alert(output, action_log, is_rotation_now=(should_decide and is_friday))
+        sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending)
         if sent:
             pf_state["last_telegram_alert_date"] = today_str
             save_json_atomic(PORTFOLIO_FILE, pf_state)

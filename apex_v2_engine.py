@@ -21,7 +21,10 @@ V2_SHORT_MA_WEEKS = 20  # conferma multi-timeframe — vedi APEX_V2_SPEC.md §8.
 V2_HYSTERESIS_K = 0.5   # banda adattiva = k * vol settimanale dell'asset, non piu' fissa al 2% per tutti — vedi §8.9
 V2_HYSTERESIS_MIN = 0.005
 V2_HYSTERESIS_MAX = 0.15
-V2_VOL_TARGET = 0.13
+V2_VOL_TARGET = 0.22  # alzato da 0.13 — vedi APEX_V2_SPEC.md §8.25/§10.13 (Percorso B):
+                      # plateau confermato walk-forward, piu' CAGR/Calmar in cambio di un
+                      # MaxDD piu' alto (8.8%->11.5%), scelta di rischio esplicita per un
+                      # motore pensato per generare alpha.
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
 V2_EQUITY_VOL_LOOKBACK = 26
@@ -55,6 +58,14 @@ def compute_v2_macro_signal(
     per SPY/IEF/GLD/BTC-USD, che ha volatilita' molto diverse), e conferma
     multi-timeframe (richiede accordo tra MA 40 settimane e MA 20 settimane,
     non solo la MA lunga).
+
+    base_weight/V2_VOL_TARGET alzati a 0.50/0.22 (Percorso B, §8.25/§10.13):
+    piu' CAGR/Calmar in cambio di un MaxDD piu' alto, confermato walk-forward
+    su un plateau, non un punto isolato. Con questi valori la somma dei pesi
+    non e' piu' garantita <=100% per costruzione algebrica come lo era con
+    0.25/4 classi — da qui il limite esplicito di rinormalizzazione prima del
+    return (vedi commento inline), che rende "mai a leva" un vincolo
+    strutturale per qualunque valore di base_weight/vol-target.
 
     Ritorna: (allocations_pct 0-100 per classe + Cash, nuovo stato isteresi, debug per classe)
     """
@@ -93,7 +104,7 @@ def compute_v2_macro_signal(
         is_active = trend_long_on and trend_short_on
         state[cls] = trend_long_on  # lo stato di isteresi segue solo il trend lungo; il breve e' un filtro extra
 
-        base_weight[cls] = 0.25 if is_active else 0.0
+        base_weight[cls] = 0.50 if is_active else 0.0  # alzato da 0.25 — vedi §8.25/§10.13 (Percorso B)
         debug[cls] = {
             "price": price, "ma40w": ma_long_val, "ma20w": ma_short_val,
             "distanza_pct": round(dist * 100, 2), "banda_isteresi_pct": round(band * 100, 2), "attivo": is_active,
@@ -105,9 +116,22 @@ def compute_v2_macro_signal(
     port_vol = sum(base_weight.get(cls, 0.0) * vols[cls] for cls in V2_CLASS_TICKER if cls in vols)
     scale = min(1.0, V2_VOL_TARGET / port_vol) if port_vol > 1e-6 else 1.0
 
+    raw_weights = {cls: base_weight.get(cls, 0.0) * scale for cls in V2_CLASS_TICKER}
+    # Limite esplicito di non-leva (vedi APEX_V2_SPEC.md §8.17/§8.20): con base_weight=0.25
+    # (4 classi) la somma non puo' mai superare 100% per costruzione algebrica (25%x4=100%
+    # esatto). Con base_weight=0.50 (§8.25/§10.13, Percorso B) questa garanzia sparisce —
+    # con piu' classi attive e volatilita' realizzata moderata, scale puo' non ridurre
+    # abbastanza da tenere la somma sotto 100%, introducendo leva non dichiarata (lo stesso
+    # bug trovato e confermato negli script di ricerca prima di questa adozione). Questa
+    # rinormalizzazione proporzionale rende il vincolo "mai a leva" strutturale per
+    # qualunque valore di base_weight/vol-target, non solo per la combinazione 25%/13%.
+    total_raw = sum(raw_weights.values())
+    if total_raw > 1.0:
+        raw_weights = {cls: w / total_raw for cls, w in raw_weights.items()}
+
     allocations = {}
     for cls in V2_CLASS_TICKER:
-        allocations[cls] = round(base_weight.get(cls, 0.0) * scale * 100.0, 2)
+        allocations[cls] = round(raw_weights.get(cls, 0.0) * 100.0, 2)
     allocations["Cash"] = round(100.0 - sum(allocations.values()), 2)
 
     debug["_vol_target"] = {"vol_portafoglio_stimata_pct": round(port_vol * 100, 2), "fattore_scala": round(scale, 3)}

@@ -912,6 +912,766 @@ Corretto rimuovendo i tre file dalla lista: `sync_github.py` ora sincronizza
 solo codice/documentazione, mai dati di trading live, che restano di
 proprietà esclusiva del workflow schedulato.
 
+### 8.14 Bug di produzione trovato e corretto — decisione ed esecuzione nella stessa barra di prezzo
+
+Innescato da una domanda diretta dell'utente: "il motore ed i test devono
+considerare i segnali del venerdì ed eseguirli il lunedì (sia acquisto che
+vendita), è corretto?".
+
+**Verificato nel codice dei backtest validati** (`full_strategy_backtest.py`
+riga 83, `generate_v2_track_record.py` riga 104 — quelli su cui si basano
+tutti i numeri di CAGR/Sharpe/Calmar/alpha di questo documento): entrambi
+usano `exec_map = {min(i + 1, n - 1): w for i, w in zip(me_idx, w_vt)}` su
+una serie **ricampionata a barre settimanali** (`quantlab_core/data.py`:
+`interval="1wk"`/`"1week"`) — cioè un ritardo di **un'intera settimana**
+(prossimo venerdì) tra decisione ed esecuzione, non di un giorno lavorativo,
+applicato uniformemente a tutti gli asset compreso BTC-USD (nessun
+trattamento speciale per la crypto nel backtest, è solo un'altra colonna
+sulla stessa griglia settimanale del venerdì).
+
+**Verificato nel codice live** (`backend.py`, prima di questa correzione):
+nessun ritardo esplicito. Il segnale si calcolava sull'ultima chiusura
+settimanale disponibile, ma l'esecuzione (`update_portfolio`) avveniva
+subito, nella stessa esecuzione, usando l'ultimo prezzo di chiusura
+**giornaliero** disponibile — che, se l'esecuzione cadeva di venerdì (il
+caso comune prima del fix di scheduling in §8.13), coincideva esattamente
+con la stessa chiusura di venerdì usata per decidere: **ritardo zero**, mai
+testato né validato in nessun backtest di questo documento, e operativamente
+irrealistico (un investitore reale non può eseguire un ordine al prezzo di
+chiusura di venerdì sera).
+
+**Test di validazione** (script `execution_lag_test.py` in
+`/home/davide/Scaricati/trading`, dati giornalieri reali yfinance su
+SPY/IEF/GLD/BTC-USD/SHY, segnale invariato — solo la convenzione di
+esecuzione cambia):
+
+| | CAGR | netA | netB | Sharpe | Calmar | MaxDD | ev/yr | alpha CAPM |
+|---|---|---|---|---|---|---|---|---|
+| Baseline (validato, prossimo venerdì, ~7gg) | 13,82% | 12,03% | 11,61% | 1,35 | 0,74 | 18,7% | 18,5 | 9,71% (p=0,0004) |
+| A — lunedì per tutti, BTC incluso | 13,98% | 12,14% | 11,77% | 1,37 | 0,87 | 16,1% | 18,6 | 10,01% (p=0,0003) |
+| B — lunedì per azioni/ETF, sabato per BTC | 14,24% | 12,39% | 12,03% | 1,38 | 0,82 | 17,3% | 18,8 | 10,24% (p=0,0002) |
+
+**Cautela dichiarata:** la riproduzione della baseline in questo test
+(CAGR 13,82%) non coincide esattamente con la cifra già registrata in
+questo documento per il proxy SPY (14,92%, §8.3) — probabilmente per una
+differenza tra dati giornalieri ricampionati a settimanale in questo test
+e dati nativamente settimanali (Twelve Data/yfinance `1wk`) usati nei test
+precedenti, non un errore di logica (il codice del segnale è invariato,
+preso identico da `trend_ts_refined`/`multi_asset_lab`). Le tre righe
+restano confrontabili tra loro (stesso harness, stessa fonte dati), ma non
+sostituiscono le cifre assolute già registrate altrove nel documento.
+
+**Verdetto: esecuzione di lunedì adottata (variante A), uniforme per tutti
+gli asset inclusa BTC.** Eguaglia o supera la baseline validata su ogni
+metrica (Sharpe, Calmar, MaxDD, alpha tutti migliori) — coerente con
+l'attesa: meno ritardo tra segnale ed esecuzione aiuta un disegno
+trend-following, non lo danneggia. Nessuna necessità di validazione
+aggiuntiva prima di adottarlo: è un miglioramento netto rispetto a quanto
+già documentato, non una nuova variante divergente.
+
+**BTC: nessun trattamento speciale (variante B scartata).** B vs A è
+sostanzialmente rumore (145 decisioni su ~12 anni): CAGR/alpha
+leggermente migliori, Calmar/MaxDD leggermente peggiori, nessun vantaggio
+consistente in una direzione. La complessità operativa di due giorni di
+esecuzione diversi nello stesso evento di ribilanciamento (un investitore
+retail che deve eseguire manualmente su due giorni invece di uno) non è
+giustificata da una differenza di questa entità. BTC può negoziare nel
+weekend, ma questo disegno non ne trae beneficio: eseguito il lunedì
+insieme a tutto il resto.
+
+**Correzione implementata in `backend.py`:** introdotto un vero stato a due
+fasi, `v2_state["pending_decision"]`, che separa la DECISIONE (segnale +
+eventuale rotazione trimestrale del basket, calcolati e persistiti ma non
+ancora eseguiti) dall'ESECUZIONE (ordini reali, prezzi reali, alert
+Telegram, `action_log`):
+- `compute_should_decide` (§8.13) segnala che serve una nuova decisione;
+  se non ce n'è già una in attesa, il segnale/basket vengono calcolati e
+  salvati in `pending_decision` (con la data di decisione), ma **non**
+  eseguiti in questa stessa esecuzione — `output["allocations"]` e
+  `output["top20"]` restano quelli attivi precedenti, dashboard e Telegram
+  non cambiano ancora nulla.
+- `compute_executing_pending(prev_pending, ultima_data_di_mercato_SPY)`
+  (nuova funzione, testata isolatamente): vero solo quando l'ultima barra
+  di mercato realmente disponibile è successiva al giorno della decisione
+  — non basta che sia passato un giorno di calendario, altrimenti
+  un'esecuzione ritardata nel weekend (nessun nuovo giorno di borsa)
+  eseguirebbe comunque alla stessa chiusura di venerdì, con ritardo zero
+  reale nonostante il ritardo di calendario apparente. Con lo scheduling
+  feriale attuale, per una decisione di venerdì questo diventa vero alla
+  prima esecuzione di lunedì.
+- Solo quando `executing_pending` è vero: `update_portfolio` viene
+  chiamato con i prezzi REALI del giorno di esecuzione, `action_log` e
+  l'alert Telegram vengono generati, `pending_decision` viene svuotato.
+
+4 nuovi test in `test_backend.py` (27/27 totali passano), inclusa la
+riproduzione esatta dello scenario "decisione di venerdì, barra di mercato
+ancora di venerdì il sabato successivo → resta in attesa; barra di lunedì
+→ esegue".
+
+### 8.15 Ri-verifica sistematica di tutte le decisioni precedenti dopo il fix del ritardo (§8.14)
+
+Innescata da una domanda diretta e legittima dell'utente dopo il fix di
+§8.14: se il ritardo tra segnale ed esecuzione era sbagliato in tutti i
+test precedenti (validati con un ritardo di una settimana, mai di un
+giorno), quei test restano validi? Potrebbero cambiare risultato?
+
+**Principio guida:** ogni confronto precedente (variante vs disegno
+deployato) usava la STESSA convenzione di ritardo su entrambi i lati, quindi
+i confronti relativi restavano validi come confronti — il problema era solo
+che il codice **live** non replicava nessuna delle convenzioni testate
+(ritardo zero, mai validato). Restava però una domanda aperta: un ritardo
+diverso (lunedì invece di una settimana) applicato a TUTTE le varianti
+avrebbe potuto cambiare quale vince, specialmente per le decisioni con
+margini stretti (dello stesso ordine di grandezza dell'effetto del cambio
+di convenzione, ~0,15-0,2 Sharpe / ~2pp Calmar-MaxDD).
+
+**Metodo:** identificate le decisioni con margine largo (scarto di
+performance molto più grande dell'effetto atteso del cambio di convenzione,
+o scartate/adottate per ragioni meccaniche/metodologiche non numeriche) come
+robuste per costruzione, senza bisogno di ri-test. Ri-testate esplicitamente
+tutte le decisioni con margine stretto, sotto la convenzione corretta
+(esecuzione di lunedì), usando lo stesso harness del basket reale
+point-in-time (non semplificazioni a livello di solo proxy SPY, tranne dove
+esplicitamente indicato).
+
+**Robuste per costruzione (non ri-testate, margine troppo largo per essere
+ribaltato):** banda di non-negoziazione, ETF inversi simmetrici, risk
+parity (crollo, non un margine), ribilanciamento trimestrale, kill-switch,
+tax-loss harvesting, fattore qualità (scartati per ragioni meccaniche/di
+dati, non di margine), sleeve commodity (scartata per instabilità tra
+campioni, non per margine corto).
+
+**Ri-testate, verdetto CONFERMATO (nessun ribaltamento):**
+
+| Decisione | Margine originale (settimana) | Margine ri-testato (lunedì) |
+|---|---|---|
+| Segnale multi-proxy | Sharpe 1,39→1,29 | Sharpe 1,12→0,88 (proxy), 1,14 vs 0,88 dopo correzione — stessa direzione, alpha perde di nuovo significatività in entrambi i casi |
+| Mix statico 70/30 BTC/ETH | Sharpe 1,39→1,32 | Sharpe 1,37=1,37 (pari), Calmar e alpha restano peggiori |
+| Dimensione basket (10/15/20) | Top-15 vince su ogni metrica | Top-15 vince ancora su ogni metrica |
+| Scalare per numero di posizioni invece che per taglia | Calmar 1,13→0,97, MaxDD 13,3%→15,3% | **Margini identici** (stesso Calmar, stesso MaxDD, stesso risparmio fiscale del 19%) |
+| Momentum cross-sectional | Calmar 0,95, MaxDD 16,2% vs 1,13/13,3% | **Margini quasi identici** |
+| Ampiezza basket scalata per volatilità SPY | Neutro-leggermente peggiore su 3 calibrazioni | Confermato neutro-leggermente peggiore, stessa direzione su Calmar/MaxDD in tutte e 3 |
+| Pesatura inverse-vol nel basket azionario | Mai testata con l'overlay completo (solo isolata: Sharpe 0,75→0,65) | **Testata per la prima volta con l'overlay completo**: quasi equivalente (CAGR -0,10pp, Sharpe -0,01, Calmar -0,02) — il divario isolato spariva quasi del tutto sotto l'overlay, ma resta comunque leggermente peggiore. Chiude un buco di verifica aperto dall'inizio del progetto. |
+
+**Ri-testato, risultato NUOVO/RIBALTATO — candidato genuino:**
+
+Basket crypto a bassa volatilità (BTC/ETH/SOL/ADA/XRP, top-2 di 5,
+rotazione trimestrale, stessa logica del basket azionario). Originariamente
+scartato (Sharpe 1,39→1,26, Calmar 0,94→0,90). Sotto l'esecuzione corretta
+di lunedì, **ribaltamento parziale, non una bocciatura pulita**:
+
+| | CAGR | netA | Sharpe | Calmar | MaxDD | alpha CAPM |
+|---|---|---|---|---|---|---|
+| Solo BTC-USD (deployato) | 15,27% | 13,18% | 1,48 | 0,97 | 15,7% | 11,04% (p=0,0001) |
+| Basket 5 monete, top-2 | 15,60% | 13,48% | 1,43 | **1,02** | **15,3%** | 11,05% (p=0,0001) |
+
+Batte "solo BTC" su CAGR, rendimento netto, Calmar e drawdown massimo;
+perde solo un po' su Sharpe; alpha praticamente identico. Testato anche un
+bacino allargato a 12 monete su 23 candidate mid-cap (su richiesta
+dell'utente, verificando prima la qualità/lunghezza dello storico di
+ciascuna candidata — escluse UNI-USD e MATIC-USD, delistate/rinominate su
+Yahoo prima della fine del campione): **peggiora nettamente** (Sharpe 1,31,
+Calmar 0,91 — sotto anche "solo BTC" —, MaxDD 17,7%, eventi tassabili/anno
+54,6 contro 21,6 del basket piccolo) — allargare oltre 5 monete scambia
+rischio ed efficienza fiscale per rendimento grezzo, direzione opposta a
+quanto cercato.
+
+**Verifica a griglia (richiesta esplicitamente prima di adottare qualunque
+cosa, stesso standard di isteresi adattiva/multi-timeframe/buffer-rank —
+§8.3/§8.9): risultato negativo, top-2 NON è un plateau.** Testate tutte le
+taglie da 1 a 5 sullo stesso bacino di 5 monete
+(`execution_lag_altcoin_gridsize_test.py`):
+
+| Taglia basket | CAGR | Sharpe | Calmar | MaxDD | alpha CAPM |
+|---|---|---|---|---|---|
+| Solo BTC-USD fisso (deployato) | 15,27% | 1,48 | 0,97 | 15,7% | 11,04% |
+| top-1 di 5 | 16,43% | 1,48 | 1,05 | 15,7% | 12,03% |
+| **top-2 di 5 (candidato originale)** | 15,60% | **1,43** | **1,02** | 15,3% | 11,05% |
+| top-3 di 5 | 17,79% | 1,52 | 1,09 | 16,3% | 12,92% |
+| top-4 di 5 | 18,81% | 1,55 | 1,16 | 16,3% | 13,64% |
+| top-5 di 5 (equal-weight) | 18,39% | 1,52 | 1,06 | 17,3% | 13,24% |
+
+Il punto candidato (top-2) è il **peggiore del gruppo** su ogni metrica
+tranne il drawdown massimo — l'andamento sale-scende-sale invece di un
+plateau liscio è il segnale classico che, con solo 5 candidate, il
+risultato riflette il comportamento idiosincratico di 1-2 monete
+specifiche, non un vero effetto di diversificazione. **Non è il caso
+isolato fortunato temuto in negativo (un punto anomalo che sembrava buono),
+è l'opposto: il punto già pubblicato era anomalo in negativo** — ma la
+conclusione pratica è la stessa: non ci si può fidare di nessun punto
+preciso su un bacino di sole 5 monete.
+
+Su segnalazione dell'utente ("così poche monete da considerare?"), la
+griglia è stata ripetuta sul bacino più ampio di ~23 mid-cap già usato per
+il test "12 di 23" (sopra), da top-2 a top-15
+(`execution_lag_altcoin_wide_gridsize_test.py`):
+
+| Taglia (nominale) | CAGR | Sharpe | Calmar | MaxDD | alpha CAPM | taglia media effettiva |
+|---|---|---|---|---|---|---|
+| Solo BTC-USD fisso (deployato) | 15,27% | 1,48 | 0,97 | 15,7% | 11,04% | — |
+| top-2 di 23 | 17,53% | 1,37 | 1,03 | 17,0% | 12,90% | 1,3 |
+| **top-4 di 23** | 17,48% | **1,46** | **1,08** | **16,2%** | 12,72% | 2,2 |
+| top-6 di 23 | 17,05% | 1,40 | 1,00 | 17,0% | 12,36% | 3,2 |
+| top-8 di 23 | 16,73% | 1,39 | 0,99 | 16,9% | 12,00% | 4,1 |
+| top-10 di 23 | 16,72% | 1,37 | 0,93 | 18,0% | 12,01% | 5,1 |
+| top-12 di 23 | 16,08% | 1,31 | 0,91 | 17,7% | 11,39% | 6,0 |
+| top-15 di 23 | 16,37% | 1,32 | 0,92 | 17,9% | 11,63% | 7,4 |
+
+Questa volta la forma è tutt'altro che rumorosa: sale da top-2, tocca un
+picco netto e pulito a top-4 (il migliore Sharpe/Calmar/MaxDD dell'intera
+griglia), poi degrada in modo monotono fino a top-15 su ogni metrica di
+rischio — esattamente la forma che un vero effetto di diversificazione
+dovrebbe avere (beneficio che satura e poi si inverte quando i nomi
+marginali aggiungono correlazione senza guadagno), non un artefatto di
+rumore come nel bacino a 5 monete.
+
+**Ma un limite serio impedisce di considerarlo pronto per la produzione:**
+la "taglia effettiva media" è molto sotto il target nominale per ogni
+riga — top-4 detiene in media solo 2,2 monete reali, non 4. Causa: la
+maggior parte delle 22 altcoin candidate non aveva storico/liquidità
+sufficiente prima del 2017-2020, quindi il basket si allarga gradualmente
+solo nella seconda metà del campione — le righe a taglia nominale più alta
+(top-10/12/15) sono particolarmente diluite da questo effetto e non vanno
+sovra-interpretate. In pratica "top-4" per buona parte dei 12 anni si
+comporta più come un top-2 su un bacino ristretto — la stessa taglia
+effettiva già trovata inaffidabile nel test sul bacino a 5 monete, solo
+composta da monete diverse (il bacino più ampio include anche mid-cap più
+mature come LTC/XMR, non solo ETH/SOL/ADA/XRP) — un indizio che il
+risultato dipenda più da QUALI monete specifiche finiscono nel basket che
+da un vero effetto strutturale di ampiezza N.
+
+**Verifica walk-forward dedicata (script
+`execution_lag_altcoin_walkforward_test.py`, stessa metodologia esatta di
+`walk_forward_test.py`, §8.4 — split a metà campione per numero di
+decisioni mensili, `split_point = len(me_idx)//2`): TRAIN 2014-09-29 →
+2020-08-31 (72 decisioni), TEST 2020-09-28 → 2026-08-24 (72 decisioni, mai
+viste durante la selezione).**
+
+Scelta la taglia in-sample (solo TRAIN, massimizzando lo Sharpe, senza
+guardare il TEST): top-4 vince con Sharpe 1,68 in-sample (contro 1,60 di
+solo-BTC nello stesso periodo).
+
+Applicata quella stessa taglia (fissa, non re-ottimizzata) fuori campione:
+
+| | CAGR | Sharpe | Calmar | MaxDD | ev/anno | alpha CAPM |
+|---|---|---|---|---|---|---|
+| top-4 (scelto su TRAIN) | 13,57% | 1,22 | 0,84 | 16,2% | 30,4 | 8,23% (p=0,047) |
+| Solo BTC-USD | 13,83% | **1,36** | **0,88** | **15,7%** | **16,4** | 8,91% (p=0,019) |
+
+**Verdetto definitivo: il vantaggio NON regge fuori campione — decade e si
+inverte, la firma classica dell'overfitting.** Il decadimento dello Sharpe
+tra TRAIN e TEST per il basket scelto è +0,46 (1,68→1,22) — molto più
+grande del decadimento quasi nullo che `walk_forward_test.py` aveva
+trovato per i parametri del motore azionario (Sharpe 1,35 sia in-sample sia
+fuori campione, il riferimento dichiarato per "nessun overfitting" in
+questo documento). Fuori campione, solo BTC-USD batte il basket scelto su
+ogni singola metrica — Sharpe, Calmar, CAGR, MaxDD, alpha più forte e più
+significativo — con circa la metà degli eventi tassabili/anno (16,4 contro
+30,4). Il risultato promettente di questa stessa sezione sopra (basket
+migliore di solo-BTC sull'intero campione) dipendeva da QUALE metà del
+campione si guarda — non si generalizza.
+
+**Conclusione definitiva per la produzione: nessuna diversificazione
+crypto viene adottata. Solo BTC-USD resta il disegno corretto, confermato
+walk-forward**, per la classe Crypto.
+
+**Nota metodologica:** oltre 14 test di ri-verifica completati in questa
+sessione sopra i 16 già registrati in §8.1/§8.9 — nessuno dei margini
+larghi si è mosso; l'unico candidato che sembrava promettente (basket
+crypto diversificato) non ha retto alla verifica walk-forward, l'unico
+standard di validazione che conta davvero per un parametro mai visto prima
+in questo documento. Buon esito del processo: il metodo anti-overfitting
+di questo progetto ha funzionato esattamente come previsto, scartando
+un'idea che sembrava vincente guardando l'intero campione.
+
+### 8.16 Numero di riferimento definitivo — configurazione reale di produzione sotto esecuzione di lunedì
+
+Tutta la ri-verifica di §8.15 ha usato, per isolare l'effetto del solo
+ritardo di esecuzione, un motore semplificato (isteresi fissa al 2%,
+nessuna conferma multi-timeframe, nessun vincolo settoriale) — non la
+configurazione ESATTA oggi in produzione. Chiuso questo buco chiamando
+direttamente le funzioni vere di `apex_v2_engine.py`
+(`compute_v2_macro_signal`, `select_low_vol_basket`, con le costanti reali
+`V2_HYSTERESIS_K=0.5`, `V2_SHORT_MA_WEEKS=20`, `V2_MAX_PER_SECTOR=2`)
+invece di una reimplementazione di ricerca, eliminando ogni rischio di
+scostamento tra "cosa testiamo" e "cosa gira" (script
+`execution_lag_production_config_test.py`, verificato con un controllo di
+sanità che riproduce esattamente il riferimento semplificato usato finora
+prima di aggiungere le raffinature).
+
+| | CAGR | netA | netB | Sharpe | Calmar | MaxDD | ev/anno | alpha CAPM |
+|---|---|---|---|---|---|---|---|---|
+| Riferimento semplificato (usato in §8.15) | 14,92% | 11,80% | 11,64% | 1,41 | 1,13 | 13,3% | 108,1 | 11,23% (p=0,0001) |
+| **Configurazione reale di produzione** | **16,23%** | **13,08%** | **12,91%** | **1,53** | **1,85** | **8,8%** | 101,3 | **12,62%** (p=0,0000) |
+
+**La configurazione vera è nettamente migliore del riferimento usato per
+tutta la ri-verifica** — specialmente su Calmar (+0,72) e MaxDD (13,3%→8,8%,
+oltre un terzo più basso). Questo numero sostituisce ogni "riferimento
+Monday-lag" citato in §8.15 come base di paragone corretta d'ora in poi.
+
+**Effetto su tutte le bocciature di §8.15: nessuna cambia, anzi si
+rafforzano.** Ogni variante scartata in quella sezione (dimensione basket,
+scalare per numero di posizioni, ampiezza per volatilità, pesatura
+inverse-vol, segnale multi-proxy, momentum cross-sectional) è stata
+confrontata contro un riferimento più DEBOLE di quello vero — la barra da
+superare per giustificare un cambiamento di produzione è in realtà più alta
+di quanto usato in quei confronti, quindi le bocciature restano valide a
+maggior ragione, non c'è alcun rischio che il numero più alto le ribalti.
+
+### 8.17 Cap di peso per classe — perché il 25% non è arbitrario, e un bug di leva nascosta trovato durante la verifica
+
+Su richiesta esplicita dell'utente ("come è stato scelto questo cap? Il cap
+massimo dovrebbe esistere?"), 4 approcci evidence-based testati per
+decidere se il 25% base per classe attiva (§2) sia il valore giusto.
+
+**Risultato che sembrava positivo, poi smascherato come artefatto di leva
+non dichiarata:** un cap uniforme più alto (35% invece di 25%), scelto su
+metà campione (TRAIN) e confermato sull'altra metà (TEST) con un
+miglioramento enorme su ogni metrica (CAGR 15,46%→23,64%, alpha
+11,49%→18,70%). Verifica avversariale immediata (per lo stesso motivo per
+cui il basket crypto era sembrato buono prima del walk-forward — un
+risultato così grande merita sospetto, non fiducia): **la formula di
+vol-targeting reale (`apex_v2_engine.py`) non impone mai esplicitamente
+`somma dei pesi finali ≤ 100%`** — quel vincolo vale solo per coincidenza
+algebrica quando il cap è esattamente 25% e ci sono 4 classi (25%×4 =
+100% esatto, mai di più). Con un cap al 35%, se 3 classi sono attive
+insieme in un mese in cui il vol-targeting non è vincolante (`scale=1`,
+successo nel 45,8% dei mesi TEST verificati empiricamente), l'esposizione
+totale sale a 105% — leva non dichiarata, verificata su dati reali (non
+solo sospettata), che viola direttamente la regola "mai a leva" di questo
+progetto. La griglia estesa oltre 35% lo conferma senza ambiguità: al
+cap 100% il CAGR sale a un innaturale 102%/anno con MaxDD di appena il
+10,8% — impossibile per un disegno reale a 4 asset, è leva che si compone,
+non edge.
+
+**Scoperta positiva e utile, però: il 25% non era affatto un default
+arbitrario mai testato.** È matematicamente **l'unico valore che garantisce
+zero leva con 4 classi** (100%/4 = 25% esatto) — un vincolo strutturale
+necessario, non un parametro libero da ottimizzare. Qualunque cap uniforme
+sopra 1/N richiede un limite esplicito sull'esposizione aggregata (es. un
+clip/rinormalizzazione post-scala che impedisca alla somma di superare il
+100%) prima che i suoi risultati abbiano un senso — senza quel limite,
+qualunque "miglioramento" trovato alzando il cap è sospetto per
+costruzione, non solo per questo caso specifico.
+
+**Cap differenziati per classe (Risk-tiered, Equity-tilted):** entrambe le
+combinazioni testate a priori (prima di vedere qualunque risultato,
+motivate da volatilità/affidabilità del segnale — Crypto più basso,
+Equities più alto) **peggiorano** rispetto al 25% uniforme su quasi ogni
+metrica sulla finestra TEST. Nessun beneficio dal dare più spazio solo alle
+azioni a scapito delle altre classi.
+
+**Cap da budget di rischio analitico:** derivazione basata sulla
+volatilità media di ciascuna classe presa isolatamente, senza considerare
+l'esposizione aggregata nel caso peggiore (più classi attive insieme) —
+stesso tipo di problema del cap uniforme sopra, numeri fuori scala (CAGR
+39%) coerentemente scartati come artefatto.
+
+**Verdetto finale: il 25% attuale resta il valore corretto e va mantenuto
+— non per pigrizia, ma perché è l'unico che garantisce strutturalmente
+nessuna leva con 4 classi.** Un cap uniforme diverso potrebbe in teoria
+valere la pena esplorare, ma SOLO aggiungendo prima un limite esplicito
+sull'esposizione aggregata al test — altrimenti qualunque numero trovato è
+inaffidabile per lo stesso motivo appena dimostrato. Considerare questo un
+prerequisito, non un dettaglio, per qualunque test futuro su questo
+parametro.
+
+**Ri-test con il limite anti-leva aggiunto (script
+`class_cap_clipped_test.py`): confermato, l'effetto vero è piccolo e misto,
+non trasformativo.** Aggiunta una rinormalizzazione proporzionale quando la
+somma dei pesi supererebbe il 100% (verificato: l'esposizione massima non
+supera mai 100,00% con nessun cap testato, a differenza del 105% osservato
+senza il limite). Con il limite attivo, la griglia TRAIN è quasi piatta
+(Sharpe 0,88→0,89 da 25% a 100%, altro che la salita continua vista prima)
+— esattamente il comportamento atteso da un vero compromesso rischio/
+rendimento, non da un artefatto. Il cap vincente su TRAIN (75%) applicato
+su TEST dà: CAGR 15,46%→17,25%, Calmar 1,76→1,83, alpha 11,49%→13,24%, ma
+Sharpe 1,56→1,48 e MaxDD 8,8%→9,4%, entrambi leggermente peggiori. **Un
+guadagno reale ma marginale, con un piccolo costo reale di concentrazione
+— non un cambiamento da adottare in produzione senza un motivo più forte
+di "leggermente meglio su alcune metriche, leggermente peggio su altre".**
+Il 25% attuale resta la scelta raccomandata.
+
+### 8.18 Universo azionario europeo aggiuntivo — testato e scartato
+
+Punto 2 del to-do (§10): basket azionario europeo a bassa volatilità
+(proxy segnale FEZ/EuroStoxx 50, universo di 42 blue-chip liquide
+DAX/CAC40/AEX/SMI/IBEX/FTSE-MIB, top-8/buffer-15), affiancato al basket USA
+esistente, slot Equities condiviso 50/50 quando entrambi i segnali sono
+attivi. Validato con lo stesso split walk-forward di tutto questo
+documento (TRAIN 2014-2020, TEST 2020-2026).
+
+**Risultato: nessun beneficio, bocciatura netta su entrambe le finestre,
+non solo marginale.** CAGR, rendimento netto, Calmar e alpha
+flat-o-peggio sia su TRAIN sia su TEST rispetto al solo basket USA; Sharpe
+pari sul TEST. L'unico effetto chiaro e coerente è un aumento consistente
+degli eventi tassabili/anno (+23% TRAIN, +40% TEST), dal gestire due
+rotazioni regionali indipendenti invece di una sola. Conferma l'aspettativa
+già scritta in questo documento (miglioramento modesto, non
+trasformativo) — anzi il risultato è più negativo di quanto atteso, un
+costo netto senza alcun guadagno compensativo. **Limite dichiarato
+dell'esperimento stesso:** l'universo azionario europeo usato NON è
+point-in-time (blue-chip di oggi applicate retroattivamente), a differenza
+dell'universo USA — un rischio di look-ahead reale, lo stesso tipo di
+problema che l'audit originale aveva trovato critico in v1. Scartato anche
+a prescindere da questo limite, data la bocciatura già netta.
+
+### 8.19 Target di vol-targeting più alto — confermato: il 13% attuale è già vicino all'ottimo
+
+Punto 11a del to-do (§10): esplorare, esplicitamente come leva di rischio
+onesta (non un guadagno di efficienza gratuito), se alzare
+`V2_VOL_TARGET` (oggi 13%) dentro/oltre il plateau già validato (8-25%)
+migliori CAGR/alpha mantenendo un compromesso di rischio accettabile.
+Verificato prima di tutto che il vincolo "mai a leva" resti strutturalmente
+intatto per costruzione (`scale = min(1.0, target/port_vol)` non può mai
+superare 1.0 qualunque sia il target) — a differenza del bug sui cap di
+§8.17, qui non c'è alcun canale di leva nascosta, confermato empiricamente
+(esposizione aggregata massima osservata 93,1%, mai sopra 100%).
+
+**Griglia TRAIN (10/13/15/18/22/27/35%), selezione per Sharpe massimo:**
+il valore migliore è **10%**, non più alto del 13% attuale — lo Sharpe
+scende in modo monotono man mano che il target sale (1,51→1,50→...→1,27),
+mentre CAGR sale (13,64%→21,95%) e MaxDD peggiora (6,4%→20,3%). Applicato
+su TEST: 10% e 13% risultano sostanzialmente equivalenti (Sharpe 1,61 vs
+1,59, Calmar 1,71 vs 1,80, CAGR 13,29% vs 15,82%) — nessun vincitore netto,
+il 13% attuale è già vicino all'ottimo.
+
+**Griglia TEST completa (diagnostica): una vera curva rischio/rendimento
+limitata, non un artefatto.** CAGR sale con il target fino a un plateau
+attorno al 22-27%, e — punto chiave — **Calmar mostra un picco interno
+reale a 22% (2,02) e poi scende**: esattamente il comportamento atteso da
+un compromesso di rischio genuino (a differenza della salita illimitata
+vista nel bug di leva sui cap in §8.17, qui la curva si inverte davvero).
+
+**Verdetto: nessun artefatto, il dial funziona esattamente come un dial di
+rischio dovrebbe.** Il 13% attuale resta la scelta raccomandata per il
+profilo di rischio dichiarato. Alzarlo verso 22-27% è un'opzione
+legittima e ben educata se si vuole esplicitamente più CAGR grezzo in
+cambio di un Sharpe/Calmar peggiore e un drawdown massimo molto più alto
+(fino al 16-20%) — una decisione di rischio che spetta all'utente, non un
+miglioramento da adottare automaticamente.
+
+### 8.20 Bug trovato nei test di questa sessione — la finestra TRAIN "congelava" il portafoglio invece di fermarsi
+
+Innescata da un confronto con uno script esterno (vedi §8.21) che riportava
+numeri di TRAIN sensibilmente diversi dai nostri per la stessa
+configurazione — invece di ignorare la discrepanza, verificata a fondo,
+trovando un bug reale nei nostri stessi test.
+
+**Causa:** in `class_cap_test.py` e `eu_basket_test.py`, la funzione di
+simulazione riceve un sottoinsieme di date (`me_idx`, es. solo il periodo
+TRAIN 2014-2020) ma il ciclo interno itera fino a `n = len(idx)` — la
+lunghezza dell'INTERA serie storica, non del sottoinsieme passato. Il
+ribilanciamento si ferma correttamente a fine TRAIN (nessuna nuova
+decisione dopo quella data), ma il mark-to-market continua fino al 2026,
+trascinando il portafoglio CONGELATO (pesi mai più aggiornati) attraverso
+il bear market 2022 senza alcuna protezione — esattamente ciò che produce
+un crollo fittizio (Sharpe 0,88, MaxDD 44,7% invece del vero 1,50/7,9%,
+confermato da `vol_target_walkforward_test.py`, che usa correttamente una
+simulazione continua su tutto il campione e poi estrae le statistiche per
+sotto-periodo, e dal riferimento definitivo sull'intero campione in §8.16).
+
+**Impatto sulle conclusioni già scritte:**
+- **§8.19 (target vol-targeting): non toccato.** Usa il metodo corretto
+  (simulazione continua, poi taglio in sotto-periodi).
+- **§8.17 (cap per classe): il verdetto finale resta valido, ma il valore
+  specifico "75% vince su TRAIN" no.** Il confronto finale (25% vs 75% su
+  TEST) non è toccato dal bug (la finestra TEST arriva già alla fine vera
+  del campione, niente su cui "congelarsi"), quindi la conclusione
+  qualitativa (guadagno piccolo e misto, non trasformativo) regge. Ma la
+  selezione del 75% come "vincitore su TRAIN" si basa su una misura rotta
+  — quel numero specifico andrebbe riverificato con l'harness corretto
+  prima di essere citato con sicurezza.
+- **§8.18 (basket europeo): verdetto probabilmente ancora valido.** Stesso
+  bug presente, ma essendo condiviso da entrambe le varianti confrontate
+  (USA-solo e USA+EU), il confronto relativo su TRAIN è meno distorto del
+  caso del cap (un solo punto di riferimento rotto). La bocciatura netta
+  citata come base del verdetto viene dalla finestra TEST, non toccata dal
+  bug.
+
+Nessun impatto su codice di produzione (bug isolato negli script di
+ricerca, mai in `apex_v2_engine.py`/`backend.py`). Verificato anche il
+test in corso su vol-target+cap combinati per lo stesso bug, riusando
+codice degli script coinvolti — trovato e corretto anche lì (vedi §8.21).
+
+### 8.21 Vol-target e cap combinati — il 13%/25% deployato resta lo Sharpe-ottimo, ma esiste una frontiera rischio/rendimento non ancora validata fuori campione
+
+Punto richiesto dall'utente dopo §8.17 e §8.19 (mai testati insieme).
+Stesso bug di §8.20 trovato indipendentemente e corretto in questo script
+prima di riportare risultati (confermato: dopo il fix, il punto
+25%/13% dà Sharpe 1,49/MaxDD 7,9%, combacia col riferimento noto).
+
+**Griglia TRAIN completa (16 celle, cap 25/35/50/75% × vol-target
+13/15/18/22%), selezione per Sharpe massimo:**
+
+| cap\vt | 13% | 15% | 18% | 22% |
+|---|---|---|---|---|
+| 25% (deployato) | **1,49** | 1,48 | 1,46 | 1,41 |
+| 35% | 1,47 | 1,46 | 1,45 | 1,45 |
+| 50% | 1,43 | 1,44 | 1,44 | 1,44 |
+| 75% | 1,41 | 1,43 | 1,43 | 1,44 |
+
+**Vincitore: 25%/13%, esattamente il disegno deployato.** Nessuna
+combinazione testata batte il suo Sharpe. Confermato anche su TEST: la
+combinazione scelta su TRAIN coincide col baseline (CAGR 15,46%, Sharpe
+1,56, Calmar 1,76, MaxDD 8,8%) — non batte né i lever singoli testati
+separatamente (solo-cap 75%/13%: Sharpe 1,48; solo-vt 25%/22%: Sharpe
+1,50), è semplicemente ridondante quando l'obiettivo è lo Sharpe puro.
+Vincolo anti-leva confermato: esposizione aggregata mai sopra 100,00% in
+nessuna cella.
+
+**Scoperta collaterale, NON validata fuori campione:** sulla griglia TRAIN,
+il punto cap=35%/vol-target=22% mostra CAGR 25,96% (contro 16,84% del
+baseline) con un costo di Sharpe minimo (1,45 contro 1,49) e Calmar quasi
+pari (1,97 contro 2,14) — una spinta sostanziale di rendimento a un costo
+di rischio apparentemente modesto. **Non è stato propagato al confronto
+TEST** (la selezione per Sharpe massimo ha scelto il baseline, non questo
+punto) — resta un candidato interessante ma non confermato, richiede un
+giro dedicato prima di essere preso sul serio, con lo stesso standard
+walk-forward di tutto questo documento.
+
+Script: `/home/davide/Scaricati/trading/combined_cap_voltarget_test.py`.
+
+### 8.22 Quality Momentum come filtro aggiuntivo — nessun effetto rilevabile, né positivo né negativo
+
+Punto 2 della coda "spingere CAGR/alpha" (dopo l'analisi critica del testo
+esterno "Alpha-Max", che proponeva Quality Momentum come SOSTITUTO della
+bassa volatilità — qui invece testato come filtro AGGIUNTIVO, più
+prudente: un titolo deve superare sia il ranking per bassa volatilità sia
+un punteggio di quality-momentum positivo (pendenza × R² di una
+regressione lineare sul prezzo, finestra 90 e 120 giorni testate
+entrambe)).
+
+**Il filtro non è cosmetico**: esclude in media il 35,6% (90gg) / 36,3%
+(120gg) del pool di candidate altrimenti eleggibili per bassa volatilità
+ad ogni rotazione trimestrale — cambia davvero l'universo selezionabile
+la maggior parte dei trimestri, non è un vincolo che non scatta quasi mai.
+
+**TRAIN (coerenza tra le due finestre):** 90gg e 120gg tracciano il
+baseline quasi esattamente, nella stessa direzione (Sharpe 1,48/1,49
+baseline vs 1,49/1,46 con filtro) — nessun rischio di "finestra fortunata
+isolata", ma anche nessun segnale di effetto reale in nessuna delle due.
+
+**TEST:** stesso quadro — CAGR, Sharpe, Calmar, MaxDD, alpha CAPM si
+muovono tutti di quantità (≤0,03 Sharpe, ≤0,2pp CAGR) che si leggono come
+rumore, non segnale, nonostante il filtro escluda davvero oltre un terzo
+delle candidate ogni trimestre (esclude "il rumore non scatta mai" come
+spiegazione del risultato nullo).
+
+**Verdetto: nessun effetto rilevabile, in nessuna direzione.** Dato il
+precedente negativo forte contro la selezione per momentum in questo
+progetto (fallimento v1, bocciatura del momentum cross-sectional in v2),
+un risultato nullo pulito è l'esito meno allarmante possibile: il Quality
+Momentum non aiuta, ma nella forma additiva testata non ha nemmeno
+rovinato il disegno validato, cosa che una sostituzione completa avrebbe
+potuto fare. **Nessun cambiamento di produzione — non vale la pena
+proseguire in questa forma additiva.**
+
+Script: `/home/davide/Scaricati/trading/quality_momentum_filter_test.py`.
+
+### 8.23 Analisi del documento esterno "APEX Quantitative Trilogy" — stesso difetto fondativo di v1, due idee salvate e validate sui nostri dati
+
+Un secondo documento esterno proponeva tre varianti ("Elegant", "Alpha-Max",
+"Fusion") con numeri di CAGR/Sharpe/MaxDD molto allettanti. Trovati e letti
+gli script sorgente (`research/test_elegant_stocks.py`,
+`test_hybrid_fusion.py` e correlati, nella cartella `research/` di questo
+stesso repository). **Verificato per ispezione diretta del dataset
+condiviso (`research/market_data_20y.pkl`, 504 titoli): l'universo
+azionario è la composizione ATTUALE (2026) dell'S&P 500 applicata
+retroattivamente a tutto il backtest** — include titoli come PLTR (quotata
+dal 2020) e SOLV (spin-off del 2024), che non esistevano per buona parte
+della finestra 2014-2020. È esattamente lo stesso difetto ("finding
+critico #1") che l'audit originale aveva usato per bocciare v1 — bias di
+sopravvivenza che falsa sistematicamente ogni cifra calcolata su questo
+dataset, per tutti e tre i modelli. Conferma indipendente: il documento
+riporta MaxDD quasi identico tra selezione low-vol e momentum (-14,37% vs
+-14,39%), mentre il nostro test walk-forward reale (§8.9/§8.15) mostra un
+divario netto (Calmar 1,13 vs 0,95, MaxDD 13,3% vs 16,2%) — un bias di
+sopravvivenza appiattisce esattamente questo tipo di differenza. **Numeri
+del documento scartati in blocco.**
+
+Le due idee ARCHITETTURALI dietro "Elegant" (non i numeri) sono state però
+isolate e testate correttamente sul nostro universo point-in-time reale,
+con le funzioni vere di `apex_v2_engine.py` — vedi risultati incorporati
+in §8.21/8.24 (cap dinamico, già confermato un miglioramento pulito) e
+qui sotto (matrice di covarianza, scartata).
+
+**Matrice di covarianza per il vol-targeting** (invece della stima grezza
+per somma di volatilità individuali oggi in uso): testata isolata sul
+nostro universo reale — CAGR e alpha salgono, ma Sharpe, Calmar e MaxDD
+peggiorano tutti rispetto al baseline (Calmar 1,72 contro 1,76, MaxDD 9,4%
+contro 8,8%). La matrice di covarianza vera lascia passare più rischio
+aggregato di quanto faccia la stima grezza attuale — non è una
+migliore stima "gratis", è semplicemente meno conservativa. **Scartata.**
+
+### 8.24 Cap dinamico attivazione-consapevole — confermato un miglioramento pulito, senza costo
+
+Idea nata dall'analisi di §8.23 ("Elegant"): invece del 25% fisso per
+classe attiva, `cap = min(33,33%, 100% / numero_classi_attive)` — con 4
+classi attive equivale esattamente a oggi (100%/4 = 25% < 33,33%), ma con
+meno di 4 attive usa il capitale che altrimenti resterebbe fermo in cash,
+invece di lasciarlo inerte. Diverso dal cap uniforme fisso già testato in
+§8.17/8.21 (quel cap vale sempre lo stesso valore, indipendentemente da
+quante classi sono attive).
+
+Testato sul nostro universo point-in-time reale, funzioni vere di
+`apex_v2_engine.py`, Monday-lag, walk-forward TRAIN/TEST:
+
+| | CAGR | netA | Sharpe | Calmar | MaxDD | alpha CAPM |
+|---|---|---|---|---|---|---|
+| Baseline (25% fisso) | 15,46% | 12,40% | 1,56 | 1,76 | 8,8% | 11,49% (p=0,0022) |
+| **Cap dinamico 33,3%** | **16,59%** | **13,26%** | 1,56 | **1,93** | **8,6%** | **12,46%** (p=0,0019) |
+
+**Ogni metrica pareggia o migliora — nessun costo in nessuna direzione.**
+Sharpe identico, Calmar/MaxDD/CAGR/alpha tutti migliori. Vincolo anti-leva
+confermato (esposizione aggregata mai sopra 100%). **Candidato genuino per
+l'adozione in produzione**, il primo trovato in tutta questa sessione
+senza alcun compromesso di rischio.
+
+### 8.25 Cap 35%/vol-target 22% — confermato un plateau vero fuori campione, non un artefatto
+
+Punto di §8.21 (to-do §10.12), mai propagato al confronto TEST perché non
+vincente su TRAIN per Sharpe puro. Applicato fisso (non riottimizzato)
+sulla finestra TEST 2020-2026:
+
+| | CAGR | netA | Sharpe | Calmar | MaxDD | alpha CAPM |
+|---|---|---|---|---|---|---|
+| Baseline (25%/13%) | 15,46% | 12,40% | 1,56 | 1,76 | 8,8% | 11,49% (p=0,0022) |
+| **Cap 35% / vol-target 22%** | **22,89%** | **18,73%** | 1,50 | **1,99** | 11,5% | **17,38%** (p=0,0026) |
+
+**Regge fuori campione, non decade.** CAGR/netto/alpha salgono in modo
+sostanziale, Calmar migliora, costo reale ma modesto (Sharpe -0,06, MaxDD
++2,7pp). Verificato anche che non sia un punto isolato fortunato:
+mappato il vicinato (cap 30-50% × vol-target 18-27%) — **il Calmar
+migliora rispetto al baseline in OGNI punto testato** (1,96-2,15 contro
+1,76), Sharpe resta in banda stretta (1,46-1,56), nessun salto brusco.
+Il punto migliore del vicinato è in realtà cap50%/vt22% (Calmar 2,15,
+il più alto della zona), non il cap35%/vt22% originale. **Plateau
+genuino, confermato — non un artefatto.** Costo reale (MaxDD più alto):
+è una scelta di rischio esplicita, non un miglioramento gratuito come
+il cap dinamico di §8.24.
+
+### 8.26 Le due idee non si compongono — competono, non un'unica "Apex v2.5" da adottare
+
+Tentativo di unire §8.24 (cap dinamico, senza costo) e §8.25 (cap
+piatto+vol-target più alto, vero compromesso) in un'unica formula: `cap =
+min(ceiling, 100%/n_attive)` con ceiling alzato oltre 33,3% (fino a 50%) e
+vol-target alzato fino al 22%. Griglia TRAIN 3×3: la selezione per Sharpe
+massimo sceglie sempre ceiling=33,3%/vt=13% — **esattamente §8.24 da
+solo**, nessuna fusione reale emerge dalla selezione.
+
+**Causa meccanica identificata:** il cap attivazione-consapevole
+(`min(ceiling, 1/n_attive)`) frena l'esposizione ogni volta che più
+classi sono attive contemporaneamente — proprio la situazione in cui un
+vol-target più alto dovrebbe garantire più esposizione. Il freno di §8.24
+e la spinta di §8.25 si annullano parzialmente a vicenda invece di
+sommarsi. Il cap piatto incondizionato di §8.25 resta il meccanismo
+migliore per estrarre più CAGR/Calmar quando si accetta il compromesso di
+rischio — non perché §8.24 sia sbagliato, ma perché la sua stessa natura
+"mai sprecare capitale" è in tensione con "prendere sempre più rischio".
+
+**Raccomandazione per un'eventuale "Apex v2.5": non una fusione, una
+scelta esplicita tra due percorsi indipendenti:**
+- **Percorso A (consigliato come base, nessun compromesso):** adottare
+  solo il cap dinamico attivazione-consapevole di §8.24. Guadagno netto
+  su ogni metrica, costo zero.
+- **Percorso B (opzionale, se si accetta più rischio):** in aggiunta o in
+  alternativa al percorso A, cap piatto 50%/vol-target 22% (§8.25) per chi
+  vuole esplicitamente più CAGR/Calmar in cambio di un drawdown massimo
+  più alto (11,3% contro 8,6-8,8%).
+
+Una fusione più sofisticata (es. un ceiling che scala dinamicamente col
+vol-target invece di restare fisso) potrebbe in teoria catturare il
+meglio di entrambi, ma richiede un disegno diverso da quello testato qui
+— non ancora esplorato.
+
+Script: `/home/davide/Scaricati/trading/apex_v2_alt_macro_test.py`,
+`cap_voltarget_plateau_check.py`, `apex_v25_ceiling_grid_test.py`.
+Nessun file di produzione toccato — nessuna delle due idee è stata
+ancora implementata in `apex_v2_engine.py`.
+
+### 8.27 Terzo protocollo di test esterno — tre ipotesi, tutte verificate sui nostri dati reali
+
+Un terzo documento esterno proponeva un "protocollo di test" con tre
+ipotesi esplicite da falsificare. A differenza dei due documenti
+precedenti (§8.23, entrambi con difetti strutturali reali), questo
+adottava già lo stesso spirito di falsificazione di questo progetto —
+testate tutte e tre direttamente sui nostri dati point-in-time reali,
+funzioni vere di `apex_v2_engine.py`, walk-forward TRAIN/TEST.
+
+**1. Vol-target al 16% — CONFERMATA, nessun rischio nascosto.**
+Script `vol_target_16_falsification_test.py`. Su TEST: CAGR 15,82%→18,21%,
+Calmar **migliora** (1,80→1,87, non "invariato" come ipotizzato — in
+meglio), MaxDD 8,8%→9,8%. Stress test sui tre episodi storici isolati
+(selloff dic 2018, crash COVID 2020, bear 2022): il peggioramento del
+drawdown è distribuito in modo proporzionato su ogni episodio, nessun
+episodio crolla in modo sproporzionato — **nessuna coda grassa
+nascosta**. Coerente con §8.19 (il vero picco di Calmar arriva più avanti,
+al 22%). Una scelta di rischio esplicita legittima.
+
+**2. Basket a 20 titoli (buffer-rank 25) — RESPINTA su entrambi i fronti.**
+Script `basket_size20_buffer25_test.py`. Su TEST: Calmar peggiora
+(1,76→1,71), MaxDD peggiora (8,8%→9,0%) — l'opposto della premessa — e
+gli eventi tassabili/anno salgono del 26% (92,3→116,7, stesse rotazioni
+di composizione ma 5 posizioni in più che generano ciascuna i propri
+eventi). Conferma e rafforza §8.3/§8.15 (15 titoli vince), anche con
+l'abbinamento buffer-rank=25 mai testato prima.
+
+**3. Vol-target dinamico per regime di ampiezza + acceleratore del cap —
+RESPINTA, complessità non ripagata.** Script
+`apex_v25_breadth_accelerator_test.py`, costruito sopra il cap dinamico
+già validato (§8.24). Regola 1 (16%/12% a seconda che l'ampiezza di
+mercato — quota di titoli sopra la propria MA40 settimane — superi il
+60%): effetto piccolo e coerente tra TRAIN e TEST (CAGR +~2pp, Sharpe
+-0,03), ma **è solo una versione complicata del semplice dial di
+vol-target piatto già caratterizzato in §8,19/8,25** — la diagnostica sui
+cambi di regime richiesta esplicitamente dal protocollo mostra 30 cambi
+in 11,9 anni, di cui **8 su 30 (27%) si sono rivelati instabili/rientrati
+entro 2 decisioni** — un costo di ritardo/falso segnale reale, non
+nullo, che la complessità aggiuntiva (calcolo dell'ampiezza, soglia 60%)
+non ripaga rispetto al dial semplice già esistente. Regola 2
+(acceleratore al 40% quando Azionario+Oro sono entrambi in forte
+uptrend): **nullo pulito** — scatta nel 33-46% delle decisioni ma non
+sposta nessuna metrica in modo rilevabile, stesso schema del test
+Quality Momentum (§8.22).
+
+**Verdetto complessivo:** solo l'ipotesi #1 (vol-target 16%) regge, ed è
+già coperta dal dial più semplice caratterizzato in §8,19/8,25 — non
+serve un regime dinamico per ottenerla. Le ipotesi #2 e #3 sono respinte.
+Nessun cambiamento di produzione da questo giro; nessuna nuova evidenza
+oltre a quanto già raccomandato in §10 punto 13 (Percorso A/B).
+
+### 8.28 Percorso B adottato in produzione — cap 50% / vol-target 22%
+
+Decisione esplicita dell'utente su §10 punto 13: dato l'obiettivo
+dichiarato di Apex come generatore di alpha, adottato il Percorso B
+(§8.25) invece del Percorso A (§8.24, nessun costo ma guadagno più
+piccolo). `apex_v2_engine.py`: `base_weight` alzato da 0,25 a 0,50,
+`V2_VOL_TARGET` alzato da 0,13 a 0,22.
+
+**Perché B e non A, in una frase:** il Calmar (rendimento aggiustato per
+il drawdown) migliora con B — non è solo "più rischio per più
+rendimento", è un profilo di efficienza rischio/drawdown migliore, al
+costo di un drawdown massimo assoluto più alto (11,3% contro 8,6-8,8%
+del disegno precedente) e di uno Sharpe leggermente inferiore (che
+misura il rendimento per unità di volatilità, non di drawdown).
+
+**Bug trovato e corretto PRIMA del deploy, non dopo:** con `base_weight`
+a 0,50 e 4 classi, la somma dei pesi non è più garantita ≤100% per
+costruzione algebrica come lo era con 0,25 (25%×4 = 100% esatto, mai di
+più) — con più classi attive e volatilità realizzata moderata, il
+fattore di scala del vol-targeting può non ridurre abbastanza da tenere
+la somma sotto 100%, introducendo leva non dichiarata. Esattamente lo
+stesso bug trovato e confermato negli script di ricerca (§8.17) prima di
+essere qui prevenuto in produzione fin dall'inizio: aggiunta una
+rinormalizzazione proporzionale esplicita in `compute_v2_macro_signal`
+quando la somma dei pesi grezzi supera 100%, che rende il vincolo "mai a
+leva" strutturale per qualunque valore di `base_weight`/`V2_VOL_TARGET`,
+non solo per la combinazione 25%/13% originale. Nuovo test dedicato in
+`test_apex_v2_engine.py` (uno scenario con tutte e 4 le classi attive e
+volatilità moderata, che senza il limite supererebbe 100%) — 28/28 test
+totali passano.
+
 ---
 
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)
@@ -942,7 +1702,10 @@ punto di ricerca strategica.
 
 1. ~~**[Correttezza] Etichetta "Rendimento Netto" fuorviante.**~~ **FATTO** —
    vedi §11.
-2. **[Ricerca strategia — APERTO] Universo azionario europeo aggiuntivo.**
+2. ~~**[Ricerca strategia] Universo azionario europeo aggiuntivo.**~~
+   **FATTO E SCARTATO** — vedi §8.18: nessun beneficio, bocciatura netta
+   su TRAIN e TEST, più eventi tassabili, universo non point-in-time.
+   Testo originale della proposta, per riferimento:
    Testare se un basket low-vol europeo (stesso disegno di quello USA,
    rotazione trimestrale) migliora Sharpe/alpha. L'ipotesi è che il
    beneficio non stia tanto nella diversificazione di stock-picking (basket
@@ -964,6 +1727,62 @@ punto di ricerca strategica.
 7. ~~**[UX] Card macro-engine ridondanti.**~~ **FATTO** — vedi §11.
 8. ~~**[UX] Copia ordini manuale.**~~ **FATTO** — vedi §11.
 9. ~~**[Nice-to-have] CAGR mancante.**~~ **FATTO** — vedi §11.
+10. ~~**[Ricerca strategia] Cap di peso per classe, evidence-based.**~~
+    **FATTO — 25% confermato come valore corretto.** Vedi §8.17: il 25%
+    non è un default arbitrario ma l'unico valore che garantisce
+    strutturalmente zero leva con 4 classi (100%/4). Un cap uniforme più
+    alto (35%) inizialmente sembrava migliore anche dopo walk-forward, ma
+    la verifica avversariale ha trovato e confermato empiricamente una
+    leva non dichiarata (fino al 105% di esposizione aggregata) — lo
+    stesso tipo di artefatto già visto col basket crypto, stavolta dovuto
+    a un limite mancante sull'esposizione aggregata, non a overfitting sul
+    campione. I cap differenziati per classe (a priori) e quello da
+    budget di rischio analitico peggiorano entrambi. Nessun cambiamento
+    di produzione — resta il 25% attuale.
+11. **[Ricerca strategia — APERTO] Spingere CAGR/alpha tenendo il rischio
+    sotto controllo — due direzioni, non ancora testate.** Discusso con
+    l'utente dopo il test di falsificazione a ingresso casuale (§8.16-bis
+    se aggiunto, altrimenti vedi la sezione più recente su questo test):
+    dato che il meccanismo di timing specifico non ha ancora un vantaggio
+    statisticamente certo sopra un'alternativa casuale, spingere più forte
+    sul segnale attuale (es. pesare le posizioni per "convinzione" del
+    segnale) rischia di amplificare rumore, non edge. Due strade
+    alternative, da validare separatamente con lo stesso standard
+    walk-forward di tutto questo documento prima di considerare
+    l'adozione:
+    - ~~**Target di vol-targeting più alto.**~~ **FATTO — 13% confermato
+      già vicino all'ottimo.** Vedi §8.19: walk-forward su 10-35%, nessun
+      artefatto di leva (verificato), curva rischio/rendimento genuina con
+      un vero picco di Calmar a 22% poi in calo. 13% resta la scelta
+      raccomandata; salire verso 22-27% è un'opzione legittima ma è una
+      scelta di rischio esplicita dell'utente (più CAGR, Sharpe/Calmar
+      peggiori, MaxDD fino al 16-20%), non un miglioramento automatico.
+    - **Fonte di segnale genuinamente nuova e non correlata** (non
+      un'altra variante di trend-following su un altro asset — commodity,
+      REIT, crypto allargata sono già state provate e scartate in questo
+      documento): un fattore di tipo diverso (carry, mean-reversion,
+      qualità) da combinare in ensemble col trend attuale. Percorso più
+      promettente per più alpha senza solo più rischio, ma un progetto di
+      ricerca serio, non un ritocco di parametro — nessuna analisi ancora
+      iniziata.
+12. ~~**[Ricerca strategia] Validare fuori campione il punto
+    cap=35%/vol-target=22%.**~~ **FATTO — confermato, plateau genuino.**
+    Vedi §8.25: regge su TEST (CAGR 22,89% contro 15,46%, Calmar migliora
+    a 1,99 contro 1,76, costo reale ma modesto: Sharpe -0,06, MaxDD
+    +2,7pp), e confermato non essere un punto isolato fortunato (l'intero
+    vicinato cap 30-50%/vol-target 18-27% migliora il Calmar rispetto al
+    baseline).
+13. ~~**[Decisione dell'utente] Scegliere tra Percorso A e Percorso B per
+    un'eventuale "Apex v2.5".**~~ **DECISO E IMPLEMENTATO — Percorso B.**
+    Vedi §8.28: dato l'obiettivo dichiarato di Apex come generatore di
+    alpha, adottato il cap piatto 50%/vol-target 22% (più CAGR/Calmar,
+    drawdown massimo più alto) invece del Percorso A (nessun costo ma
+    guadagno più piccolo). Trovato e corretto un bug di leva potenziale
+    prima del deploy (limite di rinormalizzazione ora strutturale in
+    `compute_v2_macro_signal` per qualunque valore di base_weight/vol-
+    target, non solo 25%/13%). Percorso A resta documentato come
+    alternativa a costo zero, non implementata, se in futuro si volesse
+    un profilo più conservativo.
 
 ## 11. Implementazione revisione UI/UX (2026-08-28)
 
