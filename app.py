@@ -102,6 +102,19 @@ FRAUNCES = "'Fraunces', Georgia, serif"
 MONO = "'JetBrains Mono', monospace"
 
 
+def get_class_svg(classe, size=14):
+    """Restituisce l'icona SVG vettoriale istituzionale per ciascuna classe di attivo."""
+    if classe in ("Azionario", "Azioni"):
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{CLASS_COLOR_EQ}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; flex-shrink:0;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>'
+    if classe == "Bitcoin":
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{CLASS_COLOR_BTC}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; flex-shrink:0;"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>'
+    if classe == "Oro":
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{CLASS_COLOR_GOLD}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; flex-shrink:0;"><path d="M6 3h12l4 6-10 12L2 9z"></path></svg>'
+    if classe == "Obbligazioni":
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{CLASS_COLOR_BOND}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>'
+    return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{MUTED}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; flex-shrink:0;"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>'
+
+
 def section_title(text, top="26px", bottom="10px"):
     return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
 
@@ -480,10 +493,10 @@ with tab_pf:
     # --- 1. Regimi e Segnali Macro ---
     st_html(section_title("Regimi e Segnali Macro"))
 
-    def signal_item(label, value_text, dot_color=None, title_attr=""):
-        dot = f'<span style="width:7px; height:7px; border-radius:50%; background:{dot_color}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>' if dot_color else ""
+    def signal_item(label, value_text, title_attr=""):
+        svg = get_class_svg(label, size=15)
         title_html = f' title="{title_attr}"' if title_attr else ""
-        return f'<div{title_html} style="display:flex; align-items:center; gap:7px; font-size:12.5px;">{dot}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED}; margin-left:auto;">{value_text}</span></div>'
+        return f'<div{title_html} style="display:flex; align-items:center; gap:8px; font-size:12.5px;">{svg}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED}; margin-left:auto;">{value_text}</span></div>'
 
     def class_state(alloc_pct, since_date):
         is_active = alloc_pct > 0
@@ -498,10 +511,10 @@ with tab_pf:
     _b_active, _b_val, _b_title = class_state(alloc.get('Bonds', 0), d_b)
 
     signals_html = "".join([
-        signal_item("Azioni", _eq_val, POS if _eq_active else MUTED_DOT, _eq_title),
-        signal_item("Bitcoin", _cr_val, POS if _cr_active else MUTED_DOT, _cr_title),
-        signal_item("Oro", _g_val, POS if _g_active else MUTED_DOT, _g_title),
-        signal_item("Obbligazioni", _b_val, POS if _b_active else MUTED_DOT, _b_title),
+        signal_item("Azioni", _eq_val, _eq_title),
+        signal_item("Bitcoin", _cr_val, _cr_title),
+        signal_item("Oro", _g_val, _g_title),
+        signal_item("Obbligazioni", _b_val, _b_title),
         signal_item("Monetario", f"{alloc.get('Cash', 0):.0f}%"),
     ])
     st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:8px;">{signals_html}</div>')
@@ -524,7 +537,7 @@ with tab_pf:
     if alloc_segments:
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;"><span style="width:9px; height:9px; border-radius:2px; background:{color}; display:inline-block;"></span><span style="color:{MUTED};">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            f'<div style="display:flex; align-items:center; gap:6px;">{get_class_svg(label, size=13)}<span style="color:{MUTED};">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
             for label, pct, color in alloc_segments
         )
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
@@ -1187,35 +1200,35 @@ with tab_guide:
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px;">Azioni</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Azioni", 15)} Azioni</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 TITOLI LOW-VOL</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale dei 15 titoli a minore oscillazione dell'S&P 500 (max 2 per settore). Efficienza fiscale massima (minusvalenze compensabili).</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px;">Bitcoin</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Bitcoin", 15)} Bitcoin</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">DIGITAL ASSET</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte asimmetria dei cicli di liquidità globale. Disattivato tempestivamente durante i mercati ribassisti prolungati.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px;">Oro</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Oro", 15)} Oro</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">COMMODITY</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Protezione contro svalutazione monetaria, inflazione e shock geopolitici. Attivo nei trend rialzisti dei metalli preziosi.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px;">Obbligazioni</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Obbligazioni", 15)} Obbligazioni</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">GOVERNMENT BOND</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Titoli di Stato USA a 7-10 anni, allocati quando il trend dei tassi e del credito è favorevole.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px;">Monetario</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Monetario", 15)} Monetario</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">OVERNIGHT CASH</span>
             </div>
             <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Parcheggio sicuro per la liquidità non impiegata. Rende gli interessi di mercato a zero rischio di capitale.</div>
