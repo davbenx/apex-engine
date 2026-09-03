@@ -65,7 +65,10 @@ CONVEX_INSTRUMENTS = {
     },
     "PPFB": {
         "name": "Invesco Physical Gold ETC",
-        "ticker": "PPFB.MI",         # Alt: SGLD.L / 4GLD.DE
+        "ticker": "SGLD.MI",         # PPFB.MI non e' realmente quotabile via Yahoo (verificato:
+                                      # l'endpoint chart API restituisce dati vuoti). SGLD.MI e'
+                                      # il vero ticker Borsa Italiana di questo stesso ISIN,
+                                      # confermato fetchable (~EUR 367/quota, plausibile per oro).
         "isin": "IE00B579F325",
         "target_weight": 0.075,      # 7.5% del capitale
         "tolerance_min": 0.045,      # 4.5%
@@ -78,7 +81,11 @@ CONVEX_INSTRUMENTS = {
     },
     "WBTC": {
         "name": "WisdomTree Physical Bitcoin",
-        "ticker": "BTC-USD",         # Alt ETP: GB00BJYDH287 / IB1T.DE
+        "ticker": "WBTC-ETFP.MI",    # BUG corretto: "BTC-USD" dava il prezzo grezzo di Bitcoin
+                                      # (decine di migliaia di $), non il prezzo per quota
+                                      # dell'ETP (frazione di BTC). Verificato: WBTC-ETFP.MI
+                                      # (Borsa Italiana, stesso ISIN GB00BJYDH287) e' realmente
+                                      # quotabile via Yahoo, ~EUR 16/quota, plausibile.
         "isin": "GB00BJYDH287",
         "target_weight": 0.075,      # 7.5% del capitale
         "tolerance_min": 0.035,      # 3.5%

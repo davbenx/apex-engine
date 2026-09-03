@@ -10,7 +10,7 @@ stessa card macro. Adattamenti legittimi per il contesto multipagina: nessun
 st.set_page_config() (lo imposta main.py una sola volta), capitale nella
 sidebar invece che in tab (coerente con page_convex.py, che è EUR-only),
 dati apex_data.json/portfolio.json/equity.json letti da GitHub o locale
-invece che sempre da GitHub, selettore Completa/Semplice (VLUE) aggiunto
+invece che sempre da GitHub, selettore Completa/Semplice (USMV) aggiunto
 questa sessione.
 ==================================================================================
 """
@@ -556,11 +556,14 @@ with col_stat:
     """)
 
 # ==========================================================================
-# VERSIONE — Completa (basket 15 titoli) o Semplice (1 ETF, VLUE). VLUE
-# validato su 3 finestre indipendenti: migliore Sharpe, piccolo costo di
-# MaxDD (research/test_weekly_apex_etf_robustness_check.py). Nessuna delle
-# due batte l'altra su entrambe le metriche: è un compromesso dichiarato,
-# non un miglioramento gratuito.
+# VERSIONE — Completa (basket 15 titoli) o Semplice (1 ETF, USMV). Un
+# precedente candidato (VLUE) è stato scartato: il suo apparente vantaggio
+# derivava per ~25% da un solo titolo (Micron) durante un rally isolato
+# 2025-2026, non da un vero effetto fattoriale (VLUE ha perso in 3 dei 5
+# anni testati — research/test_weekly_apex_vlue_deep_dive.py). USMV è
+# scelto per bassa concentrazione (titolo più pesante ~1.6%), non perché
+# batte la versione Completa: su questa finestra è leggermente peggiore su
+# CAGR, Sharpe e MaxDD — vedi research/apex_simple_etf_README.md.
 # ==========================================================================
 apex_versione = st.segmented_control(
     "Versione", options=["Completa", "Semplice"], default="Completa",
@@ -573,9 +576,10 @@ _m_apex_active = m_apex
 _se_df = None
 if apex_versione == "Semplice" and os.path.exists(_apex_simple_path):
     st.caption(
-        "1 ETF (VLUE, fattore value) invece del basket di 15 titoli. Validato su 3 finestre "
-        "indipendenti: Sharpe migliore (+0.152), MaxDD di poco peggiore (-0.08 punti) — un "
-        "compromesso reale e stabile, non un miglioramento senza costo."
+        "1 ETF (USMV, basso rischio di concentrazione) invece del basket di 15 titoli. "
+        "Un po' meno performante della versione Completa (CAGR, Sharpe e MaxDD leggermente "
+        "peggiori) ma molto più semplice — scelto per bassa concentrazione su singolo "
+        "titolo (~1,6%), non perché batte la versione standard."
     )
     _se_df = pd.read_csv(_apex_simple_path, parse_dates=["date"]).set_index("date")
     _se_n_years = (_se_df.index[-1] - _se_df.index[0]).days / 365.25
@@ -862,8 +866,8 @@ with tab_pf:
 
     # --- 4. Posizioni Attive nel Portafoglio ---
     if apex_versione == "Semplice":
-        st_html(section_title("Sleeve Azionaria — VLUE (ETF Unico)"))
-        st.caption("Nessun paniere: quando la classe Azionario è attiva, il 100% dell'esposizione azionaria è su un unico ETF (VLUE, iShares MSCI USA Value Factor).")
+        st_html(section_title("Sleeve Azionaria — USMV (ETF Unico)"))
+        st.caption("Nessun paniere: quando la classe Azionario è attiva, il 100% dell'esposizione azionaria è su un unico ETF (USMV, iShares MSCI USA Min Vol Factor).")
     else:
         st_html(section_title("Posizioni Attive nel Portafoglio"))
         real_cash_usd = max(0.0, capitale - tot_invested_usd)
@@ -1004,6 +1008,8 @@ with tab_perf:
     """)
 
     st_html(section_title("Curva Equity vs Benchmark (SPY)", top="8px", bottom="8px"))
+    if apex_versione == "Semplice":
+        st.caption("Backtest su USMV (2017+) — Apex non ha mai tradato realmente questa versione: solo i 15 titoli (Completa) sono il conto vero.")
 
     selected_range = st.segmented_control(
         "Periodo",
@@ -1018,7 +1024,13 @@ with tab_perf:
     @st.cache_data(ttl=3600)
     def load_benchmark():
         try:
-            url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=2y&interval=1d"
+            # range=10y (non 2y): la versione Semplice mostra fino a 9 anni di
+            # storico ("Tutto") — con solo 2 anni di SPY il benchmark veniva
+            # normalizzato a un punto di partenza a metà grafico invece che
+            # dall'inizio reale, producendo una curva incoerente (segnalato
+            # dall'utente). 10y copre anche il caso Completa (storico più
+            # corto) senza alcun costo aggiuntivo.
+            url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
             data_spy = res['chart']['result'][0]
@@ -1032,7 +1044,7 @@ with tab_perf:
             return pd.DataFrame()
 
     # Carica lo storico: Completa usa equity.json reale, Semplice usa il
-    # backtest VLUE già caricato sopra (_se_df) — nessun dato inventato.
+    # backtest USMV già caricato sopra (_se_df) — nessun dato inventato.
     if apex_versione == "Semplice" and _se_df is not None:
         df_eq = _se_df.rename(columns={"nav_net": "close"}).copy()
         df_eq["open"] = df_eq["close"].shift(1).fillna(df_eq["close"].iloc[0])
@@ -1113,7 +1125,7 @@ with tab_perf:
         fig = go.Figure()
         _y_values = list(df_plot['norm_close'])
 
-        strategy_name = "VLUE (Semplice)" if apex_versione == "Semplice" else "Apex Engine"
+        strategy_name = "USMV (Semplice)" if apex_versione == "Semplice" else "Apex Engine"
         fig.add_trace(go.Scatter(
             x=df_plot.index, y=df_plot['norm_close'], mode='lines', name=strategy_name,
             line=dict(color=ACCENT, width=2), fill='tozeroy', fillcolor='rgba(201, 164, 76, 0.10)',
@@ -1188,7 +1200,7 @@ with tab_perf:
 
     # --- Statistiche Operative (solo versione Completa: storico reale di trade) ---
     if apex_versione == "Semplice":
-        st.caption("Statistiche Operative e Registro Operazioni non disponibili per la versione Semplice: è un backtest su VLUE, non ha uno storico di operazioni reali proprio (quello in Completa è dei 15 titoli).")
+        st.caption("Statistiche Operative e Registro Operazioni non disponibili per la versione Semplice: è un backtest su USMV, non ha uno storico di operazioni reali proprio (quello in Completa è dei 15 titoli).")
     elif pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]

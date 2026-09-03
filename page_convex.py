@@ -96,6 +96,28 @@ BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
 FRAUNCES = "'Fraunces', Georgia, serif"
 MONO = "'JetBrains Mono', monospace"
 
+
+def get_convex_class_svg(strumento, size=16, color="currentColor", style=""):
+    """Icona SVG vettoriale per ciascuno dei 5 strumenti Convex — stesso
+    linguaggio visivo (stroke, viewBox 24x24) delle icone di Apex Engine.
+    PPFB/WBTC riusano letteralmente i path Oro/Bitcoin di Apex, essendo
+    lo stesso identico sottostante."""
+    inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0; {style}"
+    if strumento == "NTSG":
+        # Layers: nucleo azionario+obbligazionario a leva
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>'
+    if strumento == "AVWS":
+        # Tag: fattore value
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M20.59 13.41 11 3.83A1.83 1.83 0 0 0 9.7 3.3H4a1.83 1.83 0 0 0-1.83 1.83V9.7c0 .48.19.96.54 1.3l9.58 9.58a2 2 0 0 0 2.83 0l6.47-6.47a2 2 0 0 0 0-2.83Z"></path><circle cx="7.5" cy="7.5" r="1"></circle></svg>'
+    if strumento == "DBMFE":
+        # Shield: protezione attiva in crisi (trend-following)
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M12 2 4 5v6c0 5.5 3.5 9.7 8 11 4.5-1.3 8-5.5 8-11V5z"></path></svg>'
+    if strumento == "PPFB":
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
+    if strumento == "WBTC":
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
+    return ""
+
 MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
 
 def section_title(text, top="26px", bottom="10px"):
@@ -180,7 +202,11 @@ def render_monthly_returns_html_table(df_eq):
 # recupero fallisce — mai spacciato per prezzo di mercato)
 # ==============================================================================
 _CONVEX_BASE_PRICES = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
-_CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMF", "PPFB": "PPFB.MI", "WBTC": "BTC-USD"}
+# PPFB/WBTC corretti: i vecchi ticker (PPFB.MI, BTC-USD) non erano validi per il prezzo
+# reale per quota — PPFB.MI non e' fetchable, BTC-USD dava il prezzo grezzo di Bitcoin
+# invece di quello dell'ETP. Verificato via Yahoo chart API: SGLD.MI (~EUR 367, oro) e
+# WBTC-ETFP.MI (~EUR 16, Bitcoin ETP) sono i ticker reali e fetchable per questi ISIN.
+_CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMF", "PPFB": "SGLD.MI", "WBTC": "WBTC-ETFP.MI"}
 
 @st.cache_data(ttl=900)
 def fetch_convex_live_prices():
@@ -435,7 +461,7 @@ with tab_pf:
                 st_html(f"""
                 <div style="margin-bottom: 10px;">
                     <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px;">
-                        <span style="color:{BADGE_TEXT}; font-weight:600;">{k} — {stato}</span>
+                        <span style="color:{BADGE_TEXT}; font-weight:600; display:inline-flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14)} {k} — {stato}</span>
                         <span style="font-family:{MONO}; color:{col}; font-weight:700;">{st_info.current_weight*100:.1f}% / {st_info.target_weight*100:.1f}%</span>
                     </div>
                     <div style="width:100%; height:6px; background:rgba(255,247,237,0.08); border-radius:3px; overflow:hidden;">
@@ -448,7 +474,7 @@ with tab_pf:
         cx_rows = []
         for k, st_info in convex_report.assets.items():
             cx_rows.append({
-                "Strumento": k,
+                "Strumento": f'<span style="display:inline-flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14)} {k}</span>',
                 "Nome": st_info.name,
                 "Quote": f"{st_info.current_shares:,.2f}",
                 "Prezzo": f"€ {st_info.current_price:,.2f}",
@@ -631,7 +657,7 @@ with tab_guida:
         with instr_cols[i]:
             st_html(f"""
             <div class="glass-card" style="height: 190px;">
-                <div style="font-family:{MONO}; font-size:13px; font-weight:700; color:{ACCENT};">{key}</div>
+                <div style="font-family:{MONO}; font-size:13px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">{get_convex_class_svg(key, size=15, color=ACCENT)} {key}</div>
                 <div style="font-size:11.5px; font-weight:700; color:{BADGE_TEXT}; margin:4px 0 8px 0; line-height:1.3;">{info['name']}</div>
                 <div style="font-size:11px; color:{MUTED}; line-height:1.4;">{info['asset_class']}</div>
                 <div style="font-size:11px; color:{MUTED_2}; margin-top:8px;">Target: {info['target_weight']*100:.1f}% · TER {info['ter']*100:.2f}%</div>
