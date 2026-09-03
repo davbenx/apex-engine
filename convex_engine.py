@@ -52,7 +52,16 @@ CONVEX_INSTRUMENTS = {
     },
     "DBMFE": {
         "name": "iMGP DBi Managed Futures",
-        "ticker": "DBMF",            # Proxy US / UCITS LU2951555403
+        "ticker": "DBMFE.PA",         # BUG corretto: "DBMF" era il ticker US (NYSE Arca,
+                                      # iMGP DBi Managed Futures Strategy ETF, USD) usato
+                                      # come proxy per il prezzo live — un prodotto
+                                      # diverso dalla vera quota UCITS (ISIN LU2951555403,
+                                      # EUR), stesso schema di leva/strategia ma NAV e
+                                      # valuta differenti. DBMFE.PA (Euronext Paris) e' il
+                                      # vero ticker di questo ISIN, verificato: EUR
+                                      # 123.43/quota, longName "iMGP DBi Managed Futures R
+                                      # EUR ETF" (Yahoo chart API; ticker Bloomberg
+                                      # DBMFE:FP, fonte justETF/Euronext).
         "isin": "LU2951555403",
         "target_weight": 0.25,       # 25% del capitale
         "tolerance_min": 0.20,
@@ -64,12 +73,16 @@ CONVEX_INSTRUMENTS = {
         "bond_leg": 0.00,
     },
     "PPFB": {
-        "name": "Invesco Physical Gold ETC",
-        "ticker": "SGLD.MI",         # PPFB.MI non e' realmente quotabile via Yahoo (verificato:
-                                      # l'endpoint chart API restituisce dati vuoti). SGLD.MI e'
-                                      # il vero ticker Borsa Italiana di questo stesso ISIN,
-                                      # confermato fetchable (~EUR 367/quota, plausibile per oro).
-        "isin": "IE00B579F325",
+        "name": "iShares Physical Gold ETC",
+        "ticker": "EGLN.L",          # BUG corretto: "PPFB" e' letteralmente il ticker reale di
+                                      # iShares Physical Gold ETC (ISIN IE00B4ND3602, TER 0.12%
+                                      # gia' presente qui - combacia), non di Invesco Physical
+                                      # Gold ETC (ISIN IE00B579F325, usato per errore fin
+                                      # dall'origine del progetto). EGLN.L e' la quotazione LSE
+                                      # in EUR dello stesso ISIN iShares (confermato fetchable,
+                                      # ~EUR 74/quota, verificato contro il prezzo reale noto
+                                      # dell'utente). SGLN.L e' l'alternativa in GBp.
+        "isin": "IE00B4ND3602",
         "target_weight": 0.075,      # 7.5% del capitale
         "tolerance_min": 0.045,      # 4.5%
         "tolerance_max": 0.1125,     # 11.25% = target x1.5 (regola simmetrica ETC/ETP con WBTC)

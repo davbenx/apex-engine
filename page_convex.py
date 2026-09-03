@@ -206,7 +206,7 @@ _CONVEX_BASE_PRICES = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0,
 # reale per quota — PPFB.MI non e' fetchable, BTC-USD dava il prezzo grezzo di Bitcoin
 # invece di quello dell'ETP. Verificato via Yahoo chart API: SGLD.MI (~EUR 367, oro) e
 # WBTC-ETFP.MI (~EUR 16, Bitcoin ETP) sono i ticker reali e fetchable per questi ISIN.
-_CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMF", "PPFB": "SGLD.MI", "WBTC": "WBTC-ETFP.MI"}
+_CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMFE.PA", "PPFB": "EGLN.L", "WBTC": "WBTC-ETFP.MI"}
 
 # Cache di prezzi aggiornata da uno scheduler GitHub Actions (fetch_live_prices.py,
 # .github/workflows/update_live_prices.yml) — il fetch live a runtime da Streamlit

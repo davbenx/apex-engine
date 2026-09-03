@@ -20,8 +20,20 @@ import urllib.request
 CONVEX_TICKERS = {
     "NTSG": "NTSG.MI",
     "AVWS": "AVWS.DE",
-    "DBMFE": "DBMF",
-    "PPFB": "SGLD.MI",
+    "DBMFE": "DBMFE.PA",   # BUG corretto: "DBMF" era il ticker US (NYSE Arca, iMGP DBi
+                            # Managed Futures Strategy ETF, USD) usato come proxy del
+                            # tutto diverso dalla vera quota UCITS (ISIN LU2951555403,
+                            # EUR). DBMFE.PA (Euronext Paris) e' il vero ticker di
+                            # quell'ISIN, confermato: EUR 123.43/quota, longName "iMGP
+                            # DBi Managed Futures R EUR ETF" (fonte: Yahoo chart API +
+                            # justETF/Euronext, ticker Bloomberg DBMFE:FP).
+    "PPFB": "EGLN.L",      # BUG corretto: "PPFB" e' il vero ticker di iShares Physical
+                            # Gold ETC (ISIN IE00B4ND3602, TER 0.12% - combacia), non di
+                            # Invesco Physical Gold ETC (ISIN IE00B579F325) usato per
+                            # errore fin dall'origine del progetto. EGLN.L (LSE, EUR)
+                            # e' la quotazione dello stesso ISIN iShares, confermata
+                            # EUR 74.00/quota — corrisponde al prezzo reale noto
+                            # dell'utente, contro i ~EUR 367 del prodotto Invesco sbagliato.
     "WBTC": "WBTC-ETFP.MI",
 }
 
