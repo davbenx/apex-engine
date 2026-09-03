@@ -364,9 +364,8 @@ convex_prices, convex_prices_live = fetch_convex_live_prices()
 # ==============================================================================
 # INTESTAZIONE
 # ==============================================================================
-_logo_b64 = get_logo_b64()
-_logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />'
-             if _logo_b64 else '🛡️')
+_shield_svg = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C9A44C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.5 9.7 8 11 4.5-1.3 8-5.5 8-11V5z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>'
+_logo_tag = _shield_svg
 
 _cp_path = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
 _has_holdings = False
@@ -410,7 +409,7 @@ with col_stat:
             <span style="width:6px; height:6px; border-radius:50%; background:{_status_color}; display:inline-block; margin-right:5px;"></span>{_status_label}
         </div>
         <div style="font-size: 11px; color: {MUTED_2}; margin-top: 2px;">
-            Ribilanciamento PAC: 1° del mese
+            Versamento PAC: 1° del mese
         </div>
     </div>
     """)
@@ -669,27 +668,30 @@ with tab_metriche:
         )
 
         selected_range = st.segmented_control(
-            "Periodo", options=["1M", "3M", "6M", "1A", "Tutto"],
-            default="Tutto", label_visibility="collapsed", key="cx_chart_range_ctrl"
+            "Periodo", options=["1A", "3A", "5A", "10A", "Tutto"],
+            default="5A", label_visibility="collapsed", key="cx_chart_range_ctrl"
         )
         if not selected_range:
-            selected_range = "Tutto"
+            selected_range = "5A"
 
         last_dt = _cx_nav.index[-1]
-        if selected_range == "1M":
-            start_dt = last_dt - pd.DateOffset(months=1)
-        elif selected_range == "3M":
-            start_dt = last_dt - pd.DateOffset(months=3)
-        elif selected_range == "6M":
-            start_dt = last_dt - pd.DateOffset(months=6)
-        elif selected_range == "1A":
+        if selected_range == "1A":
             start_dt = last_dt - pd.DateOffset(years=1)
+        elif selected_range == "3A":
+            start_dt = last_dt - pd.DateOffset(years=3)
+        elif selected_range == "5A":
+            start_dt = last_dt - pd.DateOffset(years=5)
+        elif selected_range == "10A":
+            start_dt = last_dt - pd.DateOffset(years=10)
         else:
             start_dt = _cx_nav.index[0]
+
         _nav_plot = _cx_nav[_cx_nav.index >= start_dt].copy()
         _nav_plot["norm"] = (_nav_plot["value"] / _nav_plot["value"].iloc[0]) * 100.0
 
-        df_spy = load_benchmark_spy()
+        # Carica benchmark SPY dal dataset mensile storico completo (1993–2026)
+        s_spy_full = portfolio_manager.load_monthly_benchmark_spy(start_date=_nav_plot.index[0])
+        common_dt = _nav_plot.index.intersection(s_spy_full.index)
 
         fig_cx_eq = go.Figure()
         fig_cx_eq.add_trace(go.Scatter(
@@ -697,25 +699,22 @@ with tab_metriche:
             line=dict(color=ACCENT, width=2), fill="tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
             hovertemplate="Base 100: %{y:.2f}<extra></extra>"
         ))
-        if not df_spy.empty:
-            _spy_aligned = df_spy[df_spy.index >= _nav_plot.index[0]]
-            if not _spy_aligned.empty:
-                _spy_m = _spy_aligned.resample("ME").last().dropna()
-                _spy_norm = (_spy_m / _spy_m.iloc[0]) * 100.0
-                fig_cx_eq.add_trace(go.Scatter(
-                    x=_spy_norm.index, y=_spy_norm, mode="lines", name="S&P 500 Benchmark",
-                    line=dict(color='#7A7266', width=1.5, dash='dot'),
-                    hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
-                ))
-        # Marcatore proxy→reale: prima del 2019-09 la serie è ricostruita per
-        # concatenazione di proxy (SPY/EFA/AGG/IEF/IJS/EFV/DLS/GC=F), non dati
-        # reali dei singoli strumenti UCITS — segnalato in chiaro, non nascosto.
+        if len(common_dt) > 0:
+            _spy_aligned = s_spy_full.loc[common_dt]
+            _spy_norm = (_spy_aligned / _spy_aligned.iloc[0]) * 100.0
+            fig_cx_eq.add_trace(go.Scatter(
+                x=_spy_norm.index, y=_spy_norm, mode="lines", name="S&P 500 Benchmark",
+                line=dict(color='#7A7266', width=1.5, dash='dot'),
+                hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
+            ))
+
+        # Marcatore Out-of-Sample / Dati Reali UCITS a Settembre 2019
         _real_start = pd.Timestamp("2019-09-30")
         if _nav_plot.index[0] < _real_start <= _nav_plot.index[-1]:
             fig_cx_eq.add_vline(x=_real_start, line=dict(color=MUTED, width=1, dash="dash"))
             fig_cx_eq.add_annotation(x=_real_start, y=1.0, yref="paper", yanchor="bottom",
-                                      text="dati reali →", showarrow=False,
-                                      font=dict(size=9, color=MUTED))
+                                      text="Dati Reali UCITS (7A) →", showarrow=False,
+                                      font=dict(size=10, color=ACCENT))
         fig_cx_eq.update_layout(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',

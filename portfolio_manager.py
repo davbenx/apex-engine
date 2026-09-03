@@ -329,6 +329,27 @@ def load_combined_monthly_history(target_apex: float = 0.45, target_convex: floa
     return df_comb
 
 
+def load_monthly_benchmark_spy(start_date=None) -> pd.Series:
+    """
+    Carica lo storico mensile del benchmark SPY (1993–2026) da file locale statico.
+    Garantisce allineamento temporale al 100%, zero latenza e zero chiamate di rete a runtime.
+    """
+    base_dir = os.path.dirname(__file__)
+    path = os.path.join(base_dir, "spy_monthly_history.csv")
+    if not os.path.exists(path):
+        return pd.Series(dtype=float)
+    try:
+        df = pd.read_csv(path, index_col=0, parse_dates=True)
+        s = df["Close"].dropna()
+        if start_date is not None:
+            start_ts = pd.to_datetime(start_date)
+            s = s[s.index >= start_ts]
+        return s
+    except Exception:
+        return pd.Series(dtype=float)
+
+
+
 
 if __name__ == "__main__":
     cfg = load_config()

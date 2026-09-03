@@ -369,30 +369,64 @@ with tab_pf:
     </div>
     """)
 
-    # 2. Segnali e Stato dei Due Motori
-    st_html(section_title("Stato Operativo dei Due Motori"))
-    def signal_item(label, value_text, icon_svg):
-        return f'<div style="display:flex; align-items:center; gap:8px; font-size:12.5px;">{icon_svg}<span style="font-weight:600;">{label}</span><span style="font-family:{MONO}; color:{MUTED}; margin-left:auto;">{value_text}</span></div>'
+    # 2. Centro di Controllo dei Due Motori (Sintesi e Stato Operativo)
+    st_html(section_title("Centro di Controllo dei Due Motori"))
+    _pending_orders = apex_portfolio.get("pending_orders") or []
+    
+    col_mot1, col_mot2 = st.columns(2)
+    with col_mot1:
+        if _pending_orders:
+            _apex_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">🔴 {len(_pending_orders)} ordine/i pendenti per lunedì</span>'
+        else:
+            _apex_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">✅ Allineato · Nessun ordine da eseguire</span>'
 
-    _icon_apex = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3DDC97" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>'
-    _icon_conv = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C9A44C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.5 9.7 8 11 4.5-1.3 8-5.5 8-11V5z"></path></svg>'
-    _icon_scale = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path></svg>'
-    _icon_flow = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="m17 5-5-3-5 3"></path><path d="m17 19-5 3-5-3"></path></svg>'
+        st_html(f"""
+        <div style="background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; padding:16px 18px; height:100%;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <div style="font-family:{FRAUNCES}; font-size:16px; font-weight:700; color:#3DDC97; display:flex; align-items:center; gap:8px;">
+                    ⚡ Apex Engine
+                </div>
+                <div style="font-size:11px; color:{MUTED};">Venerdì ore 21:00 CET</div>
+            </div>
+            <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
+                Tattico Alpha · Rotazione 15 S&P 500 Low-Vol + Trend multi-asset
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
+                <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
+                <span style="font-family:{MONO}; font-weight:700; font-size:13px; color:{BADGE_TEXT};">€ {apex_val_eur:,.0f} ({_real_apex_ratio*100:.1f}%)</span>
+                <span style="font-size:11px; color:{MUTED}; margin-left:6px;">Target {_target_apex*100:.0f}%</span>
+            </div>
+            <div>{_apex_badge_html}</div>
+        </div>
+        """)
 
-    _sig_apex = "Attivo (15 titoli)" if _nav_usd > 0 else "In monitoraggio"
-    _sig_conv = "In banda (5 asset)" if not _cx_rep.trim_alerts else "Sforamento trim"
-    _sig_ratio = "In fascia 30–55%" if _in_range else "Fuori fascia"
-    _sig_flow = unified_data["smart_flow_destination"]
+    with col_mot2:
+        if _cx_rep.trim_alerts:
+            _cx_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">⚠️ Trim consigliato ({len(_cx_rep.trim_alerts)} asset sopra soglia)</span>'
+        else:
+            _cx_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">✅ In banda · Tutti i 5 asset entro soglie</span>'
 
-    signals_html = "".join([
-        signal_item("Apex Engine", _sig_apex, _icon_apex),
-        signal_item("Convex Stack", _sig_conv, _icon_conv),
-        signal_item("Bilanciamento", _sig_ratio, _icon_scale),
-        signal_item("Flusso PAC", _sig_flow, _icon_flow),
-    ])
-    st_html(f'<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px 22px; padding:14px 18px; background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; margin-bottom:14px;">{signals_html}</div>')
+        st_html(f"""
+        <div style="background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; padding:16px 18px; height:100%;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                <div style="font-family:{FRAUNCES}; font-size:16px; font-weight:700; color:#C9A44C; display:flex; align-items:center; gap:8px;">
+                    🛡️ Convex Stack
+                </div>
+                <div style="font-size:11px; color:{MUTED};">1° del mese con versamento PAC</div>
+            </div>
+            <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
+                Strategico PAC · Leva 1.5x NTSG + SCV + CTA + Oro + BTC (122.5% Nozionale)
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
+                <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
+                <span style="font-family:{MONO}; font-weight:700; font-size:13px; color:{BADGE_TEXT};">€ {convex_val_eur:,.0f} ({_real_convex_ratio*100:.1f}%)</span>
+                <span style="font-size:11px; color:{MUTED}; margin-left:6px;">Target {(1-_target_apex)*100:.0f}%</span>
+            </div>
+            <div>{_cx_badge_html}</div>
+        </div>
+        """)
 
-    # 3. Composizione del Portafoglio Combinato (Barra Orizzontale)
+    # 3. Composizione Macro Consolidata
     st_html(section_title("Composizione Macro Consolidata"))
     _macro = unified_data["macro_breakdown"]
     _c_map = {
@@ -416,79 +450,7 @@ with tab_pf:
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
 
-    # 4. Box Allerta: Serve il Tuo Intervento?
-    st_html(section_title("Serve il Tuo Intervento?"))
-    col_i1, col_i2 = st.columns(2)
-    _pending_orders = apex_portfolio.get("pending_orders") or []
-    with col_i1:
-        if _pending_orders:
-            st_html(f"""
-            <div style="background: rgba(236,101,123,0.08); border: 1px solid rgba(236,101,123,0.3); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-                <div style="color:{NEG}; font-weight:700; font-size:13.5px;">APEX ENGINE — ATTENZIONE RICHIESTA</div>
-                <div style="font-size:12px; color:{MUTED}; margin-top:3px;">{len(_pending_orders)} ordine/i operativo/i in sospeso per lunedì. Apri Apex Engine per i dettagli.</div>
-            </div>
-            """)
-        else:
-            st_html(f"""
-            <div style="background: rgba(61,220,151,0.06); border: 1px solid rgba(61,220,151,0.25); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-                <div style="color:{POS}; font-weight:700; font-size:13.5px;">APEX ENGINE — NESSUNA AZIONE RICHIESTA</div>
-                <div style="font-size:12px; color:{MUTED}; margin-top:3px;">Portafoglio allineato ai target quantitativi. Nessun ordine da eseguire.</div>
-            </div>
-            """)
-    with col_i2:
-        if _cx_rep.trim_alerts:
-            st_html(f"""
-            <div style="background: rgba(236,101,123,0.08); border: 1px solid rgba(236,101,123,0.3); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-                <div style="color:{NEG}; font-weight:700; font-size:13.5px;">CONVEX STACK — TRIM CONSIGLIATO</div>
-                <div style="font-size:12px; color:{MUTED}; margin-top:3px;">{len(_cx_rep.trim_alerts)} posizione/i sopra la soglia del 11.25%. Apri Convex Stack per i dettagli.</div>
-            </div>
-            """)
-        else:
-            st_html(f"""
-            <div style="background: rgba(61,220,151,0.06); border: 1px solid rgba(61,220,151,0.25); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-                <div style="color:{POS}; font-weight:700; font-size:13.5px;">CONVEX STACK — ASSET IN BANDA</div>
-                <div style="font-size:12px; color:{MUTED}; margin-top:3px;">Tutti i 5 strumenti sono entro le bande di tolleranza. Nessun trim necessario.</div>
-            </div>
-            """)
-
-    # 5. Sintesi Strategica dei Due Motori (Tabella HTML Styled)
-    st_html(section_title("Sintesi Strategica dei Due Motori"))
-    dual_table_rows = [
-        {
-            "Strategia": '<span style="color:#3DDC97; font-weight:700;">⚡ Apex Engine</span>',
-            "Ruolo": "Tattico Alpha (Rotazione 15 S&P 500 Low-Vol + Trend)",
-            "NAV Stimato": f"€ {apex_val_eur:,.0f}",
-            "Quota Reale": f"{_real_apex_ratio*100:.1f}%",
-            "Target": f"{_target_apex*100:.0f}%",
-            "Frequenza": "Settimanale (Venerdì ore 21:00 CET)"
-        },
-        {
-            "Strategia": '<span style="color:#C9A44C; font-weight:700;">🛡️ Convex Stack</span>',
-            "Ruolo": "Strategico PAC (Leva 1.5x NTSG + SCV + CTA + Oro + BTC)",
-            "NAV Stimato": f"€ {convex_val_eur:,.0f}",
-            "Quota Reale": f"{_real_convex_ratio*100:.1f}%",
-            "Target": f"{(1-_target_apex)*100:.0f}%",
-            "Frequenza": "Mensile (1° del mese con versamento PAC)"
-        }
-    ]
-    th_cells_dual = "".join(
-        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; '
-        f'text-align:{"right" if c in ["NAV Stimato", "Quota Reale", "Target"] else "left"}; text-transform:uppercase; '
-        f'border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>'
-        for c in ["Strategia", "Ruolo", "NAV Stimato", "Quota Reale", "Target", "Frequenza"]
-    )
-    rows_dual_html = []
-    for r in dual_table_rows:
-        td_cells = "".join(
-            f'<td style="padding:11px 14px; font-size:12.5px; '
-            f'text-align:{"right" if c in ["NAV Stimato", "Quota Reale", "Target"] else "left"}; '
-            f'font-family:{MONO if c in ["NAV Stimato", "Quota Reale", "Target"] else "inherit"};">{r[c]}</td>'
-            for c in ["Strategia", "Ruolo", "NAV Stimato", "Quota Reale", "Target", "Frequenza"]
-        )
-        rows_dual_html.append(f'<tr style="border-bottom:1px solid {BORDER};">{td_cells}</tr>')
-    st_html(f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{th_cells_dual}</tr></thead><tbody>{"".join(rows_dual_html)}</tbody></table></div>')
-
-    # 6. Consiglio Smart-Flow PAC
+    # 4. Consiglio Smart-Flow PAC
     st_html(section_title("Consiglio Smart-Flow (Ribilanciamento a Costo Fiscale Zero)"))
     st_html(f"""
     <div class="glass-card-accent">
@@ -500,6 +462,7 @@ with tab_pf:
         </div>
     </div>
     """)
+
 
     # 7. Parametri di Simulazione e Rata PAC
     with st.expander("⚙️ Parametri Globali e Rata PAC (Simulazione)", expanded=False):
@@ -578,43 +541,44 @@ with tab_perf:
 
 
         selected_range = st.segmented_control(
-            "Periodo", options=["1M", "3M", "6M", "1A", "Tutto"],
-            default="Tutto", label_visibility="collapsed", key="comb_chart_range_ctrl"
-        ) or "Tutto"
+            "Periodo", options=["1A", "3A", "5A", "10A", "Tutto"],
+            default="5A", label_visibility="collapsed", key="comb_chart_range_ctrl"
+        ) or "5A"
 
         last_dt = df_comb.index[-1]
-        if selected_range == "1M":
-            start_dt = last_dt - pd.DateOffset(months=1)
-        elif selected_range == "3M":
-            start_dt = last_dt - pd.DateOffset(months=3)
-        elif selected_range == "6M":
-            start_dt = last_dt - pd.DateOffset(months=6)
-        elif selected_range == "1A":
+        if selected_range == "1A":
             start_dt = last_dt - pd.DateOffset(years=1)
+        elif selected_range == "3A":
+            start_dt = last_dt - pd.DateOffset(years=3)
+        elif selected_range == "5A":
+            start_dt = last_dt - pd.DateOffset(years=5)
+        elif selected_range == "10A":
+            start_dt = last_dt - pd.DateOffset(years=10)
         else:
             start_dt = df_comb.index[0]
 
         _comb_plot = df_comb[df_comb.index >= start_dt].copy()
         _comb_plot["norm"] = (_comb_plot["value"] / _comb_plot["value"].iloc[0]) * 100.0
 
-        df_spy = load_benchmark_spy()
+        s_spy_full = portfolio_manager.load_monthly_benchmark_spy(start_date=_comb_plot.index[0])
+        common_dt = _comb_plot.index.intersection(s_spy_full.index)
 
         fig_comb = go.Figure()
         fig_comb.add_trace(go.Scatter(
-            x=_comb_plot.index, y=_comb_plot["norm"], mode="lines", name="Apex Convex (Mix 45/55)",
+            x=_comb_plot.index, y=_comb_plot["norm"], mode="lines",
+            name=f"Apex Convex (Mix {_target_apex*100:.0f}/{(1-_target_apex)*100:.0f})",
             line=dict(color=ACCENT, width=2), fill="tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
             hovertemplate="Base 100: %{y:.2f}<extra></extra>"
         ))
-        if not df_spy.empty:
-            _spy_aligned = df_spy[df_spy.index >= _comb_plot.index[0]]
-            if not _spy_aligned.empty:
-                _spy_m = _spy_aligned.resample("ME").last().dropna()
-                _spy_norm = (_spy_m / _spy_m.iloc[0]) * 100.0
-                fig_comb.add_trace(go.Scatter(
-                    x=_spy_norm.index, y=_spy_norm, mode="lines", name="S&P 500 Benchmark",
-                    line=dict(color='#7A7266', width=1.5, dash='dot'),
-                    hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
-                ))
+        if len(common_dt) > 0:
+            _spy_aligned = s_spy_full.loc[common_dt]
+            _spy_norm = (_spy_aligned / _spy_aligned.iloc[0]) * 100.0
+            fig_comb.add_trace(go.Scatter(
+                x=_spy_norm.index, y=_spy_norm, mode="lines", name="S&P 500 Benchmark",
+                line=dict(color='#7A7266', width=1.5, dash='dot'),
+                hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
+            ))
+
 
         fig_comb.update_layout(
             template="plotly_dark",

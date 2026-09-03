@@ -119,7 +119,28 @@ class TestApexConvexEcosystem(unittest.TestCase):
         self.assertAlmostEqual(val_eur, 100000.0, places=2)
         self.assertAlmostEqual(val_eur * eur_usd_rate, nav_usd, places=2)
 
+    def test_spy_benchmark_alignment_convex_and_apex(self):
+        """Verifica che la serie storica statica di SPY copra interamente sia Convex (312 mesi) sia Apex (142 mesi)."""
+        import pandas as pd
+        spy = portfolio_manager.load_monthly_benchmark_spy()
+        self.assertGreaterEqual(len(spy), 400, "Lo storico SPY deve contenere oltre 400 mesi dal 1993")
+
+        base_dir = os.path.dirname(__file__)
+        cx_path = os.path.join(base_dir, "convex_monthly_returns.csv")
+        apex_path = os.path.join(base_dir, "apex_monthly_returns_extended.csv")
+
+        if os.path.exists(cx_path):
+            cx = pd.read_csv(cx_path, index_col=0, parse_dates=True)
+            common_cx = cx.index.intersection(spy.index)
+            self.assertEqual(len(common_cx), len(cx), "Tutti i 312 mesi di Convex devono avere il corrispondente mese in SPY")
+
+        if os.path.exists(apex_path):
+            apex = pd.read_csv(apex_path, index_col=0, parse_dates=True)
+            common_apex = apex.index.intersection(spy.index)
+            self.assertEqual(len(common_apex), len(apex), "Tutti i 142 mesi di Apex devono avere il corrispondente mese in SPY")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

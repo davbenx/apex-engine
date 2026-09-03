@@ -708,30 +708,32 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 with tab_pf:
     hero_slot = st.empty()
 
-    c_cap, c_save = st.columns([3, 1])
-    with c_cap:
-        cap_apex_input = st.number_input(
-            "Capitale Apex broker reale (€)",
-            min_value=1000.0,
-            value=float(cfg.get("apex_capital_eur", 100000.0)),
-            step=5000.0,
-            format="%.0f",
-            help="Capitale effettivo allocato su Apex Engine. Calcola quote e controvalori operativi esatti."
-        )
-    with c_save:
-        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-        if st.button("Salva Capitale", use_container_width=True, key="apex_save_cap"):
-            new_cfg = {**cfg, "apex_capital_eur": cap_apex_input,
-                       "last_updated": datetime.date.today().strftime("%Y-%m-%d")}
-            if portfolio_manager.save_config(new_cfg):
-                st.toast("Capitale Apex salvato per questa sessione.", icon="✅")
-                cfg = new_cfg
-            else:
-                st.error("Errore nel salvataggio della configurazione.")
-    if _apex_live_eur:
-        st.caption(f"↳ Capitale configurabile · default 100.000 € (NAV storico del modello: €{_apex_live_eur:,.0f} / ${_nav_usd:,.0f})")
-    else:
-        st.caption("↳ Valore standard da config.json")
+    with st.expander("⚙️ Parametri Capitale Broker Apex", expanded=False):
+        c_cap, c_save = st.columns([3, 1])
+        with c_cap:
+            cap_apex_input = st.number_input(
+                "Capitale Apex broker reale (€)",
+                min_value=1000.0,
+                value=float(cfg.get("apex_capital_eur", 100000.0)),
+                step=5000.0,
+                format="%.0f",
+                help="Capitale effettivo allocato su Apex Engine. Calcola quote e controvalori operativi esatti."
+            )
+        with c_save:
+            st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+            if st.button("Salva Capitale", use_container_width=True, key="apex_save_cap"):
+                new_cfg = {**cfg, "apex_capital_eur": cap_apex_input,
+                           "last_updated": datetime.date.today().strftime("%Y-%m-%d")}
+                if portfolio_manager.save_config(new_cfg):
+                    st.toast("Capitale Apex salvato per questa sessione.", icon="✅")
+                    cfg = new_cfg
+                else:
+                    st.error("Errore nel salvataggio della configurazione.")
+        if _apex_live_eur:
+            st.caption(f"↳ Capitale configurabile · default 100.000 € (NAV storico del modello: €{_apex_live_eur:,.0f} / ${_nav_usd:,.0f})")
+        else:
+            st.caption("↳ Valore standard da config.json")
+
 
 
     eur_usd_rate = float(data.get("eur_usd", 1.085))
@@ -1054,13 +1056,14 @@ with tab_perf:
 
     selected_range = st.segmented_control(
         "Periodo",
-        options=["1M", "3M", "6M", "1A", "Tutto"],
-        default="Tutto" if apex_versione == "Semplice" else "6M",
+        options=["6M", "1A", "3A", "5A", "Tutto"],
+        default="Tutto" if apex_versione == "Semplice" else "1A",
         label_visibility="collapsed",
         key="chart_range_ctrl"
     )
     if not selected_range:
-        selected_range = "Tutto" if apex_versione == "Semplice" else "6M"
+        selected_range = "Tutto" if apex_versione == "Semplice" else "1A"
+
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
