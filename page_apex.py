@@ -713,7 +713,7 @@ with tab_pf:
         cap_apex_input = st.number_input(
             "Capitale Apex broker reale (€)",
             min_value=1000.0,
-            value=float(_apex_live_eur) if _apex_live_eur else float(cfg.get("apex_capital_eur", 0.0)) or 79000.0,
+            value=float(_apex_live_eur) if _apex_live_eur else float(cfg.get("apex_capital_eur", 0.0)) or 100000.0,
             step=1000.0,
             format="%.0f",
             help="Capitale effettivo allocato su Apex Engine. Calcola quote e controvalori operativi esatti."

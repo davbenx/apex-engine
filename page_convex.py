@@ -369,22 +369,24 @@ _logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px;
              if _logo_b64 else '🛡️')
 
 _cp_path = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
-_last_updated = None
+_has_holdings = False
 if os.path.exists(_cp_path):
     try:
         with open(_cp_path, "r", encoding="utf-8") as f:
-            _last_updated = json.load(f).get("last_updated")
+            _cp_data = json.load(f)
+            _last_updated = _cp_data.get("last_updated")
+            _has_holdings = bool(_cp_data.get("holdings")) and any(v.get("shares", 0) > 0 for v in _cp_data.get("holdings", {}).values())
     except Exception:
         pass
 _is_fresh = False
-if _last_updated:
+if _last_updated and _has_holdings:
     try:
         _days = (datetime.date.today() - datetime.datetime.strptime(_last_updated, "%Y-%m-%d").date()).days
         _is_fresh = _days <= 35
     except Exception:
         pass
 _status_color = POS if _is_fresh else MUTED_DOT
-_status_label = f"Aggiornato al {_last_updated}" if _last_updated else "Nessun dato salvato"
+_status_label = f"Aggiornato al {_last_updated}" if _is_fresh else "In attesa di quote"
 
 col_logo, col_stat = st.columns([3, 2])
 with col_logo:
@@ -486,7 +488,7 @@ with tab_pf:
             _saved_pac = float(cfg.get("monthly_pac_eur", 0.0))
             pac_input = st.number_input(
                 "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
-                value=_saved_pac or 600.0, step=50.0, format="%.0f"
+                value=_saved_pac or 500.0, step=50.0, format="%.0f"
             )
         with c_cash:
             cash_input = st.number_input(
@@ -497,7 +499,7 @@ with tab_pf:
         if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
             _new_portfolio = {
                 "cash_eur": cash_input,
-                "holdings": {k: {"shares": v} for k, v in convex_holdings.items()},
+                "holdings": {k: {"shares": v, "last_price": convex_prices.get(k, 0.0)} for k, v in convex_holdings.items()},
                 "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
             }
             _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)

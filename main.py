@@ -45,19 +45,7 @@ p_apex = st.Page("page_apex.py", title="Apex Engine", icon="⚡")
 p_convex = st.Page("page_convex.py", title="Convex Stack", icon="🛡️")
 
 pg = st.navigation([p_home, p_apex, p_convex], position="top")
-
-# Barra di navigazione in-page sempre visibile (indistruttibile su mobile e desktop)
-nav_c1, nav_c2, nav_c3 = st.columns(3)
-with nav_c1:
-    st.page_link(p_home, label="Vista d'Insieme", use_container_width=True)
-with nav_c2:
-    st.page_link(p_apex, label="Apex Engine", use_container_width=True)
-with nav_c3:
-    st.page_link(p_convex, label="Convex Stack", use_container_width=True)
-
-st.markdown("<div style='margin-bottom: 8px; border-bottom: 1px solid rgba(255,247,237,0.08);'></div>", unsafe_allow_html=True)
-
-
 pg.run()
+
 
 

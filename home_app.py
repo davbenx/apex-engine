@@ -229,10 +229,13 @@ def load_benchmark_spy():
 # ==============================================================================
 # CARICAMENTO DATI REALI
 # ==============================================================================
-def _load_json(path):
-    if os.path.exists(path):
+_BASE_DIR = os.path.dirname(__file__)
+
+def _load_json(filename):
+    p = os.path.join(_BASE_DIR, filename)
+    if os.path.exists(p):
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(p, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -249,22 +252,9 @@ _eur_usd_rate = float(apex_data.get("eur_usd", 0.0))
 if _nav_usd > 0 and _eur_usd_rate > 0:
     apex_val_eur = _nav_usd / _eur_usd_rate
 else:
-    apex_val_eur = float(cfg.get("apex_capital_eur", 79000.0))
+    apex_val_eur = float(cfg.get("apex_capital_eur", 100000.0))
 
-convex_holdings_saved = convex_portfolio.get("holdings", {})
-convex_has_real_data = bool(convex_holdings_saved) and any(v.get("shares", 0) > 0 for v in convex_holdings_saved.values())
-if convex_has_real_data:
-    convex_val_eur = sum(v.get("shares", 0.0) * v.get("last_price", 0.0) for v in convex_holdings_saved.values()) \
-        + float(convex_portfolio.get("cash_eur", 0.0))
-else:
-    convex_val_eur = float(cfg.get("convex_capital_eur", 130000.0))
-
-_tot = apex_val_eur + convex_val_eur
-_real_apex_ratio = (apex_val_eur / _tot) if _tot > 0 else 0.45
-_real_convex_ratio = (convex_val_eur / _tot) if _tot > 0 else 0.55
-_target_apex = float(cfg.get("target_apex_ratio", 0.45))
-
-# Valutazione stato Convex
+# Prezzi e strumenti Convex
 _active_instruments = convex_engine.CONVEX_INSTRUMENTS
 _base_prices = {"NTSG": 28.69, "AVWS": 25.64, "DBMFE": 123.50, "PPFB": 75.15, "WBTC": 16.60}
 if os.path.exists(_PRICE_CACHE_PATH):
@@ -276,6 +266,19 @@ if os.path.exists(_PRICE_CACHE_PATH):
                     _base_prices[k] = float(_cache_pr[k])
     except Exception:
         pass
+
+convex_holdings_saved = convex_portfolio.get("holdings", {})
+convex_has_real_data = bool(convex_holdings_saved) and any(v.get("shares", 0) > 0 for v in convex_holdings_saved.values())
+if convex_has_real_data:
+    convex_val_eur = sum(v.get("shares", 0.0) * (v.get("last_price") or _base_prices.get(k, 0.0)) for k, v in convex_holdings_saved.items()) \
+        + float(convex_portfolio.get("cash_eur", 0.0))
+else:
+    convex_val_eur = float(cfg.get("convex_capital_eur", 100000.0))
+
+_tot = apex_val_eur + convex_val_eur
+_real_apex_ratio = (apex_val_eur / _tot) if _tot > 0 else 0.50
+_real_convex_ratio = (convex_val_eur / _tot) if _tot > 0 else 0.50
+_target_apex = float(cfg.get("target_apex_ratio", 0.50))
 
 cx_holdings_dict = {k: v.get("shares", 0.0) for k, v in convex_holdings_saved.items()} if convex_has_real_data else \
     {k: (_target_apex * _tot * info["target_weight"] / _base_prices[k]) for k, info in _active_instruments.items()}
@@ -498,15 +501,33 @@ with tab_pf:
     </div>
     """)
 
-    # 7. Navigazione Rapida
-    st_html(section_title("Navigazione Rapida"))
-    n1, n2 = st.columns(2)
-    with n1:
-        if st.button("Apri Apex Engine", use_container_width=True, type="primary"):
-            st.switch_page("page_apex.py")
-    with n2:
-        if st.button("Apri Convex Stack", use_container_width=True, type="primary"):
-            st.switch_page("page_convex.py")
+    # 7. Parametri di Simulazione e Rata PAC
+    with st.expander("⚙️ Parametri Globali e Rata PAC (Simulazione)", expanded=False):
+        st.caption("Configura i capitali di riferimento standard, il target di allocazione e la rata PAC per la simulazione globale.")
+        p_c1, p_c2 = st.columns(2)
+        with p_c1:
+            cfg_apex_cap = st.number_input("Capitale di Riferimento Apex (€)", min_value=1000.0, value=float(cfg.get("apex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
+            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(cfg.get("target_apex_ratio", 0.50)*100), step=5) / 100.0
+        with p_c2:
+            cfg_convex_cap = st.number_input("Capitale di Riferimento Convex (€)", min_value=1000.0, value=float(cfg.get("convex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
+            cfg_pac = st.number_input("Rata PAC Mensile (€)", min_value=50.0, value=float(cfg.get("monthly_pac_eur", 500.0)), step=50.0, format="%.0f")
+        
+        if st.button("Salva Parametri Globali", use_container_width=True, key="home_save_cfg"):
+            new_cfg = {
+                **cfg,
+                "apex_capital_eur": cfg_apex_cap,
+                "convex_capital_eur": cfg_convex_cap,
+                "target_apex_ratio": cfg_target_apex,
+                "target_convex_ratio": 1.0 - cfg_target_apex,
+                "monthly_pac_eur": cfg_pac,
+                "last_updated": datetime.date.today().strftime("%Y-%m-%d")
+            }
+            if portfolio_manager.save_config(new_cfg):
+                st.toast("Parametri globali aggiornati per questa sessione.", icon="✅")
+                st.rerun()
+            else:
+                st.error("Errore nel salvataggio.")
+
 
 
 # ==============================================================================

@@ -22,12 +22,12 @@ CONVEX_FILE = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
 def load_config() -> Dict[str, Any]:
     """Carica la configurazione utente persistita o restituisce i valori standard."""
     defaults = {
-        "apex_capital_eur": 79000.0,
-        "convex_capital_eur": 130000.0,
-        "monthly_pac_eur": 600.0,
+        "apex_capital_eur": 100000.0,
+        "convex_capital_eur": 100000.0,
+        "monthly_pac_eur": 500.0,
         "pac_annual_growth": 0.04,
-        "target_apex_ratio": 0.45,
-        "target_convex_ratio": 0.55,
+        "target_apex_ratio": 0.50,
+        "target_convex_ratio": 0.50,
         "wbtc_trim_threshold": 0.1125,
         "ppfb_trim_threshold": 0.1125,
         "last_updated": "2026-09-01"
@@ -333,7 +333,7 @@ def load_combined_monthly_history(target_apex: float = 0.45, target_convex: floa
 if __name__ == "__main__":
     cfg = load_config()
     holdings = {
-        "NTSG": 585, "AVWS": 390, "DBMFE": 1300, "PPFB": 195, "WBTC": 97.5
+        "NTSG": 500, "AVWS": 300, "DBMFE": 1000, "PPFB": 150, "WBTC": 75
     }
     prices = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
     c_rep = convex_engine.evaluate_convex_stack(holdings, prices, monthly_pac_eur=cfg["monthly_pac_eur"])
@@ -344,3 +344,4 @@ if __name__ == "__main__":
     print(f"Allocazione Attuale: Apex {unified['apex_weight']*100:.1f}% | Convex {unified['convex_weight']*100:.1f}%")
     print(f"Consiglio Smart Flow: {unified['smart_flow_destination']}")
     print("✓ portfolio_manager.py operativo con successo!")
+
