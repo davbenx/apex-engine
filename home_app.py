@@ -246,13 +246,13 @@ apex_data = _load_json("apex_data.json")
 convex_portfolio = _load_json("convex_portfolio.json")
 cfg = portfolio_manager.load_config()
 
-apex_val_eur = 0.0
+# Dati di tracking del modello
 _nav_usd = float(apex_portfolio.get("nav_usd", 0.0))
 _eur_usd_rate = float(apex_data.get("eur_usd", 0.0))
-if _nav_usd > 0 and _eur_usd_rate > 0:
-    apex_val_eur = _nav_usd / _eur_usd_rate
-else:
-    apex_val_eur = float(cfg.get("apex_capital_eur", 100000.0))
+# Capitale di riferimento Apex: valore standard configurabile (default 100.000 €)
+apex_val_eur = float(cfg.get("apex_capital_eur", 100000.0))
+
+
 
 # Prezzi e strumenti Convex
 _active_instruments = convex_engine.CONVEX_INSTRUMENTS

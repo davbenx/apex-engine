@@ -713,8 +713,8 @@ with tab_pf:
         cap_apex_input = st.number_input(
             "Capitale Apex broker reale (€)",
             min_value=1000.0,
-            value=float(_apex_live_eur) if _apex_live_eur else float(cfg.get("apex_capital_eur", 0.0)) or 100000.0,
-            step=1000.0,
+            value=float(cfg.get("apex_capital_eur", 100000.0)),
+            step=5000.0,
             format="%.0f",
             help="Capitale effettivo allocato su Apex Engine. Calcola quote e controvalori operativi esatti."
         )
@@ -729,9 +729,10 @@ with tab_pf:
             else:
                 st.error("Errore nel salvataggio della configurazione.")
     if _apex_live_eur:
-        st.caption(f"↳ precompilato dal NAV live (€{_apex_live_eur:,.0f}) · modificabile")
+        st.caption(f"↳ Capitale configurabile · default 100.000 € (NAV storico del modello: €{_apex_live_eur:,.0f} / ${_nav_usd:,.0f})")
     else:
-        st.caption("↳ NAV live non disponibile, valore da config.json")
+        st.caption("↳ Valore standard da config.json")
+
 
     eur_usd_rate = float(data.get("eur_usd", 1.085))
     curr_sym = "€"
