@@ -116,6 +116,13 @@ st_html("""
         padding: 14px 16px;
         margin-bottom: 16px;
     }
+
+    /* Rimuove completamente la sidebar e controlli collegati */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebarCollapsedControl"],
+    section[data-testid="stSidebar"] {
+        display: none !important;
+    }
 </style>
 """)
 
@@ -508,35 +515,7 @@ try:
 except Exception:
     _apex_live_eur = None
 
-with st.sidebar:
-    st_html(f"""
-    <div style="padding: 10px 0 16px 0; border-bottom: 1px solid {BORDER}; margin-bottom: 16px;">
-        <div style="font-family: {FRAUNCES}; font-size: 20px; font-weight: 600; color: {BADGE_TEXT};">Impostazioni Patrimonio</div>
-        <div style="font-size: 11px; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Campi Standard Compilabili</div>
-    </div>
-    """)
 
-    cap_apex_input = st.number_input(
-        "Capitale Apex Engine (€)",
-        min_value=1000.0,
-        value=float(_apex_live_eur) if _apex_live_eur else float(cfg.get("apex_capital_eur", 0.0)) or 79000.0,
-        step=1000.0,
-        format="%.0f"
-    )
-    if _apex_live_eur:
-        st.caption(f"↳ precompilato dal NAV live (€{_apex_live_eur:,.0f}) · modificabile")
-    else:
-        st.caption("↳ NAV live non disponibile, valore da config.json")
-
-    if st.button("Salva Capitale", use_container_width=True, key="apex_save_cap"):
-        new_cfg = {**cfg, "apex_capital_eur": cap_apex_input,
-                   "last_updated": datetime.date.today().strftime("%Y-%m-%d")}
-        if portfolio_manager.save_config(new_cfg):
-            st.toast("Salvato per questa sessione dell'app.", icon="✅")
-            cfg = new_cfg
-        else:
-            st.error("Errore nel salvataggio della configurazione.")
-    st.caption("↳ Vale finché l'app resta attiva. Un riavvio (dopo inattività o un aggiornamento) lo cancella: da reinserire.")
 
 
 # ==============================================================================
@@ -722,6 +701,31 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 # ==============================================================================
 with tab_pf:
     hero_slot = st.empty()
+
+    c_cap, c_save = st.columns([3, 1])
+    with c_cap:
+        cap_apex_input = st.number_input(
+            "Capitale Apex broker reale (€)",
+            min_value=1000.0,
+            value=float(_apex_live_eur) if _apex_live_eur else float(cfg.get("apex_capital_eur", 0.0)) or 79000.0,
+            step=1000.0,
+            format="%.0f",
+            help="Capitale effettivo allocato su Apex Engine. Calcola quote e controvalori operativi esatti."
+        )
+    with c_save:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if st.button("Salva Capitale", use_container_width=True, key="apex_save_cap"):
+            new_cfg = {**cfg, "apex_capital_eur": cap_apex_input,
+                       "last_updated": datetime.date.today().strftime("%Y-%m-%d")}
+            if portfolio_manager.save_config(new_cfg):
+                st.toast("Capitale Apex salvato per questa sessione.", icon="✅")
+                cfg = new_cfg
+            else:
+                st.error("Errore nel salvataggio della configurazione.")
+    if _apex_live_eur:
+        st.caption(f"↳ precompilato dal NAV live (€{_apex_live_eur:,.0f}) · modificabile")
+    else:
+        st.caption("↳ NAV live non disponibile, valore da config.json")
 
     eur_usd_rate = float(data.get("eur_usd", 1.085))
     curr_sym = "€"

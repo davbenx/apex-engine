@@ -1,13 +1,15 @@
 """
-page_convex.py — Pagina Convex Stack (navigazione multipagina, vedi main.py)
+convex_stack_app.py — Dashboard Convex Stack (standalone)
 ==================================================================================
-Solo Convex Stack: portafoglio multi-asset a leva sistematica, accumulo
-tramite PAC mensile. Principi guida: lean, senza attrito, robusto, semplice
-da mantenere. Stesso impianto visivo di app.py (Apex Engine reale,
-davbenx/apex-engine su GitHub): stessi font/colori, stessa struttura a 3
-schede (Portafoglio, Metriche, Guida), stesso selettore di periodo sul
-grafico, stessa assenza di emoji decorative — Apex Engine reale non ne usa,
-solo l'icona di pagina.
+Portafoglio multi-asset a leva sistematica, accumulo tramite PAC mensile.
+Principi guida: lean, senza attrito, robusto, semplice da mantenere.
+Unione tra rigore istituzionale e semplicità operativa retail.
+
+App autonoma: verrà unita ad Apex Engine in una fase successiva. Stesso
+impianto visivo di app.py (Apex Engine, davbenx/apex-engine su GitHub):
+stessi font/colori, stessa struttura a 3 schede (Portafoglio, Metriche,
+Guida), stesso selettore di periodo sul grafico, stessa assenza di
+emoji decorative — Apex Engine reale non ne usa, solo l'icona di pagina.
 ==================================================================================
 """
 
@@ -21,9 +23,13 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import convex_engine
-import portfolio_manager
 
-# st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
+st.set_page_config(
+    page_title="Convex Stack",
+    page_icon="🛡️",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 # ==============================================================================
 # HTML RENDERING HELPERS & STYLING (DARK GLASSMORPHISM — identici ad Apex Engine)
@@ -75,31 +81,8 @@ st_html("""
         padding: 14px 16px;
         margin-bottom: 16px;
     }
-
-    /* Rimuove completamente la sidebar e controlli collegati */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarCollapsedControl"],
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
 </style>
 """)
-
-def fill_slot(slot, html_str):
-    """Riempie a posteriori un st.empty() riservato prima nel flusso."""
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    slot.markdown(cleaned, unsafe_allow_html=True)
-
-def sub_hero_metric(label, value, subtext="", val_color=None, primary=False):
-    """Card metrica a gerarchia istituzionale a due livelli (identica ad Apex Engine)."""
-    val_size = "32px" if primary else "20px"
-    return f"""
-    <div style="flex: 1 1 {'160px' if primary else '130px'};">
-        <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
-        <div style="font-family: {MONO}; font-size: {val_size}; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
-        <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
-    </div>
-    """
 
 # Design Tokens (identici ad Apex Engine — stesso sistema visivo)
 POS = "#3DDC97"
@@ -120,62 +103,12 @@ BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
 FRAUNCES = "'Fraunces', Georgia, serif"
 MONO = "'JetBrains Mono', monospace"
 
-
-def get_convex_class_svg(strumento, size=16, color="currentColor", style=""):
-    """Icona SVG vettoriale per ciascuno dei 5 strumenti Convex — stesso
-    linguaggio visivo (stroke, viewBox 24x24) delle icone di Apex Engine.
-    PPFB/WBTC riusano letteralmente i path Oro/Bitcoin di Apex, essendo
-    lo stesso identico sottostante."""
-    inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0; {style}"
-    if strumento == "NTSG":
-        # Layers: nucleo azionario+obbligazionario a leva
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>'
-    if strumento == "AVWS":
-        # Tag: fattore value
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M20.59 13.41 11 3.83A1.83 1.83 0 0 0 9.7 3.3H4a1.83 1.83 0 0 0-1.83 1.83V9.7c0 .48.19.96.54 1.3l9.58 9.58a2 2 0 0 0 2.83 0l6.47-6.47a2 2 0 0 0 0-2.83Z"></path><circle cx="7.5" cy="7.5" r="1"></circle></svg>'
-    if strumento == "DBMFE":
-        # Shield: protezione attiva in crisi (trend-following)
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M12 2 4 5v6c0 5.5 3.5 9.7 8 11 4.5-1.3 8-5.5 8-11V5z"></path></svg>'
-    if strumento == "PPFB":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
-    if strumento == "WBTC":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
-    return ""
-
 MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
 
 def section_title(text, top="26px", bottom="10px"):
     """Identico ad Apex Engine (davbenx/apex-engine/app.py) — niente emoji,
     solo tipografia Fraunces."""
     return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
-
-def render_convex_positions_html_table(df):
-    th_cells = []
-    cols = ["Strumento", "Nome", "Quote", "Prezzo", "Peso", "Controvalore", "Regime Fiscale"]
-    for c in cols:
-        align = "right" if c in ["Quote", "Prezzo", "Peso", "Controvalore"] else "left"
-        th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
-    
-    rows_html = []
-    for _, r in df.iterrows():
-        td_cells = []
-        for c in cols:
-            val = r[c]
-            align = "right" if c in ["Quote", "Prezzo", "Peso", "Controvalore"] else "left"
-            if c == "Strumento":
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
-            elif c in ["Quote", "Prezzo", "Peso", "Controvalore"]:
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{val}</td>')
-            elif c == "Regime Fiscale":
-                is_div = "Diverso" in str(val)
-                col = POS if is_div else MUTED
-                bg = "rgba(61,220,151,0.1)" if is_div else "rgba(255,247,237,0.05)"
-                td_cells.append(f'<td style="padding:10px 14px; font-size:11px;"><span style="background:{bg}; color:{col}; padding:3px 8px; border-radius:4px; font-weight:600;">{val}</span></td>')
-            else:
-                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; color:{MUTED};">{val}</td>')
-        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-    return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'
-
 
 def get_logo_b64():
     import base64
@@ -254,23 +187,19 @@ def render_monthly_returns_html_table(df_eq):
 # recupero fallisce — mai spacciato per prezzo di mercato)
 # ==============================================================================
 _CONVEX_BASE_PRICES = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
-# PPFB/WBTC/DBMFE corretti nel tempo — nessuno dei tre era il ticker giusto in origine:
-# WBTC-ETFP.MI (~EUR 16/quota) e' l'ETP Bitcoin, non BTC-USD (prezzo grezzo di Bitcoin).
-# DBMFE.PA e' la quotazione UCITS EUR reale (ISIN LU2951555403), non DBMF (ETF USD diverso).
-# EGLN.L e' iShares Physical Gold ETC (ISIN IE00B4ND3602, ~EUR 74/quota) — "PPFB" e'
-# letteralmente il suo ticker ufficiale; SGLD.MI (Invesco, ISIN diverso) era stato usato
-# per errore in una correzione intermedia, poi sostituito con quello giusto.
+# PPFB/WBTC corretti: i vecchi ticker (PPFB.MI, BTC-USD) non erano validi per il prezzo
+# reale per quota — PPFB.MI non e' fetchable, BTC-USD dava il prezzo grezzo di Bitcoin
+# invece di quello dell'ETP. Verificato via Yahoo chart API: SGLD.MI (~EUR 367, oro) e
+# WBTC-ETFP.MI (~EUR 16, Bitcoin ETP) sono i ticker reali e fetchable per questi ISIN.
 _CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMFE.PA", "PPFB": "EGLN.L", "WBTC": "WBTC-ETFP.MI"}
 
-# Cache di prezzi aggiornata da uno scheduler GitHub Actions (fetch_live_prices.py,
-# .github/workflows/update_live_prices.yml) — il fetch live a runtime da Streamlit
-# Community Cloud fallisce spesso perché Yahoo Finance limita il pool di IP
-# condivisi degli host cloud (segnalato dall'utente: "Benchmark SPY non
-# raggiungibile"). Si legge prima il file cache (scritto da un runner GitHub
-# Actions con IP diverso, aggiornato 3 volte al giorno); il fetch live resta
-# solo come fallback per uso locale/prima esecuzione senza cache ancora scritta.
+# Cache prezzi scritta da fetch_live_prices.py via GitHub Actions — il fetch
+# a runtime da Streamlit Community Cloud fallisce spesso perché Yahoo Finance
+# limita il pool di IP condivisi degli host cloud. Si legge prima la cache
+# (aggiornata 3 volte al giorno da un runner con IP diverso); il fetch live
+# resta come fallback solo per uso locale/prima esecuzione senza cache.
 _PRICE_CACHE_PATH = os.path.join(os.path.dirname(__file__), "live_prices_cache.json")
-_PRICE_CACHE_MAX_AGE_H = 48  # oltre questa età si tenta comunque il fetch live
+_PRICE_CACHE_MAX_AGE_H = 48
 
 
 def _load_price_cache():
@@ -312,16 +241,6 @@ def fetch_convex_live_prices():
             prices[key], live_ok[key] = _CONVEX_BASE_PRICES[key], False
     return prices, live_ok
 
-
-def get_price_cache_freshness():
-    """Etichetta onesta sulla freschezza dei prezzi mostrati (cache o live)."""
-    cache = _load_price_cache()
-    if cache and cache.get("convex_prices"):
-        fetched_at = datetime.datetime.strptime(cache["fetched_at"], "%Y-%m-%dT%H:%M:%SZ")
-        return f"Prezzi aggiornati al {fetched_at.strftime('%d/%m/%Y %H:%M')} UTC"
-    return "Prezzi da fetch live (nessuna cache disponibile)"
-
-
 # Benchmark SPY — stesso strumento e stesso meccanismo di fetch usato da
 # Apex Engine (query2.finance.yahoo.com, cache 1h). VT sarebbe un confronto
 # più aderente per la sola sleeve azionaria di Convex, ma non esiste ancora
@@ -335,14 +254,8 @@ def load_benchmark_spy():
         idx = pd.to_datetime([h["date"] for h in hist])
         close = [h["close"] for h in hist]
         return pd.Series(close, index=idx).ffill().dropna()
-
     try:
-        # range=10y (non 2y): il periodo "Tutto" di Convex puo' coprire molti anni di
-        # backtest — con solo 2y di fallback il benchmark si normalizzerebbe a un punto
-        # a meta' grafico invece che dall'inizio reale (stesso bug gia' corretto in
-        # page_apex.py). La cache scheduled (fetch_live_prices.py) e' gia' a 10y: questo
-        # fallback si attiva solo se la cache manca o e' troppo vecchia.
-        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
+        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=2y&interval=1d"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
         data_spy = res['chart']['result'][0]
@@ -413,8 +326,12 @@ with col_stat:
 tab_pf, tab_metriche, tab_guida = st.tabs(["Portafoglio", "Metriche", "Guida"])
 
 with tab_pf:
-    hero_slot = st.empty()
-
+    # ==========================================================================
+    # VERSIONE — Completa (5 strumenti) o Semplice (4, senza AVWS). Validato:
+    # research/convex/test_convex_ntsg_grid_extended.py — redistribuzione
+    # proporzionale, nessun costo su Sharpe/MaxDD sul periodo reale 2019+,
+    # piccolo costo di MaxDD sulla storia intera pre-2019 (proxy).
+    # ==========================================================================
     versione = st.segmented_control(
         "Versione", options=["Completa", "Semplice"], default="Completa",
         label_visibility="collapsed", key="convex_versione"
@@ -433,72 +350,44 @@ with tab_pf:
         )
 
     # ==========================================================================
-    # MODULO DI INPUT — Quote possedute & Cassa (Layout 2 colonne pulito)
+    # MODULO DI INPUT — le quote per strumento non le conosce nessun motore
+    # automatico: le sai solo tu, che tieni il conto reale. Nessun campo
+    # "capitale totale" a parte: il valore si ricava da quote × prezzo + cassa.
     # ==========================================================================
-    cfg = portfolio_manager.load_config()
+    st_html(section_title("I Tuoi Numeri", top="8px"))
+    st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità pronta per il PAC di questo mese.")
+
     _saved_holdings = {}
-    _saved_cash = 0.0
     if os.path.exists(_cp_path):
         try:
             with open(_cp_path, "r", encoding="utf-8") as f:
-                _saved = json.load(f)
-                _saved_holdings = {k: v.get("shares", 0.0) for k, v in _saved.get("holdings", {}).items()}
-                _saved_cash = float(_saved.get("cash_eur", 0.0))
+                _saved_holdings = {k: v.get("shares", 0.0) for k, v in json.load(f).get("holdings", {}).items()}
         except Exception:
             pass
 
-    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=not _is_fresh):
-        st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità per il PAC mensile.")
-        col_inp1, col_inp2 = st.columns(2)
-        instr_list = list(active_instruments.items())
-        half = (len(instr_list) + 1) // 2
-        convex_holdings = {}
-        with col_inp1:
-            for key, info in instr_list[:half]:
-                convex_holdings[key] = st.number_input(
-                    f"{key} — {info['name']}",
-                    min_value=0.0,
-                    value=float(_saved_holdings.get(key, 0.0)),
-                    step=1.0,
-                    format="%.2f",
-                    help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)")
-                )
-        with col_inp2:
-            for key, info in instr_list[half:]:
-                convex_holdings[key] = st.number_input(
-                    f"{key} — {info['name']}",
-                    min_value=0.0,
-                    value=float(_saved_holdings.get(key, 0.0)),
-                    step=1.0,
-                    format="%.2f",
-                    help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)")
-                )
-
-        c_pac, c_cash = st.columns(2)
-        with c_pac:
-            _saved_pac = float(cfg.get("monthly_pac_eur", 0.0))
-            pac_input = st.number_input(
-                "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
-                value=_saved_pac or 600.0, step=50.0, format="%.0f"
-            )
-        with c_cash:
-            cash_input = st.number_input(
-                "Cassa Residua Non Investita (€)", min_value=0.0,
-                value=_saved_cash, step=50.0, format="%.0f"
+    h_cols = st.columns(len(active_instruments))
+    convex_holdings = {}
+    for i, (key, info) in enumerate(active_instruments.items()):
+        with h_cols[i]:
+            convex_holdings[key] = st.number_input(
+                f"{key} — {info['name']}",
+                min_value=0.0,
+                value=float(_saved_holdings.get(key, 0.0)),
+                step=1.0,
+                format="%.2f",
+                help=f"Quote possedute. Prezzo attuale: {convex_prices[key]:.2f} €"
+                     + ("" if convex_prices_live[key] else " (prezzo di base, mercato non raggiungibile)")
             )
 
-        if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
-            _new_portfolio = {
-                "cash_eur": cash_input,
-                "holdings": {k: {"shares": v} for k, v in convex_holdings.items()},
-                "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
-            }
-            _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
-            portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
-            if _ok_p:
-                st.toast("Quote Convex salvate con successo.", icon="✅")
-            else:
-                st.error("Errore nel salvataggio.")
+    c_pac, c_cash = st.columns(2)
+    with c_pac:
+        pac_input = st.number_input("Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0, value=600.0, step=50.0, format="%.0f")
+    with c_cash:
+        cash_input = st.number_input("Cassa Residua Non Investita (€)", min_value=0.0, value=0.0, step=50.0, format="%.0f")
+
+    _n_live = sum(convex_prices_live.values())
+    if _n_live < len(convex_prices_live):
+        st.caption(f"Prezzo di mercato non raggiungibile per {len(convex_prices_live) - _n_live}/{len(convex_prices_live)} titoli: usato un prezzo di base, non il prezzo reale.")
 
     convex_report = convex_engine.evaluate_convex_stack(
         current_holdings=convex_holdings,
@@ -508,36 +397,11 @@ with tab_pf:
         instruments=active_instruments
     )
 
-    # Riempimento Hero Banner
-    _tot_live = convex_report.total_value
-    _val_str = f"€ {_tot_live:,.0f}" if _tot_live > 0 else "n/d"
-    _ntsg_w = active_instruments.get("NTSG", {}).get("target_weight", 0.0)
-    _notional_pct = (1.0 + 0.5 * _ntsg_w) * 100.0
-    fill_slot(hero_slot, f"""
-    <div style="padding: 16px 2px 4px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {MUTED}; margin-bottom: 8px;">Valore Portafoglio Convex</div>
-        <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
-            <span style="font-family:{MONO}; font-size:40px; font-weight:800; letter-spacing:-1px;">{_val_str}</span>
-            <span style="font-size:13px; font-weight:700; color:{ACCENT}; background:rgba(201,164,76,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(201,164,76,0.25); font-family:{MONO};">{_notional_pct:.1f}% Nozionale (Leva 1.5x NTSG)</span>
-        </div>
-        <div style="font-size:12px; color:{MUTED}; margin-top:8px;">{len(active_instruments)} strumenti attivi · prossimo ribilanciamento PAC: 1° del mese</div>
-    </div>
-    """)
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
-    # Barra di Allocazione Orizzontale (Identica ad Apex Engine)
-    if convex_report.total_value > 0:
-        st_html(section_title("Composizione del Portafoglio"))
-        _COLOR_MAP = {"NTSG": POS, "AVWS": "#8B7FC7", "DBMFE": "#E0A96D", "PPFB": ACCENT, "WBTC": "#F7931A"}
-        alloc_segments = [(k, convex_report.assets[k].current_weight * 100.0, _COLOR_MAP.get(k, ACCENT)) for k in active_instruments]
-        bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
-        legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14)} <span style="opacity:0.85;">{k}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
-            for k, pct, color in alloc_segments
-        )
-        st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
-        st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
-
-    # Azione del Mese PAC
+    # ==========================================================================
+    # AZIONE DEL MESE — sempre visibile, nessun click richiesto
+    # ==========================================================================
     pac_act = convex_report.pac_action
     if pac_act and convex_report.total_value > 0:
         st_html(f"""
@@ -587,13 +451,54 @@ with tab_pf:
         </div>
         """)
 
-    # Posizioni Attuali in Tabella HTML Styled
+    # ==========================================================================
+    # IL "PERCHÉ" DEL CONSIGLIO
+    # ==========================================================================
     if convex_report.total_value > 0:
-        st_html(section_title("Posizioni Attive nel Portafoglio"))
+        col_chart, col_bars = st.columns([1.1, 1.0])
+        with col_chart:
+            st_html(section_title("Composizione del Portafoglio"))
+            _COLOR_MAP = {"NTSG": POS, "AVWS": "#8B7FC7", "DBMFE": "#E0A96D", "PPFB": ACCENT, "WBTC": "#F7931A"}
+            labels = [f"{k} ({i['name'][:18]})" for k, i in active_instruments.items()]
+            values_pct = [convex_report.assets[k].current_weight * 100.0 for k in active_instruments]
+            fig_donut = go.Figure(data=[go.Pie(
+                labels=labels, values=values_pct, hole=.55,
+                marker=dict(colors=[_COLOR_MAP[k] for k in active_instruments]),
+                textinfo='label+percent', textposition='outside', showlegend=False
+            )])
+            fig_donut.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color=MUTED, family="Inter"),
+                margin=dict(t=10, b=10, l=10, r=10), height=300
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+
+        with col_bars:
+            st_html(section_title("Pesi Attuali vs Target"))
+            for k, st_info in convex_report.assets.items():
+                if st_info.current_weight < st_info.tolerance_min:
+                    stato, col = "sottopesato", ACCENT
+                elif st_info.current_weight > st_info.tolerance_max:
+                    stato, col = "sopra soglia", NEG
+                else:
+                    stato, col = "in banda", POS
+                st_html(f"""
+                <div style="margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:3px;">
+                        <span style="color:{BADGE_TEXT}; font-weight:600;">{k} — {stato}</span>
+                        <span style="font-family:{MONO}; color:{col}; font-weight:700;">{st_info.current_weight*100:.1f}% / {st_info.target_weight*100:.1f}%</span>
+                    </div>
+                    <div style="width:100%; height:6px; background:rgba(255,247,237,0.08); border-radius:3px; overflow:hidden;">
+                        <div style="width:{min(100, st_info.current_weight*100):.1f}%; height:100%; background:{col}; border-radius:3px;"></div>
+                    </div>
+                </div>
+                """)
+
+        st_html(section_title("Posizioni Attuali"))
         cx_rows = []
         for k, st_info in convex_report.assets.items():
             cx_rows.append({
-                "Strumento": f'<span style="display:inline-flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14)} {k}</span>',
+                "Strumento": k,
                 "Nome": st_info.name,
                 "Quote": f"{st_info.current_shares:,.2f}",
                 "Prezzo": f"€ {st_info.current_price:,.2f}",
@@ -601,7 +506,8 @@ with tab_pf:
                 "Controvalore": f"€ {st_info.current_value:,.0f}",
                 "Regime Fiscale": "Reddito Diverso (compensa minus)" if st_info.tax_type == "REDDITO_DIVERSO" else "Reddito di Capitale (non compensa)"
             })
-        st_html(render_convex_positions_html_table(pd.DataFrame(cx_rows)))
+        st_html(render_html_table(pd.DataFrame(cx_rows), right_align_cols=["Quote", "Prezzo", "Peso", "Controvalore"]))
+        st.caption(f"Patrimonio totale: € {convex_report.total_value:,.0f}")
 
 with tab_metriche:
     _cx_ret_filename = "convex_monthly_returns.csv" if versione == "Completa" else "convex_simple_no_avws_returns.csv"
@@ -616,32 +522,28 @@ with tab_metriche:
 
         n_yrs = len(_cx_ret) / 12.0
         cagr_gross = (_cx_nav["value"].iloc[-1] / _cx_nav["value"].iloc[0]) ** (1.0 / n_yrs) - 1.0
-        _NET_OVER_GROSS_FACTOR = 1.0696 / 1.0801
+        # netto: fattore derivato dal modello fiscale a due categorie (UCITS senza
+        # compensazione minusvalenze, ETC/ETP con compensazione) calcolato sulla
+        # finestra piena 2000-2026 in research/convex/convex_twobucket_v2.pkl
+        # ("full": gross 8.01%/anno, netto 6.96%/anno) — applicato come fattore
+        # relativo, non ricalcolato da zero qui: approssimazione dichiarata.
+        _NET_OVER_GROSS_FACTOR = 1.0696 / 1.0801  # ≈ 0.9903
         cagr_net = (1.0 + cagr_gross) * _NET_OVER_GROSS_FACTOR - 1.0
-        cagr = cagr_gross
+        cagr = cagr_gross  # retro-compatibilità con il resto della sezione (Sharpe/Sortino sotto restano sul lordo)
         vol = _cx_ret.std() * (12 ** 0.5)
         sharpe = (cagr - 0.03) / vol if vol > 0 else 0.0
         mdd = _cx_nav["drawdown"].min() / 100.0
         downside = _cx_ret[_cx_ret < 0]
         sortino = (cagr - 0.03) / (downside.std() * (12 ** 0.5)) if len(downside) > 0 and downside.std() > 0 else 0.0
 
-        _cx_ter_annual = convex_report.ter_weighted if convex_report.total_value > 0 else \
-            sum(i["ter"] * i["target_weight"] for i in active_instruments.values())
-        _cx_ter_eur_year = convex_report.total_value * _cx_ter_annual if convex_report.total_value > 0 else 0.0
-
-        st_html(f"""
-        <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-            {sub_hero_metric("Crescita Annua Lorda", f"{cagr_gross*100:.2f}%", f"Netto (se liquidato): {cagr_net*100:.2f}%", POS if cagr_gross >= 0 else NEG, primary=True)}
-            {sub_hero_metric("Indice di Sharpe", f"{sharpe:.2f}", "Efficienza rendimento/rischio", POS if sharpe >= 1.0 else None, primary=True)}
-            {sub_hero_metric("Calo Massimo Storico", f"{mdd*100:.2f}%", "Il calo peggiore mai registrato", primary=True)}
-        </div>
-        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
-            {sub_hero_metric("Volatilità Annua", f"{vol*100:.2f}%", "Oscillazione realizzata")}
-            {sub_hero_metric("Indice di Sortino", f"{sortino:.2f}", "Rendimento su ribassi negativi")}
-            {sub_hero_metric("TER Ponderato Reale", f"{_cx_ter_annual*100:.3f}%/anno", f"Costo: € {_cx_ter_eur_year:,.0f}/anno")}
-        </div>
-        """)
-
+        st.caption("Statistiche dal backtest corretto di Convex Stack (2000–2026, dati reali, pesi e costi corretti — non l'estensione Fama-French fabbricata dello script originale). La curva è LORDA (prima delle tasse): Convex non vende se non per rari trim, quindi il valore reale del portafoglio oggi è quello lordo — il netto sotto è una stima di quanto resterebbe se lo liquidassi oggi.")
+        k1, k2, k3, k4, k5 = st.columns(5)
+        k1.metric("Crescita Annua Lorda (CAGR)", f"{cagr_gross*100:.2f}%", f"Netto (se liquidato oggi) {cagr_net*100:.2f}%",
+                  help="CAGR lordo, prima delle tasse — è la curva mostrata sotto. Sotto: stima del netto se vendessi tutto oggi.")
+        k2.metric("Oscillazione", f"{vol*100:.2f}%", help="Volatilità: quanto varia il valore nel tempo.")
+        k3.metric("Rendimento/Rischio", f"{sharpe:.2f}", help="Sharpe: rendimento ottenuto per ogni unità di rischio.")
+        k4.metric("Rendimento/Ribassi", f"{sortino:.2f}", help="Sortino: come Sharpe, ma guarda solo ai cali.")
+        k5.metric("Perdita Massima", f"{mdd*100:.2f}%", help="Il calo peggiore mai registrato dal punto più alto al più basso.")
 
         # ----------------------------------------------------------------------
         # Crescita Patrimoniale — selettore di periodo e benchmark, stesso
@@ -749,13 +651,10 @@ with tab_metriche:
         _cx_ter_eur_year = convex_report.total_value * _cx_ter_annual if convex_report.total_value > 0 else 0.0
         _cx_pos_months = int((_cx_ret > 0).sum())
         _cx_tot_months = int(len(_cx_ret))
-        st_html(f"""
-        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
-            {sub_hero_metric("TER Ponderato Reale", f"{_cx_ter_annual*100:.3f}%/anno", "Costo ponderato capitale reale")}
-            {sub_hero_metric("Costo TER Annuo Stimato", f"€ {_cx_ter_eur_year:,.0f}/anno", "Costo in euro sul capitale attuale")}
-            {sub_hero_metric("Mesi Positivi (Storico)", f"{_cx_pos_months}/{_cx_tot_months}", f"{_cx_pos_months/_cx_tot_months*100:.0f}% mesi in profitto (2000–2026)")}
-        </div>
-        """)
+        e1, e2, e3 = st.columns(3)
+        e1.metric("TER Ponderato Reale", f"{_cx_ter_annual*100:.3f}%/anno", help="Costo dei 5 ETF pesato sul capitale reale, non sul nozionale a leva.")
+        e2.metric("Costo TER sul Tuo Capitale", f"€ {_cx_ter_eur_year:,.0f}/anno", help="TER ponderato × il tuo patrimonio Convex attuale.")
+        e3.metric("Mesi Positivi (storico)", f"{_cx_pos_months}/{_cx_tot_months} ({_cx_pos_months/_cx_tot_months*100:.0f}%)", help="Quota di mesi con rendimento positivo sul backtest corretto 2000–2026.")
     else:
         st.warning("Dati storici non trovati (convex_monthly_returns.csv).")
 
@@ -782,7 +681,7 @@ with tab_guida:
         with instr_cols[i]:
             st_html(f"""
             <div class="glass-card" style="height: 190px;">
-                <div style="font-family:{MONO}; font-size:13px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">{get_convex_class_svg(key, size=15, color=ACCENT)} {key}</div>
+                <div style="font-family:{MONO}; font-size:13px; font-weight:700; color:{ACCENT};">{key}</div>
                 <div style="font-size:11.5px; font-weight:700; color:{BADGE_TEXT}; margin:4px 0 8px 0; line-height:1.3;">{info['name']}</div>
                 <div style="font-size:11px; color:{MUTED}; line-height:1.4;">{info['asset_class']}</div>
                 <div style="font-size:11px; color:{MUTED_2}; margin-top:8px;">Target: {info['target_weight']*100:.1f}% · TER {info['ter']*100:.2f}%</div>

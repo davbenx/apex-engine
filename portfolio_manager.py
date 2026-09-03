@@ -295,6 +295,41 @@ def compute_unified_portfolio(
     }
 
 
+def load_combined_monthly_history(target_apex: float = 0.45, target_convex: float = 0.55) -> pd.DataFrame:
+    """
+    Carica le serie mensili storiche di Apex Engine (142 mesi dal 2014-11 al 2026-08)
+    e di Convex Stack, e genera la serie di rendimenti e NAV Base 100 del portafoglio combinato.
+    """
+    base_dir = os.path.dirname(__file__)
+    apex_file = os.path.join(base_dir, "apex_monthly_returns_extended.csv")
+    conv_file = os.path.join(base_dir, "convex_monthly_returns.csv")
+
+    if not os.path.exists(apex_file) or not os.path.exists(conv_file):
+        # Fallback se non trovati: prova con apex_simple_etf_returns.csv
+        apex_s_file = os.path.join(base_dir, "apex_simple_etf_returns.csv")
+        if os.path.exists(apex_s_file) and os.path.exists(conv_file):
+            s_df = pd.read_csv(apex_s_file, index_col=0, parse_dates=True)['nav_gross']
+            apex_ret = s_df.resample('ME').last().pct_change().dropna()
+            cx_ret = pd.read_csv(conv_file, index_col=0, parse_dates=True).iloc[:, 0]
+        else:
+            return pd.DataFrame()
+    else:
+        apex_ret = pd.read_csv(apex_file, index_col=0, parse_dates=True).iloc[:, 0]
+        cx_ret = pd.read_csv(conv_file, index_col=0, parse_dates=True).iloc[:, 0]
+
+    common = apex_ret.index.intersection(cx_ret.index)
+    if len(common) == 0:
+        return pd.DataFrame()
+
+    comb_ret = target_apex * apex_ret.loc[common] + target_convex * cx_ret.loc[common]
+    df_comb = pd.DataFrame({"return": comb_ret})
+    df_comb["value"] = (1.0 + comb_ret).cumprod() * 100.0
+    df_comb["roll_max"] = df_comb["value"].cummax()
+    df_comb["drawdown"] = (df_comb["value"] - df_comb["roll_max"]) / df_comb["roll_max"] * 100.0
+    return df_comb
+
+
+
 if __name__ == "__main__":
     cfg = load_config()
     holdings = {
