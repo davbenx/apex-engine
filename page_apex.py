@@ -532,10 +532,11 @@ with st.sidebar:
         new_cfg = {**cfg, "apex_capital_eur": cap_apex_input,
                    "last_updated": datetime.date.today().strftime("%Y-%m-%d")}
         if portfolio_manager.save_config(new_cfg):
-            st.toast("Capitale salvato.", icon="✅")
+            st.toast("Salvato per questa sessione dell'app.", icon="✅")
             cfg = new_cfg
         else:
             st.error("Errore nel salvataggio della configurazione.")
+    st.caption("↳ Vale finché l'app resta attiva. Un riavvio (dopo inattività o un aggiornamento) lo cancella: da reinserire.")
 
 
 # ==============================================================================

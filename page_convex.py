@@ -21,6 +21,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import convex_engine
+import portfolio_manager
 
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
@@ -385,11 +386,15 @@ with tab_pf:
     st_html(section_title("I Tuoi Numeri", top="8px"))
     st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità pronta per il PAC di questo mese.")
 
+    cfg = portfolio_manager.load_config()
     _saved_holdings = {}
+    _saved_cash = 0.0
     if os.path.exists(_cp_path):
         try:
             with open(_cp_path, "r", encoding="utf-8") as f:
-                _saved_holdings = {k: v.get("shares", 0.0) for k, v in json.load(f).get("holdings", {}).items()}
+                _saved = json.load(f)
+                _saved_holdings = {k: v.get("shares", 0.0) for k, v in _saved.get("holdings", {}).items()}
+                _saved_cash = float(_saved.get("cash_eur", 0.0))
         except Exception:
             pass
 
@@ -409,9 +414,29 @@ with tab_pf:
 
     c_pac, c_cash = st.columns(2)
     with c_pac:
-        pac_input = st.number_input("Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0, value=600.0, step=50.0, format="%.0f")
+        pac_input = st.number_input(
+            "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
+            value=float(cfg.get("monthly_pac_eur", 0.0)) or 600.0, step=50.0, format="%.0f"
+        )
     with c_cash:
-        cash_input = st.number_input("Cassa Residua Non Investita (€)", min_value=0.0, value=0.0, step=50.0, format="%.0f")
+        cash_input = st.number_input(
+            "Cassa Residua Non Investita (€)", min_value=0.0,
+            value=_saved_cash, step=50.0, format="%.0f"
+        )
+
+    if st.button("Salva le Tue Quote", use_container_width=True, key="convex_save_holdings"):
+        _new_portfolio = {
+            "cash_eur": cash_input,
+            "holdings": {k: {"shares": v} for k, v in convex_holdings.items()},
+            "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
+        }
+        _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
+        portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
+        if _ok_p:
+            st.toast("Salvato per questa sessione dell'app.", icon="✅")
+        else:
+            st.error("Errore nel salvataggio delle quote.")
+    st.caption("↳ Vale finché l'app resta attiva. Un riavvio (dopo inattività o un aggiornamento) lo cancella: da reinserire.")
 
     _n_live = sum(convex_prices_live.values())
     if _n_live < len(convex_prices_live):

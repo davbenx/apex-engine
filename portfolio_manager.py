@@ -43,7 +43,11 @@ def load_config() -> Dict[str, Any]:
 
 
 def save_config(config_dict: Dict[str, Any]) -> bool:
-    """Salva i parametri compilabili dell'utente in config.json."""
+    """Salva i parametri compilabili dell'utente in config.json. Scrive sul
+    disco locale del container: vale finche' l'app resta attiva, si perde a un
+    suo riavvio (redeploy, risveglio dopo inattivita' — filesystem effimero di
+    Streamlit Cloud). Deliberatamente non salvato su GitHub: il repo e'
+    pubblico e questi sono dati patrimoniali reali dell'utente."""
     try:
         with open(CONFIG_FILE, "w") as f:
             json.dump(config_dict, f, indent=4)
@@ -64,7 +68,8 @@ def load_convex_portfolio() -> Dict[str, Any]:
 
 
 def save_convex_portfolio(data: Dict[str, Any]) -> bool:
-    """Salva le posizioni di Convex Stack."""
+    """Salva le posizioni di Convex Stack. Stesso limite di save_config: vale
+    finche' l'app resta attiva, si perde a un suo riavvio."""
     try:
         with open(CONVEX_FILE, "w") as f:
             json.dump(data, f, indent=4)
