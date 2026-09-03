@@ -847,9 +847,10 @@ with tab_pf:
     if alloc_segments:
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;">{get_class_svg(label, size=14)} <span style="opacity:0.85;">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            f'<div style="display:flex; align-items:center; gap:6px;">{get_class_svg(label, size=14, color=color)} <span style="opacity:0.85;">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
             for label, pct, color in alloc_segments
         )
+
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
 

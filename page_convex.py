@@ -141,8 +141,8 @@ def get_convex_class_svg(strumento, size=16, color="currentColor", style=""):
         # Tag: fattore value
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M20.59 13.41 11 3.83A1.83 1.83 0 0 0 9.7 3.3H4a1.83 1.83 0 0 0-1.83 1.83V9.7c0 .48.19.96.54 1.3l9.58 9.58a2 2 0 0 0 2.83 0l6.47-6.47a2 2 0 0 0 0-2.83Z"></path><circle cx="7.5" cy="7.5" r="1"></circle></svg>'
     if strumento == "DBMFE":
-        # Shield: protezione attiva in crisi (trend-following)
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M12 2 4 5v6c0 5.5 3.5 9.7 8 11 4.5-1.3 8-5.5 8-11V5z"></path></svg>'
+        # Compass: trend-following sistematico multi-asset
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>'
     if strumento == "PPFB":
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
     if strumento == "WBTC":
@@ -364,8 +364,10 @@ convex_prices, convex_prices_live = fetch_convex_live_prices()
 # ==============================================================================
 # INTESTAZIONE
 # ==============================================================================
-_shield_svg = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#C9A44C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.5 3.5 9.7 8 11 4.5-1.3 8-5.5 8-11V5z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>'
-_logo_tag = _shield_svg
+_logo_b64 = get_logo_b64()
+_logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />'
+             if _logo_b64 else '🦅')
+
 
 _cp_path = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
 _has_holdings = False
@@ -539,9 +541,10 @@ with tab_pf:
         alloc_segments = [(k, convex_report.assets[k].current_weight * 100.0, _COLOR_MAP.get(k, ACCENT)) for k in active_instruments]
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14)} <span style="opacity:0.85;">{k}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            f'<div style="display:flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14, color=color)} <span style="opacity:0.85;">{k}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
             for k, pct, color in alloc_segments
         )
+
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
 
