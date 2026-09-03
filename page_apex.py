@@ -834,7 +834,7 @@ with tab_pf:
     if alloc_segments:
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px; cursor:help;" title="{label}">{get_class_svg(label, size=14)} <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            f'<div style="display:flex; align-items:center; gap:6px;">{get_class_svg(label, size=14)} <span style="opacity:0.85;">{label}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
             for label, pct, color in alloc_segments
         )
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
@@ -1009,27 +1009,30 @@ with tab_pf:
 # TAB 2: METRICHE (EQUITY CURVE, DRAWDOWN, KPI, STORICO)
 # ==============================================================================
 with tab_perf:
-    st_html(f"""
-    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px;">
-    </div>
-    """)
-
-    def sub_hero_metric(label, value, subtext="", val_color=None):
+    # Gerarchia visiva a due livelli: le 3 metriche che rispondono a "quanto ho
+    # guadagnato / quanto rischio ho corso" sono grandi e in cima (quelle che
+    # contano per chi non è un esperto); le 3 di supporto tecnico (Volatilità,
+    # Sortino, Calmar — variazioni/dettagli delle prime) sono più piccole,
+    # sotto un separatore. Prima erano 6 numeri tutti uguali, senza gerarchia.
+    def sub_hero_metric(label, value, subtext="", val_color=None, primary=False):
+        val_size = "32px" if primary else "20px"
         return f"""
-        <div style="flex: 1 1 140px;">
+        <div style="flex: 1 1 {'160px' if primary else '130px'};">
             <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
-            <div style="font-family: {MONO}; font-size: 26px; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
+            <div style="font-family: {MONO}; font-size: {val_size}; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
             <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
         </div>
         """
 
     st_html(f"""
-    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px;">
-        {sub_hero_metric("Crescita Annua Netta", f"{_m_apex_active['cagr_net']*100:+.2f}%", f"Lordo: {_m_apex_active['cagr_gross']*100:+.2f}%", POS if _m_apex_active['cagr_net'] >= 0 else NEG)}
+    <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
+        {sub_hero_metric("Crescita Annua Netta", f"{_m_apex_active['cagr_net']*100:+.2f}%", f"Lordo: {_m_apex_active['cagr_gross']*100:+.2f}%", POS if _m_apex_active['cagr_net'] >= 0 else NEG, primary=True)}
+        {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
+        {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active['max_drawdown']*100:.2f}%", "Il calo peggiore mai vissuto", primary=True)}
+    </div>
+    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
         {sub_hero_metric("Volatilità Annua", f"{_m_apex_active['volatility']*100:.1f}%", "Oscillazione realizzata")}
-        {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None)}
         {sub_hero_metric("Indice di Sortino", f"{_m_apex_active['sortino']:.2f}", "Come Sharpe, guarda solo ai cali")}
-        {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active['max_drawdown']*100:.2f}%", "Drawdown dal picco")}
         {sub_hero_metric("Calmar", f"{_m_apex_active['calmar']:.2f}", "Crescita / peggior perdita")}
     </div>
     """)

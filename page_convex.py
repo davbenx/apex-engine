@@ -203,10 +203,12 @@ def render_monthly_returns_html_table(df_eq):
 # recupero fallisce — mai spacciato per prezzo di mercato)
 # ==============================================================================
 _CONVEX_BASE_PRICES = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
-# PPFB/WBTC corretti: i vecchi ticker (PPFB.MI, BTC-USD) non erano validi per il prezzo
-# reale per quota — PPFB.MI non e' fetchable, BTC-USD dava il prezzo grezzo di Bitcoin
-# invece di quello dell'ETP. Verificato via Yahoo chart API: SGLD.MI (~EUR 367, oro) e
-# WBTC-ETFP.MI (~EUR 16, Bitcoin ETP) sono i ticker reali e fetchable per questi ISIN.
+# PPFB/WBTC/DBMFE corretti nel tempo — nessuno dei tre era il ticker giusto in origine:
+# WBTC-ETFP.MI (~EUR 16/quota) e' l'ETP Bitcoin, non BTC-USD (prezzo grezzo di Bitcoin).
+# DBMFE.PA e' la quotazione UCITS EUR reale (ISIN LU2951555403), non DBMF (ETF USD diverso).
+# EGLN.L e' iShares Physical Gold ETC (ISIN IE00B4ND3602, ~EUR 74/quota) — "PPFB" e'
+# letteralmente il suo ticker ufficiale; SGLD.MI (Invesco, ISIN diverso) era stato usato
+# per errore in una correzione intermedia, poi sostituito con quello giusto.
 _CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMFE.PA", "PPFB": "EGLN.L", "WBTC": "WBTC-ETFP.MI"}
 
 # Cache di prezzi aggiornata da uno scheduler GitHub Actions (fetch_live_prices.py,
@@ -284,7 +286,12 @@ def load_benchmark_spy():
         return pd.Series(close, index=idx).ffill().dropna()
 
     try:
-        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=2y&interval=1d"
+        # range=10y (non 2y): il periodo "Tutto" di Convex puo' coprire molti anni di
+        # backtest — con solo 2y di fallback il benchmark si normalizzerebbe a un punto
+        # a meta' grafico invece che dall'inizio reale (stesso bug gia' corretto in
+        # page_apex.py). La cache scheduled (fetch_live_prices.py) e' gia' a 10y: questo
+        # fallback si attiva solo se la cache manca o e' troppo vecchia.
+        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
         data_spy = res['chart']['result'][0]
@@ -414,15 +421,32 @@ with tab_pf:
 
     c_pac, c_cash = st.columns(2)
     with c_pac:
+        _saved_pac = float(cfg.get("monthly_pac_eur", 0.0))
         pac_input = st.number_input(
             "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
-            value=float(cfg.get("monthly_pac_eur", 0.0)) or 600.0, step=50.0, format="%.0f"
+            value=_saved_pac or 600.0, step=50.0, format="%.0f"
         )
+        if _saved_pac:
+            st.caption(f"↳ valore dell'ultimo salvataggio (€{_saved_pac:,.0f}) · modificabile")
     with c_cash:
         cash_input = st.number_input(
             "Cassa Residua Non Investita (€)", min_value=0.0,
             value=_saved_cash, step=50.0, format="%.0f"
         )
+
+    # Totale calcolato subito, mentre si digita — prima bisognava scorrere
+    # fino alle metriche sotto per avere un riscontro su quanto inserito.
+    # Serve anche da controllo di coerenza immediato (es. una quota inserita
+    # per errore in un campo sbagliato salta subito all'occhio).
+    _quote_totale = sum(convex_holdings.get(k, 0.0) * convex_prices.get(k, 0.0) for k in active_instruments)
+    _patrimonio_live = _quote_totale + cash_input
+    st_html(f"""
+    <div style="font-size:13px; color:{MUTED}; margin: 4px 0 14px;">
+        Patrimonio calcolato dalle quote inserite:
+        <span style="font-family:{MONO}; color:{BADGE_TEXT}; font-weight:700;">€ {_patrimonio_live:,.0f}</span>
+        <span style="color:{MUTED_2};"> (quote € {_quote_totale:,.0f} + cassa € {cash_input:,.0f})</span>
+    </div>
+    """)
 
     if st.button("Salva le Tue Quote", use_container_width=True, key="convex_save_holdings"):
         _new_portfolio = {

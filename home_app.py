@@ -162,8 +162,16 @@ with i2:
 
 # ==============================================================================
 # BILANCIAMENTO APEX/CONVEX — confronta lo split reale col target (45/55,
-# config.json) e con l'intervallo validato in questa sessione (35-45% Apex,
-# vedi research/convex/optimize_v2_results.pkl e ratio_final_both_net.pkl).
+# config.json) e con la fascia entro cui il backtest storico (research/convex/
+# optimize_v2_results.pkl, finestra 2014-11/2026-08, n=142 mesi) non mostra
+# differenze di rischio/rendimento apprezzabili: Sharpe e Calo Massimo restano
+# entro pochi centesimi dal loro punto migliore per un'Apex% tra 30% e 55%
+# (Sharpe 1.030-1.064, MaxDD -10.8/-10.9%). NON è un "ottimo" preciso: lo
+# stesso test, ripetuto separatamente sulla prima e sulla seconda metà dello
+# storico, ha trovato punti ottimali molto diversi (55% e 25%) — un segnale
+# che un numero esatto non è affidabile. 30-55% è quindi una fascia di
+# tolleranza operativa (non serve inseguire il target esatto, evitando
+# ribilanciamenti inutili con relative tasse/costi), non una fascia "ottima".
 # ==============================================================================
 st_html(section_title("Bilanciamento tra le Due Strategie"))
 _cfg = portfolio_manager.load_config()
@@ -173,14 +181,14 @@ if apex_val_eur > 0 and convex_val_eur is not None and _tot > 0:
     _real_apex_ratio = apex_val_eur / _tot
     _in_range = 0.30 <= _real_apex_ratio <= 0.55
     _col = POS if _in_range else ACCENT
-    _msg = "in linea con l'intervallo validato" if _in_range else "valuta un riequilibrio tra le due strategie"
+    _msg = "in linea, nessuna azione necessaria" if _in_range else "valuta un riequilibrio tra le due strategie"
     st_html(f"""
     <div class="glass-card" style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px; margin: 0;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="font-size:13px; color:{BADGE_TEXT}; font-weight:600;">
                 Quota Apex reale: <span style="font-family:{MONO}; color:{_col}; font-weight:700;">{_real_apex_ratio*100:.1f}%</span>
                 &nbsp;·&nbsp; Target: <span style="font-family:{MONO};">{_target_apex*100:.0f}%</span>
-                &nbsp;·&nbsp; Intervallo validato: <span style="font-family:{MONO};">35–45%</span>
+                &nbsp;·&nbsp; Fascia di tolleranza: <span style="font-family:{MONO};">30–55%</span>
             </div>
         </div>
         <div style="font-size:12px; color:{_col}; margin-top:6px; font-weight:600;">{_msg.upper()}</div>
