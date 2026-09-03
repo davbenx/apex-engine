@@ -15,12 +15,19 @@ import json
 import os
 import urllib.request
 
+import importlib
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 import convex_engine
 import portfolio_manager
+
+try:
+    importlib.reload(portfolio_manager)
+    importlib.reload(convex_engine)
+except Exception:
+    pass
 
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
@@ -522,7 +529,27 @@ with tab_perf:
     """)
 
     # Carica serie combinata 142 mesi (2014-11 al 2026-08)
-    df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
+    if hasattr(portfolio_manager, "load_combined_monthly_history"):
+        df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
+    else:
+        base_dir = os.path.dirname(__file__)
+        apex_file = os.path.join(base_dir, "apex_monthly_returns_extended.csv")
+        conv_file = os.path.join(base_dir, "convex_monthly_returns.csv")
+        if os.path.exists(apex_file) and os.path.exists(conv_file):
+            a_ret = pd.read_csv(apex_file, index_col=0, parse_dates=True).iloc[:, 0]
+            c_ret = pd.read_csv(conv_file, index_col=0, parse_dates=True).iloc[:, 0]
+            common = a_ret.index.intersection(c_ret.index)
+            if len(common) > 0:
+                comb_ret = _target_apex * a_ret.loc[common] + (1.0 - _target_apex) * c_ret.loc[common]
+                df_comb = pd.DataFrame({"return": comb_ret})
+                df_comb["value"] = (1.0 + comb_ret).cumprod() * 100.0
+                df_comb["roll_max"] = df_comb["value"].cummax()
+                df_comb["drawdown"] = (df_comb["value"] - df_comb["roll_max"]) / df_comb["roll_max"] * 100.0
+            else:
+                df_comb = pd.DataFrame()
+        else:
+            df_comb = pd.DataFrame()
+
 
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark (SPY)", top="8px", bottom="8px"))

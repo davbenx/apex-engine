@@ -20,8 +20,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+import importlib
 import convex_engine
 import portfolio_manager
+
+try:
+    importlib.reload(portfolio_manager)
+    importlib.reload(convex_engine)
+except Exception:
+    pass
 
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
