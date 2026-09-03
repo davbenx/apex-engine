@@ -6,7 +6,7 @@
             "current_price": 24.1200008392334,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.02202797089260781
+            "weight": 0.022041622001942963
         },
         "REG": {
             "entry_date": "2026-05-04",
@@ -14,7 +14,7 @@
             "current_price": 76.05999755859375,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021756982611093455
+            "weight": 0.02177046578436779
         },
         "TJX": {
             "entry_date": "2026-05-04",
@@ -22,7 +22,7 @@
             "current_price": 133.27000427246094,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.020968697032793082
+            "weight": 0.020981691692047257
         },
         "SNA": {
             "entry_date": "2026-05-04",
@@ -30,7 +30,7 @@
             "current_price": 381.20001220703125,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021202682606221743
+            "weight": 0.021215822270327308
         },
         "ATO": {
             "entry_date": "2026-05-04",
@@ -38,7 +38,7 @@
             "current_price": 167.6999969482422,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.02196411292586763
+            "weight": 0.021977724461331446
         },
         "RSG": {
             "entry_date": "2026-05-04",
@@ -46,7 +46,7 @@
             "current_price": 223.2899932861328,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.022177191406694025
+            "weight": 0.022190934990527295
         },
         "KO": {
             "entry_date": "2026-05-04",
@@ -54,7 +54,7 @@
             "current_price": 88.0,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021074076542246252
+            "weight": 0.021087136506980093
         },
         "PFE": {
             "entry_date": "2026-05-04",
@@ -62,7 +62,7 @@
             "current_price": 28.549999237060547,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021930413671157334
+            "weight": 0.021944004322618133
         },
         "CB": {
             "entry_date": "2026-05-04",
@@ -70,7 +70,7 @@
             "current_price": 338.739990234375,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021666266060760987
+            "weight": 0.021679693015441554
         },
         "LIN": {
             "entry_date": "2026-05-04",
@@ -78,7 +78,7 @@
             "current_price": 486.760009765625,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021925957058305242
+            "weight": 0.02193954494792703
         },
         "AFL": {
             "entry_date": "2026-06-01",
@@ -86,7 +86,7 @@
             "current_price": 116.0199966430664,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021915553004160697
+            "weight": 0.021929134446212653
         },
         "MCD": {
             "entry_date": "2026-06-01",
@@ -94,7 +94,7 @@
             "current_price": 261.1099853515625,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.02137359693184761
+            "weight": 0.021386842514476378
         },
         "KVUE": {
             "entry_date": "2026-06-01",
@@ -102,7 +102,7 @@
             "current_price": 18.75,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.021409122286906983
+            "weight": 0.021422389885204306
         },
         "NI": {
             "entry_date": "2026-06-01",
@@ -110,7 +110,7 @@
             "current_price": 40.959999084472656,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.022113135678289906
+            "weight": 0.022126839565695562
         },
         "CTVA": {
             "entry_date": "2026-06-01",
@@ -118,15 +118,15 @@
             "current_price": 87.7300033569336,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.02318245640754615
+            "weight": 0.023196822971249163
         },
         "BTC": {
             "entry_date": "2026-08-24",
             "entry_price": 78564.9765625,
-            "current_price": 77197.3828125,
+            "current_price": 77049.5703125,
             "stop_loss": 0.0,
             "is_crypto": true,
-            "weight": 0.323456445142259
+            "weight": 0.3230371795602233
         }
     },
     "macro_positions": {},
@@ -2795,6 +2795,6 @@
         }
     ],
     "v2_migrated": true,
-    "nav_usd": 143503.62821477628,
+    "nav_usd": 143414.7516466826,
     "last_telegram_alert_date": "2026-08-30"
 }
