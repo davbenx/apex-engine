@@ -574,7 +574,8 @@ with tab_perf:
 
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark (SPY)", top="8px", bottom="8px"))
-        st.caption("Serie mensile dal backtest comune (2014–2026, 142 mesi reali). Combinazione pesata 45% Apex Engine / 55% Convex Stack.")
+        st.caption(f"Serie mensile dal backtest comune (2014–2026, 142 mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
+
 
         selected_range = st.segmented_control(
             "Periodo", options=["1M", "3M", "6M", "1A", "Tutto"],

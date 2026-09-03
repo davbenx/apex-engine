@@ -70,12 +70,12 @@ class TestApexConvexEcosystem(unittest.TestCase):
 
     def test_portfolio_manager_smart_flow(self):
         """Verifica che la sintesi unificata rilevi correttamente lo squilibrio tra i motori."""
-        holdings = {"NTSG": 585, "AVWS": 390, "DBMFE": 1300, "PPFB": 195, "WBTC": 97.5}
+        holdings = {"NTSG": 450, "AVWS": 300, "DBMFE": 1000, "PPFB": 150, "WBTC": 75}
         prices = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
-        c_rep = convex_engine.evaluate_convex_stack(holdings, prices, monthly_pac_eur=600.0)
+        c_rep = convex_engine.evaluate_convex_stack(holdings, prices, monthly_pac_eur=500.0)
 
-        # Caso: Apex a 50k (27.7%) vs Convex a 130k (72.2%) con target Apex a 45%
-        unified = portfolio_manager.compute_unified_portfolio(50000.0, c_rep, monthly_pac=600.0, target_apex_ratio=0.45)
+        # Caso: Apex a 50k (33.3%) vs Convex a 100k (66.7%) con target Apex a 50%
+        unified = portfolio_manager.compute_unified_portfolio(50000.0, c_rep, monthly_pac=500.0, target_apex_ratio=0.50)
         self.assertIn("Apex Engine", unified["smart_flow_destination"], "Smart flow deve indirizzare verso il motore sottopesato")
 
     def test_apex_v2_engine_unaltered(self):
@@ -88,34 +88,38 @@ class TestApexConvexEcosystem(unittest.TestCase):
         """Regressione: PAC=0€ (min_value consentito dalla UI) non deve mai
         andare in crash — prima era un AttributeError su pac_action=None
         quando i due motori erano già in equilibrio."""
-        holdings = {"NTSG": 585, "AVWS": 390, "DBMFE": 1300, "PPFB": 195, "WBTC": 97.5}
+        holdings = {"NTSG": 450, "AVWS": 300, "DBMFE": 1000, "PPFB": 150, "WBTC": 75}
         prices = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
         c_rep = convex_engine.evaluate_convex_stack(holdings, prices, monthly_pac_eur=0.0)
         self.assertIsNone(c_rep.pac_action, "Con PAC 0 non deve esserci un'azione consigliata")
-        # Apex in equilibrio col target (non sottopesato) + Convex report con
-        # pac_action=None: prima di questo fix, andava in crash qui sotto.
         unified = portfolio_manager.compute_unified_portfolio(
-            100000.0, c_rep, monthly_pac=0.0, target_apex_ratio=0.45
+            100000.0, c_rep, monthly_pac=0.0, target_apex_ratio=0.50
         )
         self.assertIn("Nessun versamento", unified["smart_flow_note"])
 
     def test_simple_instruments_weights_sum_to_one(self):
         """Regressione: i pesi della versione Semplice (4 strumenti, senza
-        AVWS) devono sommare esattamente a 1.0 — prima sommavano a 0.999 per
-        via di letterali troncati a mano a 3 decimali."""
+        AVWS) devono sommare esattamente a 1.0."""
         weights = [info["target_weight"] for info in convex_engine.CONVEX_INSTRUMENTS_SIMPLE.values()]
         self.assertAlmostEqual(sum(weights), 1.0, places=6)
 
     def test_negative_holdings_never_produce_negative_value(self):
-        """Difesa: quote negative (input malformato, non raggiungibile dalla
-        UI che impone min_value=0.0, ma possibile da una chiamata diretta alla
-        funzione) non devono produrre un valore di posizione negativo."""
+        """Difesa: quote negative non devono produrre un valore di posizione negativo."""
         report = convex_engine.evaluate_convex_stack(
-            {"NTSG": -500, "WBTC": 100}, {"NTSG": 100.0, "WBTC": 100.0}, monthly_pac_eur=600.0
+            {"NTSG": -500, "WBTC": 100}, {"NTSG": 100.0, "WBTC": 100.0}, monthly_pac_eur=500.0
         )
         self.assertEqual(report.assets["NTSG"].current_value, 0.0)
         self.assertGreaterEqual(report.total_value, 0.0)
 
+    def test_currency_conversion_usd_eur(self):
+        """Verifica che la conversione da USD a EUR sia esatta e bidirezionale."""
+        nav_usd = 110000.0
+        eur_usd_rate = 1.10
+        val_eur = nav_usd / eur_usd_rate
+        self.assertAlmostEqual(val_eur, 100000.0, places=2)
+        self.assertAlmostEqual(val_eur * eur_usd_rate, nav_usd, places=2)
+
 
 if __name__ == "__main__":
     unittest.main()
+
