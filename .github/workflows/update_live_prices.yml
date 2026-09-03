@@ -1,0 +1,32 @@
+name: Aggiorna Prezzi Live (Convex + Benchmark SPY)
+
+# Esegue fetch_live_prices.py su un runner GitHub Actions (IP non condiviso
+# con Streamlit Community Cloud, dove Yahoo Finance limita/blocca il pool di
+# IP condivisi) e commit del risultato in live_prices_cache.json. La
+# dashboard legge questo file invece di chiamare Yahoo a runtime.
+
+on:
+  schedule:
+    - cron: '0 6,12,18 * * 1-5' # 3 volte al giorno nei giorni lavorativi (UTC)
+  workflow_dispatch: # Permette avvio manuale
+
+jobs:
+  update-live-prices:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Run fetch script
+        run: python fetch_live_prices.py
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add live_prices_cache.json
+          git commit -m "Aggiornamento prezzi live Convex + benchmark SPY" || echo "Nessuna modifica da pushare"
+          git push

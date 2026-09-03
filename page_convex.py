@@ -208,8 +208,43 @@ _CONVEX_BASE_PRICES = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0,
 # WBTC-ETFP.MI (~EUR 16, Bitcoin ETP) sono i ticker reali e fetchable per questi ISIN.
 _CONVEX_YF_TICKERS = {"NTSG": "NTSG.MI", "AVWS": "AVWS.DE", "DBMFE": "DBMF", "PPFB": "SGLD.MI", "WBTC": "WBTC-ETFP.MI"}
 
+# Cache di prezzi aggiornata da uno scheduler GitHub Actions (fetch_live_prices.py,
+# .github/workflows/update_live_prices.yml) — il fetch live a runtime da Streamlit
+# Community Cloud fallisce spesso perché Yahoo Finance limita il pool di IP
+# condivisi degli host cloud (segnalato dall'utente: "Benchmark SPY non
+# raggiungibile"). Si legge prima il file cache (scritto da un runner GitHub
+# Actions con IP diverso, aggiornato 3 volte al giorno); il fetch live resta
+# solo come fallback per uso locale/prima esecuzione senza cache ancora scritta.
+_PRICE_CACHE_PATH = os.path.join(os.path.dirname(__file__), "live_prices_cache.json")
+_PRICE_CACHE_MAX_AGE_H = 48  # oltre questa età si tenta comunque il fetch live
+
+
+def _load_price_cache():
+    if not os.path.exists(_PRICE_CACHE_PATH):
+        return None
+    try:
+        with open(_PRICE_CACHE_PATH, "r") as f:
+            cache = json.load(f)
+        fetched_at = datetime.datetime.strptime(cache["fetched_at"], "%Y-%m-%dT%H:%M:%SZ")
+        age_h = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - fetched_at).total_seconds() / 3600
+        cache["_age_hours"] = age_h
+        return cache
+    except Exception:
+        return None
+
+
 @st.cache_data(ttl=900)
 def fetch_convex_live_prices():
+    cache = _load_price_cache()
+    if cache and cache.get("convex_prices") and cache["_age_hours"] <= _PRICE_CACHE_MAX_AGE_H:
+        prices, live_ok = {}, {}
+        for key in _CONVEX_YF_TICKERS:
+            if key in cache["convex_prices"]:
+                prices[key], live_ok[key] = float(cache["convex_prices"][key]), True
+            else:
+                prices[key], live_ok[key] = _CONVEX_BASE_PRICES[key], False
+        return prices, live_ok
+
     prices, live_ok = {}, {}
     for key, ticker in _CONVEX_YF_TICKERS.items():
         try:
@@ -223,6 +258,16 @@ def fetch_convex_live_prices():
             prices[key], live_ok[key] = _CONVEX_BASE_PRICES[key], False
     return prices, live_ok
 
+
+def get_price_cache_freshness():
+    """Etichetta onesta sulla freschezza dei prezzi mostrati (cache o live)."""
+    cache = _load_price_cache()
+    if cache and cache.get("convex_prices"):
+        fetched_at = datetime.datetime.strptime(cache["fetched_at"], "%Y-%m-%dT%H:%M:%SZ")
+        return f"Prezzi aggiornati al {fetched_at.strftime('%d/%m/%Y %H:%M')} UTC"
+    return "Prezzi da fetch live (nessuna cache disponibile)"
+
+
 # Benchmark SPY — stesso strumento e stesso meccanismo di fetch usato da
 # Apex Engine (query2.finance.yahoo.com, cache 1h). VT sarebbe un confronto
 # più aderente per la sola sleeve azionaria di Convex, ma non esiste ancora
@@ -230,6 +275,13 @@ def fetch_convex_live_prices():
 # semplice e coerente con la convenzione già usata da Apex.
 @st.cache_data(ttl=3600)
 def load_benchmark_spy():
+    cache = _load_price_cache()
+    if cache and cache.get("spy_history") and cache["_age_hours"] <= _PRICE_CACHE_MAX_AGE_H:
+        hist = cache["spy_history"]
+        idx = pd.to_datetime([h["date"] for h in hist])
+        close = [h["close"] for h in hist]
+        return pd.Series(close, index=idx).ffill().dropna()
+
     try:
         url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=2y&interval=1d"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -364,6 +416,8 @@ with tab_pf:
     _n_live = sum(convex_prices_live.values())
     if _n_live < len(convex_prices_live):
         st.caption(f"Prezzo di mercato non raggiungibile per {len(convex_prices_live) - _n_live}/{len(convex_prices_live)} titoli: usato un prezzo di base, non il prezzo reale.")
+    else:
+        st.caption(get_price_cache_freshness())
 
     convex_report = convex_engine.evaluate_convex_stack(
         current_holdings=convex_holdings,

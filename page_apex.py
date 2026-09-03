@@ -30,6 +30,32 @@ import portfolio_manager
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
 # ==============================================================================
+# CACHE PREZZI (scritta da fetch_live_prices.py via GitHub Actions) — il fetch
+# SPY a runtime da Streamlit Community Cloud fallisce spesso perché Yahoo
+# Finance limita il pool di IP condivisi degli host cloud (segnalato
+# dall'utente: "Benchmark SPY non raggiungibile"). Si legge prima questo file
+# (aggiornato 3 volte al giorno da un runner con IP diverso); il fetch live
+# resta come fallback solo per uso locale/prima esecuzione senza cache.
+# ==============================================================================
+_PRICE_CACHE_PATH = os.path.join(os.path.dirname(__file__), "live_prices_cache.json")
+_PRICE_CACHE_MAX_AGE_H = 48
+
+
+def _load_price_cache():
+    if not os.path.exists(_PRICE_CACHE_PATH):
+        return None
+    try:
+        with open(_PRICE_CACHE_PATH, "r") as f:
+            cache = json.load(f)
+        fetched_at = datetime.datetime.strptime(cache["fetched_at"], "%Y-%m-%dT%H:%M:%SZ")
+        age_h = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - fetched_at).total_seconds() / 3600
+        cache["_age_hours"] = age_h
+        return cache
+    except Exception:
+        return None
+
+
+# ==============================================================================
 # HTML RENDERING HELPERS & STYLING
 # ==============================================================================
 def st_html(html_str):
@@ -1023,6 +1049,17 @@ with tab_perf:
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
+        cache = _load_price_cache()
+        if cache and cache.get("spy_history") and cache["_age_hours"] <= _PRICE_CACHE_MAX_AGE_H:
+            hist = cache["spy_history"]
+            idx = pd.to_datetime([h["date"] for h in hist])
+            df_b = pd.DataFrame({
+                "open": [h["open"] for h in hist],
+                "high": [h["high"] for h in hist],
+                "low": [h["low"] for h in hist],
+                "close": [h["close"] for h in hist],
+            }, index=idx).ffill().dropna()
+            return df_b
         try:
             # range=10y (non 2y): la versione Semplice mostra fino a 9 anni di
             # storico ("Tutto") — con solo 2 anni di SPY il benchmark veniva
