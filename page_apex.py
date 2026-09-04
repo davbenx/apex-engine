@@ -10,8 +10,9 @@ stessa card macro. Adattamenti legittimi per il contesto multipagina: nessun
 st.set_page_config() (lo imposta main.py una sola volta), capitale nella
 sidebar invece che in tab (coerente con page_convex.py, che è EUR-only),
 dati apex_data.json/portfolio.json/equity.json letti da GitHub o locale
-invece che sempre da GitHub, selettore Completa/Semplice (USMV) aggiunto
-questa sessione.
+invece che sempre da GitHub. Solo la versione Completa (basket 15 titoli):
+la variante Semplice (1 ETF, USMV) è stata rimossa, perdeva su ogni
+metrica testata senza alcun vantaggio a compensare la minore complessità.
 ==================================================================================
 """
 
@@ -568,48 +569,14 @@ with col_stat:
     """)
 
 # ==========================================================================
-# VERSIONE — Completa (basket 15 titoli) o Semplice (1 ETF, USMV). Un
-# precedente candidato (VLUE) è stato scartato: il suo apparente vantaggio
-# derivava per ~25% da un solo titolo (Micron) durante un rally isolato
-# 2025-2026, non da un vero effetto fattoriale (VLUE ha perso in 3 dei 5
-# anni testati — research/test_weekly_apex_vlue_deep_dive.py). USMV è
-# scelto per bassa concentrazione (titolo più pesante ~1.6%), non perché
-# batte la versione Completa: su questa finestra è leggermente peggiore su
-# CAGR, Sharpe e MaxDD — vedi research/apex_simple_etf_README.md.
+# VERSIONE — solo Completa (basket 15 titoli). La variante Semplice (1 ETF,
+# USMV) è stata rimossa: su ogni finestra testata (research/
+# apex_simple_etf_README.md) risultava peggiore su CAGR, Sharpe e MaxDD
+# rispetto alla Completa, senza alcun vantaggio a compensare la minore
+# complessità operativa.
 # ==========================================================================
-apex_versione = st.segmented_control(
-    "Versione", options=["Completa", "Semplice"], default="Completa",
-    label_visibility="collapsed", key="apex_versione"
-) or "Completa"
-
-_apex_simple_path = os.path.join(os.path.dirname(__file__), "apex_simple_etf_returns.csv")
 m_apex = portfolio_manager.get_apex_metrics()
 _m_apex_active = m_apex
-_se_df = None
-if apex_versione == "Semplice" and os.path.exists(_apex_simple_path):
-    st.caption(
-        "1 ETF (USMV, basso rischio di concentrazione) invece del basket di 15 titoli. "
-        "Un po' meno performante della versione Completa (CAGR, Sharpe e MaxDD leggermente "
-        "peggiori) ma molto più semplice — scelto per bassa concentrazione su singolo "
-        "titolo (~1,6%), non perché batte la versione standard."
-    )
-    _se_df = pd.read_csv(_apex_simple_path, parse_dates=["date"]).set_index("date")
-    _se_n_years = (_se_df.index[-1] - _se_df.index[0]).days / 365.25
-    _se_cagr_net = (_se_df["nav_net"].iloc[-1] / _se_df["nav_net"].iloc[0]) ** (1 / _se_n_years) - 1
-    _se_cagr_gross = (_se_df["nav_gross"].iloc[-1] / _se_df["nav_gross"].iloc[0]) ** (1 / _se_n_years) - 1
-    _se_ret = _se_df["nav_net"].pct_change().dropna()
-    _se_vol = _se_ret.std() * (252 ** 0.5)
-    _se_sharpe = (_se_cagr_net - 0.03) / _se_vol if _se_vol > 0 else 0.0
-    _se_dd_series = _se_df["nav_net"] / _se_df["nav_net"].cummax() - 1.0
-    _se_mdd = _se_dd_series.min()
-    _se_downside = _se_ret[_se_ret < 0]
-    _se_sortino = (_se_cagr_net - 0.03) / (_se_downside.std() * (252 ** 0.5)) if len(_se_downside) > 0 and _se_downside.std() > 0 else 0.0
-    _se_calmar = _se_cagr_net / abs(_se_mdd) if _se_mdd != 0 else 0.0
-    _m_apex_active = {
-        **m_apex, "cagr_net": _se_cagr_net, "cagr_gross": _se_cagr_gross,
-        "volatility": _se_vol, "sharpe": _se_sharpe, "sortino": _se_sortino,
-        "max_drawdown": _se_mdd, "calmar": _se_calmar,
-    }
 
 # ==============================================================================
 # PORTFOLIO DATA EXTRACTION (serve sia al callout sopra le tab sia alla tab)
@@ -907,117 +874,110 @@ with tab_pf:
         """)
 
     # --- 4. Posizioni Attive nel Portafoglio ---
-    if apex_versione == "Semplice":
-        st_html(section_title("Sleeve Azionaria — USMV (ETF Unico)"))
-        st.caption("Nessun paniere: quando la classe Azionario è attiva, il 100% dell'esposizione azionaria è su un unico ETF (USMV, iShares MSCI USA Min Vol Factor).")
-    else:
-        st_html(section_title("Posizioni Attive nel Portafoglio"))
-        real_cash_usd = max(0.0, capitale - tot_invested_usd)
-        cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
+    st_html(section_title("Posizioni Attive nel Portafoglio"))
+    real_cash_usd = max(0.0, capitale - tot_invested_usd)
+    cash_weight_pct = (real_cash_usd / capitale * 100) if capitale > 0 else 0.0
 
-        col_val_label = f"Valore ({curr_sym})"
-        col_rend_label = f"Rendimento ({curr_sym})"
+    col_val_label = f"Valore ({curr_sym})"
+    col_rend_label = f"Rendimento ({curr_sym})"
 
-        unified_rows = []
-        for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
-            unified_rows.append({
-                "Classe": "Azioni", "Strumento": r["Titolo"],
-                "Data Ingresso": r["Data Ingresso"],
-                "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
-                "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
-            })
-        if op_cr:
-            r = op_cr[0]
-            unified_rows.append({
-                "Classe": "Bitcoin", "Strumento": "Bitcoin",
-                "Data Ingresso": r["Data Ingresso"],
-                "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
-                "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
-            })
-
-        def _detail_row(classe, disp_name, detail):
-            fmt_d = format_date_italian(detail['entry_date']) if detail.get('entry_date') and detail['entry_date'] != "N/A" else "—"
-            return {
-                "Classe": classe, "Strumento": disp_name,
-                "Data Ingresso": f"{fmt_d} ({detail['days']}g)" if fmt_d != "—" else "—",
-                "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
-                "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
-            }
-
-        if gold_detail:
-            unified_rows.append(_detail_row("Oro", "Oro", gold_detail))
-        if bond_detail:
-            unified_rows.append(_detail_row("Obbligazioni", "Obbligazioni", bond_detail))
-
+    unified_rows = []
+    for r in sorted(op_eq, key=lambda x: x["Rendimento %"], reverse=True):
         unified_rows.append({
-            "Classe": "Liquidità", "Strumento": "Liquidità",
-            "Data Ingresso": "—",
-            "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
-            "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
+            "Classe": "Azioni", "Strumento": r["Titolo"],
+            "Data Ingresso": r["Data Ingresso"],
+            "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
+            "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
+        })
+    if op_cr:
+        r = op_cr[0]
+        unified_rows.append({
+            "Classe": "Bitcoin", "Strumento": "Bitcoin",
+            "Data Ingresso": r["Data Ingresso"],
+            "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
+            "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
         })
 
-        if unified_rows:
-            show_details = st.toggle("Mostra dettagli esecuzione", value=False, key="pos_details_toggle")
-            compact_cols = ["Strumento", "Peso (%)", col_val_label, "Rendimento %"]
-            full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
-            active_cols = full_cols if show_details else compact_cols
+    def _detail_row(classe, disp_name, detail):
+        fmt_d = format_date_italian(detail['entry_date']) if detail.get('entry_date') and detail['entry_date'] != "N/A" else "—"
+        return {
+            "Classe": classe, "Strumento": disp_name,
+            "Data Ingresso": f"{fmt_d} ({detail['days']}g)" if fmt_d != "—" else "—",
+            "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
+            "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
+        }
 
-            df_pos = pd.DataFrame(unified_rows)
+    if gold_detail:
+        unified_rows.append(_detail_row("Oro", "Oro", gold_detail))
+    if bond_detail:
+        unified_rows.append(_detail_row("Obbligazioni", "Obbligazioni", bond_detail))
 
-            def _quote_raw(row):
-                if pd.notna(row["Ingresso ($)"]) and row["Ingresso ($)"] > 0:
-                    return (capitale * row["Peso (%)"] / 100.0) / row["Ingresso ($)"]
-                return float("nan")
+    unified_rows.append({
+        "Classe": "Liquidità", "Strumento": "Liquidità",
+        "Data Ingresso": "—",
+        "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
+        "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
+    })
 
-            def _quote_display(row):
-                q = row["Quote_raw"]
-                if pd.isna(q):
-                    return "—"
-                return f"{q:.6f}" if row["Classe"] == "Bitcoin" and q < 1 else (f"{q:.4f}" if row["Classe"] == "Bitcoin" else f"{int(round(q)):,}")
+    if unified_rows:
+        show_details = st.toggle("Mostra dettagli esecuzione", value=False, key="pos_details_toggle")
+        compact_cols = ["Strumento", "Peso (%)", col_val_label, "Rendimento %"]
+        full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+        active_cols = full_cols if show_details else compact_cols
 
-            df_pos["Quote_raw"] = df_pos.apply(_quote_raw, axis=1)
-            df_pos["Quote"] = df_pos.apply(_quote_display, axis=1)
-            df_pos[col_val_label] = capitale * (df_pos["Peso (%)"] / 100.0) * fx_ratio
-            df_pos[col_rend_label] = (df_pos["Rendimento %"] / 100.0) * df_pos[col_val_label]
+        df_pos = pd.DataFrame(unified_rows)
 
-            st_html(render_positions_html_table(df_pos, active_cols, curr_sym, col_val_label, col_rend_label))
-        else:
-            st.caption("Nessuna posizione attiva al momento.")
+        def _quote_raw(row):
+            if pd.notna(row["Ingresso ($)"]) and row["Ingresso ($)"] > 0:
+                return (capitale * row["Peso (%)"] / 100.0) / row["Ingresso ($)"]
+            return float("nan")
+
+        def _quote_display(row):
+            q = row["Quote_raw"]
+            if pd.isna(q):
+                return "—"
+            return f"{q:.6f}" if row["Classe"] == "Bitcoin" and q < 1 else (f"{q:.4f}" if row["Classe"] == "Bitcoin" else f"{int(round(q)):,}")
+
+        df_pos["Quote_raw"] = df_pos.apply(_quote_raw, axis=1)
+        df_pos["Quote"] = df_pos.apply(_quote_display, axis=1)
+        df_pos[col_val_label] = capitale * (df_pos["Peso (%)"] / 100.0) * fx_ratio
+        df_pos[col_rend_label] = (df_pos["Rendimento %"] / 100.0) * df_pos[col_val_label]
+
+        st_html(render_positions_html_table(df_pos, active_cols, curr_sym, col_val_label, col_rend_label))
+    else:
+        st.caption("Nessuna posizione attiva al momento.")
 
     # --- 5. Ultime Operazioni Eseguite ---
-    if apex_versione == "Completa":
-        if last_actions:
-            rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
-            with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
-                st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-                st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
-        elif latest_hist_trades:
-            rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
-            with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
-                st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
-                show_rec_details = st.toggle("Mostra dettagli esecuzione", value=False, key="rec_details_toggle")
-                recent_rows = []
-                for t in latest_hist_trades:
-                    reason = t.get("reason", "")
-                    op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
-                    recent_rows.append({
-                        "Operazione": op_type,
-                        "Strumento": t.get("ticker", ""),
-                        "Data Ingresso": format_date_italian(t.get("entry_date", "")),
-                        "Data Uscita": format_date_italian(t.get("exit_date", "")),
-                        "Ingresso ($)": t.get("entry_price", 0.0),
-                        "Uscita ($)": t.get("exit_price", 0.0),
-                        "Rendimento %": t.get("profit_pct", 0.0),
-                        "Peso (%)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
-                    })
-                df_rec = pd.DataFrame(recent_rows)
-                rec_compact = ["Operazione", "Strumento", "Data Uscita", "Rendimento %"]
-                rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"]
-                rec_cols = rec_full if show_rec_details else rec_compact
-                df_rec_display = df_rec[[c for c in rec_cols if c in df_rec.columns]]
-                st_html(render_recent_trades_html_table(df_rec_display, rec_cols))
-    else:
-        st.caption("Ultime Operazioni Eseguite non disponibile per la versione Semplice: è un backtest, non ha uno storico di operazioni reali proprio.")
+    if last_actions:
+        rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
+        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
+            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
+    elif latest_hist_trades:
+        rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
+        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
+            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+            show_rec_details = st.toggle("Mostra dettagli esecuzione", value=False, key="rec_details_toggle")
+            recent_rows = []
+            for t in latest_hist_trades:
+                reason = t.get("reason", "")
+                op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
+                recent_rows.append({
+                    "Operazione": op_type,
+                    "Strumento": t.get("ticker", ""),
+                    "Data Ingresso": format_date_italian(t.get("entry_date", "")),
+                    "Data Uscita": format_date_italian(t.get("exit_date", "")),
+                    "Ingresso ($)": t.get("entry_price", 0.0),
+                    "Uscita ($)": t.get("exit_price", 0.0),
+                    "Rendimento %": t.get("profit_pct", 0.0),
+                    "Peso (%)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
+                })
+            df_rec = pd.DataFrame(recent_rows)
+            rec_compact = ["Operazione", "Strumento", "Data Uscita", "Rendimento %"]
+            rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"]
+            rec_cols = rec_full if show_rec_details else rec_compact
+            df_rec_display = df_rec[[c for c in rec_cols if c in df_rec.columns]]
+            st_html(render_recent_trades_html_table(df_rec_display, rec_cols))
 
 
 # ==============================================================================
@@ -1053,18 +1013,16 @@ with tab_perf:
     """)
 
     st_html(section_title("Curva Equity vs Benchmark (SPY)", top="8px", bottom="8px"))
-    if apex_versione == "Semplice":
-        st.caption("Backtest su USMV (2017+) — Apex non ha mai tradato realmente questa versione: solo i 15 titoli (Completa) sono il conto vero.")
 
     selected_range = st.segmented_control(
         "Periodo",
         options=["6M", "1A", "3A", "5A", "Tutto"],
-        default="Tutto" if apex_versione == "Semplice" else "1A",
+        default="1A",
         label_visibility="collapsed",
         key="chart_range_ctrl"
     )
     if not selected_range:
-        selected_range = "Tutto" if apex_versione == "Semplice" else "1A"
+        selected_range = "1A"
 
 
     @st.cache_data(ttl=3600)
@@ -1081,12 +1039,11 @@ with tab_perf:
             }, index=idx).ffill().dropna()
             return df_b
         try:
-            # range=10y (non 2y): la versione Semplice mostra fino a 9 anni di
-            # storico ("Tutto") — con solo 2 anni di SPY il benchmark veniva
+            # range=10y (non 2y): con solo 2 anni di SPY il benchmark veniva
             # normalizzato a un punto di partenza a metà grafico invece che
-            # dall'inizio reale, producendo una curva incoerente (segnalato
-            # dall'utente). 10y copre anche il caso Completa (storico più
-            # corto) senza alcun costo aggiuntivo.
+            # dall'inizio reale, producendo una curva incoerente per il
+            # periodo "Tutto" (segnalato dall'utente). 10y copre l'intero
+            # storico reale di Apex senza alcun costo aggiuntivo.
             url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
@@ -1100,27 +1057,19 @@ with tab_perf:
         except Exception:
             return pd.DataFrame()
 
-    # Carica lo storico: Completa usa equity.json reale, Semplice usa il
-    # backtest USMV già caricato sopra (_se_df) — nessun dato inventato.
-    if apex_versione == "Semplice" and _se_df is not None:
-        df_eq = _se_df.rename(columns={"nav_net": "close"}).copy()
-        df_eq["open"] = df_eq["close"].shift(1).fillna(df_eq["close"].iloc[0])
-        df_eq["high"] = df_eq[["open", "close"]].max(axis=1)
-        df_eq["low"] = df_eq[["open", "close"]].min(axis=1)
-        eq_curve = {"history": True}
-    else:
-        _eq_path_local = os.path.join(os.path.dirname(__file__), "equity.json")
-        eq_curve = fetch_json_local_or_github("equity.json") or (json.load(open(_eq_path_local)) if os.path.exists(_eq_path_local) else None)
-        df_eq = None
-        if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
-            df_eq = pd.DataFrame(eq_curve["history"])
-            df_eq['date'] = pd.to_datetime(df_eq['date'])
-            df_eq = df_eq.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
-            if 'open' not in df_eq.columns or df_eq['open'].isna().all():
-                df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
-                df_eq['high'] = df_eq[['open', 'value']].max(axis=1)
-                df_eq['low'] = df_eq[['open', 'value']].min(axis=1)
-            df_eq['close'] = df_eq['value'] if 'value' in df_eq.columns else df_eq['close']
+    # Storico reale del conto Apex (nessun dato inventato).
+    _eq_path_local = os.path.join(os.path.dirname(__file__), "equity.json")
+    eq_curve = fetch_json_local_or_github("equity.json") or (json.load(open(_eq_path_local)) if os.path.exists(_eq_path_local) else None)
+    df_eq = None
+    if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
+        df_eq = pd.DataFrame(eq_curve["history"])
+        df_eq['date'] = pd.to_datetime(df_eq['date'])
+        df_eq = df_eq.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
+        if 'open' not in df_eq.columns or df_eq['open'].isna().all():
+            df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
+            df_eq['high'] = df_eq[['open', 'value']].max(axis=1)
+            df_eq['low'] = df_eq[['open', 'value']].min(axis=1)
+        df_eq['close'] = df_eq['value'] if 'value' in df_eq.columns else df_eq['close']
 
     if df_eq is not None and len(df_eq) > 0:
         df_eq['roll_max'] = df_eq['close'].cummax()
@@ -1182,9 +1131,8 @@ with tab_perf:
         fig = go.Figure()
         _y_values = list(df_plot['norm_close'])
 
-        strategy_name = "USMV (Semplice)" if apex_versione == "Semplice" else "Apex Engine"
         fig.add_trace(go.Scatter(
-            x=df_plot.index, y=df_plot['norm_close'], mode='lines', name=strategy_name,
+            x=df_plot.index, y=df_plot['norm_close'], mode='lines', name="Apex Engine",
             line=dict(color=ACCENT, width=2), fill='tozeroy', fillcolor='rgba(201, 164, 76, 0.10)',
             text=it_dates_str, hovertemplate="<b>%{text}</b><br>Base 100: %{y:.2f}<extra></extra>"
         ))
@@ -1244,21 +1192,18 @@ with tab_perf:
         )
         st.plotly_chart(fig_dd, use_container_width=True)
 
-        if apex_versione == "Completa":
-            st.caption(
-                f"Grafico dai {len(df_eq)} punti di storico reale disponibili "
-                f"({df_eq.index[0].date()} → {df_eq.index[-1].date()})."
-            )
+        st.caption(
+            f"Grafico dai {len(df_eq)} punti di storico reale disponibili "
+            f"({df_eq.index[0].date()} → {df_eq.index[-1].date()})."
+        )
 
         st_html(section_title("Matrice dei Rendimenti"))
         st_html(render_monthly_returns_html_table(df_eq.rename(columns={"close": "value"}) if "value" not in df_eq.columns else df_eq))
     else:
         st.info("In attesa del file di tracciamento storico.")
 
-    # --- Statistiche Operative (solo versione Completa: storico reale di trade) ---
-    if apex_versione == "Semplice":
-        st.caption("Statistiche Operative e Registro Operazioni non disponibili per la versione Semplice: è un backtest su USMV, non ha uno storico di operazioni reali proprio (quello in Completa è dei 15 titoli).")
-    elif pf:
+    # --- Statistiche Operative (storico reale di trade) ---
+    if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]
         losses = [t for t in hist if t.get("profit_pct", 0) <= 0]

@@ -113,35 +113,6 @@ CONVEX_INSTRUMENTS = {
     }
 }
 
-# ==============================================================================
-# VERSIONE SEMPLICE (4 STRUMENTI, SENZA AVWS)
-# ==============================================================================
-# AVWS rimossa, 15% di capitale redistribuito proporzionalmente sugli altri 4
-# (validato: research/convex/test_convex_ntsg_grid_extended.py — nessuna altra
-# redistribuzione ha mai battuto quella proporzionale fuori campione). Bande
-# di tolleranza scalate con la stessa convenzione degli originali: ±5pp per
-# NTSG/DBMFE, target x1.5 (max) e target-3pp (min) per PPFB/WBTC.
-# Calcolati per divisione (non arrotondati a mano) così i 4 pesi sommano
-# esattamente a 1.0 in virgola mobile, non a 0.999 come una versione precedente
-# con letterali troncati a 3 decimali.
-_SIMPLE_BASE = 45.0 + 25.0 + 7.5 + 7.5  # = 85.0 (capitale residuo dopo AVWS)
-_W_NTSG  = 45.0 / _SIMPLE_BASE
-_W_DBMFE = 25.0 / _SIMPLE_BASE
-_W_PPFB  = 7.5  / _SIMPLE_BASE
-_W_WBTC  = 7.5  / _SIMPLE_BASE
-
-CONVEX_INSTRUMENTS_SIMPLE = {
-    "NTSG": {**CONVEX_INSTRUMENTS["NTSG"], "target_weight": _W_NTSG,
-             "tolerance_min": _W_NTSG - 0.05, "tolerance_max": _W_NTSG + 0.05},
-    "DBMFE": {**CONVEX_INSTRUMENTS["DBMFE"], "target_weight": _W_DBMFE,
-              "tolerance_min": _W_DBMFE - 0.05, "tolerance_max": _W_DBMFE + 0.05},
-    "PPFB": {**CONVEX_INSTRUMENTS["PPFB"], "target_weight": _W_PPFB,
-             "tolerance_min": _W_PPFB - 0.03, "tolerance_max": _W_PPFB * 1.5},
-    "WBTC": {**CONVEX_INSTRUMENTS["WBTC"], "target_weight": _W_WBTC,
-             "tolerance_min": _W_WBTC - 0.03, "tolerance_max": _W_WBTC * 1.5},
-}
-
-
 @dataclass
 class ConvexAssetStatus:
     key: str
@@ -195,9 +166,8 @@ def evaluate_convex_stack(
     e identifica eventuali alert di Trim/Ribilanciamento.
 
     instruments: set di strumenti da usare al posto di CONVEX_INSTRUMENTS (5
-    strumenti, versione Completa). Passare CONVEX_INSTRUMENTS_SIMPLE per la
-    versione Semplice a 4 strumenti (senza AVWS) — stessa logica, nessuna
-    duplicazione.
+    strumenti di produzione) — usato dai test per scenari con prezzi/pesi
+    diversi senza duplicare la logica di valutazione.
     """
     instruments = instruments if instruments is not None else CONVEX_INSTRUMENTS
     total_val = cash_balance

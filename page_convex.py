@@ -426,22 +426,7 @@ tab_pf, tab_metriche, tab_guida = st.tabs(["Portafoglio", "Metriche", "Guida"])
 with tab_pf:
     hero_slot = st.empty()
 
-    versione = st.segmented_control(
-        "Versione", options=["Completa", "Semplice"], default="Completa",
-        label_visibility="collapsed", key="convex_versione"
-    ) or "Completa"
-    active_instruments = (
-        convex_engine.CONVEX_INSTRUMENTS if versione == "Completa"
-        else convex_engine.CONVEX_INSTRUMENTS_SIMPLE
-    )
-    if versione == "Semplice":
-        st.caption(
-            "4 strumenti invece di 5: niente AVWS (small cap value), 15% del capitale "
-            "redistribuito su NTSG/DBMFE/PPFB/WBTC. Sul periodo con dati reali (2019+) "
-            "il costo è nullo (Sharpe e MaxDD leggermente migliori); sulla storia intera "
-            "dal 2000 (in parte ricostruita per proxy) costa ~2.6 punti di MaxDD in più "
-            "a fronte di uno Sharpe quasi identico."
-        )
+    active_instruments = convex_engine.CONVEX_INSTRUMENTS
 
     # ==========================================================================
     # MODULO DI INPUT — Quote possedute & Cassa (Layout 2 colonne pulito)
@@ -622,10 +607,7 @@ with tab_pf:
 
 
 with tab_metriche:
-    _cx_ret_filename = "convex_monthly_returns.csv" if versione == "Completa" else "convex_simple_no_avws_returns.csv"
-    _cx_ret_path = os.path.join(os.path.dirname(__file__), _cx_ret_filename)
-    if versione == "Semplice":
-        st.caption("Statistiche calcolate sulla versione a 4 strumenti (senza AVWS).")
+    _cx_ret_path = os.path.join(os.path.dirname(__file__), "convex_monthly_returns.csv")
     if os.path.exists(_cx_ret_path):
         _cx_ret = pd.read_csv(_cx_ret_path, index_col=0, parse_dates=True).iloc[:, 0]
         _cx_nav = pd.DataFrame({"value": (1.0 + _cx_ret).cumprod() * 100.0})
@@ -855,15 +837,10 @@ with tab_guida:
 
 
     # Nozionale = 100% capitale + la parte extra della leva 1.5x incorporata
-    # solo in NTSG (unico strumento a leva) — cambia con NTSG% se si passa
-    # a Semplice, dove NTSG pesa di più (52.9% vs 45%).
+    # solo in NTSG (unico strumento a leva).
     _ntsg_w = active_instruments.get("NTSG", {}).get("target_weight", 0.0)
     _notional_pct = (1.0 + 0.5 * _ntsg_w) * 100.0
-    _motori_txt = (
-        "cinque motori strutturalmente diversi: azionario, fattore value, trend-following anti-crisi, oro, Bitcoin"
-        if versione == "Completa" else
-        "quattro motori strutturalmente diversi: azionario, trend-following anti-crisi, oro, Bitcoin"
-    )
+    _motori_txt = "cinque motori strutturalmente diversi: azionario, fattore value, trend-following anti-crisi, oro, Bitcoin"
     st_html(section_title("Controllo del Rischio"))
     st_html(f"""
     <div class="glass-card">

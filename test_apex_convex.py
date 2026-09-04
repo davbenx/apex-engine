@@ -115,12 +115,6 @@ class TestApexConvexEcosystem(unittest.TestCase):
         )
         self.assertIn("Nessun versamento", unified["smart_flow_note"])
 
-    def test_simple_instruments_weights_sum_to_one(self):
-        """Regressione: i pesi della versione Semplice (4 strumenti, senza
-        AVWS) devono sommare esattamente a 1.0."""
-        weights = [info["target_weight"] for info in convex_engine.CONVEX_INSTRUMENTS_SIMPLE.values()]
-        self.assertAlmostEqual(sum(weights), 1.0, places=6)
-
     def test_negative_holdings_never_produce_negative_value(self):
         """Difesa: quote negative non devono produrre un valore di posizione negativo."""
         report = convex_engine.evaluate_convex_stack(
