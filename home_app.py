@@ -142,21 +142,7 @@ def get_logo_b64():
     return ""
 
 
-def get_macro_class_svg(classe, size=15, color="currentColor"):
-    inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0;"
-    c = str(classe).lower()
-    if "azionar" in c or "azioni" in c:
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>'
-    if "obbligazion" in c:
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>'
-    if "managed" in c or "cta" in c:
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>'
-
-    if "oro" in c:
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
-    if "bitcoin" in c or "crypto" in c:
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
-    return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
+get_macro_class_svg = portfolio_manager.get_macro_class_svg
 
 
 def render_monthly_returns_html_table(df_eq):
@@ -198,33 +184,9 @@ def render_monthly_returns_html_table(df_eq):
 
 
 # ==============================================================================
-# BENCHMARK SPY CACHED
+# CACHE PREZZI
 # ==============================================================================
 _PRICE_CACHE_PATH = os.path.join(os.path.dirname(__file__), "live_prices_cache.json")
-
-@st.cache_data(ttl=3600)
-def load_benchmark_spy():
-    if os.path.exists(_PRICE_CACHE_PATH):
-        try:
-            with open(_PRICE_CACHE_PATH, "r") as f:
-                cache = json.load(f)
-            if cache.get("spy_history"):
-                hist = cache["spy_history"]
-                idx = pd.to_datetime([h["date"] for h in hist])
-                close = [h["close"] for h in hist]
-                return pd.Series(close, index=idx).ffill().dropna()
-        except Exception:
-            pass
-    try:
-        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
-        data_spy = res['chart']['result'][0]
-        timestamps = pd.to_datetime(data_spy['timestamp'], unit='s')
-        close = data_spy['indicators']['quote'][0]['close']
-        return pd.Series(close, index=timestamps).ffill().dropna()
-    except Exception:
-        return pd.Series(dtype=float)
 
 
 # ==============================================================================
@@ -244,7 +206,7 @@ def _load_json(filename):
 
 apex_portfolio = _load_json("portfolio.json")
 apex_data = _load_json("apex_data.json")
-convex_portfolio = _load_json("convex_portfolio.json")
+convex_portfolio = portfolio_manager.load_convex_portfolio()
 cfg = portfolio_manager.load_config()
 
 # Dati di tracking del modello
@@ -252,8 +214,6 @@ _nav_usd = float(apex_portfolio.get("nav_usd", 0.0))
 _eur_usd_rate = float(apex_data.get("eur_usd", 0.0))
 # Capitale di riferimento Apex: valore standard configurabile (default 100.000 €)
 apex_val_eur = float(cfg.get("apex_capital_eur", 100000.0))
-
-
 
 # Prezzi e strumenti Convex
 _active_instruments = convex_engine.CONVEX_INSTRUMENTS
@@ -269,26 +229,21 @@ if os.path.exists(_PRICE_CACHE_PATH):
         pass
 
 convex_holdings_saved = convex_portfolio.get("holdings", {})
-convex_has_real_data = bool(convex_holdings_saved) and any(v.get("shares", 0) > 0 for v in convex_holdings_saved.values())
-if convex_has_real_data:
-    convex_val_eur = sum(v.get("shares", 0.0) * (v.get("last_price") or _base_prices.get(k, 0.0)) for k, v in convex_holdings_saved.items()) \
-        + float(convex_portfolio.get("cash_eur", 0.0))
-else:
-    convex_val_eur = float(cfg.get("convex_capital_eur", 100000.0))
+convex_cash_eur = float(convex_portfolio.get("cash_eur", 0.0))
+cx_holdings_dict = {k: v.get("shares", 0.0) for k, v in convex_holdings_saved.items()}
+
+convex_val_eur = sum(cx_holdings_dict.get(k, 0.0) * _base_prices.get(k, 0.0) for k in cx_holdings_dict) + convex_cash_eur
 
 _tot = apex_val_eur + convex_val_eur
 _real_apex_ratio = (apex_val_eur / _tot) if _tot > 0 else 0.50
 _real_convex_ratio = (convex_val_eur / _tot) if _tot > 0 else 0.50
 _target_apex = float(cfg.get("target_apex_ratio", 0.50))
 
-cx_holdings_dict = {k: v.get("shares", 0.0) for k, v in convex_holdings_saved.items()} if convex_has_real_data else \
-    {k: (_target_apex * _tot * info["target_weight"] / _base_prices[k]) for k, info in _active_instruments.items()}
-
 _cx_rep = convex_engine.evaluate_convex_stack(
     current_holdings=cx_holdings_dict,
     market_prices=_base_prices,
     monthly_pac_eur=float(cfg.get("monthly_pac_eur", 600.0)),
-    cash_balance=float(convex_portfolio.get("cash_eur", 0.0)) if convex_has_real_data else 0.0,
+    cash_balance=convex_cash_eur,
     instruments=_active_instruments
 )
 
@@ -429,16 +384,16 @@ with tab_pf:
     # 3. Composizione Macro Consolidata
     st_html(section_title("Composizione Macro Consolidata"))
     _macro = unified_data["macro_breakdown"]
-    _c_map = {
-        "Azionario Globale & USA": POS,
-        "Obbligazionario Governativo": "#8B7FC7",
-        "Managed Futures (CTA)": "#E0A96D",
-        "Oro Fisico": ACCENT,
-        "Bitcoin": "#F7931A",
-    }
+    _c_map = {k: portfolio_manager.ASSET_CLASSES_INFO[k]["color"] for k in [
+        "Azionario Globale & USA",
+        "Obbligazionario Governativo",
+        "Managed Futures (CTA)",
+        "Oro Fisico",
+        "Bitcoin",
+    ]}
     macro_segs = [(k, _macro.get(k, 0.0) * 100.0, _c_map.get(k, MUTED)) for k in _c_map]
     if unified_data["idle_cash_pct"] > 0.01:
-        macro_segs.append(("Liquidità", unified_data["idle_cash_pct"] * 100.0, "#4A443D"))
+        macro_segs.append(("Liquidità", unified_data["idle_cash_pct"] * 100.0, portfolio_manager.ASSET_CLASSES_INFO["Liquidità"]["color"]))
 
     _tot_pct = sum(p for _, p, _ in macro_segs)
     if _tot_pct > 0:
@@ -514,26 +469,7 @@ with tab_perf:
     """)
 
     # Carica serie combinata 142 mesi (2014-11 al 2026-08)
-    if hasattr(portfolio_manager, "load_combined_monthly_history"):
-        df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
-    else:
-        base_dir = os.path.dirname(__file__)
-        apex_file = os.path.join(base_dir, "apex_monthly_returns_extended.csv")
-        conv_file = os.path.join(base_dir, "convex_monthly_returns.csv")
-        if os.path.exists(apex_file) and os.path.exists(conv_file):
-            a_ret = pd.read_csv(apex_file, index_col=0, parse_dates=True).iloc[:, 0]
-            c_ret = pd.read_csv(conv_file, index_col=0, parse_dates=True).iloc[:, 0]
-            common = a_ret.index.intersection(c_ret.index)
-            if len(common) > 0:
-                comb_ret = _target_apex * a_ret.loc[common] + (1.0 - _target_apex) * c_ret.loc[common]
-                df_comb = pd.DataFrame({"return": comb_ret})
-                df_comb["value"] = (1.0 + comb_ret).cumprod() * 100.0
-                df_comb["roll_max"] = df_comb["value"].cummax()
-                df_comb["drawdown"] = (df_comb["value"] - df_comb["roll_max"]) / df_comb["roll_max"] * 100.0
-            else:
-                df_comb = pd.DataFrame()
-        else:
-            df_comb = pd.DataFrame()
+    df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
 
 
     if not df_comb.empty:

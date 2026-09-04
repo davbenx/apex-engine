@@ -1,0 +1,33 @@
+name: Test Suite CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run Apex-Convex Ecosystem Tests
+        run: |
+          python -m unittest test_apex_convex.py
+      - name: Run Apex V2 Engine Tests
+        run: |
+          python test_apex_v2_engine.py
+      - name: Run Backend Execution Tests
+        run: |
+          python test_backend.py
+      - name: Test Convex Telegram Dry Run
+        run: |
+          python convex_telegram_reminder.py --dry-run

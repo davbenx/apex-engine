@@ -110,7 +110,7 @@ CONVEX_INSTRUMENTS_METADATA = {
         "name": "WisdomTree Physical Bitcoin",
         "exchange": "Borsa Italiana (MIL) / XETRA",
         "currency": "EUR",
-        "ter": 0.0035,
+        "ter": 0.0015,
         "tax_regime": "Reddito Diverso (compensa minusvalenze)",
         "tax_type": "diverso",
         "target_weight": 0.075,
@@ -319,28 +319,27 @@ def get_convex_metrics() -> Dict[str, Any]:
 
 
 def get_combined_dual_engine_metrics() -> Dict[str, Any]:
-    """Metriche reali della combinazione APEX+CONVEX al mix target 45/55,
+    """Metriche reali della combinazione APEX+CONVEX al mix target standard 50/50,
     calcolate dalla correlazione EFFETTIVA tra le due serie di rendimento
-    (non assunta) sulla finestra comune 2014-11/2026-08. cagr_gross ricalcolato
-    direttamente dalla combinazione pesata delle due serie mensili lorde reali
-    (non stimato da una regola forfettaria)."""
+    sulla finestra comune 2014-11/2026-08 (142 mesi). cagr_gross ricalcolato
+    direttamente dalla combinazione pesata delle due serie mensili lorde reali."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1454,
-        "cagr_gross": 0.1689,
-        "volatility": 0.1128,
-        "sharpe": 1.265,
-        "sortino": 2.584,
-        "max_drawdown": -0.0984,
-        "calmar": 1.478,
-        "ulcer_index": 3.38,
-        "correlation": 0.400,
+        "cagr_net": 0.1530,
+        "cagr_gross": 0.1707,
+        "volatility": 0.1173,
+        "sharpe": 1.200,
+        "sortino": 2.334,
+        "max_drawdown": -0.1085,
+        "calmar": 1.574,
+        "ulcer_index": 3.42,
+        "correlation": 0.446,
         "synergy_summary": (
-            "Mix 45% Apex / 55% Convex: MaxDD -9.84% (contro -15.98% Apex e -14.62% Convex "
-            "isolatamente), Sharpe 1.265 e Calmar 1.478, CAGR netto 14.54% (lordo 16.89%). "
-            "Correlazione reale calcolata tra le due serie: 0.400 — beneficio di "
+            "Mix 50% Apex / 50% Convex: MaxDD -10.85% (abbattuto rispetto a -15.98% Apex e -15.76% Convex "
+            "isolatamente), Sharpe 1.200 e Calmar 1.574, CAGR netto 15.30% (lordo 17.07%). "
+            "Correlazione reale calcolata tra le due serie: 0.446 — beneficio di "
             "diversificazione genuino (MaxDD combinato inferiore a entrambe le componenti "
-            "singole), non enorme ma reale. Vedi research/convex/ per metodologia e limiti."
+            "singole). Valutazione sulla finestra comune 2014-2026 (142 mesi)."
         )
     }
 

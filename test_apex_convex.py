@@ -168,12 +168,14 @@ class TestApexConvexEcosystem(unittest.TestCase):
         self.assertGreater(shares["WBTC"], 300, "WBTC deve avere ~452 quote per pesare il 7.5%")
 
     def test_convex_metadata_and_isins(self):
-        """Verifica che ciascuno dei 5 strumenti abbia un ISIN valido e metadati completi."""
+        """Verifica che ciascuno dei 5 strumenti abbia un ISIN valido e metadati completi e allineati con convex_engine."""
         meta = portfolio_manager.CONVEX_INSTRUMENTS_METADATA
         self.assertEqual(len(meta), 5)
         for k in ["NTSG", "AVWS", "DBMFE", "PPFB", "WBTC"]:
             self.assertIn(k, meta)
             self.assertTrue(len(meta[k]["isin"]) >= 12, f"ISIN per {k} deve essere valido")
+            self.assertEqual(meta[k]["isin"], convex_engine.CONVEX_INSTRUMENTS[k]["isin"], f"ISIN di {k} deve combaciare tra i moduli")
+            self.assertEqual(meta[k]["ter"], convex_engine.CONVEX_INSTRUMENTS[k]["ter"], f"TER di {k} deve combaciare esattamente tra i moduli")
             self.assertIn("tax_regime", meta[k])
             self.assertIn("role", meta[k])
 

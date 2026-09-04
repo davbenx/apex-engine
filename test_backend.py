@@ -213,30 +213,41 @@ def test_tiny_weight_change_within_eps_does_not_trade():
     assert pf_after["nav_usd"] == 100000.0, "nessun ribilanciamento -> nessun costo"
 
 
-def test_update_equity_curve_marks_new_entries_as_live(tmp_path):
+def test_update_equity_curve_marks_new_entries_as_live(tmp_path=None):
     """generate_v2_track_record.py (replay storico) scrive le sue voci
     direttamente, mai tramite update_equity_curve, quindi non porta mai
     "live" -> app.py usa questo campo per distinguere onestamente
     simulazione da forward-tracking reale (vedi APEX_V2_SPEC.md §24)."""
-    _isolate_files(str(tmp_path))
+    import tempfile
+    td = None
+    if tmp_path is not None:
+        p = str(tmp_path)
+    else:
+        td = tempfile.TemporaryDirectory()
+        p = td.name
+    _isolate_files(p)
 
-    backend.update_equity_curve(100000.0, "2026-08-25")
-    eq = json.load(open(backend.EQUITY_FILE))
-    assert eq["history"][0]["live"] is True
+    try:
+        backend.update_equity_curve(100000.0, "2026-08-25")
+        eq = json.load(open(backend.EQUITY_FILE))
+        assert eq["history"][0]["live"] is True
 
-    backend.update_equity_curve(101000.0, "2026-08-26")
-    eq = json.load(open(backend.EQUITY_FILE))
-    assert len(eq["history"]) == 2
-    assert eq["history"][1]["live"] is True
-    assert eq["history"][1]["open"] == 100000.0, "l'apertura del nuovo giorno deve partire dalla chiusura precedente"
+        backend.update_equity_curve(101000.0, "2026-08-26")
+        eq = json.load(open(backend.EQUITY_FILE))
+        assert len(eq["history"]) == 2
+        assert eq["history"][1]["live"] is True
+        assert eq["history"][1]["open"] == 100000.0, "l'apertura del nuovo giorno deve partire dalla chiusura precedente"
 
-    # stesso giorno rieseguito (es. piu' run nella stessa giornata) -> aggiorna
-    # l'ultima voce e la mantiene marcata live, non ne crea una nuova.
-    backend.update_equity_curve(101500.0, "2026-08-26")
-    eq = json.load(open(backend.EQUITY_FILE))
-    assert len(eq["history"]) == 2
-    assert eq["history"][1]["live"] is True
-    assert eq["history"][1]["close"] == 101500.0
+        # stesso giorno rieseguito (es. piu' run nella stessa giornata) -> aggiorna
+        # l'ultima voce e la mantiene marcata live, non ne crea una nuova.
+        backend.update_equity_curve(101500.0, "2026-08-26")
+        eq = json.load(open(backend.EQUITY_FILE))
+        assert len(eq["history"]) == 2
+        assert eq["history"][1]["live"] is True
+        assert eq["history"][1]["close"] == 101500.0
+    finally:
+        if td is not None:
+            td.cleanup()
 
 
 def test_should_decide_fires_once_in_month_end_window_even_if_execution_slips():
@@ -319,12 +330,9 @@ def test_compute_rebalance_orders_structured():
     assert nvda_order["delta_w_pct"] == 2.5
 
 
-def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch):
+def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch=None):
     """Verifica che se Telegram rifiuta il payload Markdown, il sistema effettua
     immediatamente il fallback a testo semplice per non perdere l'allerta."""
-    monkeypatch.setenv("TELEGRAM_TOKEN", "dummy_token")
-    monkeypatch.setenv("TELEGRAM_CHAT_ID", "dummy_chat_id")
-
     calls = []
     def fake_urlopen(req, timeout=10):
         calls.append(req.data.decode("utf-8"))
@@ -332,18 +340,40 @@ def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch):
             raise urllib.error.HTTPError("https://api.telegram.org", 400, "Bad Request: can't parse entities", {}, None)
         return io.BytesIO(b'{"ok": true}')
 
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    if monkeypatch is not None:
+        monkeypatch.setenv("TELEGRAM_TOKEN", "dummy_token")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "dummy_chat_id")
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    else:
+        orig_token = os.environ.get("TELEGRAM_TOKEN")
+        orig_chat = os.environ.get("TELEGRAM_CHAT_ID")
+        orig_urlopen = urllib.request.urlopen
+        os.environ["TELEGRAM_TOKEN"] = "dummy_token"
+        os.environ["TELEGRAM_CHAT_ID"] = "dummy_chat_id"
+        urllib.request.urlopen = fake_urlopen
 
-    data_dict = {
-        "allocations": {"Equities": 50, "Crypto": 12, "Gold": 18, "Bonds": 0, "Cash": 20},
-        "macro_events": ["Segnale test"],
-        "timestamp": "28 Ago 2026",
-    }
-    sent = backend.send_telegram_alert(data_dict, ["Log test"])
-    assert sent is True
-    assert len(calls) == 2, "deve tentare prima Markdown poi fallback plain text"
-    assert "parse_mode=Markdown" in calls[0]
-    assert "parse_mode" not in calls[1]
+    try:
+        data_dict = {
+            "allocations": {"Equities": 50, "Crypto": 12, "Gold": 18, "Bonds": 0, "Cash": 20},
+            "macro_events": ["Segnale test"],
+            "timestamp": "28 Ago 2026",
+        }
+        sent = backend.send_telegram_alert(data_dict, ["Log test"])
+        assert sent is True
+        assert len(calls) == 2, "deve tentare prima Markdown poi fallback plain text"
+        assert "parse_mode=Markdown" in calls[0]
+        assert "parse_mode" not in calls[1]
+    finally:
+        if monkeypatch is None:
+            if orig_token is not None:
+                os.environ["TELEGRAM_TOKEN"] = orig_token
+            else:
+                os.environ.pop("TELEGRAM_TOKEN", None)
+            if orig_chat is not None:
+                os.environ["TELEGRAM_CHAT_ID"] = orig_chat
+            else:
+                os.environ.pop("TELEGRAM_CHAT_ID", None)
+            urllib.request.urlopen = orig_urlopen
 
 
 if __name__ == "__main__":

@@ -33,11 +33,17 @@ def build_message() -> str:
     oggi = datetime.date.today().strftime("%d/%m/%Y")
     return (
         f"*CONVEX STACK* · {oggi}\n\n"
-        "È il momento del versamento PAC di questo mese.\n\n"
-        "Apri la dashboard, inserisci le quote possedute e la liquidità "
-        "pronta: l'app calcola dove depositare e segnala eventuali "
-        "ribilanciamenti necessari.\n\n"
-        "Nessun dato di portafoglio qui — solo un promemoria di calendario."
+        "È il momento del versamento PAC mensile.\n\n"
+        "*TARGET DI ALLOCAZIONE (5 STRUMENTI UCITS):*\n"
+        "• NTSG (Azionario Globale + Bond USA leva 1.5x): 45.0%\n"
+        "• DBMFE (Managed Futures CTA Anti-Crisi): 25.0%\n"
+        "• AVWS (Small Cap Value Globale): 15.0%\n"
+        "• PPFB (Oro Fisico ETC - Compensa Minusvalenze): 7.5%\n"
+        "• WBTC (Bitcoin ETP - Compensa Minusvalenze): 7.5%\n\n"
+        "*REGOLE OPERATIVE:*\n"
+        "1. Versa la liquidità sull'asset con maggior deficit (Water-Filling a costo fiscale zero).\n"
+        "2. Esegui il trim parziale solo se WBTC o PPFB superano l'11.25% (+50% sopra target).\n"
+        "3. Apri la dashboard per calcolare esattamente quote e residuo cassa."
     )
 
 
