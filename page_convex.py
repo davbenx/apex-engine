@@ -156,11 +156,15 @@ def section_title(text, top="26px", bottom="10px"):
     solo tipografia Fraunces."""
     return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
 
-def render_convex_positions_html_table(df):
+def render_convex_positions_html_table(df, show_details=False):
+    right_align_cols = ["Quote", "Prezzo", "Peso Reale", "Target", "Controvalore", "TER"]
+    cols = ["Strumento", "Quote", "Prezzo", "Peso Reale", "Target", "Controvalore"]
+    if show_details:
+        cols = ["Strumento", "Nome", "ISIN", "Quote", "Prezzo", "Peso Reale", "Target", "Controvalore", "TER", "Regime Fiscale"]
+    
     th_cells = []
-    cols = ["Strumento", "Nome", "Quote", "Prezzo", "Peso", "Controvalore", "Regime Fiscale"]
     for c in cols:
-        align = "right" if c in ["Quote", "Prezzo", "Peso", "Controvalore"] else "left"
+        align = "right" if c in right_align_cols else "left"
         th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
     
     rows_html = []
@@ -168,10 +172,12 @@ def render_convex_positions_html_table(df):
         td_cells = []
         for c in cols:
             val = r[c]
-            align = "right" if c in ["Quote", "Prezzo", "Peso", "Controvalore"] else "left"
+            align = "right" if c in right_align_cols else "left"
             if c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
-            elif c in ["Quote", "Prezzo", "Peso", "Controvalore"]:
+            elif c == "ISIN":
+                td_cells.append(f'<td style="padding:10px 14px; font-family:{MONO}; font-size:11px; color:{BADGE_TEXT}; white-space:nowrap;"><span style="background:rgba(255,247,237,0.05); padding:2px 6px; border-radius:4px; border:1px solid {BORDER};">{val}</span></td>')
+            elif c in right_align_cols:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{val}</td>')
             elif c == "Regime Fiscale":
                 is_div = "Diverso" in str(val)
@@ -182,6 +188,7 @@ def render_convex_positions_html_table(df):
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; color:{MUTED};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
     return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'
+
 
 
 def get_logo_b64():
@@ -366,19 +373,12 @@ convex_prices, convex_prices_live = fetch_convex_live_prices()
 # ==============================================================================
 _logo_b64 = get_logo_b64()
 _logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />'
-             if _logo_b64 else '🦅')
+             if _logo_b64 else '')
 
+_cp_data = portfolio_manager.load_convex_portfolio()
+_last_updated = _cp_data.get("last_updated")
+_has_holdings = bool(_cp_data.get("holdings")) and any(v.get("shares", 0) > 0 for v in _cp_data.get("holdings", {}).values())
 
-_cp_path = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
-_has_holdings = False
-if os.path.exists(_cp_path):
-    try:
-        with open(_cp_path, "r", encoding="utf-8") as f:
-            _cp_data = json.load(f)
-            _last_updated = _cp_data.get("last_updated")
-            _has_holdings = bool(_cp_data.get("holdings")) and any(v.get("shares", 0) > 0 for v in _cp_data.get("holdings", {}).values())
-    except Exception:
-        pass
 _is_fresh = False
 if _last_updated and _has_holdings:
     try:
@@ -387,7 +387,8 @@ if _last_updated and _has_holdings:
     except Exception:
         pass
 _status_color = POS if _is_fresh else MUTED_DOT
-_status_label = f"Aggiornato al {_last_updated}" if _is_fresh else "In attesa di quote"
+_status_label = f"Aggiornato al {_last_updated}" if _is_fresh else "Portafoglio Modello (100.000 €)"
+
 
 col_logo, col_stat = st.columns([3, 2])
 with col_logo:
@@ -446,18 +447,10 @@ with tab_pf:
     # MODULO DI INPUT — Quote possedute & Cassa (Layout 2 colonne pulito)
     # ==========================================================================
     cfg = portfolio_manager.load_config()
-    _saved_holdings = {}
-    _saved_cash = 0.0
-    if os.path.exists(_cp_path):
-        try:
-            with open(_cp_path, "r", encoding="utf-8") as f:
-                _saved = json.load(f)
-                _saved_holdings = {k: v.get("shares", 0.0) for k, v in _saved.get("holdings", {}).items()}
-                _saved_cash = float(_saved.get("cash_eur", 0.0))
-        except Exception:
-            pass
+    _saved_holdings = {k: v.get("shares", 0.0) for k, v in _cp_data.get("holdings", {}).items()}
+    _saved_cash = float(_cp_data.get("cash_eur", 0.0))
 
-    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=not _is_fresh):
+    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=False):
         st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità per il PAC mensile.")
         col_inp1, col_inp2 = st.columns(2)
         instr_list = list(active_instruments.items())
@@ -506,9 +499,10 @@ with tab_pf:
             _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
             portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
             if _ok_p:
-                st.toast("Quote Convex salvate con successo.", icon="✅")
+                st.toast("Quote Convex salvate con successo.")
             else:
                 st.error("Errore nel salvataggio.")
+
 
     convex_report = convex_engine.evaluate_convex_stack(
         current_holdings=convex_holdings,
@@ -600,19 +594,32 @@ with tab_pf:
 
     # Posizioni Attuali in Tabella HTML Styled
     if convex_report.total_value > 0:
-        st_html(section_title("Posizioni Attive nel Portafoglio"))
+        c_title, c_tog = st.columns([3, 2])
+        with c_title:
+            st_html(section_title("Posizioni Attive nel Portafoglio"))
+        with c_tog:
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+            show_cx_details = st.toggle("Mostra dettagli strumenti (ISIN, TER, Fiscalità)", value=False, key="cx_pos_details_toggle")
+        
         cx_rows = []
+        meta_map = portfolio_manager.CONVEX_INSTRUMENTS_METADATA
         for k, st_info in convex_report.assets.items():
+            meta = meta_map.get(k, {})
+            tgt = active_instruments.get(k, {}).get("target_weight", 0.0) * 100.0
             cx_rows.append({
-                "Strumento": f'<span style="display:inline-flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14)} {k}</span>',
+                "Strumento": f'<span style="display:inline-flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14, color=_COLOR_MAP.get(k, ACCENT))} {k}</span>',
                 "Nome": st_info.name,
+                "ISIN": meta.get("isin", "N/A"),
                 "Quote": f"{st_info.current_shares:,.2f}",
                 "Prezzo": f"€ {st_info.current_price:,.2f}",
-                "Peso": f"{st_info.current_weight*100:.2f}%",
+                "Peso Reale": f"{st_info.current_weight*100:.2f}%",
+                "Target": f"{tgt:.1f}%",
                 "Controvalore": f"€ {st_info.current_value:,.0f}",
+                "TER": f"{meta.get('ter', 0.0)*100:.2f}%",
                 "Regime Fiscale": "Reddito Diverso (compensa minus)" if st_info.tax_type == "REDDITO_DIVERSO" else "Reddito di Capitale (non compensa)"
             })
-        st_html(render_convex_positions_html_table(pd.DataFrame(cx_rows)))
+        st_html(render_convex_positions_html_table(pd.DataFrame(cx_rows), show_details=show_cx_details))
+
 
 with tab_metriche:
     _cx_ret_filename = "convex_monthly_returns.csv" if versione == "Completa" else "convex_simple_no_avws_returns.csv"
@@ -788,17 +795,64 @@ with tab_guida:
             """)
 
     st_html(section_title(f"I {len(active_instruments)} Strumenti"))
-    instr_cols = st.columns(len(active_instruments))
-    for i, (key, info) in enumerate(active_instruments.items()):
-        with instr_cols[i]:
-            st_html(f"""
-            <div class="glass-card" style="height: 190px;">
-                <div style="font-family:{MONO}; font-size:13px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">{get_convex_class_svg(key, size=15, color=ACCENT)} {key}</div>
-                <div style="font-size:11.5px; font-weight:700; color:{BADGE_TEXT}; margin:4px 0 8px 0; line-height:1.3;">{info['name']}</div>
-                <div style="font-size:11px; color:{MUTED}; line-height:1.4;">{info['asset_class']}</div>
-                <div style="font-size:11px; color:{MUTED_2}; margin-top:8px;">Target: {info['target_weight']*100:.1f}% · TER {info['ter']*100:.2f}%</div>
+    st.caption("Dossier strategico, tassonomia UCITS e regime fiscale italiano di ciascun componente del portafoglio.")
+    
+    meta_map = portfolio_manager.CONVEX_INSTRUMENTS_METADATA
+    col_c1, col_c2 = st.columns(2)
+    for idx, (key, info) in enumerate(active_instruments.items()):
+        meta = meta_map.get(key, {})
+        target_pct = info.get("target_weight", 0.0) * 100.0
+        target_col = _COLOR_MAP.get(key, ACCENT)
+        trim_str = f"Trim oltre {meta['trim_threshold']*100:.2f}% (+50% sopra target)" if meta.get("trim_threshold") else "Ribilanciamento passivo tramite PAC (nessuna vendita)"
+        is_diverso = meta.get("tax_type") == "diverso"
+        tax_badge_bg = "rgba(61,220,151,0.12)" if is_diverso else "rgba(255,247,237,0.05)"
+        tax_badge_col = POS if is_diverso else MUTED
+
+        card_html = f"""
+        <div class="glass-card" style="margin-bottom: 16px; padding: 18px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="background:rgba(255,247,237,0.05); border:1px solid {BORDER}; padding:8px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                        {get_convex_class_svg(key, size=22, color=target_col)}
+                    </div>
+                    <div>
+                        <div style="font-family:{MONO}; font-size:16px; font-weight:800; color:{target_col}; letter-spacing:0.3px;">{key}</div>
+                        <div style="font-size:11px; color:{MUTED};">{meta.get('exchange', 'Borsa Europea')} · <span style="font-family:{MONO}; font-weight:600; color:{BADGE_TEXT};">{meta.get('isin', '')}</span></div>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-family:{MONO}; font-size:15px; font-weight:800; color:{BADGE_TEXT};">Target {target_pct:.1f}%</div>
+                    <div style="font-size:11px; color:{MUTED_2}; font-family:{MONO};">TER: {info['ter']*100:.2f}%/anno</div>
+                </div>
             </div>
-            """)
+            
+            <div style="font-size:13px; font-weight:700; color:{BADGE_TEXT}; margin-bottom:8px; line-height:1.35;">
+                {info['name']}
+            </div>
+            
+            <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-bottom:10px;">
+                <span style="font-weight:700; color:{BADGE_TEXT};">Ruolo Strategico:</span> {meta.get('role', info.get('asset_class', ''))}
+            </div>
+
+            <div style="font-size:11.5px; color:{MUTED_2}; line-height:1.45; padding:8px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
+                <span style="font-weight:700; color:{MUTED};">Meccanica:</span> {meta.get('driver', '')}
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:11px; border-top:1px solid {BORDER}; padding-top:10px;">
+                <div style="color:{MUTED};">
+                    <span style="font-weight:600;">Gestione:</span> {trim_str}
+                </div>
+                <div>
+                    <span style="background:{tax_badge_bg}; color:{tax_badge_col}; padding:3px 8px; border-radius:4px; font-weight:600;">
+                        {meta.get('tax_regime', '')}
+                    </span>
+                </div>
+            </div>
+        </div>
+        """
+        with col_c1 if idx % 2 == 0 else col_c2:
+            st_html(card_html)
+
 
     # Nozionale = 100% capitale + la parte extra della leva 1.5x incorporata
     # solo in NTSG (unico strumento a leva) — cambia con NTSG% se si passa

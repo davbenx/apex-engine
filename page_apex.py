@@ -708,7 +708,7 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 with tab_pf:
     hero_slot = st.empty()
 
-    with st.expander("⚙️ Parametri Capitale Broker Apex", expanded=False):
+    with st.expander("Parametri Capitale Broker Apex", expanded=False):
         c_cap, c_save = st.columns([3, 1])
         with c_cap:
             cap_apex_input = st.number_input(
@@ -725,10 +725,11 @@ with tab_pf:
                 new_cfg = {**cfg, "apex_capital_eur": cap_apex_input,
                            "last_updated": datetime.date.today().strftime("%Y-%m-%d")}
                 if portfolio_manager.save_config(new_cfg):
-                    st.toast("Capitale Apex salvato per questa sessione.", icon="✅")
+                    st.toast("Capitale Apex salvato per questa sessione.")
                     cfg = new_cfg
                 else:
                     st.error("Errore nel salvataggio della configurazione.")
+
         if _apex_live_eur:
             st.caption(f"↳ Capitale configurabile · default 100.000 € (NAV storico del modello: €{_apex_live_eur:,.0f} / ${_nav_usd:,.0f})")
         else:

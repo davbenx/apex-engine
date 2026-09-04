@@ -17,7 +17,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Apex Convex",
-    page_icon="🏛️",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -55,9 +55,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-p_home = st.Page("home_app.py", title="Vista d'Insieme", icon="🏛️", default=True)
-p_apex = st.Page("page_apex.py", title="Apex Engine", icon="⚡")
-p_convex = st.Page("page_convex.py", title="Convex Stack", icon="🛡️")
+p_home = st.Page("home_app.py", title="Vista d'Insieme", url_path="home", icon=None, default=True)
+p_apex = st.Page("page_apex.py", title="Apex Engine", url_path="apex", icon=None)
+p_convex = st.Page("page_convex.py", title="Convex Stack", url_path="convex", icon=None)
+
+
 
 # position="hidden" nasconde la barra interna nativa di Streamlit, evitando doppioni o problemi su mobile
 pg = st.navigation([p_home, p_apex, p_convex], position="hidden")

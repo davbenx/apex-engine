@@ -19,6 +19,144 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.json")
 CONVEX_FILE = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
 
 
+ASSET_CLASSES_INFO = {
+    "Azionario Globale & USA": {
+        "color": "#3DDC97",
+        "short_name": "Azionario",
+        "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>',
+    },
+    "Obbligazionario Governativo": {
+        "color": "#8B7FC7",
+        "short_name": "Obbligazioni",
+        "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>',
+    },
+    "Managed Futures (CTA)": {
+        "color": "#E0A96D",
+        "short_name": "Managed Futures",
+        "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>',
+    },
+    "Oro Fisico": {
+        "color": "#C9A44C",
+        "short_name": "Oro",
+        "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>',
+    },
+    "Bitcoin": {
+        "color": "#F7931A",
+        "short_name": "Bitcoin",
+        "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>',
+    },
+    "Liquidità": {
+        "color": "#7A7266",
+        "short_name": "Liquidità",
+        "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>',
+    },
+}
+
+CONVEX_INSTRUMENTS_METADATA = {
+    "NTSG": {
+        "isin": "IE0005O4X307",
+        "name": "WisdomTree Global Efficient Core UCITS ETF",
+        "exchange": "Borsa Italiana (MIL)",
+        "currency": "EUR",
+        "ter": 0.0020,
+        "tax_regime": "Reddito di Capitale (non compensa minus)",
+        "tax_type": "capitale",
+        "target_weight": 0.45,
+        "trim_threshold": None,
+        "role": "Nucleo bilanciato globale a leva 1.5x (90% azionario globale + 60% Treasury USA tramite futures incorporati senza debito a margine)",
+        "driver": "Equity Risk Premium + Term Premium con leva strutturale e rebalancing dividend yield.",
+    },
+    "AVWS": {
+        "isin": "IE0003R88ER0",
+        "name": "Avantis World Small Cap Value UCITS ETF",
+        "exchange": "XETRA (FRA)",
+        "currency": "EUR",
+        "ter": 0.0036,
+        "tax_regime": "Reddito di Capitale (non compensa minus)",
+        "tax_type": "capitale",
+        "target_weight": 0.15,
+        "trim_threshold": None,
+        "role": "Fattore Small Cap Value globale (esposizione Dimensional factor: Size + Value + Profitability)",
+        "driver": "Premio accademico al fattore Value su titoli a bassa capitalizzazione e alta redditività.",
+    },
+    "DBMFE": {
+        "isin": "LU2482313645",
+        "name": "iMGP DBi Managed Futures Strategy UCITS",
+        "exchange": "Euronext Paris (PAR)",
+        "currency": "EUR",
+        "ter": 0.0085,
+        "tax_regime": "Reddito di Capitale (non compensa minus)",
+        "tax_type": "capitale",
+        "target_weight": 0.25,
+        "trim_threshold": None,
+        "role": "Trend-following sistematico multi-asset anti-crisi (Crisis Alpha che replica i 20 maggiori CTA mondiali)",
+        "driver": "Long/Short sistematico su 40+ futures (valute, tassi, materie prime, indici) non correlato all'azionario.",
+    },
+    "PPFB": {
+        "isin": "IE00B4ND3602",
+        "name": "iShares Physical Gold ETC",
+        "exchange": "London Stock Exchange (LSE) / XETRA",
+        "currency": "EUR",
+        "ter": 0.0012,
+        "tax_regime": "Reddito Diverso (compensa minusvalenze)",
+        "tax_type": "diverso",
+        "target_weight": 0.075,
+        "trim_threshold": 0.1125,
+        "role": "Riserva di valore reale tangibile contro svalutazione monetaria e shock geopolitici sistemici",
+        "driver": "Safe-haven reale senza rischio di credito. Vendita parziale disciplinata solo sopra l'11.25% (+50% target).",
+    },
+    "WBTC": {
+        "isin": "GB00BJYDH287",
+        "name": "WisdomTree Physical Bitcoin",
+        "exchange": "Borsa Italiana (MIL) / XETRA",
+        "currency": "EUR",
+        "ter": 0.0035,
+        "tax_regime": "Reddito Diverso (compensa minusvalenze)",
+        "tax_type": "diverso",
+        "target_weight": 0.075,
+        "trim_threshold": 0.1125,
+        "role": "Convessità asimmetrica monetaria digitale e riserva antifragile a scarsità assoluta",
+        "driver": "Rendimenti asimmetrici esponenziali. Trim automatico all'11.25% per monetizzare i run rialzisti e riallocare a costo zero.",
+    },
+}
+
+def get_macro_class_svg(classe: str, size: int = 15, color: str = None, style: str = "") -> str:
+    """Restituisce l'icona SVG vettoriale ufficiale e univoca per la classe di attivo."""
+    inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0; {style}"
+    c = str(classe).lower()
+    for name, info in ASSET_CLASSES_INFO.items():
+        if name.lower() in c or info["short_name"].lower() in c or (c.startswith("azion") and "azionar" in name.lower()):
+            use_color = color if color is not None else info["color"]
+            return info["svg"].format(size=size, color=use_color, style=inline_style)
+    fallback_color = color if color is not None else "#7A7266"
+    return ASSET_CLASSES_INFO["Liquidità"]["svg"].format(size=size, color=fallback_color, style=inline_style)
+
+
+def get_default_convex_holdings_100k(prices: Dict[str, float] = None) -> Dict[str, Any]:
+    """
+    Calcola le quote di default per un capitale standard di 100.000 € in Convex Stack
+    perfettamente allineato ai pesi target (NTSG 45%, AVWS 15%, DBMFE 25%, PPFB 7.5%, WBTC 7.5%).
+    """
+    base_prices = {"NTSG": 28.69, "AVWS": 25.64, "DBMFE": 123.50, "PPFB": 75.15, "WBTC": 16.60}
+    p = {**base_prices, **(prices or {})}
+    
+    total_target = 100000.0
+    shares = {
+        "NTSG": int(round((total_target * 0.45) / p["NTSG"])),
+        "AVWS": int(round((total_target * 0.15) / p["AVWS"])),
+        "DBMFE": int(round((total_target * 0.25) / p["DBMFE"])),
+        "PPFB": int(round((total_target * 0.075) / p["PPFB"])),
+        "WBTC": int(round((total_target * 0.075) / p["WBTC"])),
+    }
+    invested = sum(shares[k] * p[k] for k in shares)
+    cash = max(0.0, total_target - invested)
+    return {
+        "cash_eur": round(cash, 2),
+        "holdings": {k: {"shares": float(shares[k]), "last_price": p[k]} for k in shares},
+        "last_updated": "2026-09-01"
+    }
+
+
 def load_config() -> Dict[str, Any]:
     """Carica la configurazione utente persistita o restituisce i valori standard."""
     defaults = {
@@ -43,11 +181,7 @@ def load_config() -> Dict[str, Any]:
 
 
 def save_config(config_dict: Dict[str, Any]) -> bool:
-    """Salva i parametri compilabili dell'utente in config.json. Scrive sul
-    disco locale del container: vale finche' l'app resta attiva, si perde a un
-    suo riavvio (redeploy, risveglio dopo inattivita' — filesystem effimero di
-    Streamlit Cloud). Deliberatamente non salvato su GitHub: il repo e'
-    pubblico e questi sono dati patrimoniali reali dell'utente."""
+    """Salva i parametri compilabili dell'utente in config.json."""
     try:
         with open(CONFIG_FILE, "w") as f:
             json.dump(config_dict, f, indent=4)
@@ -57,25 +191,28 @@ def save_config(config_dict: Dict[str, Any]) -> bool:
 
 
 def load_convex_portfolio() -> Dict[str, Any]:
-    """Carica le posizioni attuali dei 5 asset in Convex Stack."""
+    """Carica le posizioni attuali dei 5 asset in Convex Stack. Se assenti o vuote, restituisce il default istituzionale da 100k €."""
     if os.path.exists(CONVEX_FILE):
         try:
             with open(CONVEX_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+                h = data.get("holdings", {})
+                if bool(h) and any(v.get("shares", 0.0) > 0 for v in h.values()):
+                    return data
         except Exception:
             pass
-    return {"cash_eur": 0.0, "holdings": {}}
+    return get_default_convex_holdings_100k()
 
 
 def save_convex_portfolio(data: Dict[str, Any]) -> bool:
-    """Salva le posizioni di Convex Stack. Stesso limite di save_config: vale
-    finche' l'app resta attiva, si perde a un suo riavvio."""
+    """Salva le posizioni di Convex Stack."""
     try:
         with open(CONVEX_FILE, "w") as f:
             json.dump(data, f, indent=4)
         return True
     except Exception:
         return False
+
 
 
 # ==============================================================================
@@ -363,6 +500,6 @@ if __name__ == "__main__":
     print("Test rapido portfolio_manager.py:")
     print(f"Patrimonio Totale Consolidato: € {unified['total_wealth_eur']:,.2f}")
     print(f"Allocazione Attuale: Apex {unified['apex_weight']*100:.1f}% | Convex {unified['convex_weight']*100:.1f}%")
-    print(f"Consiglio Smart Flow: {unified['smart_flow_destination']}")
-    print("✓ portfolio_manager.py operativo con successo!")
+    print("[OK] portfolio_manager.py operativo con successo!")
+
 

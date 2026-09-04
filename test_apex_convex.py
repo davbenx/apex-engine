@@ -68,6 +68,24 @@ class TestApexConvexEcosystem(unittest.TestCase):
         self.assertIsNotNone(btc_alert, "WBTC sopra l'11.25% deve attivare l'alert di trim")
         self.assertIn("COMPENSABILE con minusvalenze", btc_alert["tax_note"])
 
+    def test_trim_never_fires_for_reddito_capitale(self):
+        """NTSG/AVWS/DBMFE (Reddito di Capitale, minus non compensabili) non devono
+        mai generare un alert di trim, anche molto sopra la loro banda massima —
+        coerente con research/convex/convex_operational_rules.py, il backtest
+        validato che applica il trim solo a WBTC/PPFB (Reddito Diverso)."""
+        holdings = {
+            "NTSG": 900,   # ~73% del portafoglio, ben oltre la banda max (50%)
+            "AVWS": 50, "DBMFE": 50, "PPFB": 75, "WBTC": 75
+        }
+        prices = {"NTSG": 100.0, "AVWS": 100.0, "DBMFE": 100.0, "PPFB": 100.0, "WBTC": 100.0}
+        report = convex_engine.evaluate_convex_stack(holdings, prices)
+
+        for asset in ("NTSG", "AVWS", "DBMFE"):
+            alert = next((a for a in report.trim_alerts if a["asset"] == asset), None)
+            self.assertIsNone(alert, f"{asset} e' Reddito di Capitale: non deve mai generare un alert di trim")
+        self.assertTrue(report.assets["NTSG"].is_overweight, "NTSG deve comunque risultare sovrappeso (solo informativo)")
+        self.assertFalse(report.assets["NTSG"].requires_trim, "NTSG non deve mai richiedere un trim")
+
     def test_portfolio_manager_smart_flow(self):
         """Verifica che la sintesi unificata rilevi correttamente lo squilibrio tra i motori."""
         holdings = {"NTSG": 450, "AVWS": 300, "DBMFE": 1000, "PPFB": 150, "WBTC": 75}
@@ -139,8 +157,60 @@ class TestApexConvexEcosystem(unittest.TestCase):
             common_apex = apex.index.intersection(spy.index)
             self.assertEqual(len(common_apex), len(apex), "Tutti i 142 mesi di Apex devono avere il corrispondente mese in SPY")
 
+    def test_default_convex_holdings_100k(self):
+        """Verifica che le quote di default di Convex Stack producano un capitale di 100.000 € esatto."""
+        def_holdings = portfolio_manager.get_default_convex_holdings_100k()
+        shares = {k: v["shares"] for k, v in def_holdings["holdings"].items()}
+        prices = {k: v["last_price"] for k, v in def_holdings["holdings"].items()}
+        cash = def_holdings.get("cash_eur", 0.0)
+
+        tot_invested = sum(shares[k] * prices[k] for k in shares)
+        total_wealth = tot_invested + cash
+        self.assertAlmostEqual(total_wealth, 100000.0, delta=1.0, msg="Il portafoglio standard di default deve valere 100.000 €")
+        self.assertGreater(shares["NTSG"], 1000, "NTSG deve avere ~1568 quote per pesare il 45%")
+        self.assertGreater(shares["AVWS"], 400, "AVWS deve avere ~585 quote per pesare il 15%")
+        self.assertGreater(shares["DBMFE"], 150, "DBMFE deve avere ~202 quote per pesare il 25%")
+        self.assertGreater(shares["PPFB"], 70, "PPFB deve avere ~100 quote per pesare il 7.5%")
+        self.assertGreater(shares["WBTC"], 300, "WBTC deve avere ~452 quote per pesare il 7.5%")
+
+    def test_convex_metadata_and_isins(self):
+        """Verifica che ciascuno dei 5 strumenti abbia un ISIN valido e metadati completi."""
+        meta = portfolio_manager.CONVEX_INSTRUMENTS_METADATA
+        self.assertEqual(len(meta), 5)
+        for k in ["NTSG", "AVWS", "DBMFE", "PPFB", "WBTC"]:
+            self.assertIn(k, meta)
+            self.assertTrue(len(meta[k]["isin"]) >= 12, f"ISIN per {k} deve essere valido")
+            self.assertIn("tax_regime", meta[k])
+            self.assertIn("role", meta[k])
+
+    def test_zero_emoji_integrity(self):
+        """Verifica che non sia presente alcuna emoji in tutti i file python dell'applicazione."""
+        import re
+        emoji_pattern = re.compile(
+            '[\U00010000-\U0010ffff]|'
+            '[\u2600-\u27BF]|'
+            '[\u2300-\u23FF]|'
+            '[\u2B50-\u2B55]|'
+            '[\u203C-\u2049]|'
+            '[\u25AA-\u25FE]|'
+            '[\u00A9\u00AE\u20E3\u2122]|'
+            '[\u2194-\u2199]|'
+            '[\u21A9-\u21AA]'
+        )
+        base_dir = os.path.dirname(__file__)
+        py_files = ["main.py", "app.py", "home_app.py", "page_apex.py", "page_convex.py",
+                    "convex_stack_app.py", "streamlit_app.py", "portfolio_manager.py"]
+        for pf in py_files:
+            path = os.path.join(base_dir, pf)
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                matches = emoji_pattern.findall(content)
+                self.assertEqual(len(matches), 0, f"Trovate emoji in {pf}: {matches}")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

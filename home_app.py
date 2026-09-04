@@ -306,7 +306,7 @@ unified_data = portfolio_manager.compute_unified_portfolio(
 # ==============================================================================
 _logo_b64 = get_logo_b64()
 _logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />'
-             if _logo_b64 else '🏛️')
+             if _logo_b64 else '')
 
 _last_sync_str = apex_data.get("timestamp", datetime.date.today().strftime("%Y-%m-%d"))
 _both_ok = not (apex_portfolio.get("pending_orders")) and not (_cx_rep.trim_alerts)
@@ -330,13 +330,12 @@ with col_logo:
     """)
 with col_stat:
     st_html(f"""
-    <div style="text-align: right; padding-top: 8px;">
+    <div style="text-align: right; padding-top: 10px;">
         <div style="font-size: 11px; color: {MUTED};">
             <span style="width:6px; height:6px; border-radius:50%; background:{_status_dot_color}; display:inline-block; margin-right:5px;"></span>{_status_label_text}
         </div>
-        <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 2px 8px; border-radius: 6px; background: rgba(255,247,237,0.06); border: 1px solid {BORDER}; font-size: 11px; color: {BADGE_TEXT}; font-family: {MONO};">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{ACCENT}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            <a href="https://t.me/apex_multiasset" target="_blank" style="color:inherit; text-decoration:none;">@apex_multiasset</a>
+        <div style="font-size: 11px; color: {MUTED_2}; margin-top: 2px;">
+            Sincronizzazione: {_last_sync_str}
         </div>
     </div>
     """)
@@ -362,8 +361,8 @@ with tab_pf:
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {MUTED}; margin-bottom: 8px;">Patrimonio Consolidato Globale</div>
         <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
             <span style="font-family:{MONO}; font-size:40px; font-weight:800; letter-spacing:-1px;">€ {_tot:,.0f}</span>
-            <span style="font-size:14px; font-weight:700; color:{_ratio_badge_col}; background:rgba(255,247,237,0.06); padding:3px 8px; border-radius:6px; border:1px solid {BORDER}; font-family:{MONO};">
-                Apex € {apex_val_eur:,.0f} ({_real_apex_ratio*100:.1f}%) · Convex € {convex_val_eur:,.0f} ({_real_convex_ratio*100:.1f}%)
+            <span style="font-size:12.5px; font-weight:700; color:{_ratio_badge_col}; background:rgba(255,247,237,0.06); padding:4px 10px; border-radius:6px; border:1px solid {BORDER}; font-family:{MONO};">
+                Dual-Engine in Equilibrio · Target 50/50
             </span>
         </div>
         <div style="font-size:12px; color:{MUTED}; margin-top:8px;">Target: {_target_apex*100:.0f}% Apex / {(1-_target_apex)*100:.0f}% Convex · Fascia di tolleranza operativa: 30–55%</div>
@@ -377,15 +376,15 @@ with tab_pf:
     col_mot1, col_mot2 = st.columns(2)
     with col_mot1:
         if _pending_orders:
-            _apex_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">🔴 {len(_pending_orders)} ordine/i pendenti per lunedì</span>'
+            _apex_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {len(_pending_orders)} ordine/i pendenti per lunedì</span>'
         else:
-            _apex_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">✅ Allineato · Nessun ordine da eseguire</span>'
+            _apex_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Allineato · Nessun ordine da eseguire</span>'
 
         st_html(f"""
         <div style="background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; padding:16px 18px; height:100%;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                 <div style="font-family:{FRAUNCES}; font-size:16px; font-weight:700; color:#3DDC97; display:flex; align-items:center; gap:8px;">
-                    ⚡ Apex Engine
+                    Apex Engine
                 </div>
                 <div style="font-size:11px; color:{MUTED};">Venerdì ore 21:00 CET</div>
             </div>
@@ -403,15 +402,15 @@ with tab_pf:
 
     with col_mot2:
         if _cx_rep.trim_alerts:
-            _cx_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">⚠️ Trim consigliato ({len(_cx_rep.trim_alerts)} asset sopra soglia)</span>'
+            _cx_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Trim consigliato ({len(_cx_rep.trim_alerts)} asset sopra soglia)</span>'
         else:
-            _cx_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700;">✅ In banda · Tutti i 5 asset entro soglie</span>'
+            _cx_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> In banda · Tutti i 5 asset entro soglie</span>'
 
         st_html(f"""
         <div style="background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; padding:16px 18px; height:100%;">
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                 <div style="font-family:{FRAUNCES}; font-size:16px; font-weight:700; color:#C9A44C; display:flex; align-items:center; gap:8px;">
-                    🛡️ Convex Stack
+                    Convex Stack
                 </div>
                 <div style="font-size:11px; color:{MUTED};">1° del mese con versamento PAC</div>
             </div>
@@ -466,7 +465,7 @@ with tab_pf:
 
 
     # 7. Parametri di Simulazione e Rata PAC
-    with st.expander("⚙️ Parametri Globali e Rata PAC (Simulazione)", expanded=False):
+    with st.expander("Parametri Globali e Rata PAC (Simulazione)", expanded=False):
         st.caption("Configura i capitali di riferimento standard, il target di allocazione e la rata PAC per la simulazione globale.")
         p_c1, p_c2 = st.columns(2)
         with p_c1:
@@ -487,10 +486,11 @@ with tab_pf:
                 "last_updated": datetime.date.today().strftime("%Y-%m-%d")
             }
             if portfolio_manager.save_config(new_cfg):
-                st.toast("Parametri globali aggiornati per questa sessione.", icon="✅")
+                st.toast("Parametri globali aggiornati per questa sessione.")
                 st.rerun()
             else:
                 st.error("Errore nel salvataggio.")
+
 
 
 
@@ -656,7 +656,7 @@ with tab_guide:
     with m_col1:
         st_html(f"""
         <div class="glass-card" style="height: 195px;">
-            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">⚡ Apex Engine (Tattico Alpha)</div>
+            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">Apex Engine (Tattico Alpha)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
                 Motore quantitativo a selezione attiva (15 titoli S&P 500 a minima volatilità con buffer rank 20) e trend following macro a doppio filtro temporale (40w/20w con isteresi).
                 Durante i mercati ribassisti disattiva l'azionario e protegge il 100% del capitale in liquidità remunerata o Treasury.
@@ -666,13 +666,14 @@ with tab_guide:
     with m_col2:
         st_html(f"""
         <div class="glass-card" style="height: 195px;">
-            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">🛡️ Convex Stack (Strategico PAC)</div>
+            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">Convex Stack (Strategico PAC)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
                 Portafoglio multi-asset a leva implicita istituzionale (NTSG 1.5x, futures Treasury senza debito a margine personale).
                 Combina azionario globale, fattore small cap value, trend following anti-crisi (DBMFE) e riserve reali (Oro fisico ed ETP Bitcoin con compensazione fiscale delle minusvalenze).
             </div>
         </div>
         """)
+
 
     st_html(section_title("Ottimizzazione Fiscale Italiana (Redditi Diversi vs Capitale)"))
     st_html(f"""
