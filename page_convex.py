@@ -336,36 +336,6 @@ def get_price_cache_freshness():
     return "Prezzi da fetch live (nessuna cache disponibile)"
 
 
-# Benchmark SPY — stesso strumento e stesso meccanismo di fetch usato da
-# Apex Engine (query2.finance.yahoo.com, cache 1h). VT sarebbe un confronto
-# più aderente per la sola sleeve azionaria di Convex, ma non esiste ancora
-# una serie storica scaricata in questo progetto: SPY resta la scelta più
-# semplice e coerente con la convenzione già usata da Apex.
-@st.cache_data(ttl=3600)
-def load_benchmark_spy():
-    cache = _load_price_cache()
-    if cache and cache.get("spy_history") and cache["_age_hours"] <= _PRICE_CACHE_MAX_AGE_H:
-        hist = cache["spy_history"]
-        idx = pd.to_datetime([h["date"] for h in hist])
-        close = [h["close"] for h in hist]
-        return pd.Series(close, index=idx).ffill().dropna()
-
-    try:
-        # range=10y (non 2y): il periodo "Tutto" di Convex puo' coprire molti anni di
-        # backtest — con solo 2y di fallback il benchmark si normalizzerebbe a un punto
-        # a meta' grafico invece che dall'inizio reale (stesso bug gia' corretto in
-        # page_apex.py). La cache scheduled (fetch_live_prices.py) e' gia' a 10y: questo
-        # fallback si attiva solo se la cache manca o e' troppo vecchia.
-        url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
-        data_spy = res['chart']['result'][0]
-        timestamps = pd.to_datetime(data_spy['timestamp'], unit='s')
-        close = data_spy['indicators']['quote'][0]['close']
-        return pd.Series(close, index=timestamps).ffill().dropna()
-    except Exception:
-        return pd.Series(dtype=float)
-
 convex_prices, convex_prices_live = fetch_convex_live_prices()
 
 # ==============================================================================
@@ -614,16 +584,14 @@ with tab_metriche:
         _cx_nav["roll_max"] = _cx_nav["value"].cummax()
         _cx_nav["drawdown"] = (_cx_nav["value"] - _cx_nav["roll_max"]) / _cx_nav["roll_max"] * 100.0
 
-        n_yrs = len(_cx_ret) / 12.0
-        cagr_gross = (_cx_nav["value"].iloc[-1] / _cx_nav["value"].iloc[0]) ** (1.0 / n_yrs) - 1.0
-        _NET_OVER_GROSS_FACTOR = 1.0696 / 1.0801
-        cagr_net = (1.0 + cagr_gross) * _NET_OVER_GROSS_FACTOR - 1.0
-        cagr = cagr_gross
-        vol = _cx_ret.std() * (12 ** 0.5)
-        sharpe = (cagr - 0.03) / vol if vol > 0 else 0.0
-        mdd = _cx_nav["drawdown"].min() / 100.0
-        downside = _cx_ret[_cx_ret < 0]
-        sortino = (cagr - 0.03) / (downside.std() * (12 ** 0.5)) if len(downside) > 0 and downside.std() > 0 else 0.0
+        # Metriche ufficiali: da portfolio_manager.get_convex_metrics(), SOLO
+        # il periodo di validazione fuori campione (vedi nota nel modulo) — non
+        # piu' ricalcolate qui da zero sull'intera serie 2000-2026, che mescolava
+        # il periodo usato per scegliere i pesi 45/15/25/7.5/7.5 (TRAIN) con
+        # quello mai visto durante quella scelta (TEST), senza distinzione.
+        _m_cx = portfolio_manager.get_convex_metrics()
+        cagr_gross, cagr_net = _m_cx["cagr_gross"], _m_cx["cagr_net"]
+        vol, sharpe, sortino, mdd = _m_cx["volatility"], _m_cx["sharpe"], _m_cx["sortino"], _m_cx["max_drawdown"]
 
         _cx_ter_annual = convex_report.ter_weighted if convex_report.total_value > 0 else \
             sum(i["ter"] * i["target_weight"] for i in active_instruments.values())
@@ -641,6 +609,10 @@ with tab_metriche:
             {sub_hero_metric("TER Ponderato Reale", f"{_cx_ter_annual*100:.3f}%/anno", f"Costo: € {_cx_ter_eur_year:,.0f}/anno")}
         </div>
         """)
+        st.caption(
+            f"Periodo di validazione fuori campione: {_m_cx.get('test_period', '')} — "
+            f"mai usato per scegliere i pesi della strategia."
+        )
 
 
         # ----------------------------------------------------------------------
@@ -660,21 +632,21 @@ with tab_metriche:
         )
 
         selected_range = st.segmented_control(
-            "Periodo", options=["1A", "3A", "5A", "10A", "Tutto"],
+            "Periodo", options=["6M", "1A", "3A", "5A", "Da Inizio"],
             default="5A", label_visibility="collapsed", key="cx_chart_range_ctrl"
         )
         if not selected_range:
             selected_range = "5A"
 
         last_dt = _cx_nav.index[-1]
-        if selected_range == "1A":
+        if selected_range == "6M":
+            start_dt = last_dt - pd.DateOffset(months=6)
+        elif selected_range == "1A":
             start_dt = last_dt - pd.DateOffset(years=1)
         elif selected_range == "3A":
             start_dt = last_dt - pd.DateOffset(years=3)
         elif selected_range == "5A":
             start_dt = last_dt - pd.DateOffset(years=5)
-        elif selected_range == "10A":
-            start_dt = last_dt - pd.DateOffset(years=10)
         else:
             start_dt = _cx_nav.index[0]
 
@@ -685,10 +657,19 @@ with tab_metriche:
         s_spy_full = portfolio_manager.load_monthly_benchmark_spy(start_date=_nav_plot.index[0])
         common_dt = _nav_plot.index.intersection(s_spy_full.index)
 
+        # Scala logaritmica: solo sui periodi lunghi (qui lo storico può coprire
+        # oltre 25 anni) dove la scala lineare esagera i guadagni recenti e
+        # schiaccia la storia iniziale — convenzione standard per curve NAV
+        # pluriennali. Non proposta sui periodi brevi, dove non aggiunge nulla.
+        _cx_use_log = False
+        if selected_range in ("3A", "5A", "Da Inizio"):
+            _cx_use_log = st.toggle("Scala logaritmica", value=False, key="convex_log_scale")
+
         fig_cx_eq = go.Figure()
         fig_cx_eq.add_trace(go.Scatter(
             x=_nav_plot.index, y=_nav_plot["norm"], mode="lines", name="Convex Stack",
-            line=dict(color=ACCENT, width=2), fill="tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
+            line=dict(color=ACCENT, width=2),
+            fill=None if _cx_use_log else "tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
             hovertemplate="Base 100: %{y:.2f}<extra></extra>"
         ))
         if len(common_dt) > 0:
@@ -713,6 +694,7 @@ with tab_metriche:
             font=dict(color=MUTED, family="Inter"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=10)),
             margin=dict(t=30, b=10, l=10, r=10), height=280,
+            yaxis=dict(type="log") if _cx_use_log else dict(),
             yaxis_title="Base 100"
         )
         st.plotly_chart(fig_cx_eq, use_container_width=True)

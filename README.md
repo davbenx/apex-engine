@@ -8,7 +8,8 @@ volatilità al posto di un ETF azionario (carattere fiscale "redditi diversi"
 in Italia). Ribilanciamento settimanale (decisione venerdì, esecuzione
 lunedì), notifiche Telegram, nessuno stop-loss per singola posizione —
 validato: ogni meccanismo di stop testato peggiora Sharpe e/o MaxDD sotto
-esecuzione reale a cadenza settimanale. Motore completamente automatico.
+esecuzione settimanale realistica. Motore a simulazione automatica: calcola
+segnali e ordini su capitale virtuale, nessun conto broker reale collegato.
 
 **Convex Stack** — portafoglio multi-asset a leva sistematica (122.5%
 nozionale via leva implicita 1.5x su NTSG), alimentato da un PAC mensile.

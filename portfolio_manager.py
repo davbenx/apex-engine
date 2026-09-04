@@ -54,11 +54,11 @@ ASSET_CLASSES_INFO = {
 
 CONVEX_INSTRUMENTS_METADATA = {
     "NTSG": {
-        "isin": "IE0005O4X307",
+        "isin": "IE00077IIPQ8",
         "name": "WisdomTree Global Efficient Core UCITS ETF",
         "exchange": "Borsa Italiana (MIL)",
         "currency": "EUR",
-        "ter": 0.0020,
+        "ter": 0.0025,
         "tax_regime": "Reddito di Capitale (non compensa minus)",
         "tax_type": "capitale",
         "target_weight": 0.45,
@@ -67,11 +67,11 @@ CONVEX_INSTRUMENTS_METADATA = {
         "driver": "Equity Risk Premium + Term Premium con leva strutturale e rebalancing dividend yield.",
     },
     "AVWS": {
-        "isin": "IE0003R88ER0",
+        "isin": "IE0003R87OG3",
         "name": "Avantis World Small Cap Value UCITS ETF",
         "exchange": "XETRA (FRA)",
         "currency": "EUR",
-        "ter": 0.0036,
+        "ter": 0.0039,
         "tax_regime": "Reddito di Capitale (non compensa minus)",
         "tax_type": "capitale",
         "target_weight": 0.15,
@@ -80,11 +80,11 @@ CONVEX_INSTRUMENTS_METADATA = {
         "driver": "Premio accademico al fattore Value su titoli a bassa capitalizzazione e alta redditività.",
     },
     "DBMFE": {
-        "isin": "LU2482313645",
+        "isin": "LU2951555403",
         "name": "iMGP DBi Managed Futures Strategy UCITS",
         "exchange": "Euronext Paris (PAR)",
         "currency": "EUR",
-        "ter": 0.0085,
+        "ter": 0.0075,
         "tax_regime": "Reddito di Capitale (non compensa minus)",
         "tax_type": "capitale",
         "target_weight": 0.25,
@@ -249,45 +249,70 @@ def save_convex_portfolio(data: Dict[str, Any]) -> bool:
 # esplicitamente il dato come stimato/non aggiornato.
 # ==============================================================================
 
+# ==============================================================================
+# PERCHE' SOLO IL PERIODO TEST (fuori campione) — non piu' 2014-2026/2000-2026
+# ==============================================================================
+# Correzione importante: le metriche restituite qui erano prima calcolate sulla
+# finestra COMPLETA (Apex 2014-11/2026-08, Convex 2000-09/2026-08), che include
+# sia il periodo usato per SCEGLIERE i parametri della strategia (TRAIN) sia il
+# periodo mai visto durante quella scelta (TEST) — mescolati senza distinzione,
+# quindi ottimisticamente distorti rispetto a una vera prova fuori campione.
+# Ora restituiscono SOLO il periodo TEST, lo stesso standard walk-forward gia'
+# usato in tutta la ricerca di questo progetto (vedi APEX_V2_SPEC.md §8.25 e
+# research/convex/convex_optimize_v2.py):
+#   - Apex: split a meta' campione per numero di decisioni mensili (72+72).
+#     TRAIN 2014-11-30 -> 2020-08-31, TEST 2020-09-30 -> 2026-08-31 (72 mesi).
+#     Ricalcolato da research/convex/apex_monthly_returns_extended.csv (netto)
+#     e _gross.csv, stessa metodologia che produce esattamente i numeri prima
+#     deployati per la finestra piena (verificato a 4 decimali) — non stimato.
+#   - Convex: split a meta' della serie storica completa 2000-2026 usato per
+#     validare i pesi 45/15/25/7.5/7.5 in convex_optimize_v2.py.
+#     TRAIN 2000-09-30 -> 2013-09-30, TEST 2013-10-31 -> 2026-08-31 (155 mesi).
+#     Ricalcolato da convex_monthly_returns.csv (lorda per costruzione — Convex
+#     non vende se non per rari trim). cagr_net resta l'approssimazione
+#     dichiarata (haircut 26% sulla plusvalenza cumulata del solo periodo TEST,
+#     non una simulazione fiscale posizione-per-posizione).
+# ==============================================================================
+
 def get_apex_metrics() -> Dict[str, Any]:
-    """Metriche reali di Apex Engine, calcolate dal backtest di produzione
-    (esecuzione settimanale, finestra comune 2014-11/2026-08, vedi nota sopra).
-    cagr_gross da research/convex/apex_extended_summary.pkl (full_window),
-    calcolato riaggiungendo le tasse realmente pagate anno per anno — non stimato."""
+    """Metriche reali di Apex Engine sul solo periodo di validazione fuori
+    campione (TEST 2020-09-30 -> 2026-08-31, 72 mesi mai usati per scegliere
+    i parametri della strategia) — vedi nota sopra per la metodologia."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1601,
-        "cagr_gross": 0.1858,
-        "volatility": 0.1637,
-        "sharpe": 0.992,
-        "sortino": 1.841,
+        "cagr_net": 0.1230,
+        "cagr_gross": 0.1416,
+        "volatility": 0.1617,
+        "sharpe": 0.799,
+        "sortino": 1.409,
         "max_drawdown": -0.1598,
-        "calmar": 1.002,
-        "ulcer_index": 7.41,
+        "calmar": 0.770,
+        "ulcer_index": 8.72,
+        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "cash_drag_protection": "100% Cash nei bear market macro",
         "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Vol (Buffer Rank 20) + Trend Macro 40w/20w con isteresi. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
 
 
 def get_convex_metrics() -> Dict[str, Any]:
-    """Metriche reali di Convex Stack, calcolate dal backtest corretto (pesi di
-    capitale corretti, TER corretto, senza l'estensione Fama-French fabbricata).
-    cagr_gross è la performance reale della curva (Convex non vende se non per
-    rari trim: le tasse sono dovute solo alla realizzazione, non sul non
-    realizzato — la curva "vera" oggi è quella lorda). cagr_net è calcolato con
-    il modello fiscale a due categorie (UCITS senza compensazione minusvalenze,
-    ETC/ETP con compensazione — vedi research/convex/convex_twobucket_v2.pkl),
-    non più una stima forfettaria: è il valore NETTO SE si liquidasse oggi."""
+    """Metriche reali di Convex Stack sul solo periodo di validazione fuori
+    campione (TEST 2013-10-31 -> 2026-08-31, 155 mesi mai usati per scegliere
+    i pesi 45/15/25/7.5/7.5) — vedi nota sopra per la metodologia. cagr_gross
+    è la performance reale della curva (Convex non vende se non per rari trim:
+    le tasse sono dovute solo alla realizzazione, non sul non realizzato).
+    cagr_net è un'approssimazione (haircut 26% sulla plusvalenza cumulata del
+    periodo TEST), non una simulazione fiscale posizione-per-posizione."""
     return {
         "name": "Convex Stack (Strategico PAC)",
-        "cagr_net": 0.1176,
-        "cagr_gross": 0.1396,
-        "volatility": 0.1107,
-        "sharpe": 1.144,
-        "sortino": 1.402,
-        "max_drawdown": -0.1462,
-        "calmar": 0.871,
-        "ulcer_index": 3.46,
+        "cagr_net": 0.1308,
+        "cagr_gross": 0.1526,
+        "volatility": 0.1249,
+        "sharpe": 1.206,
+        "sortino": 1.511,
+        "max_drawdown": -0.1576,
+        "calmar": 0.968,
+        "ulcer_index": 3.81,
+        "test_period": "2013-10-31 → 2026-08-31 (155 mesi, fuori campione)",
         "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
         "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
     }

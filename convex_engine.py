@@ -27,7 +27,7 @@ CONVEX_INSTRUMENTS = {
     "NTSG": {
         "name": "WisdomTree Global Efficient Core",
         "ticker": "NTSG.MI",
-        "isin": "IE00BLRPQM83",
+        "isin": "IE00077IIPQ8",  # verificato: justETF/WisdomTree, quotazione EUR Borsa Italiana, TER 0.25% (combacia)
         "target_weight": 0.45,       # 45% del capitale in cassa
         "tolerance_min": 0.40,       # Banda min: 40%
         "tolerance_max": 0.50,       # Banda max: 50%
@@ -40,7 +40,7 @@ CONVEX_INSTRUMENTS = {
     "AVWS": {
         "name": "Avantis World Small Cap Value",
         "ticker": "AVWS.DE",
-        "isin": "IE000OETMVR4",
+        "isin": "IE0003R87OG3",  # verificato: justETF/Avantis, quotazione Xetra, TER 0.39% (combacia)
         "target_weight": 0.15,       # 15% del capitale
         "tolerance_min": 0.10,
         "tolerance_max": 0.20,

@@ -675,16 +675,16 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 with tab_pf:
     hero_slot = st.empty()
 
-    with st.expander("Parametri Capitale Broker Apex", expanded=False):
+    with st.expander("Parametri Capitale Apex", expanded=False):
         c_cap, c_save = st.columns([3, 1])
         with c_cap:
             cap_apex_input = st.number_input(
-                "Capitale Apex broker reale (€)",
+                "Capitale di Riferimento Apex (€)",
                 min_value=1000.0,
                 value=float(cfg.get("apex_capital_eur", 100000.0)),
                 step=5000.0,
                 format="%.0f",
-                help="Capitale effettivo allocato su Apex Engine. Calcola quote e controvalori operativi esatti."
+                help="Capitale usato per calcolare quote e controvalori della simulazione. Apex Engine gira ad esecuzione simulata: nessun conto broker reale è ancora collegato."
             )
         with c_save:
             st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
@@ -947,16 +947,16 @@ with tab_pf:
     else:
         st.caption("Nessuna posizione attiva al momento.")
 
-    # --- 5. Ultime Operazioni Eseguite ---
+    # --- 5. Ultime Operazioni Simulate ---
     if last_actions:
         rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
-        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
-            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+        with st.expander(f"Ultime Operazioni Simulate{rebalance_date_label}"):
+            st.caption("Operazioni della simulazione nell'ultimo ciclo di ribilanciamento:")
             st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
     elif latest_hist_trades:
         rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
-        with st.expander(f"Ultime Operazioni Eseguite{rebalance_date_label}"):
-            st.caption("Operazioni eseguite durante l'ultimo ciclo di ribilanciamento:")
+        with st.expander(f"Ultime Operazioni Simulate{rebalance_date_label}"):
+            st.caption("Operazioni della simulazione nell'ultimo ciclo di ribilanciamento:")
             show_rec_details = st.toggle("Mostra dettagli esecuzione", value=False, key="rec_details_toggle")
             recent_rows = []
             for t in latest_hist_trades:
@@ -1011,12 +1011,16 @@ with tab_perf:
         {sub_hero_metric("Calmar", f"{_m_apex_active['calmar']:.2f}", "Crescita / peggior perdita")}
     </div>
     """)
+    st.caption(
+        f"Periodo di validazione fuori campione: {_m_apex_active.get('test_period', '')} — "
+        f"mai usato per scegliere i parametri della strategia."
+    )
 
     st_html(section_title("Curva Equity vs Benchmark (SPY)", top="8px", bottom="8px"))
 
     selected_range = st.segmented_control(
         "Periodo",
-        options=["6M", "1A", "3A", "5A", "Tutto"],
+        options=["6M", "1A", "3A", "5A", "Da Inizio"],
         default="1A",
         label_visibility="collapsed",
         key="chart_range_ctrl"
@@ -1042,7 +1046,7 @@ with tab_perf:
             # range=10y (non 2y): con solo 2 anni di SPY il benchmark veniva
             # normalizzato a un punto di partenza a metà grafico invece che
             # dall'inizio reale, producendo una curva incoerente per il
-            # periodo "Tutto" (segnalato dall'utente). 10y copre l'intero
+            # periodo "Da Inizio" (segnalato dall'utente). 10y copre l'intero
             # storico reale di Apex senza alcun costo aggiuntivo.
             url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -1057,7 +1061,8 @@ with tab_perf:
         except Exception:
             return pd.DataFrame()
 
-    # Storico reale del conto Apex (nessun dato inventato).
+    # Storico della simulazione Apex, calcolato da segnali e prezzi di mercato
+    # reali (nessun dato inventato) — non un conto broker reale, vedi didascalia.
     _eq_path_local = os.path.join(os.path.dirname(__file__), "equity.json")
     eq_curve = fetch_json_local_or_github("equity.json") or (json.load(open(_eq_path_local)) if os.path.exists(_eq_path_local) else None)
     df_eq = None
@@ -1067,8 +1072,6 @@ with tab_perf:
         df_eq = df_eq.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
         if 'open' not in df_eq.columns or df_eq['open'].isna().all():
             df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
-            df_eq['high'] = df_eq[['open', 'value']].max(axis=1)
-            df_eq['low'] = df_eq[['open', 'value']].min(axis=1)
         df_eq['close'] = df_eq['value'] if 'value' in df_eq.columns else df_eq['close']
 
     if df_eq is not None and len(df_eq) > 0:
@@ -1076,19 +1079,14 @@ with tab_perf:
         df_eq['drawdown'] = (df_eq['close'] - df_eq['roll_max']) / df_eq['roll_max'] * 100
 
         initial_val = df_eq['open'].iloc[0]
-        final_val = df_eq['close'].iloc[-1]
         base_val = initial_val if initial_val > 0 else 100000.0
-        df_eq['norm_open'] = (df_eq['open'] / base_val) * 100
-        df_eq['norm_high'] = (df_eq['high'] / base_val) * 100
-        df_eq['norm_low'] = (df_eq['low'] / base_val) * 100
+        # Solo la chiusura serve al grafico (linea, non candlestick) — open/high/low
+        # non vengono mai disegnati, quindi non calcolati (erano lavoro sprecato ad
+        # ogni render).
         df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
 
         if len(df_eq) >= 5:
-            df_agg = df_eq.resample('W-FRI').agg({
-                'norm_open': 'first', 'norm_high': 'max', 'norm_low': 'min', 'norm_close': 'last', 'close': 'last'
-            }).dropna()
-            df_agg['norm_high'] = df_agg[['norm_open', 'norm_close', 'norm_high']].max(axis=1)
-            df_agg['norm_low'] = df_agg[['norm_open', 'norm_close', 'norm_low']].min(axis=1)
+            df_agg = df_eq.resample('W-FRI').agg({'norm_close': 'last', 'close': 'last'}).dropna()
         else:
             df_agg = df_eq
 
@@ -1128,12 +1126,21 @@ with tab_perf:
 
         df_spy = load_benchmark()
 
+        # Scala logaritmica: solo sui periodi lunghi, dove la scala lineare
+        # esagera visivamente i guadagni recenti e schiaccia la storia iniziale
+        # (convenzione standard per curve NAV pluriennali). Sui periodi brevi
+        # non aggiunge nulla, quindi non viene nemmeno proposta.
+        _use_log = False
+        if selected_range in ("3A", "5A", "Da Inizio"):
+            _use_log = st.toggle("Scala logaritmica", value=False, key="apex_log_scale")
+
         fig = go.Figure()
         _y_values = list(df_plot['norm_close'])
 
         fig.add_trace(go.Scatter(
             x=df_plot.index, y=df_plot['norm_close'], mode='lines', name="Apex Engine",
-            line=dict(color=ACCENT, width=2), fill='tozeroy', fillcolor='rgba(201, 164, 76, 0.10)',
+            line=dict(color=ACCENT, width=2),
+            fill=None if _use_log else 'tozeroy', fillcolor='rgba(201, 164, 76, 0.10)',
             text=it_dates_str, hovertemplate="<b>%{text}</b><br>Base 100: %{y:.2f}<extra></extra>"
         ))
 
@@ -1156,6 +1163,14 @@ with tab_perf:
 
         _y_min, _y_max = min(_y_values), max(_y_values)
         _y_pad = max((_y_max - _y_min) * 0.08, 1.0)
+        # Scala log: il range va lasciato all'autoscaling di Plotly (in scala
+        # log un range esplicito va espresso in esponenti, non nei valori
+        # originali — un range lineare qui produrrebbe un grafico sbagliato).
+        _yaxis = dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11))
+        if _use_log:
+            _yaxis["type"] = "log"
+        else:
+            _yaxis["range"] = [_y_min - _y_pad, _y_max + _y_pad]
 
         fig.update_layout(
             template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
@@ -1164,8 +1179,7 @@ with tab_perf:
                        tickmode='array' if len(ticks) > 0 else 'auto',
                        tickvals=ticks if len(ticks) > 0 else None,
                        ticktext=tick_labels if len(tick_labels) > 0 else None),
-            yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11),
-                       range=[_y_min - _y_pad, _y_max + _y_pad]),
+            yaxis=_yaxis,
             margin=dict(l=0, r=0, t=10, b=0), height=380,
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
         )
@@ -1193,7 +1207,8 @@ with tab_perf:
         st.plotly_chart(fig_dd, use_container_width=True)
 
         st.caption(
-            f"Grafico dai {len(df_eq)} punti di storico reale disponibili "
+            f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale — "
+            f"nessun conto broker reale ancora collegato. {len(df_eq)} punti disponibili "
             f"({df_eq.index[0].date()} → {df_eq.index[-1].date()})."
         )
 
@@ -1202,7 +1217,7 @@ with tab_perf:
     else:
         st.info("In attesa del file di tracciamento storico.")
 
-    # --- Statistiche Operative (storico reale di trade) ---
+    # --- Statistiche Operative (storico delle operazioni simulate) ---
     if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]

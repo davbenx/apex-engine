@@ -542,19 +542,19 @@ with tab_perf:
 
 
         selected_range = st.segmented_control(
-            "Periodo", options=["1A", "3A", "5A", "10A", "Tutto"],
+            "Periodo", options=["6M", "1A", "3A", "5A", "Da Inizio"],
             default="5A", label_visibility="collapsed", key="comb_chart_range_ctrl"
         ) or "5A"
 
         last_dt = df_comb.index[-1]
-        if selected_range == "1A":
+        if selected_range == "6M":
+            start_dt = last_dt - pd.DateOffset(months=6)
+        elif selected_range == "1A":
             start_dt = last_dt - pd.DateOffset(years=1)
         elif selected_range == "3A":
             start_dt = last_dt - pd.DateOffset(years=3)
         elif selected_range == "5A":
             start_dt = last_dt - pd.DateOffset(years=5)
-        elif selected_range == "10A":
-            start_dt = last_dt - pd.DateOffset(years=10)
         else:
             start_dt = df_comb.index[0]
 
@@ -564,11 +564,16 @@ with tab_perf:
         s_spy_full = portfolio_manager.load_monthly_benchmark_spy(start_date=_comb_plot.index[0])
         common_dt = _comb_plot.index.intersection(s_spy_full.index)
 
+        _comb_use_log = False
+        if selected_range in ("3A", "5A", "Da Inizio"):
+            _comb_use_log = st.toggle("Scala logaritmica", value=False, key="comb_log_scale")
+
         fig_comb = go.Figure()
         fig_comb.add_trace(go.Scatter(
             x=_comb_plot.index, y=_comb_plot["norm"], mode="lines",
             name=f"Apex Convex (Mix {_target_apex*100:.0f}/{(1-_target_apex)*100:.0f})",
-            line=dict(color=ACCENT, width=2), fill="tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
+            line=dict(color=ACCENT, width=2),
+            fill=None if _comb_use_log else "tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
             hovertemplate="Base 100: %{y:.2f}<extra></extra>"
         ))
         if len(common_dt) > 0:
@@ -587,6 +592,7 @@ with tab_perf:
             font=dict(color=MUTED, family="Inter"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=10)),
             margin=dict(t=30, b=10, l=10, r=10), height=280,
+            yaxis=dict(type="log") if _comb_use_log else dict(),
             yaxis_title="Base 100"
         )
         st.plotly_chart(fig_comb, use_container_width=True)
