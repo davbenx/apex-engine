@@ -457,7 +457,7 @@ with tab_perf:
 
     st_html(f"""
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-        {sub_hero_metric("Crescita Annua Netta", f"{_dual['cagr_net']*100:.2f}%", f"Lordo {_dual['cagr_gross']*100:.2f}%", POS if _dual['cagr_net'] >= 0 else NEG, primary=True)}
+        {sub_hero_metric("Crescita Annua Lorda", f"{_dual['cagr_gross']*100:.2f}%", f"Netto stimato: {_dual['cagr_net']*100:.2f}%", POS if _dual['cagr_gross'] >= 0 else NEG, primary=True)}
         {sub_hero_metric("Indice di Sharpe", f"{_dual['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _dual['sharpe'] >= 1.0 else None, primary=True)}
         {sub_hero_metric("Calo Massimo Storico", f"{_dual['max_drawdown']*100:.2f}%", "Abbattuto sotto il 10%", primary=True)}
     </div>
@@ -548,6 +548,8 @@ with tab_perf:
             margin=dict(t=4, b=10, l=10, r=10), height=140, showlegend=False
         )
         st.plotly_chart(fig_comb_dd, use_container_width=True)
+
+        st.caption("Curva e drawdown al lordo delle tasse (coerente con le due gambe: Apex realizza le tasse anno per anno ma qui è mostrato lordo per confronto diretto con Convex, che le realizza solo alla vendita).")
 
         st_html(section_title("Matrice dei Rendimenti Mensili Combinati"))
         st_html(render_monthly_returns_html_table(df_comb))

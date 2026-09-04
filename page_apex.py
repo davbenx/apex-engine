@@ -1001,7 +1001,7 @@ with tab_perf:
 
     st_html(f"""
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-        {sub_hero_metric("Crescita Annua Netta", f"{_m_apex_active['cagr_net']*100:+.2f}%", f"Lordo: {_m_apex_active['cagr_gross']*100:+.2f}%", POS if _m_apex_active['cagr_net'] >= 0 else NEG, primary=True)}
+        {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}%", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
         {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
         {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active['max_drawdown']*100:.2f}%", "Il calo peggiore mai vissuto", primary=True)}
     </div>
@@ -1207,8 +1207,9 @@ with tab_perf:
         st.plotly_chart(fig_dd, use_container_width=True)
 
         st.caption(
-            f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale — "
-            f"nessun conto broker reale ancora collegato. {len(df_eq)} punti disponibili "
+            f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale, "
+            f"al lordo delle tasse — nessun conto broker reale ancora collegato. "
+            f"{len(df_eq)} punti disponibili "
             f"({df_eq.index[0].date()} → {df_eq.index[-1].date()})."
         )
 

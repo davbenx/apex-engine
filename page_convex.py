@@ -599,7 +599,7 @@ with tab_metriche:
 
         st_html(f"""
         <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-            {sub_hero_metric("Crescita Annua Lorda", f"{cagr_gross*100:.2f}%", f"Netto (se liquidato): {cagr_net*100:.2f}%", POS if cagr_gross >= 0 else NEG, primary=True)}
+            {sub_hero_metric("Crescita Annua Lorda", f"{cagr_gross*100:.2f}%", f"Netto stimato (se liquidato): {cagr_net*100:.2f}%", POS if cagr_gross >= 0 else NEG, primary=True)}
             {sub_hero_metric("Indice di Sharpe", f"{sharpe:.2f}", "Efficienza rendimento/rischio", POS if sharpe >= 1.0 else None, primary=True)}
             {sub_hero_metric("Calo Massimo Storico", f"{mdd*100:.2f}%", "Il calo peggiore mai registrato", primary=True)}
         </div>
@@ -611,7 +611,10 @@ with tab_metriche:
         """)
         st.caption(
             f"Periodo di validazione fuori campione: {_m_cx.get('test_period', '')} — "
-            f"mai usato per scegliere i pesi della strategia."
+            f"mai usato per scegliere i pesi della strategia. Il netto stimato è "
+            f"un'approssimazione (26% sulla plusvalenza cumulata), non una simulazione "
+            f"fiscale posizione-per-posizione — Convex vende raramente, le tasse vere "
+            f"si pagano solo alla liquidazione effettiva."
         )
 
 
