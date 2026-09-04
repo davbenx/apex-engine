@@ -21,10 +21,8 @@ V2_SHORT_MA_WEEKS = 20  # conferma multi-timeframe — vedi APEX_V2_SPEC.md §8.
 V2_HYSTERESIS_K = 0.5   # banda adattiva = k * vol settimanale dell'asset, non piu' fissa al 2% per tutti — vedi §8.9
 V2_HYSTERESIS_MIN = 0.005
 V2_HYSTERESIS_MAX = 0.15
-V2_VOL_TARGET = 0.22  # alzato da 0.13 — vedi APEX_V2_SPEC.md §8.25/§10.13 (Percorso B):
-                      # plateau confermato walk-forward, piu' CAGR/Calmar in cambio di un
-                      # MaxDD piu' alto (8.8%->11.5%), scelta di rischio esplicita per un
-                      # motore pensato per generare alpha.
+V2_VOL_TARGET = 0.13  # CANONICAL FROZEN (APEX v2.1-FROZEN): scelta conservativa su ampio plateau,
+                      # MaxDD contenuto (8.8% OOS), benchmark ufficiale di produzione.
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
 V2_EQUITY_VOL_LOOKBACK = 26

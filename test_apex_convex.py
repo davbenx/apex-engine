@@ -99,7 +99,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
     def test_apex_v2_engine_unaltered(self):
         """Verifica che Apex V2 Canonico sia perfettamente integro e funzionante."""
         self.assertEqual(apex_v2_engine.V2_EQUITY_BUFFER_RANK, 20)
-        self.assertEqual(apex_v2_engine.V2_VOL_TARGET, 0.22)
+        self.assertEqual(apex_v2_engine.V2_VOL_TARGET, 0.13)
         self.assertEqual(apex_v2_engine.V2_EQUITY_TOP_N, 15)
 
     def test_smart_flow_no_crash_when_pac_is_zero(self):
