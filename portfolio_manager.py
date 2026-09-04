@@ -332,32 +332,44 @@ def get_convex_metrics() -> Dict[str, Any]:
 
 
 def get_combined_dual_engine_metrics() -> Dict[str, Any]:
-    """Metriche reali della combinazione APEX+CONVEX al mix target standard 50/50,
-    calcolate dalla correlazione EFFETTIVA tra le due serie di rendimento
-    sulla finestra comune 2014-11/2026-08 (142 mesi). Tutte le metriche di
-    rischio (sharpe/sortino/max_drawdown/calmar/volatility) sono calcolate
-    combinando le due serie LORDE (apex_monthly_returns_extended_gross.csv +
-    convex_monthly_returns.csv, già lorda per costruzione) -- stesso bug
-    corretto in load_combined_monthly_history(), che prima mescolava Apex
-    netto con Convex lordo. cagr_net resta una stima approssimata (non una
-    combinazione rigorosa di tasse posizione-per-posizione)."""
+    """Metriche reali della combinazione APEX+CONVEX al mix target standard 50/50.
+    BUG corretto: prima usava la finestra 2014-11/2026-08 (142 mesi) mentre
+    get_apex_metrics()/get_convex_metrics() erano gia' state corrette al solo
+    periodo TEST di ciascuna (72 e 155 mesi) -- tre finestre diverse per tre
+    numeri mostrati fianco a fianco, che produceva un CAGR combinato
+    apparentemente piu' alto di ENTRAMBE le componenti (un'impossibilita'
+    matematica per una media pesata, segnalata dall'utente). Causa: la
+    finestra vecchia includeva 2014-2020, il periodo TRAIN di Apex con un
+    rendimento eccezionalmente forte che la casella Apex non mostra piu'.
+    Ora usa l'intersezione dei due periodi TEST (2020-09-30 -> 2026-08-31,
+    72 mesi) -- fuori campione per ENTRAMBE le strategie, la stessa identica
+    finestra della casella Apex, cosi' le tre cifre sono confrontabili.
+    Su questa finestra il CAGR combinato torna correttamente IN MEZZO ai due
+    componenti (15.91% tra 14.38% Apex e 16.88% Convex, tutti lordi) -- il
+    beneficio di diversificazione reale si vede nel MaxDD (-7.80%, inferiore
+    a entrambe le componenti), non nel CAGR. Sharpe/Sortino/MaxDD/Calmar
+    calcolati sulle due serie LORDE (apex_monthly_returns_extended_gross.csv
+    + convex_monthly_returns.csv); cagr_net e' la media pesata delle stime
+    nette dei due componenti sulla stessa finestra, non una combinazione
+    fiscale rigorosa posizione-per-posizione."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1530,
-        "cagr_gross": 0.1707,
-        "volatility": 0.1173,
-        "sharpe": 1.410,
-        "sortino": 2.742,
-        "max_drawdown": -0.1085,
-        "calmar": 1.574,
-        "ulcer_index": 3.42,
-        "correlation": 0.446,
+        "cagr_net": 0.1303,
+        "cagr_gross": 0.1591,
+        "volatility": 0.1149,
+        "sharpe": 1.384,
+        "sortino": 2.267,
+        "max_drawdown": -0.0780,
+        "calmar": 2.040,
+        "ulcer_index": 2.62,
+        "correlation": 0.424,
+        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "synergy_summary": (
-            "Mix 50% Apex / 50% Convex (lordo): MaxDD -10.85% (abbattuto rispetto a -10.12% Apex e -15.76% Convex "
-            "isolatamente), Sharpe 1.410 e Calmar 1.574, CAGR lordo 17.07% (netto stimato 15.30%). "
-            "Correlazione reale calcolata tra le due serie: 0.446 — beneficio di "
-            "diversificazione genuino (MaxDD combinato inferiore a entrambe le componenti "
-            "singole). Valutazione sulla finestra comune 2014-2026 (142 mesi)."
+            "Mix 50% Apex / 50% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
+            "CAGR 15.91% (netto stimato 13.03%), correttamente tra il 14.38% di Apex e il 16.88% di Convex "
+            "isolatamente. Il beneficio di diversificazione si vede nel MaxDD -7.80% — inferiore a entrambe "
+            "le componenti singole (-10.12% Apex, -15.76% Convex) — non nel CAGR: una miscela pesata non può "
+            "mai battere entrambi i componenti sul rendimento, solo sul rischio. Correlazione reale: 0.424."
         )
     }
 
