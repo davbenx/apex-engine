@@ -265,13 +265,19 @@ def save_convex_portfolio(data: Dict[str, Any]) -> bool:
 #     Ricalcolato da research/convex/apex_monthly_returns_extended.csv (netto)
 #     e _gross.csv, stessa metodologia che produce esattamente i numeri prima
 #     deployati per la finestra piena (verificato a 4 decimali) — non stimato.
-#   - Convex: split a meta' della serie storica completa 2000-2026 usato per
-#     validare i pesi 45/15/25/7.5/7.5 in convex_optimize_v2.py.
-#     TRAIN 2000-09-30 -> 2013-09-30, TEST 2013-10-31 -> 2026-08-31 (155 mesi).
-#     Ricalcolato da convex_monthly_returns.csv (lorda per costruzione — Convex
-#     non vende se non per rari trim). cagr_net resta l'approssimazione
-#     dichiarata (haircut 26% sulla plusvalenza cumulata del solo periodo TEST,
-#     non una simulazione fiscale posizione-per-posizione).
+#   - Convex: la validazione dei pesi 45/15/25/7.5/7.5 in convex_optimize_v2.py
+#     usa TRAIN 2000-09-30 -> 2013-09-30, TEST 2013-10-31 -> 2026-08-31 (155
+#     mesi, tutti fuori campione). La cifra MOSTRATA in dashboard pero' usa un
+#     SOTTOINSIEME di quel TEST period, 2020-09-30 -> 2026-08-31 (72 mesi) —
+#     la stessa identica finestra di Apex e del combinato, non i 155 mesi
+#     interi: le tre cifre affiancate devono condividere la stessa finestra o
+#     il confronto tra loro (e il combinato che sembra "battere" una delle due
+#     componenti) diventa fuorviante, anche se ciascuna singola cifra resta
+#     onestamente fuori campione. Ricalcolato da convex_monthly_returns.csv
+#     (lorda per costruzione — Convex non vende se non per rari trim).
+#     cagr_net resta l'approssimazione dichiarata (haircut 26% sulla
+#     plusvalenza cumulata del periodo mostrato, non una simulazione fiscale
+#     posizione-per-posizione).
 # ==============================================================================
 
 def get_apex_metrics() -> Dict[str, Any]:
@@ -308,24 +314,33 @@ def get_apex_metrics() -> Dict[str, Any]:
 
 
 def get_convex_metrics() -> Dict[str, Any]:
-    """Metriche reali di Convex Stack sul solo periodo di validazione fuori
-    campione (TEST 2013-10-31 -> 2026-08-31, 155 mesi mai usati per scegliere
-    i pesi 45/15/25/7.5/7.5) — vedi nota sopra per la metodologia. cagr_gross
-    è la performance reale della curva (Convex non vende se non per rari trim:
-    le tasse sono dovute solo alla realizzazione, non sul non realizzato).
-    cagr_net è un'approssimazione (haircut 26% sulla plusvalenza cumulata del
-    periodo TEST), non una simulazione fiscale posizione-per-posizione."""
+    """Metriche reali di Convex Stack sul periodo di validazione fuori campione.
+    BUG corretto: usava un TEST period proprio (2013-10/2026-08, 155 mesi) diverso
+    da quello di get_apex_metrics()/get_combined_dual_engine_metrics() (2020-09/
+    2026-08, 72 mesi) — tre finestre diverse per tre numeri mostrati fianco a
+    fianco, che lasciava il combinato apparentemente piu' alto di ENTRAMBE le
+    componenti anche dopo il primo fix (era stato allineato solo ad Apex, non
+    a Convex — segnalato di nuovo dall'utente). Ora usa la STESSA finestra di
+    Apex e del combinato (2020-09-30 -> 2026-08-31, 72 mesi — l'intersezione
+    dei due periodi TEST, quindi fuori campione per entrambe le strategie):
+    su questa finestra Convex fa 16.88% lordo (non piu' 15.26%), e il combinato
+    (15.91%) torna a stare correttamente in mezzo ai due componenti su OGNI
+    confronto, non solo contro Apex. cagr_gross e' la performance reale della
+    curva (Convex non vende se non per rari trim: le tasse sono dovute solo
+    alla realizzazione, non sul non realizzato). cagr_net è un'approssimazione
+    (haircut 26% sulla plusvalenza cumulata del periodo), non una simulazione
+    fiscale posizione-per-posizione."""
     return {
         "name": "Convex Stack (Strategico PAC)",
-        "cagr_net": 0.1308,
-        "cagr_gross": 0.1526,
-        "volatility": 0.1249,
-        "sharpe": 1.206,
-        "sortino": 1.511,
+        "cagr_net": 0.1356,
+        "cagr_gross": 0.1688,
+        "volatility": 0.1304,
+        "sharpe": 1.252,
+        "sortino": 1.519,
         "max_drawdown": -0.1576,
-        "calmar": 0.968,
-        "ulcer_index": 3.81,
-        "test_period": "2013-10-31 → 2026-08-31 (155 mesi, fuori campione)",
+        "calmar": 1.071,
+        "ulcer_index": 3.79,
+        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione — stessa finestra di Apex e del combinato)",
         "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
         "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
     }
