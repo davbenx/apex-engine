@@ -366,14 +366,19 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     calcolati sulle due serie LORDE (apex_monthly_returns_extended_gross.csv
     + convex_monthly_returns.csv); cagr_net e' la media pesata delle stime
     nette dei due componenti sulla stessa finestra, non una combinazione
-    fiscale rigorosa posizione-per-posizione."""
+    fiscale rigorosa posizione-per-posizione.
+    Correzione ulteriore (verifica incrociata successiva): volatility e
+    sortino erano rimasti stale da una versione precedente del calcolo (0.1149
+    e 2.267, incoerenti con lo sharpe=1.384 gia' corretto, che implicava una
+    volatility di 0.1100 -- ricalcolato a mano dai CSV, confermato: volatility
+    0.1100, sortino 3.306)."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
         "cagr_net": 0.1303,
         "cagr_gross": 0.1591,
-        "volatility": 0.1149,
+        "volatility": 0.1100,
         "sharpe": 1.384,
-        "sortino": 2.267,
+        "sortino": 3.306,
         "max_drawdown": -0.0780,
         "calmar": 2.040,
         "ulcer_index": 2.62,
