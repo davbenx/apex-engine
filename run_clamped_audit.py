@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 run_clamped_audit.py — Production-Grade Clamped BTC (<=8.0%) Audit for Combined 50/50 EUR Net.
+
+OBJECTIVE FUNCTION (FROZEN — DO NOT ALTER):
+    max  0.5 * CAGR_spend + 0.5 * CAGR_5p_63d
+    s.t. MDD_boot_63d_5p >= -B,  MDD_hist >= -1.1 * B,  w_BTC <= c,  sum(w) <= 1
+    where B in {15%, 20%, 25%}, c in {0%, 4%, 8%, 10%}.
+
 Enforces:
 - Hard combined BTC clamp <= 8.0% (Apex BTC target <= 8.5%, daily drift trimming if Combined BTC > 8.0%)
 - Italian annual 0.20% imposta di bollo at December 31
