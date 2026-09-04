@@ -30,8 +30,8 @@ import portfolio_manager
 
 try:
     importlib.reload(portfolio_manager)
-except Exception:
-    pass
+except Exception as _reload_err:
+    print(f"[WARN] importlib.reload fallito: {_reload_err}")
 
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 

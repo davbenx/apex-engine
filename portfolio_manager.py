@@ -324,7 +324,7 @@ def compute_unified_portfolio(
     apex_val: float,
     convex_report: convex_engine.ConvexPortfolioReport,
     monthly_pac: float = 600.0,
-    target_apex_ratio: float = 0.45,
+    target_apex_ratio: float = 0.50,
     apex_allocations: Dict[str, float] = None
 ) -> Dict[str, Any]:
     """
@@ -495,7 +495,7 @@ if __name__ == "__main__":
     }
     prices = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
     c_rep = convex_engine.evaluate_convex_stack(holdings, prices, monthly_pac_eur=cfg["monthly_pac_eur"])
-    unified = compute_unified_portfolio(cfg["apex_capital_eur"], c_rep, cfg["monthly_pac_eur"])
+    unified = compute_unified_portfolio(cfg["apex_capital_eur"], c_rep, cfg["monthly_pac_eur"], cfg["target_apex_ratio"])
 
     print("Test rapido portfolio_manager.py:")
     print(f"Patrimonio Totale Consolidato: € {unified['total_wealth_eur']:,.2f}")

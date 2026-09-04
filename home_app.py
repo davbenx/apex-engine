@@ -26,8 +26,8 @@ import portfolio_manager
 try:
     importlib.reload(portfolio_manager)
     importlib.reload(convex_engine)
-except Exception:
-    pass
+except Exception as _reload_err:
+    print(f"[WARN] importlib.reload fallito: {_reload_err}")
 
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
@@ -362,7 +362,7 @@ with tab_pf:
         <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
             <span style="font-family:{MONO}; font-size:40px; font-weight:800; letter-spacing:-1px;">€ {_tot:,.0f}</span>
             <span style="font-size:12.5px; font-weight:700; color:{_ratio_badge_col}; background:rgba(255,247,237,0.06); padding:4px 10px; border-radius:6px; border:1px solid {BORDER}; font-family:{MONO};">
-                Dual-Engine in Equilibrio · Target 50/50
+                Dual-Engine {"in Equilibrio" if _in_range else "da Riequilibrare"} · Target {_target_apex*100:.0f}/{(1-_target_apex)*100:.0f}
             </span>
         </div>
         <div style="font-size:12px; color:{MUTED}; margin-top:8px;">Target: {_target_apex*100:.0f}% Apex / {(1-_target_apex)*100:.0f}% Convex · Fascia di tolleranza operativa: 30–55%</div>
@@ -647,7 +647,7 @@ with tab_guide:
         <div class="glass-card" style="text-align:center; height: 140px;">
             <div style="font-family:{FRAUNCES}; font-size:24px; color:#8B7FC7; font-weight:700;">3</div>
             <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Ribilanciamento Smart-Flow</div>
-            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Se Apex scende sotto il 30% o Convex sotto il 45%, indirizza il nuovo risparmio mensile verso il motore carente a costo fiscale zero.</div>
+            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Se Apex scende sotto il {(_target_apex-0.05)*100:.0f}% del totale, indirizza il nuovo risparmio mensile verso Apex; altrimenti va su Convex, sull'asset più sottopesato tra i 5 — sempre a costo fiscale zero.</div>
         </div>
         """)
 

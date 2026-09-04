@@ -237,16 +237,21 @@ def evaluate_convex_stack(
         req_trim = False
         trim_eur = 0.0
 
-        if is_over:
+        # Il trim (vendita forzata) scatta SOLO per gli strumenti a Reddito
+        # Diverso (WBTC/PPFB), mai per Reddito di Capitale (NTSG/AVWS/DBMFE) —
+        # coerente con research/convex/convex_operational_rules.py ("trim rule
+        # only ever applied to WBTC/PPFB per this task's scope"), il backtest
+        # validato che ha prodotto le metriche ufficiali di questo progetto.
+        # BUG corretto: prima scattava per qualunque strumento sopra banda,
+        # generando un consiglio di vendita che l'app stessa segnalava come
+        # fiscalmente svantaggioso (ritenuta 26% non compensabile) — un
+        # consiglio che il backtest validato non ha mai eseguito.
+        if is_over and info["tax_type"] == "REDDITO_DIVERSO":
             req_trim = True
             excess_eur = (w_cur - w_tgt) * total_val
             trim_eur = max(0.0, excess_eur)
 
-            tax_note = (
-                "Plusvalenza COMPENSABILE con minusvalenze pregresse (Reddito Diverso ETC/ETP)."
-                if info["tax_type"] == "REDDITO_DIVERSO"
-                else "Vendita ETF UCITS (Reddito di Capitale: ritenuta 26% non compensabile)."
-            )
+            tax_note = "Plusvalenza COMPENSABILE con minusvalenze pregresse (Reddito Diverso ETC/ETP)."
 
             trim_alerts.append({
                 "asset": k,

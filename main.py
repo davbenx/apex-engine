@@ -1,15 +1,19 @@
 """
-main.py — Punto di ingresso della dashboard unificata Apex Convex
+Punto di ingresso della dashboard unificata Apex Convex.
 ==================================================================================
 Naviga tra tre pagine (st.navigation, Streamlit >=1.36): Vista d'Insieme,
-Apex Engine, Convex Stack. `app.py` e `convex_stack_app.py` restano
-invariati come app autonome (porte separate, già in uso) — le pagine qui
-sono copie compatibili con la navigazione multipagina (Streamlit permette
-un solo st.set_page_config() per intera app, quindi le pagine non possono
-chiamarlo una seconda volta: `page_apex.py`/`page_convex.py` sono quelle
-stesse app con solo quella chiamata rimossa, nessun'altra differenza).
+Apex Engine, Convex Stack. `page_apex.py`/`page_convex.py`/`home_app.py` sono i
+contenuti reali; questo file è solo il router st.navigation + set_page_config.
 
-Avvio: streamlit run main.py --server.port <porta libera>
+Questo stesso file esiste come 4 copie identiche — `main.py`, `app.py`,
+`convex_stack_app.py`, `streamlit_app.py` — perché Streamlit Cloud individua
+l'entrypoint in base al nome file a seconda di come l'app è configurata nel
+progetto; avere lo stesso router sotto più nomi evita di legare il deploy a
+una convenzione di naming specifica. Sono tenute sincronizzate manualmente:
+se modifichi una delle quattro, replica la stessa modifica identica nelle
+altre tre.
+
+Avvio locale: streamlit run main.py --server.port <porta libera>
 ==================================================================================
 """
 
