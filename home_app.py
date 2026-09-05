@@ -268,24 +268,18 @@ _both_ok = not (apex_portfolio.get("pending_orders")) and not (_cx_rep.trim_aler
 _status_dot_color = POS if _both_ok else ACCENT
 _status_label_text = "Tutti i sistemi allineati" if _both_ok else "Intervento suggerito"
 
-col_logo, col_stat = st.columns([3, 2])
-with col_logo:
+col_title, col_stat = st.columns([3, 2])
+with col_title:
     st_html(f"""
-    <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; padding: 5px 9px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-            {_logo_tag}
-        </div>
-        <div>
-            <div style="font-family: {FRAUNCES}; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2; color: {BADGE_TEXT};">Apex Convex</div>
-            <div style="font-size: 11px; font-weight: 600; opacity: 0.65; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 1px;">
-                Vista d'Insieme delle Due Strategie
-            </div>
+    <div style="padding: 2px 0 8px 0;">
+        <div style="font-size: 13px; font-weight: 600; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px;">
+            Visione d'Insieme
         </div>
     </div>
     """)
 with col_stat:
     st_html(f"""
-    <div style="text-align: right; padding-top: 10px;">
+    <div style="text-align: right; padding-top: 2px;">
         <div style="font-size: 11px; color: {MUTED};">
             <span style="width:6px; height:6px; border-radius:50%; background:{_status_dot_color}; display:inline-block; margin-right:5px;"></span>{_status_label_text}
         </div>
@@ -309,18 +303,12 @@ tab_pf, tab_perf, tab_guide = st.tabs([
 # ==============================================================================
 with tab_pf:
     # 1. Hero Value Banner
-    _in_range = 0.30 <= _real_apex_ratio <= 0.55
-    _ratio_badge_col = POS if _in_range else ACCENT
     st_html(f"""
-    <div style="padding: 16px 2px 4px;">
+    <div style="padding: 14px 2px 8px;">
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {MUTED}; margin-bottom: 8px;">Patrimonio Consolidato Globale</div>
         <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
             <span style="font-family:{MONO}; font-size:40px; font-weight:800; letter-spacing:-1px;">€ {_tot:,.0f}</span>
-            <span style="font-size:12.5px; font-weight:700; color:{_ratio_badge_col}; background:rgba(255,247,237,0.06); padding:4px 10px; border-radius:6px; border:1px solid {BORDER}; font-family:{MONO};">
-                Dual-Engine {"in Equilibrio" if _in_range else "da Riequilibrare"} · Target {_target_apex*100:.0f}/{(1-_target_apex)*100:.0f}
-            </span>
         </div>
-        <div style="font-size:12px; color:{MUTED}; margin-top:8px;">Target: {_target_apex*100:.0f}% Apex / {(1-_target_apex)*100:.0f}% Convex · Fascia di tolleranza operativa: 30–55%</div>
     </div>
     """)
 
@@ -370,7 +358,7 @@ with tab_pf:
                 <div style="font-size:11px; color:{MUTED};">1° del mese con versamento PAC</div>
             </div>
             <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
-                Strategico PAC · Leva 1.5x NTSG + SCV + CTA + Oro + BTC (122.5% Nozionale)
+                Strategico PAC · Leva 1.5x NTSG + SCV + CTA + Oro + BTC
             </div>
             <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
                 <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
@@ -384,16 +372,16 @@ with tab_pf:
     # 3. Composizione Macro Consolidata
     st_html(section_title("Composizione Macro Consolidata"))
     _macro = unified_data["macro_breakdown"]
-    _c_map = {k: portfolio_manager.ASSET_CLASSES_INFO[k]["color"] for k in [
-        "Azionario Globale & USA",
-        "Obbligazionario Governativo",
-        "Managed Futures (CTA)",
-        "Oro Fisico",
+    canonical_classes = [
+        "Azioni",
+        "Obbligazioni",
+        "Futures gestiti",
+        "Oro",
         "Bitcoin",
-    ]}
-    macro_segs = [(k, _macro.get(k, 0.0) * 100.0, _c_map.get(k, MUTED)) for k in _c_map]
-    if unified_data["idle_cash_pct"] > 0.01:
-        macro_segs.append(("Liquidità", unified_data["idle_cash_pct"] * 100.0, portfolio_manager.ASSET_CLASSES_INFO["Liquidità"]["color"]))
+    ]
+    macro_segs = [(k, _macro.get(k, 0.0) * 100.0, portfolio_manager.get_class_color(k)) for k in canonical_classes]
+    if unified_data.get("idle_cash_pct", 0.0) > 0.001:
+        macro_segs.append(("Liquidità", unified_data["idle_cash_pct"] * 100.0, portfolio_manager.get_class_color("Liquidità")))
 
     _tot_pct = sum(p for _, p, _ in macro_segs)
     if _tot_pct > 0:
@@ -405,8 +393,8 @@ with tab_pf:
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
 
-    # 4. Consiglio Smart-Flow PAC
-    st_html(section_title("Consiglio Smart-Flow (Ribilanciamento a Costo Fiscale Zero)"))
+    # 4. Ribilanciamento consigliato
+    st_html(section_title("Ribilanciamento consigliato"))
     st_html(f"""
     <div class="glass-card-accent">
         <div style="font-size:14px; font-weight:700; color:{ACCENT}; margin-bottom:4px;">
@@ -473,7 +461,7 @@ with tab_perf:
 
 
     if not df_comb.empty:
-        st_html(section_title("Curva Equity Combinata vs Benchmark (SPY)", top="8px", bottom="8px"))
+        st_html(section_title("Curva Equity Combinata vs Benchmark", top="8px", bottom="8px"))
         st.caption(f"Serie mensile dal backtest comune (2014–2026, 142 mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
 
 
@@ -533,7 +521,7 @@ with tab_perf:
         )
         st.plotly_chart(fig_comb, use_container_width=True)
 
-        st_html(section_title("Calo dal Massimo Storico (Drawdown Combinato)", top="14px", bottom="6px"))
+        st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
         fig_comb_dd = go.Figure()
         fig_comb_dd.add_trace(go.Scatter(
             x=df_comb.index, y=df_comb["drawdown"], fill="tozeroy", mode="lines",

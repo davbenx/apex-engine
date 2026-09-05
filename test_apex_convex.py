@@ -205,8 +205,87 @@ class TestApexConvexEcosystem(unittest.TestCase):
                 self.assertEqual(len(matches), 0, f"Trovate emoji in {pf}: {matches}")
 
 
+    def test_canonical_classes_and_colors(self):
+        """Verifica che le 6 classi canoniche abbiano nomi, colori e icone univoci."""
+        expected_classes = ["Azioni", "Obbligazioni", "Futures gestiti", "Oro", "Bitcoin", "Liquidità"]
+        self.assertEqual(list(portfolio_manager.ASSET_CLASSES_INFO.keys()), expected_classes)
+
+        expected_colors = {
+            "Azioni": "#3DDC97",
+            "Obbligazioni": "#4E80EE",
+            "Futures gestiti": "#E07A5F",
+            "Oro": "#E5B233",
+            "Bitcoin": "#F7931A",
+            "Liquidità": "#8E877F",
+        }
+        for c, col in expected_colors.items():
+            self.assertEqual(portfolio_manager.get_class_color(c), col)
+            self.assertEqual(portfolio_manager.ASSET_CLASSES_INFO[c]["color"], col)
+
+        # Verifica che Azioni e Obbligazioni abbiano icone SVG differenti e non coincidenti
+        svg_azioni = portfolio_manager.get_macro_class_svg("Azioni")
+        svg_obbligazioni = portfolio_manager.get_macro_class_svg("Obbligazioni")
+        self.assertNotEqual(svg_azioni, svg_obbligazioni, "Azioni e Obbligazioni devono avere icone SVG distinte")
+        self.assertIn("polyline", svg_azioni)
+        self.assertIn("line", svg_obbligazioni)
+
+    def test_forbidden_strings_and_renames(self):
+        """Verifica la rimozione delle diciture vietate e la presenza delle nuove etichette."""
+        base_dir = os.path.dirname(__file__)
+        home_path = os.path.join(base_dir, "home_app.py")
+        apex_path = os.path.join(base_dir, "page_apex.py")
+
+        with open(home_path, "r", encoding="utf-8") as f:
+            home_content = f.read()
+
+        with open(apex_path, "r", encoding="utf-8") as f:
+            apex_content = f.read()
+
+        # Diciture che devono essere eliminate
+        forbidden = [
+            "Dual-Engine in Equilibrio",
+            "Fascia di tolleranza operativa: 30–55%",
+            "(122.5% Nozionale)",
+            "(SPY)",
+            "Consiglio Smart-Flow (Ribilanciamento a Costo Fiscale Zero)",
+            "Calo dal Massimo Storico (Drawdown Combinato)",
+        ]
+        for term in forbidden:
+            self.assertNotIn(term, home_content, f"'{term}' non deve piu' apparire in home_app.py")
+
+        self.assertNotIn("(SPY)", apex_content, "'(SPY)' non deve apparire in page_apex.py")
+
+        # Diciture rinominate che devono essere presenti
+        self.assertIn("Ribilanciamento consigliato", home_content)
+        self.assertIn("Calo dal Massimo Storico", home_content)
+        self.assertIn("Curva Equity Combinata vs Benchmark", home_content)
+        self.assertIn("Curva Equity vs Benchmark", apex_content)
+
+    def test_router_identity_and_navigation_layout(self):
+        """Verifica che i 4 file router siano identici e contengano la nuova barra di navigazione."""
+        base_dir = os.path.dirname(__file__)
+        routers = ["main.py", "app.py", "convex_stack_app.py", "streamlit_app.py"]
+        contents = {}
+        for r in routers:
+            with open(os.path.join(base_dir, r), "r", encoding="utf-8") as f:
+                contents[r] = f.read()
+
+        # Verifica identita' perfetta
+        ref_content = contents["main.py"]
+        for r in routers[1:]:
+            self.assertEqual(ref_content, contents[r], f"{r} deve essere identico a main.py")
+
+        # Verifica layout: Titolo in alto, 3 bottoni sotto
+        self.assertIn('label="Home"', ref_content)
+        self.assertIn('label="Apex"', ref_content)
+        self.assertIn('label="Convex"', ref_content)
+        self.assertIn('title="Visione d\'Insieme"', ref_content)
+        self.assertIn('default=True', ref_content)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

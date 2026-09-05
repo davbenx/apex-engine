@@ -152,11 +152,11 @@ BADGE_POS_BG = "#1D5F42"
 BADGE_NEG_BG = "#7B2836"
 BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
 
-CLASS_COLOR_EQ = POS
-CLASS_COLOR_BTC = "#2E9E70"
-CLASS_COLOR_GOLD = ACCENT
-CLASS_COLOR_BOND = "#8B7FC7"
-CLASS_COLOR_CASH = "#4A443D"
+CLASS_COLOR_EQ = portfolio_manager.get_class_color("Azioni")
+CLASS_COLOR_BTC = portfolio_manager.get_class_color("Bitcoin")
+CLASS_COLOR_GOLD = portfolio_manager.get_class_color("Oro")
+CLASS_COLOR_BOND = portfolio_manager.get_class_color("Obbligazioni")
+CLASS_COLOR_CASH = portfolio_manager.get_class_color("Liquidità")
 
 FRAUNCES = "'Fraunces', Georgia, serif"
 MONO = "'JetBrains Mono', monospace"
@@ -165,20 +165,12 @@ MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott",
 
 
 # ==============================================================================
-# ICONE SVG (identiche al vero Apex Engine)
+# ICONE SVG (identiche ad Apex Engine)
 # ==============================================================================
 def get_class_svg(classe, size=16, color="currentColor", style=""):
     """Restituisce l'icona SVG vettoriale ufficiale per ciascuna classe di attivo."""
-    inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0; {style}"
-    if classe in ("Azionario", "Azioni"):
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>'
-    if classe == "Bitcoin":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
-    if classe == "Oro":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
-    if classe == "Obbligazioni":
-        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>'
-    return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
+    use_col = None if color == "currentColor" else color
+    return portfolio_manager.get_macro_class_svg(classe, size=size, color=use_col, style=style)
 
 
 def get_action_svg(action_type, size=16):
@@ -540,29 +532,23 @@ engine_status_color = POS if engine_is_fresh else NEG
 logo_b64 = get_logo_b64()
 logo_tag = f'<img src="data:image/png;base64,{logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />' if logo_b64 else monogram("AE", size=42)
 
-col_logo, col_stat = st.columns([3, 2])
-with col_logo:
+col_title, col_stat = st.columns([3, 2])
+with col_title:
     st_html(f"""
-    <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; padding: 5px 9px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-            {logo_tag}
-        </div>
-        <div>
-            <div style="font-family: {FRAUNCES}; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2;">Apex Engine</div>
-            <div style="font-size: 11px; font-weight: 600; opacity: 0.65; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 1px;">
-                Sistema Quantitativo Multi-Asset <span style="color: {ACCENT}; font-weight: 700;">Tattico</span>
-            </div>
+    <div style="padding: 2px 0 8px 0;">
+        <div style="font-size: 13px; font-weight: 600; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px;">
+            Apex Engine · <span style="color: {ACCENT}; font-weight: 700;">Tattico</span>
         </div>
     </div>
     """)
 
 with col_stat:
     st_html(f"""
-    <div style="text-align: right; padding-top: 10px;">
+    <div style="text-align: right; padding-top: 2px;">
         <div style="font-size: 11px; color: {MUTED};">
             <span style="width:6px; height:6px; border-radius:50%; background:{engine_status_color}; display:inline-block; margin-right:5px;"></span>{engine_status_text} · Aggiornato {last_update_display}
         </div>
-        <div style="font-size: 11px; color: {MUTED_2}; margin-top: 4px;">
+        <div style="font-size: 11px; color: {MUTED_2}; margin-top: 2px;">
             Cadenza: decisione venerdì, esecuzione lunedì
         </div>
     </div>
@@ -1015,7 +1001,7 @@ with tab_perf:
         f"mai usato per scegliere i parametri della strategia."
     )
 
-    st_html(section_title("Curva Equity vs Benchmark (SPY)", top="8px", bottom="8px"))
+    st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
 
     selected_range = st.segmented_control(
         "Periodo",

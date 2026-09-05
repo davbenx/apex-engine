@@ -127,6 +127,14 @@ BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
 FRAUNCES = "'Fraunces', Georgia, serif"
 MONO = "'JetBrains Mono', monospace"
 
+_COLOR_MAP = {
+    "NTSG": portfolio_manager.get_class_color("Azioni"),
+    "AVWS": portfolio_manager.get_class_color("Azioni"),
+    "DBMFE": portfolio_manager.get_class_color("Futures gestiti"),
+    "PPFB": portfolio_manager.get_class_color("Oro"),
+    "WBTC": portfolio_manager.get_class_color("Bitcoin"),
+}
+
 
 def get_convex_class_svg(strumento, size=16, color="currentColor", style=""):
     """Icona SVG vettoriale per ciascuno dei 5 strumenti Convex — stesso
@@ -360,24 +368,18 @@ _status_color = POS if _is_fresh else MUTED_DOT
 _status_label = f"Aggiornato al {_last_updated}" if _is_fresh else "Portafoglio Modello (100.000 €)"
 
 
-col_logo, col_stat = st.columns([3, 2])
-with col_logo:
+col_title, col_stat = st.columns([3, 2])
+with col_title:
     st_html(f"""
-    <div style="display: flex; align-items: center; gap: 14px; padding: 6px 0;">
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; padding: 5px 9px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-            {_logo_tag}
-        </div>
-        <div>
-            <div style="font-family: {FRAUNCES}; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; line-height: 1.2; color: {BADGE_TEXT};">Convex Stack</div>
-            <div style="font-size: 11px; font-weight: 600; opacity: 0.65; letter-spacing: 0.4px; text-transform: uppercase; margin-top: 1px;">
-                Portafoglio Multi-Asset a Leva Sistematica
-            </div>
+    <div style="padding: 2px 0 8px 0;">
+        <div style="font-size: 13px; font-weight: 600; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px;">
+            Convex Stack · <span style="color: {ACCENT}; font-weight: 700;">Leva Sistematica</span>
         </div>
     </div>
     """)
 with col_stat:
     st_html(f"""
-    <div style="text-align: right; padding-top: 10px;">
+    <div style="text-align: right; padding-top: 2px;">
         <div style="font-size: 11px; color: {MUTED};">
             <span style="width:6px; height:6px; border-radius:50%; background:{_status_color}; display:inline-block; margin-right:5px;"></span>{_status_label}
         </div>
@@ -486,7 +488,6 @@ with tab_pf:
     # Barra di Allocazione Orizzontale (Identica ad Apex Engine)
     if convex_report.total_value > 0:
         st_html(section_title("Composizione del Portafoglio"))
-        _COLOR_MAP = {"NTSG": POS, "AVWS": "#8B7FC7", "DBMFE": "#E0A96D", "PPFB": ACCENT, "WBTC": "#F7931A"}
         alloc_segments = [(k, convex_report.assets[k].current_weight * 100.0, _COLOR_MAP.get(k, ACCENT)) for k in active_instruments]
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(

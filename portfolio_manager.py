@@ -20,23 +20,23 @@ CONVEX_FILE = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
 
 
 ASSET_CLASSES_INFO = {
-    "Azionario Globale & USA": {
+    "Azioni": {
         "color": "#3DDC97",
-        "short_name": "Azionario",
+        "short_name": "Azioni",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>',
     },
-    "Obbligazionario Governativo": {
-        "color": "#8B7FC7",
+    "Obbligazioni": {
+        "color": "#4E80EE",
         "short_name": "Obbligazioni",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><line x1="3" y1="21" x2="21" y2="21"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="5 6 12 3 19 6"></polyline><line x1="6" y1="10" x2="6" y2="21"></line><line x1="10" y1="10" x2="10" y2="21"></line><line x1="14" y1="10" x2="14" y2="21"></line><line x1="18" y1="10" x2="18" y2="21"></line></svg>',
     },
-    "Managed Futures (CTA)": {
-        "color": "#E0A96D",
-        "short_name": "Managed Futures",
+    "Futures gestiti": {
+        "color": "#E07A5F",
+        "short_name": "Futures gestiti",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>',
     },
-    "Oro Fisico": {
-        "color": "#C9A44C",
+    "Oro": {
+        "color": "#E5B233",
         "short_name": "Oro",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>',
     },
@@ -46,7 +46,7 @@ ASSET_CLASSES_INFO = {
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>',
     },
     "Liquidità": {
-        "color": "#7A7266",
+        "color": "#8E877F",
         "short_name": "Liquidità",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>',
     },
@@ -123,13 +123,43 @@ CONVEX_INSTRUMENTS_METADATA = {
 def get_macro_class_svg(classe: str, size: int = 15, color: str = None, style: str = "") -> str:
     """Restituisce l'icona SVG vettoriale ufficiale e univoca per la classe di attivo."""
     inline_style = f"display:inline-block; vertical-align:middle; flex-shrink:0; {style}"
-    c = str(classe).lower()
-    for name, info in ASSET_CLASSES_INFO.items():
-        if name.lower() in c or info["short_name"].lower() in c or (c.startswith("azion") and "azionar" in name.lower()):
-            use_color = color if color is not None else info["color"]
-            return info["svg"].format(size=size, color=use_color, style=inline_style)
-    fallback_color = color if color is not None else "#7A7266"
-    return ASSET_CLASSES_INFO["Liquidità"]["svg"].format(size=size, color=fallback_color, style=inline_style)
+    c = str(classe).strip().lower()
+    if "obbligazion" in c or "bond" in c or c.startswith("obblig"):
+        key = "Obbligazioni"
+    elif "azion" in c or "equity" in c or "stock" in c:
+        key = "Azioni"
+    elif "oro" in c or "gold" in c:
+        key = "Oro"
+    elif "btc" in c or "bitcoin" in c or "crypto" in c:
+        key = "Bitcoin"
+    elif "future" in c or "cta" in c or "managed" in c:
+        key = "Futures gestiti"
+    elif "liquid" in c or "cash" in c:
+        key = "Liquidità"
+    else:
+        key = "Liquidità"
+
+    info = ASSET_CLASSES_INFO[key]
+    use_color = color if color is not None else info["color"]
+    return info["svg"].format(size=size, color=use_color, style=inline_style)
+
+
+def get_class_color(classe: str) -> str:
+    """Restituisce il colore univoco ufficiale per ciascuna classe di attivo."""
+    c = str(classe).strip().lower()
+    if "obbligazion" in c or "bond" in c or c.startswith("obblig"):
+        return ASSET_CLASSES_INFO["Obbligazioni"]["color"]
+    elif "azion" in c or "equity" in c or "stock" in c:
+        return ASSET_CLASSES_INFO["Azioni"]["color"]
+    elif "oro" in c or "gold" in c:
+        return ASSET_CLASSES_INFO["Oro"]["color"]
+    elif "btc" in c or "bitcoin" in c or "crypto" in c:
+        return ASSET_CLASSES_INFO["Bitcoin"]["color"]
+    elif "future" in c or "cta" in c or "managed" in c:
+        return ASSET_CLASSES_INFO["Futures gestiti"]["color"]
+    elif "liquid" in c or "cash" in c:
+        return ASSET_CLASSES_INFO["Liquidità"]["color"]
+    return ASSET_CLASSES_INFO["Liquidità"]["color"]
 
 
 def get_default_convex_holdings_100k(prices: Dict[str, float] = None) -> Dict[str, Any]:
@@ -477,10 +507,10 @@ def compute_unified_portfolio(
     conv_cash = convex_val * convex_report.macro_exposure.get("Liquidità Cassa", 0.0)
 
     macro_breakdown = {
-        "Azionario Globale & USA": (apex_eq + conv_eq) / tot_wealth,
-        "Obbligazionario Governativo": (apex_bd + conv_bd) / tot_wealth,
-        "Managed Futures (CTA)": conv_cta / tot_wealth,
-        "Oro Fisico": (apex_gld + conv_gld) / tot_wealth,
+        "Azioni": (apex_eq + conv_eq) / tot_wealth,
+        "Obbligazioni": (apex_bd + conv_bd) / tot_wealth,
+        "Futures gestiti": conv_cta / tot_wealth,
+        "Oro": (apex_gld + conv_gld) / tot_wealth,
         "Bitcoin": (apex_cr + conv_cr) / tot_wealth,
     }
     # Liquidità reale (mai negativa) ed esposizione nozionale totale (può
