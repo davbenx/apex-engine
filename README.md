@@ -20,9 +20,6 @@ se serve un ribilanciamento.
 
 **Specifica operativa completa di Apex Engine, non ambigua:
 [`APEX_V2_SPEC.md`](APEX_V2_SPEC.md).**
-
-**Audit quantitativo istituzionale completo (Apex v2.1 + Convex 50/50, kill-tests, DSR, hard-clamp BTC, fiscalità italiana a due canali, block bootstrap a 5.000 percorsi e dimensionamento capitale):
-[`DEEP_INSTITUTIONAL_QUANT_AUDIT.md`](DEEP_INSTITUTIONAL_QUANT_AUDIT.md).**
 Questo README è solo un orientamento rapido.
 
 ---
@@ -38,7 +35,7 @@ Questo README è solo un orientamento rapido.
                     ┌────────────────┴────────────────┐
                     │  Vol-targeting di portafoglio     │
                     │  scala l'esposizione totale verso  │
-                    │  un target di volatilità (13%)     │
+                    │  un target di volatilità (22%)     │
                     └────────────────┬────────────────┘
                                      │
       ┌───────────────┬─────────────┼─────────────┬───────────────┐

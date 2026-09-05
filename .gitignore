@@ -26,8 +26,8 @@ env/
 venv/
 ENV/
 
-# Pickled large datasets & Research dumps
-research/*.pkl
+# Research scratch — sweep/campaign dumps not needed by the deployed app
+research/
 *.pkl
 *.tmp
 

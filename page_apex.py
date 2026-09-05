@@ -570,10 +570,9 @@ with col_stat:
 
 # ==========================================================================
 # VERSIONE — solo Completa (basket 15 titoli). La variante Semplice (1 ETF,
-# USMV) è stata rimossa: su ogni finestra testata (research/
-# apex_simple_etf_README.md) risultava peggiore su CAGR, Sharpe e MaxDD
-# rispetto alla Completa, senza alcun vantaggio a compensare la minore
-# complessità operativa.
+# USMV) è stata rimossa: su ogni finestra testata risultava peggiore su
+# CAGR, Sharpe e MaxDD rispetto alla Completa, senza alcun vantaggio a
+# compensare la minore complessità operativa.
 # ==========================================================================
 m_apex = portfolio_manager.get_apex_metrics()
 _m_apex_active = m_apex
