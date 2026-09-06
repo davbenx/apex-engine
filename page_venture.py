@@ -158,9 +158,13 @@ with col_sync:
 
 st.warning(
     "STATO MODULO: SPERIMENTALE IN FASE DI REVISIONE QUANTITATIVA — OPERATIVITA' REALE SOSPESA.\n"
-    "I test empirici su dati storici reali (2018-2026) hanno confermato che nei regimi laterali e bear (2024-2026), "
-    "e in assenza di filtri fondamentali su Tokenomics (MC/FDV > 0.40) e macro breadth, i breakout tecnici incorrono in un "
-    "tasso di stop-loss del 70-100% con rischio di gap slippage significativo. Il modulo e' puramente a scopo di ricerca/studio."
+    "I filtri di Tokenomics (MC/FDV > 0.40, CoinGecko) e Fondamentale (TVL a 90gg, DefiLlama) sono ora attivi e "
+    "collegati alla qualificazione dei candidati: escludono i casi di collasso conclamato (es. Terra/Luna, FTX/FTT, "
+    "Celsius) prima che il danno si materializzi. Ma il test storico 2018-2026, ripetuto con questi filtri attivi, "
+    "mostra che il problema di fondo resta: nei regimi altcoin laterali/bear (2024-2025) il tasso di stop-loss resta "
+    "sopra l'85% anche filtrando solo progetti con fondamentali solidi — non e' una questione di quali token, ma di "
+    "quando. Manca ancora un filtro di regime di mercato prolungato (non solo il gate macro BTC istantaneo). "
+    "Il modulo e' puramente a scopo di ricerca/studio."
 )
 
 # 5 Metriche Compatte in Riga Singola

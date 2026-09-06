@@ -2,12 +2,15 @@
 altcoin_venture_engine.py — Motore Asimmetrico Venture Satellite Altcoin
 ================================================================================
 Gestione quantitativa a convessita' asimmetrica (Power-Law) su token alternativi:
-- Budget rigorosamente isolato e ring-fenced (default 2% Net Worth)
+- Budget rigorosamente isolato e ring-fenced (default 5% Net Worth)
 - Sizing a slot fissi (default 10 slot)
-- Protocollo Free-Ride: al +100% (2x) liquidazione automatica del 50% per recuperare
-  il 100% del capitale iniziale investito (azzeramento del rischio di rovina)
+- Protocollo Free-Ride: al +125% (2.25x) liquidazione automatica del 44.4% per
+  recuperare il 100% del capitale iniziale investito (azzeramento del rischio
+  di rovina)
 - Ladder di prese di profitto progressive (+300%, +700%, +1500%) con trailing stop
 - Profit Recycling Loop: travaso degli utili realizzati verso il portafoglio principale
+- Ammissione: 4 filtri (liquidita', tokenomics MC/FDV, momentum tecnico,
+  trazione on-chain via TVL) -- vedi VENTURE_ALTCOIN_SPEC.md §5
 ================================================================================
 """
 
@@ -51,6 +54,36 @@ EXCLUDED_CRYPTO_SYMBOLS = {
 }
 
 KRAKEN_FUTURES_INSTRUMENTS_URL = "https://futures.kraken.com/derivatives/api/v3/instruments"
+
+# Filtro Tokenomics (Criterio 2 della spec): esclude token con rapporto
+# Market Cap / Fully Diluted Valuation basso -- diluizione futura elevata da
+# sblocchi di offerta (team/VC/inflazione programmata) non ancora in circolazione.
+MIN_MC_FDV_RATIO = 0.40
+
+# Filtro Fondamentale (Criterio 4 della spec): copre SOLO la trazione on-chain
+# verificabile (variazione del TVL a 90 giorni) -- non tenta di quantificare
+# "catalizzatori imminenti" o narrativa, intrinsecamente soggettivi e non
+# fabbricabili come dato oggettivo. Esclude progetti con fuga di capitali on-chain.
+MAX_TVL_DECLINE_90D_PCT = -20.0
+
+COINGECKO_LIST_URL = "https://api.coingecko.com/api/v3/coins/list"
+COINGECKO_MARKETS_URL = "https://api.coingecko.com/api/v3/coins/markets"
+DEFILLAMA_PROTOCOLS_URL = "https://api.llama.fi/protocols"
+DEFILLAMA_PROTOCOL_URL = "https://api.llama.fi/protocol/{slug}"
+DEFILLAMA_CHAIN_TVL_URL = "https://api.llama.fi/v2/historicalChainTvl/{chain}"
+
+DEFAULT_FUNDAMENTALS_CACHE_JSON = os.path.join(os.path.dirname(__file__), "venture_fundamentals_cache.json")
+
+# Simbolo -> nome chain DefiLlama, per i token che SONO una Layer 1/L2 intera
+# (vanno cercati con l'endpoint a livello di chain, non di singolo protocollo).
+CHAIN_SLUG_MAP = {
+    "ETH": "Ethereum", "SOL": "Solana", "AVAX": "Avalanche", "NEAR": "Near", "ADA": "Cardano",
+    "DOT": "Polkadot", "ATOM": "Cosmos", "ARB": "Arbitrum", "OP": "Optimism",
+    "SUI": "Sui", "APT": "Aptos", "INJ": "Injective", "SEI": "Sei",
+    "TIA": "Celestia", "TRX": "Tron", "FIL": "Filecoin", "ALGO": "Algorand",
+    "FTM": "Fantom", "KAS": "Kaspa", "XRP": "XRP Ledger", "BCH": "Bitcoin Cash",
+    "LTC": "Litecoin", "DOGE": "Dogecoin", "XLM": "Stellar", "HBAR": "Hedera",
+}
 
 
 class VentureAltcoinEngine:
@@ -814,19 +847,245 @@ def load_crypto_universe_data(
     return dfs, btc_series
 
 
+def get_coingecko_symbol_map(timeout_sec: int = 10) -> Dict[str, List[str]]:
+    """
+    Costruisce simbolo (upper) -> lista di id CoinGecko candidati, dalla lista
+    pubblica completa dei coin. In caso di collisione di simbolo (comune: piu'
+    token condividono lo stesso ticker), la disambiguazione per market cap
+    avviene in get_tokenomics_mc_fdv.
+    """
+    import urllib.request
+    try:
+        req = urllib.request.Request(COINGECKO_LIST_URL, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            data = json.loads(resp.read().decode())
+        sym_map: Dict[str, List[str]] = {}
+        for c in data:
+            sym = str(c.get("symbol", "")).upper().strip()
+            cid = c.get("id", "")
+            if not sym or not cid:
+                continue
+            sym_map.setdefault(sym, []).append(cid)
+        return sym_map
+    except Exception as e:
+        print(f"[WARN] Impossibile scaricare CoinGecko coins/list: {e}")
+        return {}
+
+
+def _coingecko_markets_batch(ids: List[str], timeout_sec: int = 10) -> Dict[str, Dict[str, Any]]:
+    import urllib.request
+    import urllib.parse
+    import time
+    out: Dict[str, Dict[str, Any]] = {}
+    unique_ids = list(dict.fromkeys(ids))
+    for i in range(0, len(unique_ids), 200):
+        chunk = unique_ids[i:i + 200]
+        params = urllib.parse.urlencode({
+            "vs_currency": "usd", "ids": ",".join(chunk),
+            "per_page": 250, "page": 1, "sparkline": "false"
+        })
+        url = f"{COINGECKO_MARKETS_URL}?{params}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+                for m in json.loads(resp.read().decode()):
+                    if "id" in m:
+                        out[m["id"]] = m
+        except Exception as e:
+            print(f"[WARN] CoinGecko markets batch fallita: {e}")
+        if i + 200 < len(unique_ids):
+            time.sleep(1.5)
+    return out
+
+
+def get_tokenomics_mc_fdv(base_tickers: List[str], timeout_sec: int = 10) -> Dict[str, Optional[float]]:
+    """
+    Filtro Tokenomics (Criterio 2 della spec): per ciascun ticker risolve l'id
+    CoinGecko con market cap piu' alto tra le collisioni di simbolo, poi calcola
+    Market Cap / Fully Diluted Valuation. Fail-safe: nessun dato verificabile ->
+    None (mai un valore inventato; a valle un None viene trattato come filtro
+    non superato, non come filtro superato).
+    """
+    tickers_upper = [t.upper() for t in base_tickers]
+    sym_map = get_coingecko_symbol_map(timeout_sec=timeout_sec)
+    if not sym_map:
+        return {t: None for t in tickers_upper}
+
+    ticker_to_ids = {t: sym_map.get(t, []) for t in tickers_upper}
+    all_ids = [cid for ids in ticker_to_ids.values() for cid in ids]
+    markets_by_id = _coingecko_markets_batch(all_ids, timeout_sec=timeout_sec)
+
+    result: Dict[str, Optional[float]] = {}
+    for t in tickers_upper:
+        best_mc, best_ratio = -1.0, None
+        for cid in ticker_to_ids.get(t, []):
+            m = markets_by_id.get(cid)
+            if not m:
+                continue
+            mc, fdv = m.get("market_cap"), m.get("fully_diluted_valuation")
+            if mc is None or not fdv or fdv <= 0:
+                continue
+            if mc > best_mc:
+                best_mc, best_ratio = mc, round(float(mc) / float(fdv), 4)
+        result[t] = best_ratio
+    return result
+
+
+def get_tvl_trend_90d(base_tickers: List[str], timeout_sec: int = 10) -> Dict[str, Optional[float]]:
+    """
+    Filtro Fondamentale (Criterio 4 della spec, limitato alla sola trazione
+    on-chain verificabile): variazione % del TVL a 90 giorni. Copre SOLO chain
+    Layer 1/L2 note (CHAIN_SLUG_MAP) e protocolli DeFi presenti su DefiLlama con
+    lo stesso simbolo. Fail-safe: nessuna presenza su DefiLlama -> None (non un
+    "0%" inventato -- un puro gas token o meme coin senza TVL tracciato non
+    supera questo filtro, per costruzione, coerentemente col principio del
+    progetto di non fabbricare dati mancanti).
+    """
+    import urllib.request
+    import urllib.parse
+    import time
+    tickers_upper = [t.upper() for t in base_tickers]
+    result: Dict[str, Optional[float]] = {t: None for t in tickers_upper}
+
+    for t in tickers_upper:
+        chain = CHAIN_SLUG_MAP.get(t)
+        if not chain:
+            continue
+        try:
+            url = DEFILLAMA_CHAIN_TVL_URL.format(chain=urllib.parse.quote(chain))
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+                series = json.loads(resp.read().decode())
+            if isinstance(series, list) and len(series) >= 91:
+                tvl_now = float(series[-1]["tvl"])
+                tvl_90d_ago = float(series[-91]["tvl"])
+                if tvl_90d_ago > 0:
+                    result[t] = round(((tvl_now / tvl_90d_ago) - 1.0) * 100.0, 2)
+        except Exception:
+            pass
+        time.sleep(0.3)
+
+    missing = [t for t in tickers_upper if result[t] is None]
+    if not missing:
+        return result
+
+    try:
+        req = urllib.request.Request(DEFILLAMA_PROTOCOLS_URL, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            protocols = json.loads(resp.read().decode())
+    except Exception as e:
+        print(f"[WARN] DefiLlama protocols non raggiungibile: {e}")
+        return result
+
+    by_symbol: Dict[str, Dict[str, Any]] = {}
+    for p in protocols:
+        sym = str(p.get("symbol", "")).upper().strip()
+        if not sym or sym == "-" or not p.get("slug"):
+            continue
+        if sym not in by_symbol or (p.get("tvl") or 0) > (by_symbol[sym].get("tvl") or 0):
+            by_symbol[sym] = p
+
+    for t in missing:
+        p = by_symbol.get(t)
+        if not p:
+            continue
+        try:
+            url = DEFILLAMA_PROTOCOL_URL.format(slug=p["slug"])
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+                detail = json.loads(resp.read().decode())
+            series = detail.get("tvl", [])
+            if isinstance(series, list) and len(series) >= 91:
+                tvl_now = float(series[-1]["totalLiquidityUSD"])
+                tvl_90d_ago = float(series[-91]["totalLiquidityUSD"])
+                if tvl_90d_ago > 0:
+                    result[t] = round(((tvl_now / tvl_90d_ago) - 1.0) * 100.0, 2)
+        except Exception:
+            pass
+        time.sleep(0.3)
+
+    return result
+
+
+def fetch_fundamentals_map(
+    base_tickers: List[str],
+    use_cache_fallback: bool = True,
+    timeout_sec: int = 10
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Orchestratore: calcola tokenomics_qualified/fundamental_qualified per ogni
+    ticker interrogando CoinGecko e DefiLlama in tempo reale. Se le chiamate
+    live falliscono per intero (rete non disponibile), ricade su una cache
+    locale gia' salvata (venture_fundamentals_cache.json) invece di bloccare
+    lo screening -- ma non inventa mai un valore per un ticker mai visto prima.
+    """
+    tickers_upper = [t.upper() for t in base_tickers]
+    try:
+        mc_fdv = get_tokenomics_mc_fdv(tickers_upper, timeout_sec=timeout_sec)
+        tvl_trend = get_tvl_trend_90d(tickers_upper, timeout_sec=timeout_sec)
+        live_ok = any(v is not None for v in mc_fdv.values()) or any(v is not None for v in tvl_trend.values())
+    except Exception as e:
+        print(f"[WARN] Fetch fondamentali live fallito: {e}")
+        mc_fdv, tvl_trend, live_ok = {}, {}, False
+
+    result: Dict[str, Dict[str, Any]] = {}
+    cached = {}
+    if use_cache_fallback and os.path.exists(DEFAULT_FUNDAMENTALS_CACHE_JSON):
+        try:
+            with open(DEFAULT_FUNDAMENTALS_CACHE_JSON, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+        except Exception:
+            cached = {}
+
+    for t in tickers_upper:
+        ratio = mc_fdv.get(t)
+        trend = tvl_trend.get(t)
+        if ratio is None and trend is None and t in cached:
+            entry = cached[t]
+            ratio, trend = entry.get("mc_fdv_ratio"), entry.get("tvl_trend_90d_pct")
+        result[t] = {
+            "mc_fdv_ratio": ratio,
+            "tvl_trend_90d_pct": trend,
+            "tokenomics_qualified": ratio is not None and ratio > MIN_MC_FDV_RATIO,
+            "fundamental_qualified": trend is not None and trend > MAX_TVL_DECLINE_90D_PCT,
+        }
+
+    if live_ok:
+        try:
+            merged = dict(cached)
+            merged.update({t: {"mc_fdv_ratio": v["mc_fdv_ratio"], "tvl_trend_90d_pct": v["tvl_trend_90d_pct"]}
+                           for t, v in result.items() if v["mc_fdv_ratio"] is not None or v["tvl_trend_90d_pct"] is not None})
+            with open(DEFAULT_FUNDAMENTALS_CACHE_JSON, "w", encoding="utf-8") as f:
+                json.dump(merged, f, indent=2)
+        except Exception as e:
+            print(f"[WARN] Impossibile salvare {DEFAULT_FUNDAMENTALS_CACHE_JSON}: {e}")
+
+    return result
+
+
 def screen_venture_candidates(
     crypto_close_dict: Dict[str, Any],
     btc_series: Any,
     lookback_bo: int = BREAKOUT_LOOKBACK_DAYS,
     lookback_rs: int = RS_LOOKBACK_DAYS,
-    cross_kraken_futures: bool = True
+    cross_kraken_futures: bool = True,
+    fundamentals_map: Optional[Dict[str, Dict[str, Any]]] = None
 ) -> Dict[str, Any]:
     """
-    Esegue lo screening quantitativo sui contratti perpetual di Kraken Futures:
-    1. Gate Macro: Bitcoin > MA 40 settimane e Bitcoin > MA 20 settimane
-    2. Breakout Tecnico: Prezzo attuale > Massimo a `lookback_bo` giorni (30d)
-    3. Forza Relativa vs BTC: Rendimento a `lookback_rs` giorni (20d) > Rendimento BTC
-    4. Filtro Kraken Futures & Esclusione Wrapped/Stablecoins/TradFi.
+    Esegue lo screening quantitativo sui contratti perpetual di Kraken Futures.
+    Un token diventa 'candidate' qualificato solo se supera TUTTI i 4 filtri
+    della spec (VENTURE_ALTCOIN_SPEC.md §5):
+    1. Liquidita': presenza su Kraken Futures (esclusione Wrapped/Stablecoin/TradFi).
+    2. Tokenomics: rapporto Market Cap/Fully-Diluted-Valuation > 0.40 (CoinGecko).
+    3. Momentum tecnico: breakout a `lookback_bo` giorni (30d) + forza relativa
+       positiva vs BTC a `lookback_rs` giorni (20d) + sopra SMA 20 settimane +
+       non troppo esteso oltre il breakout.
+    4. Fondamentale (limitato alla trazione on-chain verificabile): TVL a 90
+       giorni non in calo di oltre il 20% (DefiLlama) -- non tenta di
+       quantificare "narrativa" o "catalizzatori imminenti", intrinsecamente
+       soggettivi.
+    I filtri 2 e 4 sono fail-safe: se il dato non e' verificabile per un token,
+    il token NON si qualifica (mai un'inclusione per dato mancante).
     Ritorna lo stato del gate macro, i token in breakout immediato ('candidates')
     e l'intera classifica dell'universo ordinata per forza relativa ('ranked_universe').
     """
@@ -928,6 +1187,8 @@ def screen_venture_candidates(
         elif hasattr(s_px, "attrs") and "vol24h" in s_px.attrs:
             vol_24h_quote = float(s_px.attrs["vol24h"])
 
+        passes_technical = is_breakout and rs_excess > 0 and above_sma20w and not is_crowded
+
         token_summary = {
             "ticker": base_ticker,
             "kraken_symbol": kraken_info["symbol"] if kraken_info else f"PF_{base_ticker}USD",
@@ -947,11 +1208,34 @@ def screen_venture_candidates(
             "is_breakout": is_breakout,
             "is_crowded": is_crowded,
             "vol24h": vol_24h_quote,
+            "passes_technical": passes_technical,
             "status": op_status
         }
         ranked_universe.append(token_summary)
 
-        if is_breakout and rs_excess > 0 and above_sma20w and not is_crowded:
+    # Filtri Tokenomics (Criterio 2) e Fondamentale (Criterio 4): interrogati
+    # SOLO per i token che superano gia' il filtro tecnico -- inutile spendere
+    # chiamate API su token che non sarebbero comunque candidabili. Se non viene
+    # passata una mappa precalcolata, viene recuperata qui (live, con fallback
+    # su cache locale in caso di rete non disponibile).
+    technical_candidates = [t["ticker"] for t in ranked_universe if t["passes_technical"]]
+    if fundamentals_map is None and technical_candidates:
+        fundamentals_map = fetch_fundamentals_map(technical_candidates)
+    fundamentals_map = fundamentals_map or {}
+
+    for token_summary in ranked_universe:
+        fdata = fundamentals_map.get(token_summary["ticker"], {})
+        token_summary["mc_fdv_ratio"] = fdata.get("mc_fdv_ratio")
+        token_summary["tvl_trend_90d_pct"] = fdata.get("tvl_trend_90d_pct")
+        token_summary["tokenomics_qualified"] = bool(fdata.get("tokenomics_qualified", False))
+        token_summary["fundamental_qualified"] = bool(fdata.get("fundamental_qualified", False))
+
+        if token_summary["passes_technical"] and not (token_summary["tokenomics_qualified"] and token_summary["fundamental_qualified"]):
+            token_summary["status"] = f"{token_summary['status']} — SCARTATO (tokenomics/TVL)"
+
+        if (token_summary["passes_technical"]
+                and token_summary["tokenomics_qualified"]
+                and token_summary["fundamental_qualified"]):
             qualified.append(token_summary)
 
     # Ordinamento decrescente dell'universo per eccesso di forza relativa vs BTC

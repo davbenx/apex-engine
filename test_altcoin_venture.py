@@ -208,7 +208,7 @@ def test_altcoin_breadth_in_screener():
         "NEAR-USD": pd.Series(np.linspace(2, 6, 160), index=dates),
     }
 
-    res = screen_venture_candidates(crypto_dict, btc_series, cross_kraken_futures=False)
+    res = screen_venture_candidates(crypto_dict, btc_series, cross_kraken_futures=False, fundamentals_map={})
     assert "altcoin_breadth_pct" in res
     assert "altcoin_breadth_regime" in res
     assert res["altcoin_breadth_pct"] == 100.0
@@ -241,12 +241,140 @@ def test_get_telegram_credentials_resolution(monkeypatch):
     assert c2 == "env_chat_456"
 
 
-def test_venture_telegram_alert_dry_run_formatting():
-    from altcoin_venture_engine import send_venture_telegram_alert
-    ok, msg = send_venture_telegram_alert(dry_run=True)
+def test_venture_telegram_alert_dry_run_formatting(monkeypatch):
+    import altcoin_venture_engine as ave
+    # Evita chiamate live a CoinGecko/DefiLlama in un test che deve restare
+    # offline e veloce -- il fetch reale e' gia' coperto dai test dedicati sopra.
+    monkeypatch.setattr(ave, "fetch_fundamentals_map", lambda tickers, **kw: {})
+
+    ok, msg = ave.send_venture_telegram_alert(dry_run=True)
     assert ok is True
     assert "FRONTIER VENTURE" in msg
     assert "MACRO GATE BITCOIN" in msg
     assert "KRAKEN FUTURES" in msg
+
+
+# ==============================================================================
+# TEST FILTRI TOKENOMICS (MC/FDV) E FONDAMENTALE (TVL) — Criteri 2 e 4 §5
+# ==============================================================================
+
+class _FakeHTTPResponse:
+    """Contesto minimale che imita urllib.request.urlopen(...) per i test offline."""
+    def __init__(self, payload):
+        self._body = json.dumps(payload).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return self._body
+
+
+def _make_fake_urlopen(url_to_payload):
+    """
+    url_to_payload: lista di (substringa_url, payload) valutata in ordine —
+    la prima substringa contenuta nell'URL della richiesta vince.
+    """
+    def _fake_urlopen(req, timeout=None):
+        url = req.full_url if hasattr(req, "full_url") else str(req)
+        for substr, payload in url_to_payload:
+            if substr in url:
+                return _FakeHTTPResponse(payload)
+        raise AssertionError(f"URL non atteso nel test: {url}")
+    return _fake_urlopen
+
+
+def test_tokenomics_mc_fdv_qualifies_and_fails_safe(monkeypatch):
+    import altcoin_venture_engine as ave
+
+    coins_list = [
+        {"id": "solana", "symbol": "sol", "name": "Solana"},
+        {"id": "some-low-quality-sol-fork", "symbol": "sol", "name": "Sol Fork"},
+        {"id": "low-float-coin", "symbol": "lowfloat", "name": "Low Float Coin"},
+    ]
+    markets = [
+        {"id": "solana", "market_cap": 60_000_000_000, "fully_diluted_valuation": 67_000_000_000},   # MC/FDV ~0.90 -> qualificato
+        {"id": "some-low-quality-sol-fork", "market_cap": 100, "fully_diluted_valuation": 100_000},    # MC piu' basso, scartato in favore di solana
+        {"id": "low-float-coin", "market_cap": 10_000_000, "fully_diluted_valuation": 100_000_000},    # MC/FDV 0.10 -> NON qualificato
+    ]
+
+    fake = _make_fake_urlopen([
+        ("coins/list", coins_list),
+        ("coins/markets", markets),
+    ])
+    import urllib.request as real_urllib_request
+    monkeypatch.setattr(real_urllib_request, "urlopen", fake)
+
+    result = ave.get_tokenomics_mc_fdv(["SOL", "LOWFLOAT", "NEVERLISTED"])
+    assert result["SOL"] == pytest.approx(60_000_000_000 / 67_000_000_000, rel=1e-3)
+    assert result["LOWFLOAT"] == pytest.approx(0.10, rel=1e-3)
+    # Ticker mai visto su CoinGecko -> fail-safe, mai un valore inventato
+    assert result["NEVERLISTED"] is None
+
+
+def test_tvl_trend_qualifies_and_fails_safe(monkeypatch):
+    import altcoin_venture_engine as ave
+    import urllib.request as real_urllib_request
+
+    n = 100
+    chain_series_growing = [{"date": 1_600_000_000 + i * 86400, "tvl": 1_000_000.0 * (1.0 + i * 0.01)} for i in range(n)]
+
+    fake = _make_fake_urlopen([
+        ("historicalChainTvl/Solana", chain_series_growing),
+    ])
+    monkeypatch.setattr(real_urllib_request, "urlopen", fake)
+
+    result = ave.get_tvl_trend_90d(["SOL"])
+    assert result["SOL"] is not None
+    assert result["SOL"] > 0  # serie in crescita costante -> trend 90d positivo, qualificato
+
+    # Nessuna chain/protocollo noto per un ticker inventato -> fail-safe None
+    def _fake_urlopen_protocols_empty(req, timeout=None):
+        return _FakeHTTPResponse([])
+    monkeypatch.setattr(real_urllib_request, "urlopen", _fake_urlopen_protocols_empty)
+    result2 = ave.get_tvl_trend_90d(["NEVERTRACKEDTOKEN"])
+    assert result2["NEVERTRACKEDTOKEN"] is None
+
+
+def test_screen_venture_candidates_gates_on_fundamentals():
+    """
+    Un token che supera il filtro tecnico ma fallisce tokenomics o fondamentale
+    NON deve mai comparire tra i candidati qualificati (a differenza del vecchio
+    controllo volume, che era calcolato ma mai collegato alla decisione).
+    """
+    import pandas as pd
+    import numpy as np
+    from altcoin_venture_engine import screen_venture_candidates
+
+    dates = pd.date_range("2024-01-01", periods=160, freq="D")
+    btc_series = pd.Series(np.linspace(40000, 45000, 160), index=dates)
+
+    crypto_dict = {
+        "GOODTOKEN-USD": pd.Series(np.linspace(10, 30, 160), index=dates),
+        "BADTOKEN-USD": pd.Series(np.linspace(10, 30, 160), index=dates),
+    }
+
+    fundamentals_map = {
+        "GOODTOKEN": {"mc_fdv_ratio": 0.75, "tvl_trend_90d_pct": 15.0,
+                      "tokenomics_qualified": True, "fundamental_qualified": True},
+        "BADTOKEN": {"mc_fdv_ratio": 0.05, "tvl_trend_90d_pct": -60.0,
+                     "tokenomics_qualified": False, "fundamental_qualified": False},
+    }
+
+    res = screen_venture_candidates(
+        crypto_dict, btc_series, cross_kraken_futures=False, fundamentals_map=fundamentals_map
+    )
+    qualified_tickers = {c["ticker"] for c in res["candidates"]}
+    assert "GOODTOKEN" in qualified_tickers
+    assert "BADTOKEN" not in qualified_tickers
+
+    bad_row = next(t for t in res["ranked_universe"] if t["ticker"] == "BADTOKEN")
+    assert bad_row["passes_technical"] is True
+    assert bad_row["tokenomics_qualified"] is False
+    assert bad_row["fundamental_qualified"] is False
+    assert "SCARTATO" in bad_row["status"]
 
 

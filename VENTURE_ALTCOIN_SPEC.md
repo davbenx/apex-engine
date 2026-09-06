@@ -8,7 +8,7 @@ Il **Sistema Venture Satellite Altcoin** è un modulo quantitativo asimmetrico c
 
 A differenza di **Apex Engine** (che ottimizza Sharpe e Calmar su orizzonti settimanali/trimestrali) e di **Convex Stack** (che genera protezione anti-fragile e carry decorrelato), il Venture Satellite persegue **convessita' pura a rischio delimitato**:
 - **Asimmetria di rendimento**: perdita massima delimitata al capitale stanziato ($-100\%$), con guadagno potenziale moltiplicativo ($+300\%$, $+700\%$, $+1500\%$).
-- **Ring-Fencing Patrimoniale**: il capitale del Satellite è rigidamente circoscritto a un budget compreso tra l'**1,5% e il 3,0% del Net Worth** complessivo (default: **2,0%** o valore nozionale prefissato es. 4.000 € su 200.000 €).
+- **Ring-Fencing Patrimoniale**: il capitale del Satellite è rigidamente circoscritto a un budget scalabile tra il **2,5% e il 12,5% del Net Worth** complessivo, selezionabile dall'utente (default: **5,0%**, pari a 10.000 € su un Net Worth di 200.000 €, suddivisi in 10 slot da 1.000 €).
 - **Indipendenza Operativa**: il motore di produzione di Apex Engine rimane al 100% investito in Solo BTC-USD per la componente macro. Il Venture Satellite opera su un conto/wallet disaccoppiato.
 
 ---
@@ -28,13 +28,13 @@ Il budget totale ($B_{\text{venture}}$) viene suddiviso in un numero finito di s
 
 La gestione della posizione non si basa su stop percentuali simmetrici, ma su una scala a scaglioni (*asymmetric milestone ladder*):
 
-### 3.1 Milestone 1: De-risking a Costo Zero (Free Ride) al +100% ($2\times$)
-Appena il prezzo di mercato tocca il doppio del prezzo di carico ($P \ge 2,0 \cdot P_0$):
-- **Azione**: Vendita automatica del **50% delle quote iniziali**.
+### 3.1 Milestone 1: De-risking a Costo Zero (Free Ride) al +125% ($2,25\times$)
+Appena il prezzo di mercato tocca 2,25 volte il prezzo di carico ($P \ge 2,25 \cdot P_0$):
+- **Azione**: Vendita automatica del **44,4% delle quote iniziali** ($1/2,25$).
 - **Effetto Matematico**:
-  $$\text{Capitale Recuperato} = (0,50 \cdot Q_0) \cdot (2,0 \cdot P_0) = Q_0 \cdot P_0 = C_0$$
+  $$\text{Capitale Recuperato} = (0,444 \cdot Q_0) \cdot (2,25 \cdot P_0) = Q_0 \cdot P_0 = C_0$$
 - Il 100% del capitale iniziale investito rientra in cassa.
-- Il token assume lo stato permanente di **Free Ride (Rischio Zero di Rovina)**. La restante quota (50%) costituisce una posizione a costo contabile nullo.
+- Il token assume lo stato permanente di **Free Ride (Rischio Zero di Rovina)**. La restante quota (~55,6%) costituisce una posizione a costo contabile nullo.
 
 ### 3.2 Milestone Successive: Ladder di Liquidazione dei Runner
 Sulle quote residue della posizione Free Ride vengono applicate le seguenti soglie:
@@ -64,11 +64,12 @@ Il Venture Satellite Altcoin adotta la regola del **travaso patrimoniale unidire
 
 ## 5. Criteri di Selezione e Screening dei Candidati
 
-I token ammissibili nel Venture Satellite devono superare i seguenti 4 filtri oggettivi:
-1. **Filtro di Liquidità**: volume medio giornaliero a 30 giorni $> 5.000.000\ \$$ e quotazione su almeno due exchange Tier-1 (es. Binance, Coinbase, Bybit, Kraken).
-2. **Filtro Tokenomics / Diluizione**: rapporto Market Cap / Fully Diluted Valuation ($\text{MC} / \text{FDV}$) $> 0,40$, per scongiurare massicci sblocchi di offerta da parte di venture capitalist.
-3. **Filtro di Momentum Tecnico**: prezzo sopra la media mobile a 50 giorni e rottura recente del massimo a 20 giorni con espansione di volume.
-4. **Filtro Fondamentale / Narrativa**: trazione reale documentata on-chain (crescita TVL, utenti attivi giornalieri, commissioni generate dal protocollo o catalizzatore imminente).
+Un token diventa candidato ammissibile SOLO se supera TUTTI e 4 i filtri seguenti (implementazione reale in `altcoin_venture_engine.py::screen_venture_candidates` — nessun filtro è dichiarativo/decorativo: un token che ne fallisce anche solo uno non compare mai tra i candidati qualificati):
+
+1. **Filtro di Liquidità**: quotazione come contratto perpetual attivo su Kraken Futures (interrogazione live dell'API pubblica `futures.kraken.com`), con esclusione tassativa di token wrapped, liquid-staking e stablecoin (`EXCLUDED_CRYPTO_SYMBOLS`).
+2. **Filtro Tokenomics / Diluizione**: rapporto Market Cap / Fully Diluted Valuation ($\text{MC} / \text{FDV}$) $> 0,40$, calcolato in tempo reale via l'API pubblica CoinGecko (`get_tokenomics_mc_fdv`). **Fail-safe**: se il dato non è verificabile per il token, il filtro NON è superato — non viene mai assunto un valore per difetto.
+3. **Filtro di Momentum Tecnico**: rottura del massimo a 30 giorni, forza relativa positiva vs BTC a 20 giorni, prezzo sopra la media mobile a 140 giorni (20 settimane), non esteso oltre il 10% dal livello di rottura (anti-crowding).
+4. **Filtro Fondamentale (trazione on-chain verificabile)**: variazione del TVL (Total Value Locked) a 90 giorni non inferiore a $-20\%$, calcolata via l'API pubblica DefiLlama (`get_tvl_trend_90d`) — a livello di chain per le Layer 1/L2 note, a livello di protocollo per gli altri token con presenza su DefiLlama. **Fail-safe**: nessuna presenza tracciata su DefiLlama (es. puro gas token o meme coin) → filtro non superato. Questo filtro copre SOLO la trazione on-chain oggettivamente misurabile — non tenta di quantificare "narrativa" o "catalizzatori imminenti", intrinsecamente soggettivi e non riducibili a un numero verificabile.
 
 ---
 
