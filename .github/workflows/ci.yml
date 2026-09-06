@@ -31,3 +31,6 @@ jobs:
       - name: Test Convex Telegram Dry Run
         run: |
           python convex_telegram_reminder.py --dry-run
+      - name: Test Frontier Venture Telegram Dry Run
+        run: |
+          python venture_telegram_reminder.py --dry-run

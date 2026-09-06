@@ -18,34 +18,16 @@ import glob
 import pandas as pd
 from altcoin_venture_engine import (
     send_venture_telegram_alert,
+    load_crypto_universe_data,
     VentureAltcoinEngine
 )
 
-CACHE_DAILY_DIR = "/home/davide/Scaricati/trading/cache_daily"
-
-
-def load_daily_crypto():
-    if not os.path.exists(CACHE_DAILY_DIR):
-        return {}, None
-    files = sorted(glob.glob(os.path.join(CACHE_DAILY_DIR, "*-USD.csv")))
-    dfs = {}
-    for f in files:
-        sym = os.path.basename(f).replace(".csv", "")
-        try:
-            df = pd.read_csv(f, index_col=0, parse_dates=True)
-            c = "close" if "close" in df.columns else "Close"
-            if c in df.columns:
-                dfs[sym] = df[c].dropna()
-        except Exception:
-            pass
-    btc = dfs.get("BTC-USD", dfs.get("BTC", None))
-    return dfs, btc
-
 
 def main(dry_run: bool = False) -> int:
-    dfs, btc = load_daily_crypto()
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+
+    dfs, btc = load_crypto_universe_data()
 
     ok, msg = send_venture_telegram_alert(
         token=token,
@@ -54,6 +36,7 @@ def main(dry_run: bool = False) -> int:
         btc_series=btc,
         dry_run=dry_run
     )
+
 
     if dry_run:
         print("[DRY RUN] Messaggio generato con successo:\n")
