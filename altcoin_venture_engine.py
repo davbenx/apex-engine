@@ -28,6 +28,7 @@ FREE_RIDE_SELL_FRACTION = 1.0 / FREE_RIDE_MULTIPLIER  # ~0.4444
 TRAILING_STOP_MOONBAG_PCT = 0.30  # Trailing stop del 30% dal massimo post-Milestone 2
 BREAKOUT_LOOKBACK_DAYS = 30  # Lookback breakout ottimale
 RS_LOOKBACK_DAYS = 20  # Lookback forza relativa vs BTC ottimale
+MAX_BREAKOUT_EXTENSION_PCT = 0.10  # Anti-crowding: esclude o filtra breakout estesi oltre +10% dal livello chiave
 
 # Kill-switch pre-committato
 KILL_SWITCH_MAX_DRAWDOWN_PCT = -0.40  # Floor al -40% del budget (es. 6.000 EUR su 10.000 EUR)
@@ -889,7 +890,7 @@ def screen_venture_candidates(
                 vol_ratio = round(cur_v / med_v, 2) if med_v > 0 else 1.0
                 vol_confirmed = vol_ratio >= 1.5
 
-        is_crowded = ((p_cur / roll_high) - 1.0) > 0.30 if roll_high > 0 else False
+        is_crowded = ((p_cur / roll_high) - 1.0) > MAX_BREAKOUT_EXTENSION_PCT if roll_high > 0 else False
 
         p_prev_rs = float(s_px.iloc[-1 - lookback_rs])
         if p_prev_rs <= 0 or pd.isna(p_prev_rs):
@@ -897,10 +898,14 @@ def screen_venture_candidates(
         r_alt_rs = (p_cur / p_prev_rs) - 1.0
         rs_excess = (r_alt_rs - btc_ret_rs) * 100.0
 
-        # Classificazione operativa qualitativa
-        if is_breakout and rs_excess > 0:
+        # Classificazione operativa qualitativa validata empiricamente
+        if is_breakout and rs_excess > 0 and above_sma20w and not is_crowded:
             op_status = "BREAKOUT ATTIVO (BUY)"
-        elif dist_bo_pct >= -7.0 and rs_excess > 0 and above_sma20w:
+        elif is_breakout and rs_excess > 0 and above_sma20w and is_crowded:
+            op_status = f"ESTESO CROWDED ({dist_bo_pct:+.1f}%)"
+        elif is_breakout and rs_excess > 0 and not above_sma20w:
+            op_status = "BREAKOUT SOTTO TREND (NO BUY)"
+        elif dist_bo_pct >= -7.0 and dist_bo_pct <= 0.0 and rs_excess > 0 and above_sma20w:
             op_status = f"FINESTRA OTTIMALE ({dist_bo_pct:+.1f}%)"
         elif dist_bo_pct >= -5.0 and rs_excess > 0:
             op_status = "A RIDOSSO DEL BREAKOUT (<5%)"
@@ -940,7 +945,7 @@ def screen_venture_candidates(
         }
         ranked_universe.append(token_summary)
 
-        if is_breakout and rs_excess > 0:
+        if is_breakout and rs_excess > 0 and above_sma20w and not is_crowded:
             qualified.append(token_summary)
 
     # Ordinamento decrescente dell'universo per eccesso di forza relativa vs BTC

@@ -37,6 +37,7 @@ from altcoin_venture_engine import (
     YAHOO_CRYPTO_MAP,
     BREAKOUT_LOOKBACK_DAYS,
     RS_LOOKBACK_DAYS,
+    MAX_BREAKOUT_EXTENSION_PCT,
     HARD_STOP_LOSS_PCT,
     FREE_RIDE_MULTIPLIER,
     FREE_RIDE_SELL_FRACTION
@@ -228,13 +229,17 @@ with tab_screen:
         p_cur = r.get("price_usd", 0.0)
         p_bo = r.get("breakout_level_usd", 0.0)
         vol_24h = r.get("vol24h", 0.0)
+        is_crowded = r.get("is_crowded", False) or (dist > (MAX_BREAKOUT_EXTENSION_PCT * 100.0))
 
-        if is_bo and rs_exc > 0:
+        if is_bo and rs_exc > 0 and trend_ok and not is_crowded:
             cat_label = "ACQUISTABILE ORA"
             cat_order = 1
-        elif dist >= -7.0 and rs_exc > 0 and trend_ok:
+        elif dist >= -7.0 and dist <= 0.0 and rs_exc > 0 and trend_ok:
             cat_label = f"FINESTRA OTTIMALE ({dist:+.1f}%)"
             cat_order = 2
+        elif is_bo and rs_exc > 0 and trend_ok and is_crowded:
+            cat_label = f"ESTESO CROWDED ({dist:+.1f}%)"
+            cat_order = 3
         else:
             continue
 
@@ -369,15 +374,17 @@ with tab_screen:
     with st.expander(f"Catalogo Completo Contratti Qualificati su Kraken Futures ({len(actionable_tokens)} token)", expanded=False):
         col_fil1, col_fil2 = st.columns([2, 2])
         with col_fil1:
-            f_tipo = st.selectbox("Filtra Stato:", ["Tutti i Qualificati", "Solo Breakout Attivi", "Solo Finestra Ottimale"])
+            f_tipo = st.selectbox("Filtra Stato:", ["Tutti i Qualificati", "Solo Breakout Attivi (<=10%)", "Solo Finestra Ottimale ([-7%, 0%])", "Solo Estesi Crowded (>10%)"])
         with col_fil2:
             f_search = st.text_input("Cerca Ticker:", placeholder="es. SOL, SUI, AVAX, NEAR...").upper().strip()
 
         view_tokens = actionable_tokens
-        if f_tipo == "Solo Breakout Attivi":
+        if f_tipo == "Solo Breakout Attivi (<=10%)":
             view_tokens = [t for t in view_tokens if t["_raw_order"] == 1]
-        elif f_tipo == "Solo Finestra Ottimale":
+        elif f_tipo == "Solo Finestra Ottimale ([-7%, 0%])":
             view_tokens = [t for t in view_tokens if t["_raw_order"] == 2]
+        elif f_tipo == "Solo Estesi Crowded (>10%)":
+            view_tokens = [t for t in view_tokens if t["_raw_order"] == 3]
 
         if f_search:
             view_tokens = [t for t in view_tokens if f_search in t["Ticker"]]
