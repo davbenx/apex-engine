@@ -19,7 +19,13 @@ Avvio locale: streamlit run main.py --server.port <porta libera>
 
 import base64
 import os
+import sys
 import streamlit as st
+
+_root = os.path.dirname(os.path.abspath(__file__))
+if _root not in sys.path:
+    sys.path.insert(0, _root)
+
 
 st.set_page_config(
     page_title="Apex Convex",

@@ -11,25 +11,50 @@ Venture Satellite Altcoin asimmetrico:
 """
 
 import os
+import sys
 import datetime
 import glob
 import json
 import urllib.request
+import importlib
 from typing import Optional
 import pandas as pd
 import streamlit as st
 
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+if _current_dir not in sys.path:
+    sys.path.insert(0, _current_dir)
+
 import altcoin_venture_engine
-from altcoin_venture_engine import (
-    VentureAltcoinEngine,
-    screen_venture_candidates,
-    load_crypto_universe_data,
-    get_telegram_credentials,
-    send_venture_telegram_alert,
-    YAHOO_CRYPTO_MAP,
-    BREAKOUT_LOOKBACK_DAYS,
-    RS_LOOKBACK_DAYS
-)
+try:
+    importlib.reload(altcoin_venture_engine)
+except Exception:
+    pass
+
+try:
+    from altcoin_venture_engine import (
+        VentureAltcoinEngine,
+        screen_venture_candidates,
+        load_crypto_universe_data,
+        get_telegram_credentials,
+        send_venture_telegram_alert,
+        YAHOO_CRYPTO_MAP,
+        BREAKOUT_LOOKBACK_DAYS,
+        RS_LOOKBACK_DAYS
+    )
+except ImportError:
+    importlib.reload(altcoin_venture_engine)
+    from altcoin_venture_engine import (
+        VentureAltcoinEngine,
+        screen_venture_candidates,
+        load_crypto_universe_data,
+        get_telegram_credentials,
+        send_venture_telegram_alert,
+        YAHOO_CRYPTO_MAP,
+        BREAKOUT_LOOKBACK_DAYS,
+        RS_LOOKBACK_DAYS
+    )
+
 
 
 def fetch_live_crypto_price(ticker: str) -> Optional[float]:
@@ -526,7 +551,7 @@ with tab_history:
         st.info("Nessuna transazione storica registrata.")
 
 with tab_rules:
-    st.markdown("""
+    st.markdown(r"""
     ### Il Protocollo Quantitativo Frontier Venture (VENTURE_ALTCOIN_SPEC.md)
 
     1. **Ring-Fencing Assoluto e Dimensionamento (5.0% - 7.5% Net Worth)**:
@@ -547,7 +572,7 @@ with tab_rules:
        - **Hard Stop Iniziale (-40%)**: Troncamento immediato della coda sinistra sui trade falliti.
 
     4. **Kill-Switch Quantitativo Pre-committato**:
-       - **Drawdown Kill-Switch**: Se il valore totale del satellite scende a **6.000 €** ($-40\%$ dal budget iniziale di 10.000 €), tutti i contratti vengono liquidati e l'operatività viene congelata per 180 giorni.
+       - **Drawdown Kill-Switch**: Se il valore totale del satellite scende a **6.000 €** (-40% dal budget iniziale di 10.000 €), tutti i contratti vengono liquidati e l'operatività viene congelata per 180 giorni.
        - **Relative Lag Kill-Switch**: Se su un intero ciclo rialzista il satellite sotto-performa Bitcoin Buy & Hold di oltre **15 punti percentuali netti**, il satellite viene azzerato e il capitale residuo riassorbito nella quota Bitcoin di Apex Engine.
 
     5. **Efficienza Fiscale ed Esecutiva (Kraken Futures 1x)**:
