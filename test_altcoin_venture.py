@@ -213,4 +213,40 @@ def test_altcoin_breadth_in_screener():
     assert "altcoin_breadth_regime" in res
     assert res["altcoin_breadth_pct"] == 100.0
     assert "IPERESTENSO" in res["altcoin_breadth_regime"]
+    assert "ranked_universe" in res
+    assert len(res["ranked_universe"]) == 3
+
+
+def test_load_crypto_universe_data_bundle():
+    from altcoin_venture_engine import load_crypto_universe_data
+    dfs, btc = load_crypto_universe_data(force_live=False)
+    assert btc is not None
+    assert len(btc) >= 100
+    assert "SOL" in dfs or "SOL-USD" in dfs
+    assert len(dfs) >= 15
+
+
+def test_get_telegram_credentials_resolution(monkeypatch):
+    from altcoin_venture_engine import get_telegram_credentials
+    # Test explicit args
+    t, c = get_telegram_credentials("custom_tok", "custom_chat")
+    assert t == "custom_tok"
+    assert c == "custom_chat"
+
+    # Test environment fallback
+    monkeypatch.setenv("TELEGRAM_TOKEN", "env_tok_123")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "env_chat_456")
+    t2, c2 = get_telegram_credentials()
+    assert t2 == "env_tok_123"
+    assert c2 == "env_chat_456"
+
+
+def test_venture_telegram_alert_dry_run_formatting():
+    from altcoin_venture_engine import send_venture_telegram_alert
+    ok, msg = send_venture_telegram_alert(dry_run=True)
+    assert ok is True
+    assert "FRONTIER VENTURE" in msg
+    assert "MACRO GATE BITCOIN" in msg
+    assert "KRAKEN FUTURES" in msg
+
 

@@ -628,14 +628,114 @@ def get_kraken_futures_instruments() -> Dict[str, Dict[str, Any]]:
 
     fallback_bases = [
         "SOL", "AVAX", "NEAR", "LINK", "DOT", "ADA", "XRP", "DOGE", "LTC", "ATOM",
-        "SUI", "APT", "ARB", "OP", "RENDER", "INJ", "TIA", "SEI", "FET", "AAVE", "BCH", "FIL", "TRX"
+        "SUI", "APT", "ARB", "OP", "RENDER", "INJ", "TIA", "SEI", "FET", "AAVE", "BCH", "FIL", "TRX", "UNI"
     ]
     return {b: {"symbol": f"PF_{b}USD", "pair": f"{b}:USD", "category": "Crypto", "quote": "USD"} for b in fallback_bases}
 
 
+DEFAULT_CRYPTO_CACHE_JSON = os.path.join(os.path.dirname(__file__), "crypto_screener_cache.json")
+
+YAHOO_CRYPTO_MAP = {
+    "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "AVAX": "AVAX-USD",
+    "NEAR": "NEAR-USD", "LINK": "LINK-USD", "DOT": "DOT-USD", "ADA": "ADA-USD",
+    "DOGE": "DOGE-USD", "LTC": "LTC-USD", "RENDER": "RENDER-USD", "INJ": "INJ-USD",
+    "AAVE": "AAVE-USD", "FET": "FET-USD", "ATOM": "ATOM-USD", "ALGO": "ALGO-USD",
+    "SUI": "SUI20947-USD", "ARB": "ARB11841-USD", "OP": "OP-USD", "SEI": "SEI-USD",
+    "KAS": "KAS-USD", "XRP": "XRP-USD", "BCH": "BCH-USD", "FIL": "FIL-USD",
+    "TRX": "TRX-USD", "UNI": "UNI7083-USD"
+}
+
+
+def load_crypto_universe_data(
+    force_live: bool = False,
+    timeout_sec: int = 4
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    """
+    Carica le serie storiche dei prezzi di chiusura giornalieri per l'universo di contratti liquidi
+    su Kraken Futures e Bitcoin.
+    Architettura multi-tier:
+    1. Base offline/cache: carica crypto_screener_cache.json tracciato nel repository Git.
+    2. Overlay live: esegue query concorrente leggera alle API Yahoo Finance (ThreadPoolExecutor)
+       per aggiornare le candele odierne in tempo reale.
+    3. Fallback trasparente: se offline o se le API non rispondono, i dati storici del file JSON
+       garantiscono il funzionamento immediato senza errori su qualsiasi istanza Cloud o locale.
+    """
+    import pandas as pd
+    import urllib.request
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    dfs: Dict[str, pd.Series] = {}
+
+    # 1. Caricamento da bundle JSON locale tracciato nel repository Git
+    if os.path.exists(DEFAULT_CRYPTO_CACHE_JSON):
+        try:
+            with open(DEFAULT_CRYPTO_CACHE_JSON, "r", encoding="utf-8") as f:
+                cached_raw = json.load(f)
+            for sym, item in cached_raw.items():
+                if isinstance(item, dict) and "dates" in item and "closes" in item:
+                    idx = pd.to_datetime(item["dates"])
+                    dfs[sym] = pd.Series(item["closes"], index=idx)
+        except Exception as e:
+            print(f"[WARN] Impossibile leggere {DEFAULT_CRYPTO_CACHE_JSON}: {e}")
+
+    # 2. Fetch live concorrente per aggiornare alle quotazioni odierne
+    def _fetch_single_ticker(ticker_item):
+        base_sym, yf_tick = ticker_item
+        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{yf_tick}?range=1y&interval=1d"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+                data = json.loads(resp.read().decode())
+                res = data["chart"]["result"][0]
+                timestamps = res["timestamp"]
+                closes = res["indicators"]["quote"][0]["close"]
+                clean_dates = []
+                clean_closes = []
+                for ts_val, c_val in zip(timestamps, closes):
+                    if c_val is not None:
+                        clean_dates.append(time.strftime("%Y-%m-%d", time.gmtime(ts_val)))
+                        clean_closes.append(round(float(c_val), 6))
+                if len(clean_closes) >= 30:
+                    idx = pd.to_datetime(clean_dates)
+                    return base_sym, pd.Series(clean_closes, index=idx)
+        except Exception:
+            pass
+        return base_sym, None
+
+    try:
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            live_results = dict(executor.map(_fetch_single_ticker, YAHOO_CRYPTO_MAP.items()))
+        for base_sym, s_px in live_results.items():
+            if s_px is not None and not s_px.empty:
+                dfs[base_sym] = s_px
+    except Exception as e:
+        print(f"[WARN] Fetch live concorrente non riuscito ({e}). Uso dati bundle.")
+
+    # 3. Fallback su directory locali se il dizionario e' ancora vuoto
+    if not dfs:
+        for fallback_dir in ["/home/davide/Scaricati/trading/cache_daily", "research/crypto_ohlcv_cache"]:
+            if os.path.exists(fallback_dir):
+                import glob
+                for csv_path in glob.glob(os.path.join(fallback_dir, "*-USD.csv")):
+                    b_name = os.path.basename(csv_path).replace("-USD.csv", "").replace(".csv", "")
+                    try:
+                        df_local = pd.read_csv(csv_path, index_col=0, parse_dates=True)
+                        c_col = "close" if "close" in df_local.columns else "Close"
+                        if c_col in df_local.columns:
+                            dfs[b_name] = df_local[c_col].dropna()
+                    except Exception:
+                        pass
+                if dfs:
+                    break
+
+    btc_series = dfs.get("BTC", dfs.get("BTC-USD", None))
+    return dfs, btc_series
+
+
 def screen_venture_candidates(
-    crypto_close_dict: Dict[str, pd.Series],
-    btc_series: pd.Series,
+    crypto_close_dict: Dict[str, Any],
+    btc_series: Any,
     lookback_bo: int = BREAKOUT_LOOKBACK_DAYS,
     lookback_rs: int = RS_LOOKBACK_DAYS,
     cross_kraken_futures: bool = True
@@ -647,10 +747,16 @@ def screen_venture_candidates(
     3. Forza Relativa vs BTC: Rendimento a `lookback_rs` giorni > Rendimento BTC
     4. Filtro Kraken Futures & Esclusione Wrapped/Stablecoins: il token deve avere
        un contratto Perpetual (PF_*) liquido attivo su Kraken Futures.
-    Ritorna lo stato del gate macro e la lista dei token qualificati ordinati per forza relativa.
+    Ritorna lo stato del gate macro, i token in breakout immediato ('candidates')
+    e l'intera classifica dell'universo ordinata per forza relativa ('ranked_universe').
     """
-    if btc_series is None or btc_series.empty:
-        return {"macro_gate_active": False, "candidates": [], "note": "Dati BTC non disponibili"}
+    if btc_series is None or len(btc_series) == 0:
+        return {
+            "macro_gate_active": False,
+            "candidates": [],
+            "ranked_universe": [],
+            "note": "Dati BTC non disponibili"
+        }
 
     btc_wc = btc_series.resample("W-FRI").last()
     btc_ma40 = float(btc_wc.rolling(40, min_periods=10).mean().iloc[-1])
@@ -667,6 +773,7 @@ def screen_venture_candidates(
     kraken_map = get_kraken_futures_instruments() if cross_kraken_futures else {}
 
     qualified = []
+    ranked_universe = []
 
     for sym, s_px in crypto_close_dict.items():
         base_ticker = sym.replace("-USD", "").replace("USD", "").upper().strip()
@@ -682,8 +789,16 @@ def screen_venture_candidates(
         p_cur = float(s_px.iloc[-1])
         roll_high = float(s_px.iloc[:-1].rolling(lookback_bo, min_periods=lookback_bo).max().iloc[-1])
         is_breakout = p_cur > roll_high
+        dist_bo_pct = round(((p_cur / roll_high) - 1.0) * 100.0, 1)
 
-        # Controllo Volume Confirmation se disponibile (Volume >= 1.5x mediana 30d)
+        # Controllo SMA 20w (140d)
+        if len(s_px) >= 140:
+            sma_20w_val = float(s_px.rolling(140).mean().iloc[-1])
+        else:
+            sma_20w_val = float(s_px.mean())
+        above_sma20w = p_cur > sma_20w_val
+
+        # Controllo Volume Confirmation se disponibile
         vol_ratio = 1.0
         vol_confirmed = True
         if hasattr(s_px, "columns") and "Volume" in s_px.columns:
@@ -694,27 +809,52 @@ def screen_venture_candidates(
                 vol_ratio = round(cur_v / med_v, 2) if med_v > 0 else 1.0
                 vol_confirmed = vol_ratio >= 1.5
 
-        is_crowded = ((p_cur / roll_high) - 1.0) > 0.30  # Pump esteso oltre il 30% sopra il breakout
+        is_crowded = ((p_cur / roll_high) - 1.0) > 0.30
 
         p_prev_rs = float(s_px.iloc[-1 - lookback_rs])
         r_alt_rs = (p_cur / p_prev_rs) - 1.0 if p_prev_rs > 0 else -1.0
-        rs_excess = r_alt_rs - btc_ret_rs
+        rs_excess = (r_alt_rs - btc_ret_rs) * 100.0
+
+        # Classificazione operativa qualitativa
+        if is_breakout and rs_excess > 0:
+            op_status = "BREAKOUT ATTIVO (BUY)"
+        elif dist_bo_pct >= -5.0 and rs_excess > 0:
+            op_status = "A RIDOSSO DEL BREAKOUT (<5%)"
+        elif rs_excess > 0 and above_sma20w:
+            op_status = "LEADER FORZA RELATIVA"
+        elif above_sma20w:
+            op_status = "TREND RIALZISTA"
+        else:
+            op_status = "FASE CORRETTIVA"
+
+        token_summary = {
+            "ticker": base_ticker,
+            "kraken_symbol": kraken_info["symbol"] if kraken_info else f"PF_{base_ticker}USD",
+            "kraken_category": kraken_info.get("category", "Crypto") if kraken_info else "Crypto",
+            "price_usd": round(p_cur, 4),
+            "breakout_level_usd": round(roll_high, 4),
+            "breakout_pct": dist_bo_pct,
+            "dist_breakout_pct": dist_bo_pct,
+            "above_sma20w": above_sma20w,
+            "trend_label": "SOPRA" if above_sma20w else "SOTTO",
+            "sma20w_usd": round(sma_20w_val, 4),
+            "alt_ret_20d_pct": round(r_alt_rs * 100.0, 1),
+            "btc_ret_20d_pct": round(btc_ret_rs * 100.0, 1),
+            "rs_excess_vs_btc_pct": round(rs_excess, 1),
+            "vol_ratio_30d": vol_ratio,
+            "vol_confirmed": vol_confirmed,
+            "is_breakout": is_breakout,
+            "is_crowded": is_crowded,
+            "status": op_status
+        }
+        ranked_universe.append(token_summary)
 
         if is_breakout and rs_excess > 0:
-            qualified.append({
-                "ticker": base_ticker,
-                "kraken_symbol": kraken_info["symbol"] if kraken_info else f"PF_{base_ticker}USD",
-                "kraken_category": kraken_info.get("category", "Crypto") if kraken_info else "Crypto",
-                "price_usd": round(p_cur, 4),
-                "breakout_level_usd": round(roll_high, 4),
-                "breakout_pct": round(((p_cur / roll_high) - 1.0) * 100.0, 1),
-                "alt_ret_20d_pct": round(r_alt_rs * 100.0, 1),
-                "btc_ret_20d_pct": round(btc_ret_rs * 100.0, 1),
-                "rs_excess_vs_btc_pct": round(rs_excess * 100.0, 1),
-                "vol_ratio_30d": vol_ratio,
-                "vol_confirmed": vol_confirmed,
-                "is_crowded": is_crowded
-            })
+            qualified.append(token_summary)
+
+    # Ordinamento decrescente dell'universo per eccesso di forza relativa vs BTC
+    ranked_universe.sort(key=lambda x: x["rs_excess_vs_btc_pct"], reverse=True)
+    qualified.sort(key=lambda x: x["rs_excess_vs_btc_pct"], reverse=True)
 
     # Calcolo Altcoin Breadth (% altcoin sopra SMA 20w / 140d)
     alt_above_sma20w = 0
@@ -728,7 +868,7 @@ def screen_venture_candidates(
             if float(s_px.iloc[-1]) > float(s_px.rolling(140).mean().iloc[-1]):
                 alt_above_sma20w += 1
 
-    breadth_pct = round((alt_above_sma20w / max(1, total_valid_alts)) * 100.0, 1)
+    breadth_pct = round((alt_above_sma20w / max(1, total_valid_alts)) * 100.0, 1) if total_valid_alts > 0 else 0.0
     if breadth_pct > 80.0:
         breadth_regime = "IPERESTENSO (Attenzione: possibile rotazione imminente, non inseguire)"
     elif breadth_pct >= 50.0:
@@ -744,6 +884,7 @@ def screen_venture_candidates(
         "altcoin_breadth_pct": breadth_pct,
         "altcoin_breadth_regime": breadth_regime,
         "candidates": qualified,
+        "ranked_universe": ranked_universe,
         "kraken_filtered": cross_kraken_futures
     }
 
@@ -761,6 +902,7 @@ def build_venture_telegram_alert(
     macro_active = screen_results.get("macro_gate_active", False)
     btc_px = screen_results.get("btc_price_usd", 0.0)
     candidates = screen_results.get("candidates", [])
+    ranked = screen_results.get("ranked_universe", [])
 
     status_macro = "[ATTIVO]" if macro_active else "[BLOCCATO]"
     regime_desc = "Acquisti autorizzati su Kraken Futures (BTC > MA40w/20w)" if macro_active else "100% Cash / Riserva (Nuovi acquisti congelati)"
@@ -788,9 +930,14 @@ def build_venture_telegram_alert(
         lines.append("")
 
     if macro_active and candidates:
-        lines.append(f"*TOKEN QUALIFICATI SU KRAKEN FUTURES ({len(candidates)}):*")
+        lines.append(f"*TOKEN IN BREAKOUT SU KRAKEN FUTURES ({len(candidates)}):*")
         for c in candidates[:5]:
             lines.append(f"• *{c['ticker']}* ({c.get('kraken_symbol', 'PF')}) a ${c['price_usd']:.4f} | RS vs BTC: +{c['rs_excess_vs_btc_pct']:.1f}%")
+        lines.append("")
+    elif macro_active and ranked:
+        lines.append("*LEADER FORZA RELATIVA IN WATCHLIST (PROSSIMI AL BREAKOUT):*")
+        for w in ranked[:4]:
+            lines.append(f"• *{w['ticker']}* (${w['price_usd']:.4f}) | Dist. BO: {w['dist_breakout_pct']:+.1f}% | RS vs BTC: +{w['rs_excess_vs_btc_pct']:+.1f}% [{w['status']}]")
         lines.append("")
     elif macro_active and not candidates:
         lines.append("• Nessun token in breakout qualificato su Kraken Futures alla data odierna.")
@@ -804,11 +951,52 @@ def build_venture_telegram_alert(
     return "\n".join(lines)
 
 
+def get_telegram_credentials(
+    token: Optional[str] = None,
+    chat_id: Optional[str] = None
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Risolve le credenziali Telegram supportando gerarchicamente:
+    1. Parametri espliciti token e chat_id
+    2. Session state di Streamlit (se attivo nella sessione utente)
+    3. Streamlit Cloud Secrets (st.secrets["TELEGRAM_TOKEN"] e st.secrets["TELEGRAM_CHAT_ID"])
+    4. Variabili d'ambiente del sistema operativo (os.environ)
+    """
+    tok = token
+    cid = chat_id
+
+    # 1. Streamlit Session State se presente
+    if not tok or not cid:
+        try:
+            import streamlit as st
+            tok = tok or st.session_state.get("venture_tg_token")
+            cid = cid or st.session_state.get("venture_tg_chat_id")
+        except Exception:
+            pass
+
+    # 2. Streamlit Secrets (supporto nativo per deploy Streamlit Cloud)
+    if not tok or not cid:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets"):
+                tok = tok or st.secrets.get("TELEGRAM_TOKEN")
+                cid = cid or st.secrets.get("TELEGRAM_CHAT_ID")
+        except Exception:
+            pass
+
+    # 3. Variabili d'ambiente sistema operativo
+    if not tok or not cid:
+        tok = tok or os.environ.get("TELEGRAM_TOKEN")
+        cid = cid or os.environ.get("TELEGRAM_CHAT_ID")
+
+    return tok, cid
+
+
 def send_venture_telegram_alert(
     token: Optional[str] = None,
     chat_id: Optional[str] = None,
-    crypto_close_dict: Optional[Dict[str, pd.Series]] = None,
-    btc_series: Optional[pd.Series] = None,
+    crypto_close_dict: Optional[Dict[str, Any]] = None,
+    btc_series: Optional[Any] = None,
     dry_run: bool = False
 ) -> Tuple[bool, str]:
     """
@@ -818,14 +1006,16 @@ def send_venture_telegram_alert(
     import urllib.request
     import urllib.parse
 
-    tok = token or os.environ.get("TELEGRAM_TOKEN")
-    cid = chat_id or os.environ.get("TELEGRAM_CHAT_ID")
+    tok, cid = get_telegram_credentials(token, chat_id)
 
     engine = VentureAltcoinEngine()
     summary = engine.get_portfolio_summary()
     signals = engine.evaluate_signals()
 
-    if crypto_close_dict is not None and btc_series is not None:
+    if crypto_close_dict is None or btc_series is None:
+        crypto_close_dict, btc_series = load_crypto_universe_data()
+
+    if crypto_close_dict and btc_series is not None:
         screen_res = screen_venture_candidates(crypto_close_dict, btc_series, cross_kraken_futures=True)
     else:
         screen_res = {"macro_gate_active": True, "btc_price_usd": 0.0, "candidates": []}
@@ -853,4 +1043,5 @@ def send_venture_telegram_alert(
                 return True, plain
         except Exception as e:
             return False, f"Errore invio Telegram: {e}"
+
 

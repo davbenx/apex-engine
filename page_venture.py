@@ -23,16 +23,22 @@ import altcoin_venture_engine
 from altcoin_venture_engine import (
     VentureAltcoinEngine,
     screen_venture_candidates,
+    load_crypto_universe_data,
+    get_telegram_credentials,
+    send_venture_telegram_alert,
+    YAHOO_CRYPTO_MAP,
     BREAKOUT_LOOKBACK_DAYS,
     RS_LOOKBACK_DAYS
 )
 
+
 def fetch_live_crypto_price(ticker: str) -> Optional[float]:
     """
     Recupera la quotazione live di un ticker crypto (es. 'SOL' o 'SOL-USD')
-    usando l'endpoint leggero standard HTTP via urllib, con fallback su yfinance se disponibile.
+    usando l'endpoint leggero standard HTTP via urllib, con mapping accurato dei contratti.
     """
-    yf_ticker = f"{ticker}-USD" if not ticker.endswith("-USD") else ticker
+    clean_tick = ticker.replace("-USD", "").upper().strip()
+    yf_ticker = YAHOO_CRYPTO_MAP.get(clean_tick, f"{clean_tick}-USD")
     url = f"https://query2.finance.yahoo.com/v8/finance/chart/{yf_ticker}?range=2d&interval=1d"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     try:
@@ -54,25 +60,15 @@ def fetch_live_crypto_price(ticker: str) -> Optional[float]:
 
     return None
 
-CACHE_DAILY_DIR = "/home/davide/Scaricati/trading/cache_daily"
 
 @st.cache_data(ttl=1800)
-def load_screener_crypto_data():
-    if not os.path.exists(CACHE_DAILY_DIR):
-        return {}, None
-    files = sorted(glob.glob(os.path.join(CACHE_DAILY_DIR, "*-USD.csv")))
-    dfs = {}
-    for f in files:
-        sym = os.path.basename(f).replace(".csv", "")
-        try:
-            df = pd.read_csv(f, index_col=0, parse_dates=True)
-            c = "close" if "close" in df.columns else "Close"
-            if c in df.columns:
-                dfs[sym] = df[c].dropna()
-        except Exception:
-            pass
-    btc = dfs.get("BTC-USD", dfs.get("BTC", None))
-    return dfs, btc
+def load_screener_crypto_data(force_live: bool = False):
+    """
+    Carica i dati storici giornalieri dell'universo crypto con cache Streamlit (30m).
+    Utilizza l'architettura multi-tier (bundle offline JSON + overlay live Yahoo).
+    """
+    return load_crypto_universe_data(force_live=force_live)
+
 
 # ==============================================================================
 # HTML RENDERING HELPERS & STYLING (DARK GLASSMORPHISM)
@@ -152,6 +148,7 @@ eur_usd_rate = 1.0850
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
 with col_btn1:
     if st.button("Aggiorna Prezzi Live", use_container_width=True):
+        load_screener_crypto_data.clear()
         with st.spinner("Aggiornamento quotazioni live in corso..."):
             updated_count = 0
             for sym in list(engine.state["positions"].keys()):
@@ -168,12 +165,67 @@ with col_btn1:
 with col_btn2:
     if st.button("Notifica Telegram (Test)", use_container_width=True):
         dfs_scr, btc_scr = load_screener_crypto_data()
-        from altcoin_venture_engine import send_venture_telegram_alert
         ok, res_msg = send_venture_telegram_alert(crypto_close_dict=dfs_scr, btc_series=btc_scr)
         if ok:
             st.success("Notifica Telegram inviata con successo al canale configurato.")
         else:
             st.warning(f"Avviso: {res_msg}")
+
+with col_btn3:
+    curr_tok, curr_cid = get_telegram_credentials()
+    if curr_tok and curr_cid:
+        st.markdown(f"""
+        <div style="background: rgba(120, 182, 142, 0.10); border: 1px solid rgba(120, 182, 142, 0.35); border-radius: 6px; padding: 7px 12px; font-size: 11.5px; color: #78B68E; font-family: 'JetBrains Mono', monospace;">
+            TELEGRAM ATTIVO: Chat {curr_cid} · Token ...{curr_tok[-4:]}
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background: rgba(224, 86, 76, 0.10); border: 1px solid rgba(224, 86, 76, 0.35); border-radius: 6px; padding: 7px 12px; font-size: 11.5px; color: #E0564C; font-family: 'JetBrains Mono', monospace;">
+            TELEGRAM: Credenziali non rilevate (configura qui sotto)
+        </div>
+        """, unsafe_allow_html=True)
+
+with st.expander("Configurazione Notifiche Telegram (Canale Operativo)", expanded=False):
+    st.markdown("""
+    Frontier Venture invia notifiche operative istantanee sul canale Telegram quando:
+    - Scatta un trigger di **Free-Ride (+125% / 2.25x)** per azzerare il rischio di capitale.
+    - Viene raggiunta una **Milestone (+300%, +700%, +1500%)** per il riciclo utili.
+    - Scatta lo **Stop Loss (-40%)** o il **Trailing Stop (-30%)**.
+    - Lo scanner rileva nuovi candidati in **Breakout 30d** con eccesso di forza relativa vs BTC.
+    """)
+    tok_now, cid_now = get_telegram_credentials()
+    c_t1, c_t2 = st.columns(2)
+    with c_t1:
+        inp_tok = st.text_input("Bot Token", value=st.session_state.get("venture_tg_token", tok_now or ""), type="password", help="Inserisci il token del bot Telegram fornito da @BotFather")
+    with c_t2:
+        inp_cid = st.text_input("Chat ID", value=st.session_state.get("venture_tg_chat_id", cid_now or ""), help="ID del canale o della chat privata (es. -1001234567890 o 12345678)")
+
+    col_save_t, col_info_t = st.columns([1, 2])
+    with col_save_t:
+        if st.button("Salva e Invia Test Notifica", type="primary"):
+            if inp_tok and inp_cid:
+                st.session_state["venture_tg_token"] = inp_tok.strip()
+                st.session_state["venture_tg_chat_id"] = inp_cid.strip()
+                dfs_t, btc_t = load_screener_crypto_data()
+                ok_t, ret_m = send_venture_telegram_alert(token=inp_tok.strip(), chat_id=inp_cid.strip(), crypto_close_dict=dfs_t, btc_series=btc_t)
+                if ok_t:
+                    st.success("Test Telegram inviato con successo.")
+                    st.rerun()
+                else:
+                    st.error(f"Errore invio: {ret_m}")
+            else:
+                st.error("Inserisci sia il Bot Token sia il Chat ID.")
+    with col_info_t:
+        st.markdown("""
+        <div style="font-size: 11px; opacity: 0.75; line-height: 1.4;">
+            <strong>Configurazione permanente su Streamlit Cloud:</strong><br>
+            Nella dashboard di Streamlit Cloud, apri <em>Manage App &rarr; Settings &rarr; Secrets</em> e inserisci:<br>
+            <code>TELEGRAM_TOKEN = "il_tuo_token"</code><br>
+            <code>TELEGRAM_CHAT_ID = "il_tuo_chat_id"</code>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 summary = engine.get_portfolio_summary(eur_usd_rate=eur_usd_rate)
 
@@ -317,14 +369,14 @@ with tab_screen:
     """)
 
     crypto_dict, btc_s = load_screener_crypto_data()
-    if btc_s is None or btc_s.empty:
-        st.warning("Dati storici giornalieri non disponibili nella cache locale.")
+    if btc_s is None or len(btc_s) == 0:
+        st.warning("Dati storici giornalieri non disponibili. Clicca su 'Aggiorna Prezzi Live' in alto per scaricare i dati.")
     else:
         screen_res = screen_venture_candidates(crypto_dict, btc_s)
         macro_active = screen_res["macro_gate_active"]
 
         if macro_active:
-            st.success(f"GATE MACRO ATTIVO: Bitcoin ({screen_res['btc_price_usd']:,.2f} $) si trova sopra la MA 40w ({screen_res['btc_ma40w_usd']:,.2f} $) e la MA 20w ({screen_res['btc_ma20w_usd']:,.2f} $). Gli acquisti per nuovi slot sono permessi.")
+            st.success(f"GATE MACRO ATTIVO: Bitcoin ({screen_res['btc_price_usd']:,.2f} $) si trova sopra la MA 40w ({screen_res['btc_ma40w_usd']:,.2f} $) e la MA 20w ({screen_res['btc_ma20w_usd']:,.2f} $). Gli acquisti per nuovi slot sono autorizzati.")
         else:
             st.error(f"GATE MACRO BLOCCATO: Bitcoin ({screen_res['btc_price_usd']:,.2f} $) è sotto la MA 40w ({screen_res['btc_ma40w_usd']:,.2f} $) o la MA 20w ({screen_res['btc_ma20w_usd']:,.2f} $). Nuovi acquisti tassativamente congelati (100% Cash / Riserva).")
 
@@ -339,8 +391,11 @@ with tab_screen:
         """, unsafe_allow_html=True)
 
         candidates = screen_res.get("candidates", [])
+        ranked = screen_res.get("ranked_universe", [])
+
+        # SEZIONE 1: TOKEN IN BREAKOUT ATTIVO OGGI
+        st.markdown(f"##### 1. Segnali di Ingresso Immediato Oggi — Breakout 30d ({len(candidates)} candidati)")
         if candidates:
-            st.markdown(f"##### Token Qualificati Oggi ({len(candidates)} candidati)")
             df_cand = pd.DataFrame(candidates)
             st.dataframe(
                 df_cand,
@@ -353,27 +408,76 @@ with tab_screen:
                     "alt_ret_20d_pct": st.column_config.NumberColumn("Rendimento Alt 20d (%)", format="+%.1f%%"),
                     "btc_ret_20d_pct": st.column_config.NumberColumn("Rendimento BTC 20d (%)", format="+%.1f%%"),
                     "rs_excess_vs_btc_pct": st.column_config.NumberColumn("Eccesso RS vs BTC (%)", format="+%.1f%%"),
+                    "trend_label": st.column_config.TextColumn("Trend (SMA 20w)"),
                     "vol_ratio_30d": st.column_config.NumberColumn("Volume / Mediana 30d", format="%.2fx"),
                     "vol_confirmed": st.column_config.CheckboxColumn("Volume Conf."),
-                    "is_crowded": st.column_config.CheckboxColumn("Crowded Pump")
+                    "is_crowded": st.column_config.CheckboxColumn("Crowded Pump"),
+                    "status": st.column_config.TextColumn("Stato Operativo")
                 },
                 hide_index=True,
                 use_container_width=True
             )
-            st.info("I token sono filtrati per disponibilità su contratti Perpetual di Kraken Futures (senza wrapped e stablecoin) e ordinati per eccesso di forza relativa vs BTC. Apri la posizione sul primo candidato disponibile.")
+            st.info("I token sopra elencati soddisfano congiuntamente il Breakout a 30 giorni e l'eccesso di forza relativa vs BTC alla data odierna su contratti Perpetual di Kraken Futures.")
         else:
-            st.info("Nessun token dell'universo crypto soddisfa congiuntamente il Breakout a 30 giorni e l'eccesso di forza relativa vs BTC alla data odierna.")
+            st.info("Nessun token dell'universo crypto si trova in fase di nuovo Breakout a 30 giorni oggi. Consulta la classifica sottostante dei leader di forza relativa per identificare i token prioritari a ridosso del livello di breakout (<5%).")
+
+        st.markdown("---")
+
+        # SEZIONE 2: CLASSIFICA LEADER DI FORZA RELATIVA
+        st.markdown(f"##### 2. Classifica Leader di Forza Relativa (Watchlist Top Altcoin Kraken Futures · {len(ranked)} contratti)")
+        st.caption("Classifica completa dei contratti Perpetual liquidi su Kraken Futures ordinati per eccesso di rendimento a 20 giorni rispetto a Bitcoin.")
+        if ranked:
+            df_ranked = pd.DataFrame(ranked)
+            st.dataframe(
+                df_ranked,
+                column_config={
+                    "ticker": st.column_config.TextColumn("Ticker"),
+                    "kraken_symbol": st.column_config.TextColumn("Contratto Kraken Futures"),
+                    "price_usd": st.column_config.NumberColumn("Prezzo Attuale ($)", format="%.4f"),
+                    "breakout_level_usd": st.column_config.NumberColumn("Breakout 30d ($)", format="%.4f"),
+                    "dist_breakout_pct": st.column_config.NumberColumn("Distanza Breakout (%)", format="%+.1f%%"),
+                    "trend_label": st.column_config.TextColumn("Trend (SMA 20w)"),
+                    "alt_ret_20d_pct": st.column_config.NumberColumn("Rendimento 20d (%)", format="%+.1f%%"),
+                    "rs_excess_vs_btc_pct": st.column_config.NumberColumn("Eccesso vs BTC (%)", format="%+.1f%%"),
+                    "vol_ratio_30d": st.column_config.NumberColumn("Volume vs Mediana", format="%.2fx"),
+                    "status": st.column_config.TextColumn("Stato Operativo")
+                },
+                hide_index=True,
+                use_container_width=True
+            )
+
+            # Azione rapida di pre-compilazione slot
+            col_sel1, col_sel2 = st.columns([3, 1])
+            with col_sel1:
+                sel_cand = st.selectbox(
+                    "Seleziona un'altcoin proposta per preparare l'apertura dello slot:",
+                    options=[r["ticker"] for r in ranked],
+                    format_func=lambda t: f"{t} — {next((r['status'] for r in ranked if r['ticker']==t), '')} ({next((r['price_usd'] for r in ranked if r['ticker']==t), 0.0):.4f} $ · RS vs BTC: {next((r['rs_excess_vs_btc_pct'] for r in ranked if r['ticker']==t), 0.0):+.1f}%)"
+                )
+            with col_sel2:
+                if st.button("Pre-compila Ingresso", type="primary", use_container_width=True):
+                    matched = next((r for r in ranked if r["ticker"] == sel_cand), None)
+                    if matched:
+                        st.session_state["venture_prefill_ticker"] = matched["ticker"]
+                        st.session_state["venture_prefill_price"] = float(matched["price_usd"])
+                        st.success(f"Token {matched['ticker']} selezionato a {matched['price_usd']:.4f} $. Vai alla scheda 'Apertura Nuovo Slot' per registrare la posizione.")
 
 with tab_add:
     st.markdown("#### Registrazione Ingresso Nuovo Token")
     st.markdown(f"Lo slot standard è impostato a **{engine.get_slot_size_eur():,.2f} €** su un totale di {engine.state['max_slots']} slot (Budget: {engine.state['budget_total_eur']:,.0f} €).")
 
+    prefill_sym = st.session_state.get("venture_prefill_ticker", "")
+    prefill_px = st.session_state.get("venture_prefill_price", 10.0)
+
+    if prefill_sym:
+        st.success(f"Candidato selezionato dallo scanner: **{prefill_sym}** a **{prefill_px:.4f} $**. Verifica i parametri di carico e clicca sul pulsante sottostante per confermare.")
+
     col_in1, col_in2, col_in3 = st.columns(3)
     with col_in1:
-        new_ticker = st.text_input("Ticker Token (es. SOL, AVAX, NEAR, SUI)", value="").upper().strip()
-        new_name = st.text_input("Nome Progetto (es. Solana)", value="")
+        new_ticker = st.text_input("Ticker Token (es. SOL, AVAX, NEAR, SUI)", value=prefill_sym).upper().strip()
+        new_name = st.text_input("Nome Progetto (es. Solana)", value=prefill_sym if prefill_sym else "")
     with col_in2:
-        new_price = st.number_input("Prezzo di Ingresso in USD ($)", min_value=0.0001, value=10.0, step=0.1, format="%.4f")
+        new_price = st.number_input("Prezzo di Ingresso in USD ($)", min_value=0.0001, value=float(prefill_px if prefill_px > 0 else 10.0), step=0.1, format="%.4f")
         new_sector = st.selectbox("Comparto Narrativo", [
             "Layer 1 / Layer 2",
             "AI / Decentralized Compute",
@@ -402,10 +506,15 @@ with tab_add:
                     entry_date=new_date.strftime("%Y-%m-%d"),
                     eur_usd_rate=eur_usd_rate
                 )
+                if "venture_prefill_ticker" in st.session_state:
+                    del st.session_state["venture_prefill_ticker"]
+                if "venture_prefill_price" in st.session_state:
+                    del st.session_state["venture_prefill_price"]
                 st.success(f"Posizione {new_ticker} registrata con successo ({new_capital:.2f} €).")
                 st.rerun()
             except Exception as e:
                 st.error(f"Errore durante l'apertura: {e}")
+
 
 with tab_history:
     st.markdown("#### Registro Storico Ordini ed Esecuzioni")
