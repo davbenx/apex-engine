@@ -277,6 +277,9 @@ class VentureAltcoinEngine:
             "entry_btc_price_usd": float(entry_btc_price_usd or 0.0),
             "current_price_usd": entry_price_usd,
             "highest_price_usd": entry_price_usd,
+            "today_high_usd": entry_price_usd,
+            "today_low_usd": entry_price_usd,
+            "today_open_usd": entry_price_usd,
             "initial_shares": initial_shares,
             "current_shares": initial_shares,
             "initial_cost_eur": capital_eur,
@@ -308,17 +311,26 @@ class VentureAltcoinEngine:
         return pos
 
     def update_price(self, ticker: str, current_price_usd: float) -> Dict[str, Any]:
+        """
+        Aggiorna il prezzo istantaneo (live tick / dashboard polling).
+        Mantiene la compatibilita' con i controlli intraday aggiornando gli estremi correnti.
+        """
         ticker = ticker.upper().strip()
         if ticker not in self.state["positions"]:
             raise KeyError(f"Posizione {ticker} non trovata.")
 
         pos = self.state["positions"][ticker]
-        pos["current_price_usd"] = current_price_usd
-        if current_price_usd > pos.get("highest_price_usd", 0.0):
-            pos["highest_price_usd"] = current_price_usd
+        px = float(current_price_usd)
+        pos["current_price_usd"] = px
+        pos["today_high_usd"] = max(pos.get("today_high_usd", px), px)
+        pos["today_low_usd"] = min(pos.get("today_low_usd", px), px)
+        if "today_open_usd" not in pos:
+            pos["today_open_usd"] = px
+
+        if px > pos.get("highest_price_usd", 0.0):
+            pos["highest_price_usd"] = px
 
         # Aggiorna prossimo target o trailing stop se già superata la Milestone 2
-        mult = current_price_usd / pos["entry_price_usd"]
         p0 = pos["entry_price_usd"]
 
         if not pos["is_free_ride"]:
@@ -341,6 +353,57 @@ class VentureAltcoinEngine:
 
         return pos
 
+    def update_bar(
+        self,
+        ticker: str,
+        high_usd: float,
+        low_usd: float,
+        close_usd: float,
+        open_usd: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """
+        Aggiorna la posizione con gli estremi completi della barra (Open, High, Low, Close).
+        Permette la valutazione degli ordini GTC pendenti su exchange (Take-Profit e Stop-Loss)
+        sui massimi/minimi intraday e della logica Time-Stop sul prezzo di Close.
+        """
+        ticker = ticker.upper().strip()
+        if ticker not in self.state["positions"]:
+            raise KeyError(f"Posizione {ticker} non trovata.")
+
+        pos = self.state["positions"][ticker]
+        c_px = float(close_usd)
+        h_px = float(high_usd)
+        l_px = float(low_usd)
+        o_px = float(open_usd if open_usd is not None else close_usd)
+
+        pos["current_price_usd"] = c_px
+        pos["today_high_usd"] = h_px
+        pos["today_low_usd"] = l_px
+        pos["today_open_usd"] = o_px
+
+        if h_px > pos.get("highest_price_usd", 0.0):
+            pos["highest_price_usd"] = h_px
+
+        p0 = pos["entry_price_usd"]
+        if not pos["is_free_ride"]:
+            pos["next_target_usd"] = round(p0 * FREE_RIDE_MULTIPLIER, 4)
+            pos["next_target_label"] = f"Milestone 1 (+{(FREE_RIDE_MULTIPLIER-1.0)*100:.0f}% / {FREE_RIDE_MULTIPLIER:.2f}x): Free-Ride (Sell {FREE_RIDE_SELL_FRACTION*100:.1f}%)"
+        elif "M2_300PCT" not in pos["milestones_reached"]:
+            pos["next_target_usd"] = round(p0 * 4.0, 4)
+            pos["next_target_label"] = "Milestone 2 (+300% / 4x): Take-Profit 20%"
+        elif "M3_700PCT" not in pos["milestones_reached"]:
+            pos["next_target_usd"] = round(p0 * 8.0, 4)
+            pos["next_target_label"] = "Milestone 3 (+700% / 8x): Take-Profit 25%"
+        elif "M4_1500PCT" not in pos["milestones_reached"]:
+            pos["next_target_usd"] = round(p0 * 16.0, 4)
+            pos["next_target_label"] = "Milestone 4 (+1500% / 16x): Take-Profit 50%"
+        else:
+            trailing_stop = pos["highest_price_usd"] * (1.0 - TRAILING_STOP_MOONBAG_PCT)
+            pos["next_target_usd"] = round(trailing_stop, 4)
+            pos["next_target_label"] = f"Trailing Stop Moonbag (-30% da max {pos['highest_price_usd']:.4f}$)"
+
+        return pos
+
     def evaluate_signals(
         self,
         eur_usd_rate: float = 1.0850,
@@ -349,10 +412,14 @@ class VentureAltcoinEngine:
     ) -> List[Dict[str, Any]]:
         """
         Analizza tutte le posizioni aperte e genera la lista dei segnali esecutivi:
-        - Time-Stop: se dopo 30 giorni la posizione non e' in Free-Ride e sottoperforma BTC di oltre -20%
-        - Hard Stop Loss: -40% dal prezzo di ingresso
-        - Take Profit a scaglioni (Milestone 1 Free-Ride a 2.25x, M2 4x, M3 8x, M4 16x)
-        - Trailing Stop Runner Moonbag (-30% dal picco)
+        - Ordini pendenti GTC su Exchange (intraday High/Low):
+          * Milestone 1: Free Ride a 2.25x su High
+          * Hard Stop Loss: -40% su Low
+        - Ordini/Supervisione software su Daily Close:
+          * Time-Stop: dopo 30 giorni se non in Free Ride e sottoperforma BTC di oltre -20% su Close
+        - Gestione avanzata Free Ride:
+          * Take Profit scaglionati (M2 4x, M3 8x, M4 16x) su High
+          * Trailing Stop Runner Moonbag (-30% dal picco) su Low
         """
         if btc_current_price_usd is None:
             try:
@@ -368,7 +435,9 @@ class VentureAltcoinEngine:
         for ticker, pos in list(self.state["positions"].items()):
             p_cur = pos["current_price_usd"]
             p0 = pos["entry_price_usd"]
-            mult = p_cur / p0 if p0 > 0 else 1.0
+            p_high = max(pos.get("today_high_usd", p_cur), p_cur)
+            p_low = min(pos.get("today_low_usd", p_cur), p_cur)
+            p_open = pos.get("today_open_usd", p_cur)
 
             # Calcolo giorni di detenzione per Time-Stop
             entry_d_str = pos.get("entry_date", "")[:10]
@@ -379,108 +448,200 @@ class VentureAltcoinEngine:
             except Exception:
                 days_held = 0
 
-            # 1. Controllo Time-Stop (PRIORITARIO RISPETTO ALLO STOP SECCO):
-            # Se dopo 30 giorni la posizione non e' in Free Ride e il rendimento del token
-            # meno quello di BTC nello stesso periodo e' sotto -20%, chiudere per TIME_STOP
-            btc_entry = pos.get("entry_btc_price_usd", 0.0)
-            if not pos["is_free_ride"] and days_held >= TIME_STOP_DAYS and p0 > 0:
-                if btc_current_price_usd and btc_entry and btc_entry > 0:
-                    r_tok = (p_cur / p0) - 1.0
-                    r_btc = (btc_current_price_usd / btc_entry) - 1.0
-                    rel_alpha = r_tok - r_btc
-                    if rel_alpha < TIME_STOP_MAX_BTC_LAG_PCT:
+            # Caso 1: Posizione NON in Free Ride
+            if not pos["is_free_ride"]:
+                target_m1 = round(p0 * FREE_RIDE_MULTIPLIER, 4)
+                sl_target = pos["stop_loss_usd"]
+
+                # 1.1 Risoluzione conflitto contemporaneo (Low <= stop E High >= target_m1)
+                if p_low <= sl_target and p_high >= target_m1:
+                    if p_open <= sl_target:
+                        exec_px = min(p_open, sl_target)
                         signals.append({
                             "ticker": ticker,
-                            "type": "TIME_STOP",
+                            "type": "STOP_LOSS",
                             "action": "SELL_ALL",
-                            "reason": (
-                                f"Time-Stop scattato dopo {days_held} giorni: posizione non in Free Ride e "
-                                f"sottoperformance vs BTC a {rel_alpha*100:+.1f}% (sotto {TIME_STOP_MAX_BTC_LAG_PCT*100:.0f}%: "
-                                f"Token {r_tok*100:+.1f}%, BTC {r_btc*100:+.1f}%)"
-                            ),
+                            "reason": f"Hard Stop Loss toccato su gap down in apertura a {exec_px:.4f}$",
                             "shares_to_sell": pos["current_shares"],
-                            "price_usd": p_cur
+                            "price_usd": exec_px
+                        })
+                        continue
+                    elif p_open >= target_m1:
+                        exec_px = max(p_open, target_m1)
+                        shares_sell = pos["initial_shares"] * FREE_RIDE_SELL_FRACTION
+                        signals.append({
+                            "ticker": ticker,
+                            "type": "MILESTONE_1_FREE_RIDE",
+                            "action": "SELL_FREE_RIDE",
+                            "reason": f"Raggiunto +{(FREE_RIDE_MULTIPLIER-1.0)*100:.0f}% su gap up in apertura a {exec_px:.4f}$. Vendita {FREE_RIDE_SELL_FRACTION*100:.1f}%",
+                            "shares_to_sell": min(shares_sell, pos["current_shares"]),
+                            "price_usd": exec_px
+                        })
+                        continue
+                    else:
+                        signals.append({
+                            "ticker": ticker,
+                            "type": "STOP_LOSS",
+                            "action": "SELL_ALL",
+                            "reason": f"Hard Stop Loss conservativo toccato a {sl_target:.4f}$",
+                            "shares_to_sell": pos["current_shares"],
+                            "price_usd": sl_target
                         })
                         continue
 
-            # 2. Controllo Hard Stop Loss (solo prima di Free-Ride)
-            if not pos["is_free_ride"] and p_cur <= pos["stop_loss_usd"]:
-                signals.append({
-                    "ticker": ticker,
-                    "type": "STOP_LOSS",
-                    "action": "SELL_ALL",
-                    "reason": f"Hard Stop Loss toccato a {p_cur:.4f}$ ({HARD_STOP_LOSS_PCT*100:.0f}% dall'ingresso)",
-                    "shares_to_sell": pos["current_shares"],
-                    "price_usd": p_cur
-                })
-                continue
-
-            # 2. Controllo Milestone 1: Free Ride (2.25x)
-            if not pos["is_free_ride"] and p_cur >= (p0 * FREE_RIDE_MULTIPLIER):
-                shares_sell = pos["initial_shares"] * FREE_RIDE_SELL_FRACTION
-                signals.append({
-                    "ticker": ticker,
-                    "type": "MILESTONE_1_FREE_RIDE",
-                    "action": "SELL_FREE_RIDE",
-                    "reason": f"Raggiunto +{(FREE_RIDE_MULTIPLIER-1.0)*100:.0f}% ({mult:.2f}x). Vendita {FREE_RIDE_SELL_FRACTION*100:.1f}% per recuperare integralmente il capitale iniziale ({pos['initial_cost_eur']:.2f} EUR)",
-                    "shares_to_sell": min(shares_sell, pos["current_shares"]),
-                    "price_usd": p_cur
-                })
-                continue
-
-            # 3. Controllo Milestone 2: +300% / 4x
-            if pos["is_free_ride"] and "M2_300PCT" not in pos["milestones_reached"] and p_cur >= (p0 * 4.0):
-                shares_sell = pos["current_shares"] * 0.20
-                signals.append({
-                    "ticker": ticker,
-                    "type": "MILESTONE_2",
-                    "action": "SELL_20_PCT_CURRENT",
-                    "reason": f"Raggiunto +300% ({mult:.2f}x). Liquidazione 20% della quota residua.",
-                    "shares_to_sell": shares_sell,
-                    "price_usd": p_cur
-                })
-                continue
-
-            # 4. Controllo Milestone 3: +700% / 8x
-            if pos["is_free_ride"] and "M3_700PCT" not in pos["milestones_reached"] and p_cur >= (p0 * 8.0):
-                shares_sell = pos["current_shares"] * 0.25
-                signals.append({
-                    "ticker": ticker,
-                    "type": "MILESTONE_3",
-                    "action": "SELL_25_PCT_CURRENT",
-                    "reason": f"Raggiunto +700% ({mult:.2f}x). Liquidazione 25% della quota residua.",
-                    "shares_to_sell": shares_sell,
-                    "price_usd": p_cur
-                })
-                continue
-
-            # 5. Controllo Milestone 4: +1500% / 16x
-            if pos["is_free_ride"] and "M4_1500PCT" not in pos["milestones_reached"] and p_cur >= (p0 * 16.0):
-                shares_sell = pos["current_shares"] * 0.50
-                signals.append({
-                    "ticker": ticker,
-                    "type": "MILESTONE_4",
-                    "action": "SELL_50_PCT_CURRENT",
-                    "reason": f"Raggiunto +1500% ({mult:.2f}x). Liquidazione 50% della quota residua.",
-                    "shares_to_sell": shares_sell,
-                    "price_usd": p_cur
-                })
-                continue
-
-            # 6. Controllo Trailing Stop Runner Moonbag (dopo Milestone 2)
-            if "M2_300PCT" in pos["milestones_reached"]:
-                trailing_thresh = pos["highest_price_usd"] * (1.0 - TRAILING_STOP_MOONBAG_PCT)
-                if p_cur <= trailing_thresh:
+                # 1.2 Intraday Milestone 1 (Free Ride) su High (Ordine Limite GTC su Exchange)
+                if p_high >= target_m1:
+                    exec_px = max(p_open, target_m1) if p_open >= target_m1 else target_m1
+                    shares_sell = pos["initial_shares"] * FREE_RIDE_SELL_FRACTION
+                    mult = exec_px / p0 if p0 > 0 else 1.0
                     signals.append({
                         "ticker": ticker,
-                        "type": "TRAILING_STOP",
-                        "action": "SELL_ALL",
-                        "reason": f"Trailing stop scattato a {p_cur:.4f}$ (-30% dal massimo di {pos['highest_price_usd']:.4f}$)",
-                        "shares_to_sell": pos["current_shares"],
-                        "price_usd": p_cur
+                        "type": "MILESTONE_1_FREE_RIDE",
+                        "action": "SELL_FREE_RIDE",
+                        "reason": f"Raggiunto +{(FREE_RIDE_MULTIPLIER-1.0)*100:.0f}% ({mult:.2f}x intraday su max {p_high:.4f}$). Vendita {FREE_RIDE_SELL_FRACTION*100:.1f}% per recuperare integralmente il capitale iniziale ({pos['initial_cost_eur']:.2f} EUR)",
+                        "shares_to_sell": min(shares_sell, pos["current_shares"]),
+                        "price_usd": exec_px
                     })
+                    continue
+
+                # 1.3 Intraday Hard Stop Loss su Low (Ordine Stop GTC su Exchange)
+                if p_low <= sl_target:
+                    exec_px = min(p_open, sl_target) if p_open <= sl_target else sl_target
+                    signals.append({
+                        "ticker": ticker,
+                        "type": "STOP_LOSS",
+                        "action": "SELL_ALL",
+                        "reason": f"Hard Stop Loss toccato a {exec_px:.4f}$ (minimo intraday {p_low:.4f}$ <= stop {sl_target:.4f}$)",
+                        "shares_to_sell": pos["current_shares"],
+                        "price_usd": exec_px
+                    })
+                    continue
+
+                # 1.4 Time-Stop Relativo vs BTC su Daily Close (Supervisione Software a fine giornata)
+                btc_entry = pos.get("entry_btc_price_usd", 0.0)
+                if days_held >= TIME_STOP_DAYS and p0 > 0:
+                    if btc_current_price_usd and btc_entry and btc_entry > 0:
+                        r_tok = (p_cur / p0) - 1.0
+                        r_btc = (btc_current_price_usd / btc_entry) - 1.0
+                        rel_alpha = r_tok - r_btc
+                        if rel_alpha < TIME_STOP_MAX_BTC_LAG_PCT:
+                            signals.append({
+                                "ticker": ticker,
+                                "type": "TIME_STOP",
+                                "action": "SELL_ALL",
+                                "reason": (
+                                    f"Time-Stop scattato dopo {days_held} giorni su chiusura: posizione non in Free Ride e "
+                                    f"sottoperformance vs BTC a {rel_alpha*100:+.1f}% (sotto {TIME_STOP_MAX_BTC_LAG_PCT*100:.0f}%: "
+                                    f"Token {r_tok*100:+.1f}%, BTC {r_btc*100:+.1f}%)"
+                                ),
+                                "shares_to_sell": pos["current_shares"],
+                                "price_usd": p_cur
+                            })
+                            continue
+
+            # Caso 2: Posizione GIA' in Free Ride
+            else:
+                # 2.1 Milestone 2: +300% / 4x su High
+                target_m2 = round(p0 * 4.0, 4)
+                if "M2_300PCT" not in pos["milestones_reached"] and p_high >= target_m2:
+                    exec_px = max(p_open, target_m2) if p_open >= target_m2 else target_m2
+                    shares_sell = pos["current_shares"] * 0.20
+                    mult = exec_px / p0 if p0 > 0 else 1.0
+                    signals.append({
+                        "ticker": ticker,
+                        "type": "MILESTONE_2",
+                        "action": "SELL_20_PCT_CURRENT",
+                        "reason": f"Raggiunto +300% ({mult:.2f}x intraday su max {p_high:.4f}$). Liquidazione 20% della quota residua.",
+                        "shares_to_sell": shares_sell,
+                        "price_usd": exec_px
+                    })
+                    continue
+
+                # 2.2 Milestone 3: +700% / 8x su High
+                target_m3 = round(p0 * 8.0, 4)
+                if "M3_700PCT" not in pos["milestones_reached"] and p_high >= target_m3:
+                    exec_px = max(p_open, target_m3) if p_open >= target_m3 else target_m3
+                    shares_sell = pos["current_shares"] * 0.25
+                    mult = exec_px / p0 if p0 > 0 else 1.0
+                    signals.append({
+                        "ticker": ticker,
+                        "type": "MILESTONE_3",
+                        "action": "SELL_25_PCT_CURRENT",
+                        "reason": f"Raggiunto +700% ({mult:.2f}x intraday su max {p_high:.4f}$). Liquidazione 25% della quota residua.",
+                        "shares_to_sell": shares_sell,
+                        "price_usd": exec_px
+                    })
+                    continue
+
+                # 2.3 Milestone 4: +1500% / 16x su High
+                target_m4 = round(p0 * 16.0, 4)
+                if "M4_1500PCT" not in pos["milestones_reached"] and p_high >= target_m4:
+                    exec_px = max(p_open, target_m4) if p_open >= target_m4 else target_m4
+                    shares_sell = pos["current_shares"] * 0.50
+                    mult = exec_px / p0 if p0 > 0 else 1.0
+                    signals.append({
+                        "ticker": ticker,
+                        "type": "MILESTONE_4",
+                        "action": "SELL_50_PCT_CURRENT",
+                        "reason": f"Raggiunto +1500% ({mult:.2f}x intraday su max {p_high:.4f}$). Liquidazione 50% della quota residua.",
+                        "shares_to_sell": shares_sell,
+                        "price_usd": exec_px
+                    })
+                    continue
+
+                # 2.4 Trailing Stop Moonbag (dopo Milestone 2) su Low
+                if "M2_300PCT" in pos["milestones_reached"]:
+                    trailing_thresh = pos["highest_price_usd"] * (1.0 - TRAILING_STOP_MOONBAG_PCT)
+                    if p_low <= trailing_thresh:
+                        exec_px = min(p_open, round(trailing_thresh, 4)) if p_open <= trailing_thresh else round(trailing_thresh, 4)
+                        signals.append({
+                            "ticker": ticker,
+                            "type": "TRAILING_STOP",
+                            "action": "SELL_ALL",
+                            "reason": f"Trailing stop scattato a {exec_px:.4f}$ (-30% dal massimo di {pos['highest_price_usd']:.4f}$)",
+                            "shares_to_sell": pos["current_shares"],
+                            "price_usd": exec_px
+                        })
+                        continue
 
         return signals
+
+    def process_daily_bar(
+        self,
+        ticker: str,
+        high_usd: float,
+        low_usd: float,
+        close_usd: float,
+        open_usd: Optional[float] = None,
+        today_date: Optional[str] = None,
+        btc_current_price_usd: Optional[float] = None,
+        eur_usd_rate: float = 1.0850,
+        auto_execute: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Elabora in modo atomico una barra giornaliera per il ticker specificato:
+        1. Aggiorna la posizione con gli estremi della barra (update_bar)
+        2. Valuta i segnali operativi (evaluate_signals)
+        3. Se auto_execute e' True, esegue immediatamente i segnali generati
+        4. Ritorna la lista dei segnali generati ed eseguiti
+        """
+        self.update_bar(
+            ticker=ticker,
+            high_usd=high_usd,
+            low_usd=low_usd,
+            close_usd=close_usd,
+            open_usd=open_usd
+        )
+        signals = self.evaluate_signals(
+            eur_usd_rate=eur_usd_rate,
+            btc_current_price_usd=btc_current_price_usd,
+            today_date=today_date
+        )
+        ticker_signals = [s for s in signals if s["ticker"] == ticker.upper().strip()]
+        if auto_execute:
+            for s in ticker_signals:
+                self.execute_sell_signal(s, eur_usd_rate=eur_usd_rate, date_str=today_date)
+        return ticker_signals
 
     def execute_sell_signal(
         self,

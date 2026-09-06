@@ -30,7 +30,7 @@ La gestione della posizione non si basa su stop percentuali simmetrici, ma su un
 
 ### 3.1 Milestone 1: De-risking a Costo Zero (Free Ride) al +125% ($2,25\times$)
 Appena il prezzo di mercato tocca 2,25 volte il prezzo di carico ($P \ge 2,25 \cdot P_0$):
-- **Azione**: Vendita automatica del **44,4% delle quote iniziali** ($1/2,25$).
+- **Azione**: Vendita automatica del **44,4% delle quote iniziali** ($1/2,25$) tramite ordine limite GTC residente su exchange (eseguito su massimo intraday $High \ge 2,25 \cdot P_0$).
 - **Effetto Matematico**:
   $$\text{Capitale Recuperato} = (0,444 \cdot Q_0) \cdot (2,25 \cdot P_0) = Q_0 \cdot P_0 = C_0$$
 - Il 100% del capitale iniziale investito rientra in cassa.
@@ -38,17 +38,21 @@ Appena il prezzo di mercato tocca 2,25 volte il prezzo di carico ($P \ge 2,25 \c
 
 ### 3.2 Milestone Successive: Ladder di Liquidazione dei Runner
 Sulle quote residue della posizione Free Ride vengono applicate le seguenti soglie:
-1. **Milestone 2 (+300% / 4x)**: Liquidazione del **20%** delle quote residue. Messa a profitto netta.
-2. **Milestone 3 (+700% / 8x)**: Liquidazione del **25%** delle quote residue.
-3. **Milestone 4 (+1500% / 16x)**: Liquidazione del **50%** delle quote residue.
-4. **Runner Moonbag**: Sulla frazione rimanente (~15% delle quote iniziali), si attiva un **trailing stop dinamico del 30%** calcolato rispetto al massimo storico registrato dalla posizione, per accompagnare il ciclo espansivo fino all'esaurimento del trend.
+1. **Milestone 2 (+300% / 4x)**: Liquidazione del **20%** delle quote residue su $High \ge 4,0 \cdot P_0$. Messa a profitto netta.
+2. **Milestone 3 (+700% / 8x)**: Liquidazione del **25%** delle quote residue su $High \ge 8,0 \cdot P_0$.
+3. **Milestone 4 (+1500% / 16x)**: Liquidazione del **50%** delle quote residue su $High \ge 16,0 \cdot P_0$.
+4. **Runner Moonbag**: Sulla frazione rimanente (~15% delle quote iniziali), si attiva un **trailing stop dinamico del 30%** calcolato rispetto al massimo storico registrato dalla posizione, eseguito su minimo intraday ($Low \le P_{\text{peak}} \times 0,70$).
 
-### 3.3 Regole di Chiusura in Perdita (Capital Protection & Tax Loss Harvesting)
+### 3.3 Architettura di Uscita a Due Livelli (Exchange GTC vs Supervisione Giornaliera)
 
-I controlli di uscita in perdita sono rigorosamente ordinati per priorità di esecuzione:
+L'operativita' di Frontier Venture e' formalmente strutturata su due layer complementari che eliminano qualsiasi discrepanza tra simulazione e realta' di mercato:
 
-1. **Time-Stop / Relative Invalidation (30 giorni, Priorità 1)**: se dopo **30 giorni** dall'ingresso la posizione non ha ancora raggiunto la Milestone 1 (Free Ride) e il rendimento del token meno quello di Bitcoin nello stesso periodo registra una sottoperformance inferiore a **$-20\%$** ($\Delta R = R_{\text{token}} - R_{\text{BTC}} < -0,20$), la posizione viene chiusa immediatamente per `TIME_STOP`. Questa regola, validata fuori campione (WFA), taglia tempestivamente le posizioni in stallo o in perdita relativa prima che colpiscano lo stop secco, riducendo drasticamente il costo dell'errore (lo stop-rate scende dall'80-95% a livelli residuali nel 2024-2025).
-2. **Hard Stop Loss (-40%, Priorità 2)**: se il token scende al di sotto del $-40\%$ rispetto al prezzo di acquisto prima del Time-Stop o prima di raggiungere la Milestone 1, la posizione viene liquidata integralmente per proteggere il capitale residuo dello slot e generare minusvalenze fiscali compensabili.
+1. **Layer 1: Ordini Residenti su Exchange (Esecuzione Continua su Intraday High/Low)**:
+   - **Take-Profit Milestone 1 (+125%)**: ordine limite pendente inserito all'apertura dello slot su Kraken Futures a $P_0 \times 2,25$ per il 44,4% delle quote. Viene eseguito tempestivamente sui picchi di volatilita' intraday ($High$).
+   - **Hard Stop Loss (-40%)**: ordine stop condizionato (`stop-loss-market`) inserito all'apertura a $P_0 \times 0,60$. Viene eseguito immediatamente se il minimo intraday batte la soglia ($Low \le P_0 \times 0,60$), proteggendo il capitale da crolli a cascata.
+   - **Risoluzione di Conflitto (stessa barra)**: se una barra anomala tocca sia lo stop che il target, se $Open \le P_{\text{stop}}$ scatta lo stop in apertura; se $Open \ge P_{\text{target}}$ scatta il target in apertura; altrimenti si applica il principio conservativo di priorita' dello Stop Loss.
+2. **Layer 2: Supervisione Algoritmica Discreta (Valutazione su Daily Close)**:
+   - **Time-Stop / Relative Invalidation (30 giorni, Priorità di Supervisione)**: se dopo **30 giorni** dall'ingresso la posizione non ha ancora raggiunto la Milestone 1 (Free Ride) e a chiusura di barra giornaliera registra una sottoperformance vs Bitcoin inferiore a **$-20\%$** ($\Delta R = R_{\text{token}} - R_{\text{BTC}} < -0,20$), la posizione viene chiusa a mercato per `TIME_STOP`. Questa regola taglia in anticipo i falsi breakout e le posizioni in stallo prima che raggiungano lo stop secco, riducendo le perdite medie dal $-40\%$ a circa il $-15\%/-20\%$.
 
 ---
 

@@ -517,3 +517,154 @@ def test_evaluate_signals_time_stop_does_not_trigger_if_free_ride():
     # Nessun time stop su Free Ride
     assert not any(s["type"] == "TIME_STOP" for s in signals)
 
+
+def test_update_bar_triggers_milestone_1_free_ride_on_intraday_high():
+    """
+    Verifica che se il massimo intraday tocca la soglia 2.25x (Free Ride)
+    ma la chiusura della barra ritraccia al di sotto, la Milestone 1
+    scatta regolarmente al prezzo limite (GTC order su exchange).
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    engine.open_position(
+        ticker="WICKUP",
+        name="Wick Up Token",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0
+    )
+
+    # Barra con High = 230$ (>= 225$), Low = 98$, Close = 210$ (< 225$)
+    engine.update_bar(
+        ticker="WICKUP",
+        high_usd=230.0,
+        low_usd=98.0,
+        close_usd=210.0,
+        open_usd=100.0
+    )
+
+    signals = engine.evaluate_signals(eur_usd_rate=1.0, today_date="2024-01-05")
+    assert len(signals) == 1
+    sig = signals[0]
+    assert sig["ticker"] == "WICKUP"
+    assert sig["type"] == "MILESTONE_1_FREE_RIDE"
+    assert sig["action"] == "SELL_FREE_RIDE"
+    assert sig["price_usd"] == 225.0  # Prezzo limite di esecuzione
+
+
+def test_update_bar_triggers_hard_stop_on_intraday_low():
+    """
+    Verifica che se il minimo intraday tocca lo stop secco -40% (60$)
+    ma la chiusura rimbalza al di sopra (es. 65$), l'Hard Stop Loss
+    scatta regolarmente al prezzo di stop (GTC stop order su exchange).
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    engine.open_position(
+        ticker="WICKDOWN",
+        name="Wick Down Token",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0
+    )
+
+    # Barra con High = 102$, Low = 55$ (<= 60$), Close = 65$ (> 60$)
+    engine.update_bar(
+        ticker="WICKDOWN",
+        high_usd=102.0,
+        low_usd=55.0,
+        close_usd=65.0,
+        open_usd=100.0
+    )
+
+    signals = engine.evaluate_signals(eur_usd_rate=1.0, today_date="2024-01-05")
+    assert len(signals) == 1
+    sig = signals[0]
+    assert sig["ticker"] == "WICKDOWN"
+    assert sig["type"] == "STOP_LOSS"
+    assert sig["action"] == "SELL_ALL"
+    assert sig["price_usd"] == 60.0  # Stop price riempito
+
+
+def test_update_bar_time_stop_triggers_on_close_after_30_days():
+    """
+    Verifica che il Time-Stop valuti il prezzo di Close dopo 30 giorni
+    se ne' l'Hard Stop ne' la Milestone 1 sono stati toccati intraday.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    engine.open_position(
+        ticker="SLOWBLEED",
+        name="Slow Bleed Token",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0,
+        entry_btc_price_usd=50000.0
+    )
+
+    # Giorno 35: Low = 80$ (> 60$), High = 92$ (< 225$), Close = 85$ (-15%)
+    # BTC = 60.000$ (+20%). Alpha = -15% - 20% = -35% < -20%
+    engine.update_bar(
+        ticker="SLOWBLEED",
+        high_usd=92.0,
+        low_usd=80.0,
+        close_usd=85.0,
+        open_usd=88.0
+    )
+
+    signals = engine.evaluate_signals(
+        eur_usd_rate=1.0,
+        btc_current_price_usd=60000.0,
+        today_date="2024-02-05"
+    )
+
+    assert len(signals) == 1
+    sig = signals[0]
+    assert sig["ticker"] == "SLOWBLEED"
+    assert sig["type"] == "TIME_STOP"
+    assert sig["price_usd"] == 85.0  # Esecuzione al Close
+
+
+def test_process_daily_bar_auto_execute():
+    """
+    Verifica che process_daily_bar esegua atomicaente aggiornamento barra,
+    valutazione segnale ed esecuzione automatica con riaccredito capitale.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    engine.open_position(
+        ticker="ATOMIC",
+        name="Atomic Token",
+        entry_price_usd=10.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0
+    )
+
+    # Esegui barra con auto_execute = True
+    executed_signals = engine.process_daily_bar(
+        ticker="ATOMIC",
+        high_usd=25.0,
+        low_usd=9.5,
+        close_usd=23.0,
+        open_usd=10.0,
+        today_date="2024-01-10",
+        eur_usd_rate=1.0,
+        auto_execute=True
+    )
+
+    assert len(executed_signals) == 1
+    assert executed_signals[0]["type"] == "MILESTONE_1_FREE_RIDE"
+
+    pos = engine.state["positions"]["ATOMIC"]
+    assert pos["is_free_ride"] is True
+    # Capitale iniziale interamente recuperato in cassa
+    assert engine.state["cash_available_eur"] == 10000.0
+
