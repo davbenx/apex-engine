@@ -668,3 +668,145 @@ def test_process_daily_bar_auto_execute():
     # Capitale iniziale interamente recuperato in cassa
     assert engine.state["cash_available_eur"] == 10000.0
 
+
+def test_evaluate_macro_regime_states():
+    """
+    Verifica i 3 stati della macchina macro Dual-Regime:
+    1. Bear: BTC <= SMA20w -> 100% Cassa
+    2. BTC Dominance: BTC Bull ma Breadth < 45% o RS < 40% -> Riserva BTC
+    3. Alt Expansion: BTC Bull + Breadth >= 45% + RS >= 40% -> Alt Gate ON
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+
+    # 1. Bear
+    res_bear = engine.evaluate_macro_regime(
+        btc_current_price_usd=40000.0,
+        btc_sma20w_usd=45000.0,
+        btc_sma40w_usd=42000.0,
+        altcoin_breadth_pct=50.0,
+        altcoin_rs_pct=60.0
+    )
+    assert res_bear["regime"] == "REGIME_BEAR_CASH"
+    assert res_bear["is_btc_bull"] is False
+    assert res_bear["alt_gate_open"] is False
+
+    # 2. BTC Dominance
+    res_dom = engine.evaluate_macro_regime(
+        btc_current_price_usd=60000.0,
+        btc_sma20w_usd=50000.0,
+        btc_sma40w_usd=45000.0,
+        altcoin_breadth_pct=30.0,  # < 45%
+        altcoin_rs_pct=50.0
+    )
+    assert res_dom["regime"] == "REGIME_BTC_DOMINANCE"
+    assert res_dom["is_btc_bull"] is True
+    assert res_dom["alt_gate_open"] is False
+
+    # 3. Alt Expansion
+    res_alt = engine.evaluate_macro_regime(
+        btc_current_price_usd=60000.0,
+        btc_sma20w_usd=50000.0,
+        btc_sma40w_usd=45000.0,
+        altcoin_breadth_pct=55.0,  # >= 45%
+        altcoin_rs_pct=45.0        # >= 40%
+    )
+    assert res_alt["regime"] == "REGIME_ALT_EXPANSION"
+    assert res_alt["is_btc_bull"] is True
+    assert res_alt["alt_gate_open"] is True
+
+
+def test_rebalance_dual_regime_cash_to_btc_and_back_to_cash():
+    """
+    Verifica il rebalance bidirezionale tra Cash e Riserva Bitcoin:
+    - In BTC Dominance, la cassa libera viene investita in btc_reserve_units
+    - In Bear Cash, la riserva BTC viene interamente smobilizzata in cassa
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    assert engine.state["cash_available_eur"] == 10000.0
+    assert engine.state["btc_reserve_units"] == 0.0
+
+    # 1. Investi cassa libera in BTC a 50.000$ (EUR/USD = 1.0)
+    reb_buy = engine.rebalance_dual_regime(
+        btc_current_price_usd=50000.0,
+        eur_usd_rate=1.0,
+        regime="REGIME_BTC_DOMINANCE",
+        date_str="2024-01-01",
+        fee_bps=0.0
+    )
+    assert reb_buy["action"] == "BUY_CASH_TO_RESERVE"
+    assert engine.state["cash_available_eur"] == 0.0
+    assert engine.state["btc_reserve_units"] == 0.2  # 10.000 EUR / 50.000 EUR
+
+    # 2. Mercato entra in Bear a 40.000$ -> Smobilizzo totale
+    reb_sell = engine.rebalance_dual_regime(
+        btc_current_price_usd=40000.0,
+        eur_usd_rate=1.0,
+        regime="REGIME_BEAR_CASH",
+        date_str="2024-06-01",
+        fee_bps=0.0
+    )
+    assert reb_sell["action"] == "SELL_RESERVE_TO_CASH"
+    assert engine.state["btc_reserve_units"] == 0.0
+    assert engine.state["cash_available_eur"] == 8000.0  # 0.2 BTC * 40.000
+
+
+def test_open_position_funded_from_btc_reserve():
+    """
+    Verifica che se la cassa disponibile e' 0 EUR ma il portafoglio detiene
+    una Riserva Bitcoin, l'apertura di un nuovo slot smobilizzi automaticamente
+    la quota necessaria di BTC senza generare errore.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    # Imposta cassa a 0 e Riserva BTC a 0.2 BTC (valore 12.000 EUR a 60.000$)
+    engine.state["cash_available_eur"] = 0.0
+    engine.state["btc_reserve_units"] = 0.2
+    engine.state["regime_mode"] = "REGIME_ALT_EXPANSION"
+
+    pos = engine.open_position(
+        ticker="SOL",
+        name="Solana",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-15",
+        eur_usd_rate=1.0,
+        entry_btc_price_usd=60000.0
+    )
+
+    assert pos["ticker"] == "SOL"
+    assert "SOL" in engine.state["positions"]
+    # Sono stati venduti 1.000 EUR / 60.000 EUR = 0.016667 BTC
+    assert engine.state["btc_reserve_units"] < 0.2
+    assert abs(engine.state["btc_reserve_units"] - (0.2 - 1000.0/60000.0)) < 1e-4
+    assert engine.state["cash_available_eur"] == 0.0
+
+
+def test_get_portfolio_summary_includes_btc_reserve():
+    """
+    Verifica che get_portfolio_summary includa correttamente la Riserva Bitcoin
+    nel conteggio dell'equity totale del satellite.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+    engine.state["cash_available_eur"] = 2000.0
+    engine.state["btc_reserve_units"] = 0.1  # 6.000$ a 60.000$ = 6.000 EUR (con EUR/USD=1.0)
+    engine.state["regime_mode"] = "REGIME_BTC_DOMINANCE"
+
+    summary = engine.get_portfolio_summary(
+        eur_usd_rate=1.0,
+        btc_current_price_usd=60000.0
+    )
+
+    assert summary["cash_available_eur"] == 2000.0
+    assert summary["btc_reserve_units"] == 0.1
+    assert summary["btc_reserve_val_eur"] == 6000.0
+    assert summary["total_satellite_equity_eur"] == 8000.0
+    assert summary["regime_mode"] == "REGIME_BTC_DOMINANCE"
+
+

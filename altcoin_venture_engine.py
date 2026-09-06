@@ -37,6 +37,10 @@ MAX_BREAKOUT_EXTENSION_PCT = 0.10  # Anti-crowding: esclude o filtra breakout es
 TIME_STOP_DAYS = 30  # Finestra temporale: 30 giorni di detenzione senza aver raggiunto il Free-Ride
 TIME_STOP_MAX_BTC_LAG_PCT = -0.20  # Sottoperformance vs BTC: rendimento token - rendimento BTC < -20%
 
+# Architettura Dual-Regime: soglie quantitative dell'Altcoin Expansion Gate
+ALT_SEASON_BREADTH_MIN_PCT = 45.0  # Minima ampiezza: >=45% delle altcoin sopra SMA 20w
+ALT_SEASON_RS_MIN_PCT = 40.0       # Minima forza relativa: >=40% delle altcoin battono BTC a 30gg
+
 # Kill-switch pre-committato
 KILL_SWITCH_MAX_DRAWDOWN_PCT = -0.40  # Floor al -40% del budget (es. 6.000 EUR su 10.000 EUR)
 KILL_SWITCH_MAX_RELATIVE_LAG_PCT = -0.15  # Sotto-performance massima tollerabile vs BTC B&H
@@ -103,7 +107,11 @@ class VentureAltcoinEngine:
         if os.path.exists(self.portfolio_path):
             try:
                 with open(self.portfolio_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    data.setdefault("btc_reserve_units", 0.0)
+                    data.setdefault("btc_reserve_avg_entry_usd", 0.0)
+                    data.setdefault("regime_mode", "REGIME_BTC_DOMINANCE")
+                    return data
             except Exception as e:
                 print(f"[WARN] Errore lettura {self.portfolio_path}: {e}")
         return self._create_default_state()
@@ -114,6 +122,9 @@ class VentureAltcoinEngine:
             "max_slots": DEFAULT_MAX_SLOTS,
             "recycled_profits_eur": 0.0,
             "cash_available_eur": DEFAULT_BUDGET_EUR,
+            "btc_reserve_units": 0.0,
+            "btc_reserve_avg_entry_usd": 0.0,
+            "regime_mode": "REGIME_BTC_DOMINANCE",
             "positions": {},
             "trade_history": []
         }
@@ -231,6 +242,126 @@ class VentureAltcoinEngine:
             "action": "De-escalation difensiva: congelare nuovi slot, stringere trailing stop"
         }
 
+    def evaluate_macro_regime(
+        self,
+        btc_current_price_usd: float,
+        btc_sma20w_usd: float,
+        btc_sma40w_usd: float,
+        altcoin_breadth_pct: float,
+        altcoin_rs_pct: float
+    ) -> Dict[str, Any]:
+        """
+        Valuta il macro regime a 3 stati:
+        1. REGIME_BEAR_CASH: BTC <= SMA20w o SMA20w <= SMA40w -> 100% Cassa EUR (zero rischio)
+        2. REGIME_ALT_EXPANSION: BTC Bull AND Breadth >= 45% AND RS >= 40% -> Apertura slot altcoin
+        3. REGIME_BTC_DOMINANCE: BTC Bull ma Alt Gate non soddisfatto -> Liquidita' allocata in Riserva Bitcoin (BTC)
+        """
+        is_btc_bull = (btc_current_price_usd > btc_sma20w_usd) and (btc_sma20w_usd > btc_sma40w_usd)
+        if not is_btc_bull:
+            regime = "REGIME_BEAR_CASH"
+            label = "Macro Bear Sistemico (100% Cassa EUR)"
+            alt_gate = False
+        elif (altcoin_breadth_pct >= ALT_SEASON_BREADTH_MIN_PCT) and (altcoin_rs_pct >= ALT_SEASON_RS_MIN_PCT):
+            regime = "REGIME_ALT_EXPANSION"
+            label = "Altcoin Expansion (Altseason Gate ON - Slot Altcoin Operativi)"
+            alt_gate = True
+        else:
+            regime = "REGIME_BTC_DOMINANCE"
+            label = "Bitcoin Dominance (Idle in Riserva Bitcoin)"
+            alt_gate = False
+
+        self.state["regime_mode"] = regime
+        self.save_portfolio()
+        return {
+            "regime": regime,
+            "label": label,
+            "is_btc_bull": is_btc_bull,
+            "alt_gate_open": alt_gate,
+            "breadth_pct": round(altcoin_breadth_pct, 2),
+            "rs_pct": round(altcoin_rs_pct, 2)
+        }
+
+    def rebalance_dual_regime(
+        self,
+        btc_current_price_usd: float,
+        eur_usd_rate: float = 1.0850,
+        regime: Optional[str] = None,
+        date_str: Optional[str] = None,
+        fee_bps: float = 10.0
+    ) -> Dict[str, Any]:
+        """
+        Esegue il ribilanciamento automatico Dual-Regime:
+        - In REGIME_BEAR_CASH: smobilizza interamente btc_reserve_units verso cash_available_eur
+        - In REGIME_BTC_DOMINANCE o REGIME_ALT_EXPANSION: alloca la cassa non vincolata (cash_available_eur > 50 EUR)
+          nella Riserva Bitcoin (btc_reserve_units).
+        """
+        if regime is not None:
+            self.state["regime_mode"] = regime
+        current_regime = self.state.get("regime_mode", "REGIME_BTC_DOMINANCE")
+
+        if date_str is None:
+            date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        fee_mult_buy = 1.0 + (fee_bps / 10000.0)
+        fee_mult_sell = 1.0 - (fee_bps / 10000.0)
+        btc_price_eur = (btc_current_price_usd / eur_usd_rate) if eur_usd_rate > 0 else btc_current_price_usd
+
+        action_taken = "NONE"
+        amount_eur = 0.0
+
+        if current_regime == "REGIME_BEAR_CASH":
+            cur_btc_units = float(self.state.get("btc_reserve_units", 0.0))
+            if cur_btc_units > 0.0 and btc_price_eur > 0.0:
+                rec_eur = round(cur_btc_units * btc_price_eur * fee_mult_sell, 2)
+                self.state["cash_available_eur"] = round(self.state.get("cash_available_eur", 0.0) + rec_eur, 2)
+                self.state["btc_reserve_units"] = 0.0
+                self.state["btc_reserve_avg_entry_usd"] = 0.0
+                action_taken = "SELL_RESERVE_TO_CASH"
+                amount_eur = rec_eur
+                self.state["trade_history"].append({
+                    "date": date_str,
+                    "ticker": "BTC",
+                    "action": "SELL_RESERVE_TO_CASH",
+                    "price_usd": btc_current_price_usd,
+                    "shares": cur_btc_units,
+                    "total_eur": rec_eur,
+                    "note": "Liquidazione completa riserva BTC per ingresso in Regime Bear"
+                })
+        elif current_regime in ("REGIME_BTC_DOMINANCE", "REGIME_ALT_EXPANSION"):
+            cash_free = float(self.state.get("cash_available_eur", 0.0))
+            if cash_free > 50.0 and btc_price_eur > 0.0:
+                cost_eur = cash_free
+                units_bought = (cash_free / (btc_price_eur * fee_mult_buy))
+                old_units = float(self.state.get("btc_reserve_units", 0.0))
+                new_units = old_units + units_bought
+                old_cost_eur = old_units * (float(self.state.get("btc_reserve_avg_entry_usd", btc_current_price_usd)) / eur_usd_rate)
+                new_avg_usd = ((old_cost_eur + cost_eur) / new_units) * eur_usd_rate if new_units > 0 else btc_current_price_usd
+
+                self.state["btc_reserve_units"] = new_units
+                self.state["btc_reserve_avg_entry_usd"] = round(new_avg_usd, 4)
+                self.state["cash_available_eur"] = 0.0
+                action_taken = "BUY_CASH_TO_RESERVE"
+                amount_eur = cost_eur
+                self.state["trade_history"].append({
+                    "date": date_str,
+                    "ticker": "BTC",
+                    "action": "BUY_CASH_TO_RESERVE",
+                    "price_usd": btc_current_price_usd,
+                    "shares": units_bought,
+                    "total_eur": cost_eur,
+                    "note": "Allocazione cassa libera in Riserva Bitcoin (Dual-Regime)"
+                })
+
+        self.save_portfolio()
+        return {
+            "status": "SUCCESS",
+            "action": action_taken,
+            "regime": current_regime,
+            "amount_eur": amount_eur,
+            "btc_reserve_units": self.state.get("btc_reserve_units", 0.0),
+            "cash_available_eur": self.state.get("cash_available_eur", 0.0)
+        }
+
     def open_position(
         self,
         ticker: str,
@@ -247,10 +378,44 @@ class VentureAltcoinEngine:
             raise ValueError(f"Posizione su {ticker} gia' aperta nel satellite.")
 
         capital_eur = custom_capital_eur if custom_capital_eur is not None else self.get_slot_size_eur()
+
+        # Verifica se la cassa e' sufficiente; altrimenti, smobilizzo parziale da Riserva BTC
         if capital_eur > self.state["cash_available_eur"]:
-            raise ValueError(
-                f"Liquidita' insufficiente nel satellite ({self.state['cash_available_eur']:.2f} EUR) per allocare {capital_eur:.2f} EUR."
-            )
+            needed_eur = capital_eur - self.state["cash_available_eur"]
+            btc_px_usd = entry_btc_price_usd or 0.0
+            if btc_px_usd <= 0.0:
+                try:
+                    cache_path = os.path.join(os.path.dirname(__file__), "crypto_screener_cache.json")
+                    if os.path.exists(cache_path):
+                        with open(cache_path, "r", encoding="utf-8") as f_c:
+                            c_data = json.load(f_c)
+                            btc_px_usd = float(c_data.get("BTC-USD", {}).get("price", 0.0))
+                except Exception:
+                    btc_px_usd = 0.0
+
+            btc_px_eur = (btc_px_usd / eur_usd_rate) if eur_usd_rate > 0 else btc_px_usd
+            btc_res_units = float(self.state.get("btc_reserve_units", 0.0))
+            btc_res_val_eur = btc_res_units * btc_px_eur if btc_px_eur > 0 else 0.0
+
+            if (self.state["cash_available_eur"] + btc_res_val_eur) >= (capital_eur * 0.99) and btc_px_eur > 0.0:
+                btc_to_sell = min(btc_res_units, needed_eur / btc_px_eur)
+                freed_eur = round(btc_to_sell * btc_px_eur, 2)
+                self.state["btc_reserve_units"] = max(0.0, btc_res_units - btc_to_sell)
+                self.state["cash_available_eur"] = round(self.state["cash_available_eur"] + freed_eur, 2)
+                self.state["trade_history"].append({
+                    "date": entry_date or datetime.datetime.now().strftime("%Y-%m-%d"),
+                    "ticker": "BTC",
+                    "action": "SELL_RESERVE_FOR_SLOT",
+                    "price_usd": btc_px_usd,
+                    "shares": btc_to_sell,
+                    "total_eur": freed_eur,
+                    "note": f"Smobilizzo parziale riserva BTC per funding slot {ticker}"
+                })
+            else:
+                total_liq_eur = self.state["cash_available_eur"] + btc_res_val_eur
+                raise ValueError(
+                    f"Liquidita' insufficiente nel satellite ({total_liq_eur:.2f} EUR tra cassa e riserva BTC) per allocare {capital_eur:.2f} EUR."
+                )
 
         if entry_date is None:
             entry_date = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -711,16 +876,35 @@ class VentureAltcoinEngine:
         self.save_portfolio()
         return {"status": "SUCCESS", "proceeds_eur": proceeds_eur, "ticker": ticker, "type": sig_type}
 
-    def get_portfolio_summary(self, eur_usd_rate: float = 1.0850) -> Dict[str, Any]:
+    def get_portfolio_summary(
+        self,
+        eur_usd_rate: float = 1.0850,
+        btc_current_price_usd: Optional[float] = None
+    ) -> Dict[str, Any]:
         positions = self.state.get("positions", {})
         total_initial_cost_eur = sum(p["initial_cost_eur"] for p in positions.values())
         total_current_val_usd = sum(p["current_shares"] * p["current_price_usd"] for p in positions.values())
         total_current_val_eur = round(total_current_val_usd / eur_usd_rate, 2)
 
+        # Riserva Bitcoin Dual-Regime
+        btc_reserve_units = float(self.state.get("btc_reserve_units", 0.0))
+        if btc_current_price_usd is None:
+            try:
+                cache_path = os.path.join(os.path.dirname(__file__), "crypto_screener_cache.json")
+                if os.path.exists(cache_path):
+                    with open(cache_path, "r", encoding="utf-8") as f_c:
+                        c_data = json.load(f_c)
+                        btc_current_price_usd = float(c_data.get("BTC-USD", {}).get("price", 0.0))
+            except Exception:
+                btc_current_price_usd = 0.0
+        btc_px = float(btc_current_price_usd or 0.0)
+        btc_reserve_val_usd = btc_reserve_units * btc_px
+        btc_reserve_val_eur = round(btc_reserve_val_usd / eur_usd_rate, 2)
+
         unrealized_pnl_eur = round(total_current_val_eur - total_initial_cost_eur, 2)
         free_rides_count = sum(1 for p in positions.values() if p.get("is_free_ride", False))
 
-        total_satellite_equity_eur = round(self.state["cash_available_eur"] + total_current_val_eur, 2)
+        total_satellite_equity_eur = round(self.state["cash_available_eur"] + total_current_val_eur + btc_reserve_val_eur, 2)
 
         rows = []
         for sym, p in sorted(positions.items(), key=lambda x: x[1]["current_price_usd"] / x[1]["entry_price_usd"], reverse=True):
@@ -746,6 +930,10 @@ class VentureAltcoinEngine:
         return {
             "budget_total_eur": self.state["budget_total_eur"],
             "cash_available_eur": self.state["cash_available_eur"],
+            "btc_reserve_units": btc_reserve_units,
+            "btc_reserve_val_eur": btc_reserve_val_eur,
+            "btc_reserve_avg_entry_usd": float(self.state.get("btc_reserve_avg_entry_usd", 0.0)),
+            "regime_mode": self.state.get("regime_mode", "REGIME_BTC_DOMINANCE"),
             "recycled_profits_eur": self.state["recycled_profits_eur"],
             "total_current_val_eur": total_current_val_eur,
             "total_satellite_equity_eur": total_satellite_equity_eur,
@@ -1471,9 +1659,12 @@ def screen_venture_candidates(
     ranked_universe.sort(key=lambda x: x["rs_excess_vs_btc_pct"], reverse=True)
     qualified.sort(key=lambda x: x["rs_excess_vs_btc_pct"], reverse=True)
 
-    # Calcolo Altcoin Breadth (% altcoin sopra SMA 20w / 140d)
+    # Calcolo Altcoin Breadth (% altcoin sopra SMA 20w / 140d) e Forza Relativa 30d
     alt_above_sma20w = 0
     total_valid_alts = 0
+    alt_beating_btc = 0
+    total_valid_rs = 0
+
     for sym, s_px in crypto_close_dict.items():
         b_tick = sym.replace("-USD", "").replace("USD", "").upper().strip()
         if b_tick in ("BTC", "BITCOIN", "XBT") or b_tick in EXCLUDED_CRYPTO_SYMBOLS:
@@ -1483,12 +1674,34 @@ def screen_venture_candidates(
         cur_p = float(s_px.iloc[-1])
         if cur_p <= 0 or pd.isna(cur_p):
             continue
+
         if len(s_px) >= 140:
             total_valid_alts += 1
             if float(s_px.iloc[-1]) > float(s_px.rolling(140).mean().iloc[-1]):
                 alt_above_sma20w += 1
 
+        if len(s_px) >= 30 and len(btc_series) >= 30:
+            total_valid_rs += 1
+            r_alt = (cur_p / float(s_px.iloc[-30])) - 1.0
+            r_btc = (cur_btc_px / float(btc_series.iloc[-30])) - 1.0
+            if r_alt > r_btc:
+                alt_beating_btc += 1
+
     breadth_pct = round((alt_above_sma20w / max(1, total_valid_alts)) * 100.0, 1) if total_valid_alts > 0 else 0.0
+    rs_spread_pct = round((alt_beating_btc / max(1, total_valid_rs)) * 100.0, 1) if total_valid_rs > 0 else 0.0
+
+    alt_gate_active = macro_gate_active and (breadth_pct >= ALT_SEASON_BREADTH_MIN_PCT) and (rs_spread_pct >= ALT_SEASON_RS_MIN_PCT)
+
+    if not macro_gate_active:
+        regime_mode = "REGIME_BEAR_CASH"
+        regime_label = "Macro Bear Sistemico (100% Cassa EUR)"
+    elif alt_gate_active:
+        regime_mode = "REGIME_ALT_EXPANSION"
+        regime_label = "Altcoin Expansion (Altseason Gate ON - Slot Altcoin Operativi)"
+    else:
+        regime_mode = "REGIME_BTC_DOMINANCE"
+        regime_label = "Bitcoin Dominance (Idle in Riserva Bitcoin)"
+
     if breadth_pct > 80.0:
         breadth_regime = "IPERESTENSO (Attenzione: possibile rotazione imminente, non inseguire)"
     elif breadth_pct >= 50.0:
@@ -1498,10 +1711,14 @@ def screen_venture_candidates(
 
     return {
         "macro_gate_active": macro_gate_active,
+        "alt_gate_active": alt_gate_active,
+        "regime_mode": regime_mode,
+        "regime_label": regime_label,
         "btc_price_usd": round(cur_btc_px, 2),
         "btc_ma40w_usd": round(btc_ma40, 2),
         "btc_ma20w_usd": round(btc_ma20, 2),
         "altcoin_breadth_pct": breadth_pct,
+        "altcoin_rs_pct": rs_spread_pct,
         "altcoin_breadth_regime": breadth_regime,
         "candidates": qualified,
         "ranked_universe": ranked_universe,

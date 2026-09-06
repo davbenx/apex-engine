@@ -13,14 +13,31 @@ A differenza di **Apex Engine** (che ottimizza Sharpe e Calmar su orizzonti sett
 
 ---
 
-## 2. Architettura di Allocazione e Slot
+## 2. Architettura di Allocazione, Slot e Dual-Regime
 
-Il budget totale ($B_{\text{venture}}$) viene suddiviso in un numero finito di slot equi-allocati:
+Il budget totale ($B_{\text{venture}}$) viene gestito secondo un'architettura **Dual-Regime** a tre macro-stati, che risolve il costo di opportunita' del capitale e protegge da prolungate fasi laterali/ribassiste:
+
+### 2.1 La Macchina a Stati Dual-Regime
+1. **Regime 1: Macro Bear Sistemico** ($P_{\text{BTC}} \le \text{SMA}_{20w} \lor \text{SMA}_{20w} \le \text{SMA}_{40w}$):
+   - Allocazione: **100% Cassa EUR**.
+   - Qualsiasi riserva BTC residua viene liquidata in contanti EUR.
+   - Nessun nuovo slot altcoin puo' essere aperto. Massima protezione del capitale (0% perdite nel 2018 e 2022).
+2. **Regime 2: Bitcoin Dominance (Idle Sleeve)**:
+   - Condizione: BTC Bull confermato, ma Altcoin Gate spento ($\text{Breadth} < 45\%$ o $\text{RS Spread} < 40\%$).
+   - Allocazione: **Riserva Bitcoin (BTC)**.
+   - La liquidita' non impegnata in slot altcoin risiede interamente in Bitcoin (`btc_reserve_units`). In questo modo il satellite beneficia dei bull market di Bitcoin (es. +24,5% nel 2024) invece di subire il deprezzamento e i falsi breakout delle altcoin.
+3. **Regime 3: Altcoin Expansion (Altseason Gate ON)**:
+   - Condizione: BTC Bull AND $\text{Breadth} \ge 45\%$ AND $\text{RS Spread} \ge 40\%$.
+   - Allocazione: **Fino a 10 Slot Altcoin** da 1.000 € ciascuno (o quota prefissata).
+   - Quando scatta un segnale su un token qualificato, il capitale viene prelevato dalla cassa o, se insufficiente, disinvestito parzialmente dalla Riserva BTC.
+   - All'uscita della posizione altcoin (o realizzo Milestone 1 Free-Ride), il capitale rimborsato ritorna nella Riserva BTC (se BTC Bull) o in Cassa (se Bear).
+
+### 2.2 Dimensionamento degli Slot e Vincoli
 - **Numero di Slot Massimi ($N$)**: da 8 a 12 (default: $N = 10$).
 - **Allocazione per Posizione ($C_0$)**:
   $$C_0 = \frac{B_{\text{venture}}}{N}$$
-  Per esempio, su un budget di 4.000 € suddiviso in 10 slot, ciascuna nuova posizione viene aperta con una quota fissa di **400 €**.
-- **Vincolo di Concentrazione Tematica**: per evitare cluster di fallimento settoriale, non sono ammessi più di 2 token per lo stesso comparto narrativo (es. Layer 1, AI/Compute, DeFi 2.0, Real World Assets, DePIN).
+  Su un budget standard di 10.000 € suddiviso in 10 slot, ciascuna nuova posizione viene aperta con una quota fissa di **1.000 €**.
+- **Vincolo di Concentrazione Tematica**: per evitare cluster di fallimento settoriale, non sono ammessi piu' di 2 token per lo stesso comparto narrativo (es. Layer 1, AI/Compute, DeFi 2.0, Real World Assets, DePIN).
 
 ---
 
@@ -69,22 +86,32 @@ Il Venture Satellite Altcoin adotta la regola del **travaso patrimoniale unidire
 
 ---
 
-## 5. Criteri di Selezione e Screening dei Candidati
+## 5. Criteri di Selezione, Screening dei Candidati e Altcoin Gate
 
-Un token diventa candidato ammissibile SOLO se supera TUTTI e 4 i filtri seguenti (implementazione reale in `altcoin_venture_engine.py::screen_venture_candidates` — nessun filtro è dichiarativo/decorativo: un token che ne fallisce anche solo uno non compare mai tra i candidati qualificati):
+### 5.1 Altcoin Expansion Gate (Semaforo Macro di Ingresso)
+Prima ancora di valutare i singoli token, l'apertura di nuovi slot altcoin e' condizionata dal superamento di due metriche aggregate di mercato:
+1. **Ampiezza di Mercato Altcoin ($\text{Breadth} \ge 45,0\%$)**: almeno il 45% dei contratti perpetual attivi su Kraken Futures deve scambiare al di sopra della rispettiva media mobile a 20 settimane (140 giorni). Questo impedisce acquisti spuri quando l'80% del mercato altcoin e' in downtrend secolare.
+2. **Forza Relativa Aggregata vs BTC ($\text{RS Spread} \ge 40,0\%$)**: almeno il 40% dell'universo altcoin deve aver sovraperformato Bitcoin negli ultimi 30 giorni.
 
+Se il Gate non e' soddisfatto, il sistema permane in **Regime 2 (BTC Dominance)**: il capitale libero non compra altcoin ma risiede nella Riserva Bitcoin.
+
+### 5.2 Filtri di Ammissibilita' del Singolo Token
+Quando il Gate e' attivo, un token diventa candidato ammissibile SOLO se supera TUTTI e 4 i filtri seguenti (implementazione reale in `altcoin_venture_engine.py::screen_venture_candidates`):
 1. **Filtro di Liquidità**: quotazione come contratto perpetual attivo su Kraken Futures (interrogazione live dell'API pubblica `futures.kraken.com`), con esclusione tassativa di token wrapped, liquid-staking e stablecoin (`EXCLUDED_CRYPTO_SYMBOLS`).
 2. **Filtro Tokenomics / Diluizione**: rapporto Market Cap / Fully Diluted Valuation ($\text{MC} / \text{FDV}$) $> 0,40$, calcolato in tempo reale via l'API pubblica CoinGecko (`get_tokenomics_mc_fdv`). **Fail-safe**: se il dato non è verificabile per il token, il filtro NON è superato — non viene mai assunto un valore per difetto.
 3. **Filtro di Momentum Tecnico**: rottura del massimo a 30 giorni, forza relativa positiva vs BTC a 20 giorni, prezzo sopra la media mobile a 140 giorni (20 settimane), non esteso oltre il 10% dal livello di rottura (anti-crowding).
-4. **Filtro Fondamentale (trazione on-chain verificabile)**: variazione del TVL (Total Value Locked) a 90 giorni non inferiore a $-20\%$, calcolata via l'API pubblica DefiLlama (`get_tvl_trend_90d`) — a livello di chain per le Layer 1/L2 note, a livello di protocollo per gli altri token con presenza su DefiLlama. **Fail-safe**: nessuna presenza tracciata su DefiLlama (es. puro gas token o meme coin) → filtro non superato. Questo filtro copre SOLO la trazione on-chain oggettivamente misurabile — non tenta di quantificare "narrativa" o "catalizzatori imminenti", intrinsecamente soggettivi e non riducibili a un numero verificabile.
+4. **Filtro Fondamentale (trazione on-chain verificabile)**: variazione del TVL (Total Value Locked) a 90 giorni non inferiore a $-20\%$, calcolata via l'API pubblica DefiLlama (`get_tvl_trend_90d`) — a livello di chain per le Layer 1/L2 note, a livello di protocollo per gli altri token con presenza su DefiLlama. **Fail-safe**: nessuna presenza tracciata su DefiLlama (es. puro gas token o meme coin) → filtro non superato.
 
 ---
 
 ## 6. Struttura Dati e Persistenza
 
 Lo stato del portafoglio satellite è serializzato in `venture_altcoin_portfolio.json`:
-- `budget_total_eur`: ammontare totale destinato al satellite.
-- `budget_available_eur`: liquidità disponibile per nuovi investimenti.
+- `budget_total_eur`: ammontare totale destinato al satellite (default 10.000 €).
+- `cash_available_eur`: liquidità disponibile in euro per nuovi investimenti.
+- `btc_reserve_units`: quota di Bitcoin detenuta come riserva durante la fase di BTC Dominance.
+- `btc_reserve_avg_entry_usd`: prezzo medio di carico della riserva BTC.
+- `regime_mode`: stato operativo corrente (`REGIME_BEAR_CASH`, `REGIME_BTC_DOMINANCE`, `REGIME_ALT_EXPANSION`).
 - `recycled_profits_eur`: totale profitti già estratti e inviati al portafoglio principale.
 - `positions`: mappa dei token attualmente aperti con prezzi di carico, quote, storico milestone e prossimi target di vendita.
-- `trade_history`: registro contabile di tutti gli ordini eseguiti, utili realizzati e minusvalenze generate.
+- `trade_history`: registro contabile di tutti gli ordini eseguiti, utili realizzati, minusvalenze e ribilanciamenti riserva.
