@@ -369,6 +369,26 @@ with tab_pf:
         </div>
         """)
 
+    # Callout Frontier Venture se segnale Bitcoin attivo
+    _crypto_alloc = _apex_allocs.get("Crypto", 0.0) if _apex_allocs else 0.0
+    _is_btc_bullish = _crypto_alloc > 0.0
+    if _is_btc_bullish:
+        col_v_info, col_v_act = st.columns([4, 1])
+        with col_v_info:
+            st_html(f"""
+            <div style="background:rgba(201,164,76,0.08); border:1px solid rgba(201,164,76,0.30); border-radius:8px; padding:12px 16px; margin-top:14px;">
+                <div style="font-size:11px; font-weight:700; color:{ACCENT}; text-transform:uppercase; letter-spacing:0.5px;">
+                    [ON] Macro Gate Bitcoin ATTIVO · Frontier Venture Abilitato
+                </div>
+                <div style="font-size:12px; color:{BADGE_TEXT}; margin-top:3px;">
+                    Bitcoin in regime rialzista macro (sopra MA 40w/20w). Il satellite asimmetrico Frontier Venture (5% Net Worth) è operativo per nuovi ingressi su Kraken Futures a leva 1x.
+                </div>
+            </div>
+            """)
+        with col_v_act:
+            st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+            st.page_link("page_venture.py", label="Apri Venture", use_container_width=True)
+
     # 3. Composizione Macro Consolidata
     st_html(section_title("Composizione Macro Consolidata"))
     _macro = unified_data["macro_breakdown"]
