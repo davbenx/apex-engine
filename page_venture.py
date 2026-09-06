@@ -207,7 +207,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Eventi operativi (Take-Profit o Stop-Loss in attesa)
-signals = engine.evaluate_signals(eur_usd_rate=eur_usd_rate)
+signals = engine.evaluate_signals(eur_usd_rate=eur_usd_rate, btc_current_price_usd=btc_px)
 if signals:
     st.markdown("### Segnali Operativi in Attesa di Esecuzione")
     for s in signals:
@@ -308,7 +308,8 @@ with tab_screen:
             sector="Kraken Futures Perp",
             custom_capital_eur=1000.0,
             entry_date=datetime.date.today().strftime("%Y-%m-%d"),
-            eur_usd_rate=eur_usd_rate
+            eur_usd_rate=eur_usd_rate,
+            entry_btc_price_usd=btc_px
         )
         st.toast(f"Slot {sym} aperto con successo: 1.000 € allocati a {px:.4f} $")
         st.rerun()

@@ -33,6 +33,10 @@ BREAKOUT_LOOKBACK_DAYS = 30  # Lookback breakout ottimale
 RS_LOOKBACK_DAYS = 20  # Lookback forza relativa vs BTC ottimale
 MAX_BREAKOUT_EXTENSION_PCT = 0.10  # Anti-crowding: esclude o filtra breakout estesi oltre +10% dal livello chiave
 
+# Time-stop protettivo validato empiricamente fuori campione
+TIME_STOP_DAYS = 30  # Finestra temporale: 30 giorni di detenzione senza aver raggiunto il Free-Ride
+TIME_STOP_MAX_BTC_LAG_PCT = -0.20  # Sottoperformance vs BTC: rendimento token - rendimento BTC < -20%
+
 # Kill-switch pre-committato
 KILL_SWITCH_MAX_DRAWDOWN_PCT = -0.40  # Floor al -40% del budget (es. 6.000 EUR su 10.000 EUR)
 KILL_SWITCH_MAX_RELATIVE_LAG_PCT = -0.15  # Sotto-performance massima tollerabile vs BTC B&H
@@ -235,7 +239,8 @@ class VentureAltcoinEngine:
         sector: str = "General",
         custom_capital_eur: Optional[float] = None,
         entry_date: Optional[str] = None,
-        eur_usd_rate: float = 1.0850
+        eur_usd_rate: float = 1.0850,
+        entry_btc_price_usd: Optional[float] = None
     ) -> Dict[str, Any]:
         ticker = ticker.upper().strip()
         if ticker in self.state["positions"]:
@@ -250,6 +255,16 @@ class VentureAltcoinEngine:
         if entry_date is None:
             entry_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
+        if entry_btc_price_usd is None:
+            try:
+                cache_path = os.path.join(os.path.dirname(__file__), "crypto_screener_cache.json")
+                if os.path.exists(cache_path):
+                    with open(cache_path, "r", encoding="utf-8") as f_c:
+                        c_data = json.load(f_c)
+                        entry_btc_price_usd = float(c_data.get("BTC-USD", {}).get("price", 0.0))
+            except Exception:
+                entry_btc_price_usd = 0.0
+
         capital_usd = capital_eur * eur_usd_rate
         initial_shares = capital_usd / entry_price_usd
 
@@ -259,6 +274,7 @@ class VentureAltcoinEngine:
             "sector": sector,
             "entry_date": entry_date,
             "entry_price_usd": entry_price_usd,
+            "entry_btc_price_usd": float(entry_btc_price_usd or 0.0),
             "current_price_usd": entry_price_usd,
             "highest_price_usd": entry_price_usd,
             "initial_shares": initial_shares,
@@ -325,17 +341,69 @@ class VentureAltcoinEngine:
 
         return pos
 
-    def evaluate_signals(self, eur_usd_rate: float = 1.0850) -> List[Dict[str, Any]]:
+    def evaluate_signals(
+        self,
+        eur_usd_rate: float = 1.0850,
+        btc_current_price_usd: Optional[float] = None,
+        today_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
-        Analizza tutte le posizioni aperte e genera la lista dei segnali esecutivi (Take Profit o Stop Loss).
+        Analizza tutte le posizioni aperte e genera la lista dei segnali esecutivi:
+        - Time-Stop: se dopo 30 giorni la posizione non e' in Free-Ride e sottoperforma BTC di oltre -20%
+        - Hard Stop Loss: -40% dal prezzo di ingresso
+        - Take Profit a scaglioni (Milestone 1 Free-Ride a 2.25x, M2 4x, M3 8x, M4 16x)
+        - Trailing Stop Runner Moonbag (-30% dal picco)
         """
+        if btc_current_price_usd is None:
+            try:
+                cache_path = os.path.join(os.path.dirname(__file__), "crypto_screener_cache.json")
+                if os.path.exists(cache_path):
+                    with open(cache_path, "r", encoding="utf-8") as f_c:
+                        c_data = json.load(f_c)
+                        btc_current_price_usd = float(c_data.get("BTC-USD", {}).get("price", 0.0))
+            except Exception:
+                btc_current_price_usd = 0.0
+
         signals = []
         for ticker, pos in list(self.state["positions"].items()):
             p_cur = pos["current_price_usd"]
             p0 = pos["entry_price_usd"]
-            mult = p_cur / p0
+            mult = p_cur / p0 if p0 > 0 else 1.0
 
-            # 1. Controllo Hard Stop Loss (solo prima di Free-Ride)
+            # Calcolo giorni di detenzione per Time-Stop
+            entry_d_str = pos.get("entry_date", "")[:10]
+            try:
+                d_entry = datetime.date.fromisoformat(entry_d_str)
+                d_eval = datetime.date.fromisoformat(today_date[:10]) if today_date else datetime.date.today()
+                days_held = (d_eval - d_entry).days
+            except Exception:
+                days_held = 0
+
+            # 1. Controllo Time-Stop (PRIORITARIO RISPETTO ALLO STOP SECCO):
+            # Se dopo 30 giorni la posizione non e' in Free Ride e il rendimento del token
+            # meno quello di BTC nello stesso periodo e' sotto -20%, chiudere per TIME_STOP
+            btc_entry = pos.get("entry_btc_price_usd", 0.0)
+            if not pos["is_free_ride"] and days_held >= TIME_STOP_DAYS and p0 > 0:
+                if btc_current_price_usd and btc_entry and btc_entry > 0:
+                    r_tok = (p_cur / p0) - 1.0
+                    r_btc = (btc_current_price_usd / btc_entry) - 1.0
+                    rel_alpha = r_tok - r_btc
+                    if rel_alpha < TIME_STOP_MAX_BTC_LAG_PCT:
+                        signals.append({
+                            "ticker": ticker,
+                            "type": "TIME_STOP",
+                            "action": "SELL_ALL",
+                            "reason": (
+                                f"Time-Stop scattato dopo {days_held} giorni: posizione non in Free Ride e "
+                                f"sottoperformance vs BTC a {rel_alpha*100:+.1f}% (sotto {TIME_STOP_MAX_BTC_LAG_PCT*100:.0f}%: "
+                                f"Token {r_tok*100:+.1f}%, BTC {r_btc*100:+.1f}%)"
+                            ),
+                            "shares_to_sell": pos["current_shares"],
+                            "price_usd": p_cur
+                        })
+                        continue
+
+            # 2. Controllo Hard Stop Loss (solo prima di Free-Ride)
             if not pos["is_free_ride"] and p_cur <= pos["stop_loss_usd"]:
                 signals.append({
                     "ticker": ticker,
@@ -452,7 +520,7 @@ class VentureAltcoinEngine:
             # Tutto il ricavato è profitto puro (capitale già recuperato)
             self.state["recycled_profits_eur"] = round(self.state["recycled_profits_eur"] + proceeds_eur, 2)
             pos["realized_pnl_eur"] = round(pos["realized_pnl_eur"] + proceeds_eur, 2)
-        elif sig_type in ("STOP_LOSS", "TRAILING_STOP"):
+        elif sig_type in ("STOP_LOSS", "TRAILING_STOP", "TIME_STOP"):
             # Chiusura totale
             if pos["is_free_ride"]:
                 self.state["recycled_profits_eur"] = round(self.state["recycled_profits_eur"] + proceeds_eur, 2)
@@ -475,7 +543,7 @@ class VentureAltcoinEngine:
             "reason": signal["reason"]
         })
 
-        if pos["current_shares"] < 1e-6 or sig_type in ("STOP_LOSS", "TRAILING_STOP"):
+        if pos["current_shares"] < 1e-6 or sig_type in ("STOP_LOSS", "TRAILING_STOP", "TIME_STOP"):
             pos["status"] = "CLOSED"
             del self.state["positions"][ticker]
 

@@ -378,3 +378,142 @@ def test_screen_venture_candidates_gates_on_fundamentals():
     assert "SCARTATO" in bad_row["status"]
 
 
+def test_evaluate_signals_time_stop_triggers_after_30_days_when_lagging_btc():
+    """
+    Se dopo 30 giorni la posizione non e' in Free Ride e il rendimento del token
+    meno quello di BTC nello stesso periodo e' sotto -20%, scatta TIME_STOP.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+
+    pos = engine.open_position(
+        ticker="LAGGER",
+        name="Lagger Token",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0,
+        entry_btc_price_usd=50000.0
+    )
+
+    # A 35 giorni (2024-02-05): Token a 90$ (-10%), BTC a 60.000$ (+20%)
+    # Alpha relativo = -10% - (+20%) = -30% < -20%
+    # Hard stop (-40% = 60$) non e' ancora toccato
+    engine.state["positions"]["LAGGER"]["current_price_usd"] = 90.0
+
+    signals = engine.evaluate_signals(
+        eur_usd_rate=1.0,
+        btc_current_price_usd=60000.0,
+        today_date="2024-02-05"
+    )
+
+    assert len(signals) == 1
+    sig = signals[0]
+    assert sig["ticker"] == "LAGGER"
+    assert sig["type"] == "TIME_STOP"
+    assert sig["action"] == "SELL_ALL"
+    assert "Time-Stop scattato" in sig["reason"]
+
+    # Esecuzione del segnale TIME_STOP
+    res = engine.execute_sell_signal(sig, eur_usd_rate=1.0, date_str="2024-02-05")
+    assert res["status"] == "SUCCESS"
+    assert "LAGGER" not in engine.state["positions"]
+    assert engine.state["cash_available_eur"] == 9900.0  # 10000 - 1000 + 900
+
+
+def test_evaluate_signals_time_stop_does_not_trigger_before_30_days():
+    """
+    Prima di 30 giorni (es. 20 giorni), il Time-Stop NON deve scattare
+    anche se il token sta sottoperformando BTC.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+
+    engine.open_position(
+        ticker="YOUNG",
+        name="Young Token",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0,
+        entry_btc_price_usd=50000.0
+    )
+
+    # A 20 giorni (2024-01-21): Token a 85$ (-15%), BTC a 55.000$ (+10%) -> Alpha -25%
+    engine.state["positions"]["YOUNG"]["current_price_usd"] = 85.0
+
+    signals = engine.evaluate_signals(
+        eur_usd_rate=1.0,
+        btc_current_price_usd=55000.0,
+        today_date="2024-01-21"
+    )
+
+    # Nessun segnale: non ha toccato l'hard stop (-40%) e non sono passati 30gg
+    assert len(signals) == 0
+
+
+def test_evaluate_signals_time_stop_does_not_trigger_if_beating_btc():
+    """
+    Dopo 30 giorni, se il token non sottoperforma BTC di almeno -20%,
+    il Time-Stop NON deve scattare.
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+
+    engine.open_position(
+        ticker="HEALTHY",
+        name="Healthy Token",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0,
+        entry_btc_price_usd=50000.0
+    )
+
+    # A 35 giorni (2024-02-05): Token a 110$ (+10%), BTC a 55.000$ (+10%) -> Alpha 0%
+    engine.state["positions"]["HEALTHY"]["current_price_usd"] = 110.0
+
+    signals = engine.evaluate_signals(
+        eur_usd_rate=1.0,
+        btc_current_price_usd=55000.0,
+        today_date="2024-02-05"
+    )
+
+    assert len(signals) == 0
+
+
+def test_evaluate_signals_time_stop_does_not_trigger_if_free_ride():
+    """
+    Una posizione in Free Ride e' a capitale zero e non deve essere
+    tagliata dal Time-Stop (segue la ladder di liquidazione / trailing stop).
+    """
+    from altcoin_venture_engine import VentureAltcoinEngine
+
+    engine = VentureAltcoinEngine(portfolio_path=TEMP_PORTFOLIO_PATH)
+
+    engine.open_position(
+        ticker="FREERUNNER",
+        name="Free Runner",
+        entry_price_usd=100.0,
+        custom_capital_eur=1000.0,
+        entry_date="2024-01-01",
+        eur_usd_rate=1.0,
+        entry_btc_price_usd=50000.0
+    )
+
+    # Posizione raggiunge Free Ride
+    engine.state["positions"]["FREERUNNER"]["is_free_ride"] = True
+    engine.state["positions"]["FREERUNNER"]["current_price_usd"] = 90.0
+
+    signals = engine.evaluate_signals(
+        eur_usd_rate=1.0,
+        btc_current_price_usd=70000.0,
+        today_date="2024-02-05"
+    )
+
+    # Nessun time stop su Free Ride
+    assert not any(s["type"] == "TIME_STOP" for s in signals)
+

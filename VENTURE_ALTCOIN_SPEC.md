@@ -44,8 +44,11 @@ Sulle quote residue della posizione Free Ride vengono applicate le seguenti sogl
 4. **Runner Moonbag**: Sulla frazione rimanente (~15% delle quote iniziali), si attiva un **trailing stop dinamico del 30%** calcolato rispetto al massimo storico registrato dalla posizione, per accompagnare il ciclo espansivo fino all'esaurimento del trend.
 
 ### 3.3 Regole di Chiusura in Perdita (Capital Protection & Tax Loss Harvesting)
-1. **Hard Stop Loss (-40%)**: se il token scende al di sotto del $-40\%$ rispetto al prezzo di acquisto prima di raggiungere la Milestone 1, la posizione viene liquidata integralmente per proteggere il 60% del capitale dello slot e generare minusvalenze fiscali compensabili.
-2. **Time Stop / Invalidation (90 giorni)**: se trascorsi 90 giorni dall'ingresso il token non ha superato $+25\%$ e mostra un rendimento relativo inferiore a BTC di almeno $-30\%$, la posizione viene chiusa d'ufficio per liberare lo slot di capitale a favore di progetti con catalizzatori attivi.
+
+I controlli di uscita in perdita sono rigorosamente ordinati per priorità di esecuzione:
+
+1. **Time-Stop / Relative Invalidation (30 giorni, Priorità 1)**: se dopo **30 giorni** dall'ingresso la posizione non ha ancora raggiunto la Milestone 1 (Free Ride) e il rendimento del token meno quello di Bitcoin nello stesso periodo registra una sottoperformance inferiore a **$-20\%$** ($\Delta R = R_{\text{token}} - R_{\text{BTC}} < -0,20$), la posizione viene chiusa immediatamente per `TIME_STOP`. Questa regola, validata fuori campione (WFA), taglia tempestivamente le posizioni in stallo o in perdita relativa prima che colpiscano lo stop secco, riducendo drasticamente il costo dell'errore (lo stop-rate scende dall'80-95% a livelli residuali nel 2024-2025).
+2. **Hard Stop Loss (-40%, Priorità 2)**: se il token scende al di sotto del $-40\%$ rispetto al prezzo di acquisto prima del Time-Stop o prima di raggiungere la Milestone 1, la posizione viene liquidata integralmente per proteggere il capitale residuo dello slot e generare minusvalenze fiscali compensabili.
 
 ---
 
