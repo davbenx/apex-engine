@@ -169,12 +169,12 @@ st.markdown("""
 engine = VentureAltcoinEngine()
 eur_usd_rate = 1.0850
 
-# Barra di controllo e notifiche
-col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
-with col_btn1:
+# Barra di controllo rapida
+col_ctrl1, col_ctrl2 = st.columns([1, 3])
+with col_ctrl1:
     if st.button("Aggiorna Prezzi Live", use_container_width=True):
         load_screener_crypto_data.clear()
-        with st.spinner("Aggiornamento quotazioni live in corso..."):
+        with st.spinner("Sincronizzazione quotazioni live da Kraken Futures..."):
             updated_count = 0
             for sym in list(engine.state["positions"].keys()):
                 px = fetch_live_crypto_price(sym)
@@ -182,74 +182,19 @@ with col_btn1:
                     engine.update_price(sym, px)
                     updated_count += 1
             engine.save_portfolio()
+            load_screener_crypto_data(force_live=True)
             if updated_count > 0:
                 st.success(f"Aggiornati prezzi per {updated_count} token.")
             else:
-                st.info("Nessuna posizione aperta o quotazione invariata.")
+                st.success("Universo Kraken Futures sincronizzato.")
+            st.rerun()
 
-with col_btn2:
-    if st.button("Notifica Telegram (Test)", use_container_width=True):
-        dfs_scr, btc_scr = load_screener_crypto_data()
-        ok, res_msg = send_venture_telegram_alert(crypto_close_dict=dfs_scr, btc_series=btc_scr)
-        if ok:
-            st.success("Notifica Telegram inviata con successo al canale configurato.")
-        else:
-            st.warning(f"Avviso: {res_msg}")
-
-with col_btn3:
-    curr_tok, curr_cid = get_telegram_credentials()
-    if curr_tok and curr_cid:
-        st.markdown(f"""
-        <div style="background: rgba(120, 182, 142, 0.10); border: 1px solid rgba(120, 182, 142, 0.35); border-radius: 6px; padding: 7px 12px; font-size: 11.5px; color: #78B68E; font-family: 'JetBrains Mono', monospace;">
-            TELEGRAM ATTIVO: Chat {curr_cid} · Token ...{curr_tok[-4:]}
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div style="background: rgba(224, 86, 76, 0.10); border: 1px solid rgba(224, 86, 76, 0.35); border-radius: 6px; padding: 7px 12px; font-size: 11.5px; color: #E0564C; font-family: 'JetBrains Mono', monospace;">
-            TELEGRAM: Credenziali non rilevate (configura qui sotto)
-        </div>
-        """, unsafe_allow_html=True)
-
-with st.expander("Configurazione Notifiche Telegram (Canale Operativo)", expanded=False):
+with col_ctrl2:
     st.markdown("""
-    Frontier Venture invia notifiche operative istantanee sul canale Telegram quando:
-    - Scatta un trigger di **Free-Ride (+125% / 2.25x)** per azzerare il rischio di capitale.
-    - Viene raggiunta una **Milestone (+300%, +700%, +1500%)** per il riciclo utili.
-    - Scatta lo **Stop Loss (-40%)** o il **Trailing Stop (-30%)**.
-    - Lo scanner rileva nuovi candidati in **Breakout 30d** con eccesso di forza relativa vs BTC.
-    """)
-    tok_now, cid_now = get_telegram_credentials()
-    c_t1, c_t2 = st.columns(2)
-    with c_t1:
-        inp_tok = st.text_input("Bot Token", value=st.session_state.get("venture_tg_token", tok_now or ""), type="password", help="Inserisci il token del bot Telegram fornito da @BotFather")
-    with c_t2:
-        inp_cid = st.text_input("Chat ID", value=st.session_state.get("venture_tg_chat_id", cid_now or ""), help="ID del canale o della chat privata (es. -1001234567890 o 12345678)")
-
-    col_save_t, col_info_t = st.columns([1, 2])
-    with col_save_t:
-        if st.button("Salva e Invia Test Notifica", type="primary"):
-            if inp_tok and inp_cid:
-                st.session_state["venture_tg_token"] = inp_tok.strip()
-                st.session_state["venture_tg_chat_id"] = inp_cid.strip()
-                dfs_t, btc_t = load_screener_crypto_data()
-                ok_t, ret_m = send_venture_telegram_alert(token=inp_tok.strip(), chat_id=inp_cid.strip(), crypto_close_dict=dfs_t, btc_series=btc_t)
-                if ok_t:
-                    st.success("Test Telegram inviato con successo.")
-                    st.rerun()
-                else:
-                    st.error(f"Errore invio: {ret_m}")
-            else:
-                st.error("Inserisci sia il Bot Token sia il Chat ID.")
-    with col_info_t:
-        st.markdown("""
-        <div style="font-size: 11px; opacity: 0.75; line-height: 1.4;">
-            <strong>Configurazione permanente su Streamlit Cloud:</strong><br>
-            Nella dashboard di Streamlit Cloud, apri <em>Manage App &rarr; Settings &rarr; Secrets</em> e inserisci:<br>
-            <code>TELEGRAM_TOKEN = "il_tuo_token"</code><br>
-            <code>TELEGRAM_CHAT_ID = "il_tuo_chat_id"</code>
-        </div>
-        """, unsafe_allow_html=True)
+    <div style="background: rgba(255, 247, 237, 0.03); border: 1px solid rgba(255, 247, 237, 0.08); border-radius: 6px; padding: 7px 14px; font-size: 11.5px; opacity: 0.85; font-family: 'JetBrains Mono', monospace;">
+        SISTEMA VENTURE: Contratti Perpetual Kraken Futures a Leva 1x · Budget 10.000 EUR (10 Slot da 1.000 EUR) · Notifiche Telegram automatiche via GitHub Actions
+    </div>
+    """, unsafe_allow_html=True)
 
 
 summary = engine.get_portfolio_summary(eur_usd_rate=eur_usd_rate)
@@ -350,15 +295,241 @@ if signals:
 # ==============================================================================
 # SCHEDE PRINCIPALI
 # ==============================================================================
-tab_pos, tab_screen, tab_add, tab_history, tab_rules = st.tabs([
-    "Posizioni e Milestone",
-    "Scanner Segnali Giornalieri",
-    "Apertura Nuovo Slot",
+# ==============================================================================
+# SCHEDE PRINCIPALI
+# ==============================================================================
+tab_screen, tab_pos, tab_add, tab_history, tab_rules = st.tabs([
+    "Opportunita' di Ingresso (Acquistabili & Finestra Ottimale)",
+    "Posizioni Attive & Monitoraggio Free-Ride",
+    "Apertura Manuale Slot",
     "Registro Storico Operazioni",
     "Regole e Protocollo Asimmetrico"
 ])
 
+with tab_screen:
+    crypto_dict, btc_s = load_screener_crypto_data()
+    if btc_s is None or len(btc_s) == 0:
+        st.warning("Dati storici non disponibili. Clicca su 'Aggiorna Prezzi Live' in alto.")
+    else:
+        screen_res = screen_venture_candidates(crypto_dict, btc_s, cross_kraken_futures=True)
+        macro_active = screen_res["macro_gate_active"]
+        btc_px = screen_res.get("btc_price_usd", 0.0)
+        btc_ma40 = screen_res.get("btc_ma40w_usd", 0.0)
+        btc_ma20 = screen_res.get("btc_ma20w_usd", 0.0)
+        breadth_val = screen_res.get("altcoin_breadth_pct", 0.0)
+        breadth_regime = screen_res.get("altcoin_breadth_regime", "N/D")
+        dyn_target = engine.get_dynamic_allocation_target(breadth_val, macro_active)
+
+        if macro_active:
+            st.markdown(f"""
+            <div style="background: rgba(120, 182, 142, 0.08); border: 1px solid rgba(120, 182, 142, 0.28); border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="color: #78B68E;">[GATE MACRO BITCOIN: ATTIVO]</strong>
+                    <span style="margin-left: 8px; opacity: 0.90;">BTC a <strong>{btc_px:,.2f} $</strong> > MA 40w ({btc_ma40:,.2f} $) e MA 20w ({btc_ma20:,.2f} $). Nuovi ingressi autorizzati.</span>
+                </div>
+                <div style="font-family: 'JetBrains Mono', monospace; opacity: 0.85;">
+                    Breadth: <strong>{breadth_val:.1f}%</strong> sopra SMA 20w · Target Sleeve: <strong>{dyn_target['target_pct']*100:.1f}%</strong> ({dyn_target['target_eur']:,.0f} €)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div style="background: rgba(224, 86, 76, 0.10); border: 1px solid rgba(224, 86, 76, 0.35); border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; font-size: 12.5px; color: #E0564C;">
+                <strong>[GATE MACRO BITCOIN: BLOCCATO]</strong>
+                BTC a {btc_px:,.2f} $ e' sotto la MA 40w ({btc_ma40:,.2f} $) o la MA 20w ({btc_ma20:,.2f} $). Nuovi acquisti tassativamente congelati (100% Cassa / Riserva Protetta).
+            </div>
+            """, unsafe_allow_html=True)
+
+        ranked = screen_res.get("ranked_universe", [])
+
+        # FILTRO ULTRA-LEAN: SOLO LE OPPORTUNITA' ACQUISTABILI O NELLA FINESTRA OTTIMALE
+        actionable_tokens = []
+        for r in ranked:
+            is_bo = r.get("is_breakout", False)
+            dist = r.get("dist_breakout_pct", -99.0)
+            rs_exc = r.get("rs_excess_vs_btc_pct", -99.0)
+            trend_ok = r.get("above_sma20w", False)
+            p_cur = r.get("price_usd", 0.0)
+            p_bo = r.get("breakout_level_usd", 0.0)
+            vol_24h = r.get("vol24h", 0.0)
+
+            if is_bo and rs_exc > 0:
+                cat_label = "ACQUISTABILE ORA"
+                cat_order = 1
+            elif dist >= -7.0 and rs_exc > 0 and trend_ok:
+                cat_label = f"FINESTRA OTTIMALE ({dist:+.1f}%)"
+                cat_order = 2
+            else:
+                continue
+
+            stop_px = round(p_cur * 0.60, 4)
+            t1_px = round(p_cur * 2.25, 4)
+            t2_px = round(p_cur * 4.00, 4)
+
+            actionable_tokens.append({
+                "cat_order": cat_order,
+                "Stato": cat_label,
+                "Ticker": r["ticker"],
+                "Contratto": r.get("kraken_symbol", f"PF_{r['ticker']}USD"),
+                "Prezzo ($)": p_cur,
+                "Breakout 30d ($)": p_bo,
+                "Distanza": f"{dist:+.1f}%",
+                "Allocazione Slot": "10.0% (1.000 €)",
+                "Stop Loss -40% ($)": stop_px,
+                "Target 1 Free-Ride (2.25x)": f"{t1_px:.4f} (+125%)",
+                "Target 2 (4.0x)": f"{t2_px:.4f} (+300%)",
+                "RS vs BTC (20d)": f"{rs_exc:+.1f}%",
+                "Volume 24h": f"{vol_24h:,.0f} $" if vol_24h > 0 else "N/D",
+                "Trend SMA 20w": "SOPRA" if trend_ok else "SOTTO",
+                "_raw_ticker": r["ticker"],
+                "_raw_contract": r.get("kraken_symbol", f"PF_{r['ticker']}USD"),
+                "_raw_price": p_cur,
+                "_raw_stop": stop_px,
+                "_raw_t1": t1_px,
+                "_raw_t2": t2_px,
+                "_raw_vol": vol_24h,
+                "_raw_order": cat_order,
+                "_raw_rs": rs_exc
+            })
+
+        actionable_tokens.sort(key=lambda x: (x["_raw_order"], -x["_raw_rs"]))
+
+        bo_count = sum(1 for t in actionable_tokens if t["_raw_order"] == 1)
+        opt_count = sum(1 for t in actionable_tokens if t["_raw_order"] == 2)
+
+        st.markdown(f"##### Altcoin Disponibili su Kraken Futures Conformi ai Filtri ({len(actionable_tokens)} contratti)")
+        st.caption(f"Universo Kraken Futures scansionato: {bo_count} token in Breakout Attivo (Acquistabili Subito) e {opt_count} in Finestra Ottimale (<7% dal breakout con eccesso di forza relativa vs BTC e trend sopra SMA 20w).")
+
+        # Filtri di raffinamento rapidi
+        col_f1, col_f2, col_f3 = st.columns([2, 2, 2])
+        with col_f1:
+            sel_tipo = st.selectbox("Filtra per Stato Operativo:", ["Tutte le Opportunita' Qualificate", f"Solo Breakout Attivi ({bo_count})", f"Solo Finestra Ottimale ({opt_count})"])
+        with col_f2:
+            sel_liq = st.selectbox("Filtra per Liquidita' 24h:", ["Tutti i Volumi", "Volume 24h >= 500.000 $", "Volume 24h >= 1.000.000 $", "Volume 24h >= 2.000.000 $"])
+        with col_f3:
+            inp_search = st.text_input("Cerca Ticker:", placeholder="es. SOL, ARB, UNI, NEAR...").upper().strip()
+
+        filtered_tokens = actionable_tokens
+        if sel_tipo.startswith("Solo Breakout"):
+            filtered_tokens = [t for t in filtered_tokens if t["_raw_order"] == 1]
+        elif sel_tipo.startswith("Solo Finestra"):
+            filtered_tokens = [t for t in filtered_tokens if t["_raw_order"] == 2]
+
+        if "500.000" in sel_liq:
+            filtered_tokens = [t for t in filtered_tokens if t["_raw_vol"] >= 500000.0]
+        elif "1.000.000" in sel_liq:
+            filtered_tokens = [t for t in filtered_tokens if t["_raw_vol"] >= 1000000.0]
+        elif "2.000.000" in sel_liq:
+            filtered_tokens = [t for t in filtered_tokens if t["_raw_vol"] >= 2000000.0]
+
+        if inp_search:
+            filtered_tokens = [t for t in filtered_tokens if inp_search in t["Ticker"]]
+
+        if filtered_tokens:
+            df_display = pd.DataFrame([
+                {k: v for k, v in item.items() if not k.startswith("_")}
+                for item in filtered_tokens
+            ])
+            st.dataframe(
+                df_display,
+                column_config={
+                    "Stato": st.column_config.TextColumn("Stato Operativo", width="medium"),
+                    "Ticker": st.column_config.TextColumn("Ticker", width="small"),
+                    "Contratto": st.column_config.TextColumn("Contratto Kraken Futures"),
+                    "Prezzo ($)": st.column_config.NumberColumn("Prezzo ($)", format="%.4f"),
+                    "Breakout 30d ($)": st.column_config.NumberColumn("Breakout 30d ($)", format="%.4f"),
+                    "Distanza": st.column_config.TextColumn("Distanza"),
+                    "Allocazione Slot": st.column_config.TextColumn("Allocazione Slot"),
+                    "Stop Loss -40% ($)": st.column_config.NumberColumn("Stop Loss -40% ($)", format="%.4f"),
+                    "Target 1 Free-Ride (2.25x)": st.column_config.TextColumn("Target 1 Free-Ride (2.25x)"),
+                    "Target 2 (4.0x)": st.column_config.TextColumn("Target 2 (4.0x)"),
+                    "RS vs BTC (20d)": st.column_config.TextColumn("RS vs BTC (20d)"),
+                    "Volume 24h": st.column_config.TextColumn("Volume 24h ($)"),
+                    "Trend SMA 20w": st.column_config.TextColumn("Trend SMA 20w")
+                },
+                hide_index=True,
+                use_container_width=True
+            )
+
+            # Modulo di registrazione rapida a 1-click
+            st.markdown("---")
+            st.markdown("##### Registrazione Rapida Slot su Altcoin Proposta")
+            c_sel1, c_sel2 = st.columns([3, 1])
+            with c_sel1:
+                options_tokens = [t["Ticker"] for t in filtered_tokens]
+                selected_tok = st.selectbox(
+                    "Seleziona l'altcoin proposta per configurare l'apertura dello slot (1.000 €):",
+                    options=options_tokens,
+                    format_func=lambda t: next((f"{t} ({item['Contratto']}) — {item['Stato']} | Prezzo: {item['Prezzo ($)']:.4f} $ | Stop: {item['Stop Loss -40% ($)']:.4f} $ | Target 1: {item['Target 1 Free-Ride (2.25x)']}" for item in filtered_tokens if item["Ticker"] == t), t)
+                )
+
+            matched_tok = next((t for t in filtered_tokens if t["Ticker"] == selected_tok), None)
+            if matched_tok:
+                # Parametri calcolati
+                c_p1, c_p2, c_p3, c_p4 = st.columns(4)
+                with c_p1:
+                    st.markdown(f"""
+                    <div class="glass-card">
+                        <div style="font-size: 11px; opacity: 0.65; text-transform: uppercase;">Capitale Allocato</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FAF8F5;">1.000,00 €</div>
+                        <div style="font-size: 10px; opacity: 0.55;">10.0% Budget / 0.50% NW</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with c_p2:
+                    st.markdown(f"""
+                    <div class="glass-card">
+                        <div style="font-size: 11px; opacity: 0.65; text-transform: uppercase;">Prezzo di Carico</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #FAF8F5;">{matched_tok['Prezzo ($)']:.4f} $</div>
+                        <div style="font-size: 10px; opacity: 0.55;">Contratto {matched_tok['Contratto']}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with c_p3:
+                    st.markdown(f"""
+                    <div class="glass-card">
+                        <div style="font-size: 11px; opacity: 0.65; text-transform: uppercase;">Hard Stop Loss (-40%)</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #E0564C;">{matched_tok['Stop Loss -40% ($)']:.4f} $</div>
+                        <div style="font-size: 10px; opacity: 0.55;">Perdita Max: -400,00 € (-0.20% NW)</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with c_p4:
+                    st.markdown(f"""
+                    <div class="glass-card">
+                        <div style="font-size: 11px; opacity: 0.65; text-transform: uppercase;">Target Free-Ride (2.25x)</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #78B68E;">{matched_tok['_raw_t1']:.4f} $</div>
+                        <div style="font-size: 10px; opacity: 0.55;">Vendi 44.4% -> Incassa 1.000 €</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with c_sel2:
+                    st.write("")
+                    st.write("")
+                    if st.button("Conferma Apertura Slot (1.000 €)", type="primary", use_container_width=True):
+                        if not macro_active:
+                            st.error("Impossibile aprire: Gate Macro Bitcoin e' bloccato (BTC sotto MA 40w o MA 20w).")
+                        elif summary["cash_available_eur"] < 1000.0:
+                            st.error(f"Cassa disponibile insufficiente ({summary['cash_available_eur']:,.2f} €) per aprire un nuovo slot intero da 1.000 €.")
+                        elif matched_tok["Ticker"] in engine.state["positions"]:
+                            st.warning(f"Posizione {matched_tok['Ticker']} gia' presente nel portafoglio.")
+                        else:
+                            try:
+                                engine.open_position(
+                                    ticker=matched_tok["Ticker"],
+                                    name=matched_tok["Ticker"],
+                                    entry_price_usd=float(matched_tok["_raw_price"]),
+                                    sector="Kraken Futures Perp",
+                                    custom_capital_eur=1000.0,
+                                    entry_date=datetime.date.today().strftime("%Y-%m-%d"),
+                                    eur_usd_rate=eur_usd_rate
+                                )
+                                st.success(f"Posizione {matched_tok['Ticker']} aperta con successo (1.000 €). Stop Loss a {matched_tok['Stop Loss -40% ($)']:.4f} $, Target Free-Ride a {matched_tok['_raw_t1']:.4f} $.")
+                                st.rerun()
+                            except Exception as ex:
+                                st.error(f"Errore durante l'apertura della posizione: {ex}")
+        else:
+            st.info("Nessuna altcoin corrisponde ai filtri selezionati. Modifica i parametri di ricerca o la soglia di liquidita'.")
+
 with tab_pos:
+    st.markdown("#### Monitoraggio Posizioni Attive e Free-Ride")
     if summary["positions_table"]:
         df_pos = pd.DataFrame(summary["positions_table"])
         st.dataframe(
@@ -382,110 +553,7 @@ with tab_pos:
             use_container_width=True
         )
     else:
-        st.info("Nessuna posizione aperta nel Satellite Venture. Utilizza la scheda 'Apertura Nuovo Slot' per iniziare.")
-
-with tab_screen:
-    st.markdown("#### Scanner Segnali Giornalieri (Breakout 30d + Forza Relativa)")
-    st.markdown("""
-    Valutazione quantitativa quotidiana a 3 filtri:
-    1. **Gate Macro Bitcoin**: BTC > MA 40w e MA 20w (Trend Bullish di mercato).
-    2. **Breakout Tecnico**: Prezzo Close > Massimo a 30 giorni.
-    3. **Forza Relativa ($RS_{20d}$)**: Rendimento a 20 giorni superiore a Bitcoin.
-    """)
-
-    crypto_dict, btc_s = load_screener_crypto_data()
-    if btc_s is None or len(btc_s) == 0:
-        st.warning("Dati storici giornalieri non disponibili. Clicca su 'Aggiorna Prezzi Live' in alto per scaricare i dati.")
-    else:
-        screen_res = screen_venture_candidates(crypto_dict, btc_s)
-        macro_active = screen_res["macro_gate_active"]
-
-        if macro_active:
-            st.success(f"GATE MACRO ATTIVO: Bitcoin ({screen_res['btc_price_usd']:,.2f} $) si trova sopra la MA 40w ({screen_res['btc_ma40w_usd']:,.2f} $) e la MA 20w ({screen_res['btc_ma20w_usd']:,.2f} $). Gli acquisti per nuovi slot sono autorizzati.")
-        else:
-            st.error(f"GATE MACRO BLOCCATO: Bitcoin ({screen_res['btc_price_usd']:,.2f} $) è sotto la MA 40w ({screen_res['btc_ma40w_usd']:,.2f} $) o la MA 20w ({screen_res['btc_ma20w_usd']:,.2f} $). Nuovi acquisti tassativamente congelati (100% Cash / Riserva).")
-
-        breadth_val = screen_res.get("altcoin_breadth_pct", 0.0)
-        breadth_regime = screen_res.get("altcoin_breadth_regime", "N/D")
-        dyn_target = engine.get_dynamic_allocation_target(breadth_val, macro_active)
-        st.markdown(f"""
-        <div style="background: rgba(255, 247, 237, 0.03); border: 1px solid rgba(255, 247, 237, 0.08); border-radius: 6px; padding: 6px 12px; margin-bottom: 12px; font-size: 12px; display: flex; justify-content: space-between;">
-            <div><strong>ALTCOIN BREADTH:</strong> {breadth_val:.1f}% sopra SMA 20w (140d) · <em>{breadth_regime}</em></div>
-            <div><strong>TARGET SLEEVE:</strong> {dyn_target['target_pct']*100:.1f}% ({dyn_target['target_eur']:,.0f} € · {dyn_target['slots_max']} slot)</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        candidates = screen_res.get("candidates", [])
-        ranked = screen_res.get("ranked_universe", [])
-
-        # SEZIONE 1: TOKEN IN BREAKOUT ATTIVO OGGI
-        st.markdown(f"##### 1. Segnali di Ingresso Immediato Oggi — Breakout 30d ({len(candidates)} candidati)")
-        if candidates:
-            df_cand = pd.DataFrame(candidates)
-            st.dataframe(
-                df_cand,
-                column_config={
-                    "ticker": st.column_config.TextColumn("Ticker"),
-                    "kraken_symbol": st.column_config.TextColumn("Contratto Kraken Futures"),
-                    "price_usd": st.column_config.NumberColumn("Prezzo Attuale ($)", format="%.4f"),
-                    "breakout_level_usd": st.column_config.NumberColumn("Livello Breakout 30d ($)", format="%.4f"),
-                    "breakout_pct": st.column_config.NumberColumn("Superamento Breakout (%)", format="+%.1f%%"),
-                    "alt_ret_20d_pct": st.column_config.NumberColumn("Rendimento Alt 20d (%)", format="+%.1f%%"),
-                    "btc_ret_20d_pct": st.column_config.NumberColumn("Rendimento BTC 20d (%)", format="+%.1f%%"),
-                    "rs_excess_vs_btc_pct": st.column_config.NumberColumn("Eccesso RS vs BTC (%)", format="+%.1f%%"),
-                    "trend_label": st.column_config.TextColumn("Trend (SMA 20w)"),
-                    "vol_ratio_30d": st.column_config.NumberColumn("Volume / Mediana 30d", format="%.2fx"),
-                    "vol_confirmed": st.column_config.CheckboxColumn("Volume Conf."),
-                    "is_crowded": st.column_config.CheckboxColumn("Crowded Pump"),
-                    "status": st.column_config.TextColumn("Stato Operativo")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
-            st.info("I token sopra elencati soddisfano congiuntamente il Breakout a 30 giorni e l'eccesso di forza relativa vs BTC alla data odierna su contratti Perpetual di Kraken Futures.")
-        else:
-            st.info("Nessun token dell'universo crypto si trova in fase di nuovo Breakout a 30 giorni oggi. Consulta la classifica sottostante dei leader di forza relativa per identificare i token prioritari a ridosso del livello di breakout (<5%).")
-
-        st.markdown("---")
-
-        # SEZIONE 2: CLASSIFICA LEADER DI FORZA RELATIVA
-        st.markdown(f"##### 2. Classifica Leader di Forza Relativa (Watchlist Top Altcoin Kraken Futures · {len(ranked)} contratti)")
-        st.caption("Classifica completa dei contratti Perpetual liquidi su Kraken Futures ordinati per eccesso di rendimento a 20 giorni rispetto a Bitcoin.")
-        if ranked:
-            df_ranked = pd.DataFrame(ranked)
-            st.dataframe(
-                df_ranked,
-                column_config={
-                    "ticker": st.column_config.TextColumn("Ticker"),
-                    "kraken_symbol": st.column_config.TextColumn("Contratto Kraken Futures"),
-                    "price_usd": st.column_config.NumberColumn("Prezzo Attuale ($)", format="%.4f"),
-                    "breakout_level_usd": st.column_config.NumberColumn("Breakout 30d ($)", format="%.4f"),
-                    "dist_breakout_pct": st.column_config.NumberColumn("Distanza Breakout (%)", format="%+.1f%%"),
-                    "trend_label": st.column_config.TextColumn("Trend (SMA 20w)"),
-                    "alt_ret_20d_pct": st.column_config.NumberColumn("Rendimento 20d (%)", format="%+.1f%%"),
-                    "rs_excess_vs_btc_pct": st.column_config.NumberColumn("Eccesso vs BTC (%)", format="%+.1f%%"),
-                    "vol_ratio_30d": st.column_config.NumberColumn("Volume vs Mediana", format="%.2fx"),
-                    "status": st.column_config.TextColumn("Stato Operativo")
-                },
-                hide_index=True,
-                use_container_width=True
-            )
-
-            # Azione rapida di pre-compilazione slot
-            col_sel1, col_sel2 = st.columns([3, 1])
-            with col_sel1:
-                sel_cand = st.selectbox(
-                    "Seleziona un'altcoin proposta per preparare l'apertura dello slot:",
-                    options=[r["ticker"] for r in ranked],
-                    format_func=lambda t: f"{t} — {next((r['status'] for r in ranked if r['ticker']==t), '')} ({next((r['price_usd'] for r in ranked if r['ticker']==t), 0.0):.4f} $ · RS vs BTC: {next((r['rs_excess_vs_btc_pct'] for r in ranked if r['ticker']==t), 0.0):+.1f}%)"
-                )
-            with col_sel2:
-                if st.button("Pre-compila Ingresso", type="primary", use_container_width=True):
-                    matched = next((r for r in ranked if r["ticker"] == sel_cand), None)
-                    if matched:
-                        st.session_state["venture_prefill_ticker"] = matched["ticker"]
-                        st.session_state["venture_prefill_price"] = float(matched["price_usd"])
-                        st.success(f"Token {matched['ticker']} selezionato a {matched['price_usd']:.4f} $. Vai alla scheda 'Apertura Nuovo Slot' per registrare la posizione.")
+        st.info("Nessuna posizione aperta nel Satellite Frontier Venture. Utilizza la prima scheda 'Opportunita' di Ingresso' per registrare un nuovo slot da 1.000 €.")
 
 with tab_add:
     st.markdown("#### Registrazione Ingresso Nuovo Token")

@@ -16,6 +16,7 @@ import datetime
 import json
 import os
 from typing import Dict, List, Optional, Tuple, Any
+import pandas as pd
 
 DEFAULT_PORTFOLIO_PATH = os.path.join(os.path.dirname(__file__), "venture_altcoin_portfolio.json")
 
@@ -591,9 +592,42 @@ def get_kraken_futures_instruments() -> Dict[str, Dict[str, Any]]:
     - Token Wrapped (WBTC, WETH, stETH, etc.)
     - Stablecoin (USDT, USDC, DAI, etc.)
     - Contratti su indici / stock tradfi
-    Ritorna un dizionario: base_ticker -> {symbol, pair, category, quote}
+    Ritorna un dizionario: base_ticker -> {symbol, pair, category, quote, vol24h, markPrice}
     """
     import urllib.request
+    try:
+        url_tickers = "https://futures.kraken.com/derivatives/api/v3/tickers"
+        req = urllib.request.Request(url_tickers, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode())
+            tickers = data.get("tickers", [])
+
+        clean_map = {}
+        for t in tickers:
+            sym = t.get("symbol", "")
+            if not sym.startswith("PF_") or t.get("suspended") or t.get("tradfi"):
+                continue
+            pair = t.get("pair", "")
+            base = pair.split(":")[0].upper() if ":" in pair else ""
+            if not base or base in EXCLUDED_CRYPTO_SYMBOLS:
+                continue
+            if base.endswith("X") and len(base) > 4:
+                continue
+            vol24 = float(t.get("volumeQuote", 0.0) or 0.0)
+            mark_px = float(t.get("markPrice", 0.0) or 0.0)
+            clean_map[base] = {
+                "symbol": sym,
+                "pair": pair,
+                "category": "Crypto",
+                "quote": "USD",
+                "vol24h": vol24,
+                "markPrice": mark_px
+            }
+        if clean_map:
+            return clean_map
+    except Exception:
+        pass
+
     try:
         req = urllib.request.Request(
             KRAKEN_FUTURES_INSTRUMENTS_URL,
@@ -619,7 +653,9 @@ def get_kraken_futures_instruments() -> Dict[str, Dict[str, Any]]:
                     "symbol": sym,
                     "pair": i.get("pair", f"{base}:{quote}"),
                     "category": i.get("category", "Crypto"),
-                    "quote": quote
+                    "quote": quote,
+                    "vol24h": 0.0,
+                    "markPrice": 0.0
                 }
         if clean_map:
             return clean_map
@@ -630,10 +666,11 @@ def get_kraken_futures_instruments() -> Dict[str, Dict[str, Any]]:
         "SOL", "AVAX", "NEAR", "LINK", "DOT", "ADA", "XRP", "DOGE", "LTC", "ATOM",
         "SUI", "APT", "ARB", "OP", "RENDER", "INJ", "TIA", "SEI", "FET", "AAVE", "BCH", "FIL", "TRX", "UNI"
     ]
-    return {b: {"symbol": f"PF_{b}USD", "pair": f"{b}:USD", "category": "Crypto", "quote": "USD"} for b in fallback_bases}
+    return {b: {"symbol": f"PF_{b}USD", "pair": f"{b}:USD", "category": "Crypto", "quote": "USD", "vol24h": 0.0, "markPrice": 0.0} for b in fallback_bases}
 
 
 DEFAULT_CRYPTO_CACHE_JSON = os.path.join(os.path.dirname(__file__), "crypto_screener_cache.json")
+DEFAULT_KRAKEN_FUTURES_CACHE_JSON = os.path.join(os.path.dirname(__file__), "kraken_futures_screener_cache.json")
 
 YAHOO_CRYPTO_MAP = {
     "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "AVAX": "AVAX-USD",
@@ -646,6 +683,73 @@ YAHOO_CRYPTO_MAP = {
 }
 
 
+def refresh_kraken_futures_cache(timeout_sec: int = 6) -> Dict[str, Any]:
+    """
+    Scarica l'intero universo dei contratti perpetual attivi da Kraken Futures
+    con query multi-threading concorrente e salva la cache locale.
+    """
+    import pandas as pd
+    import urllib.request
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    kraken_map = get_kraken_futures_instruments()
+    if not kraken_map:
+        return {}
+
+    # Assicura la presenza di Bitcoin (PF_XBTUSD)
+    if "XBT" not in kraken_map and "BTC" not in kraken_map:
+        kraken_map["XBT"] = {"symbol": "PF_XBTUSD", "pair": "XBT:USD", "category": "Crypto", "quote": "USD", "vol24h": 100000000.0, "markPrice": 80000.0}
+
+    def _fetch_candles(item):
+        base_sym, info = item
+        sym = info["symbol"]
+        url = f"https://futures.kraken.com/api/charts/v1/trade/{sym}/1d"
+        try:
+            r = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(r, timeout=timeout_sec) as resp:
+                data = json.loads(resp.read().decode())
+                candles = data.get("candles", [])
+                if len(candles) >= 30:
+                    recent = candles[-180:]
+                    dates = [time.strftime("%Y-%m-%d", time.gmtime(c["time"] / 1000.0)) for c in recent]
+                    closes = [round(float(c["close"]), 6) for c in recent]
+                    vols = [round(float(c.get("volume", 0) or 0), 2) for c in recent]
+                    return base_sym, {
+                        "symbol": sym,
+                        "pair": info.get("pair", f"{base_sym}:USD"),
+                        "vol24h": info.get("vol24h", 0.0),
+                        "dates": dates,
+                        "closes": closes,
+                        "volumes": vols
+                    }
+        except Exception:
+            pass
+        return None, None
+
+    try:
+        with ThreadPoolExecutor(max_workers=30) as executor:
+            cand_results = dict(executor.map(_fetch_candles, kraken_map.items()))
+        clean_cache = {k: v for k, v in cand_results.items() if k is not None and v is not None}
+        if clean_cache and len(clean_cache) >= 10:
+            with open(DEFAULT_KRAKEN_FUTURES_CACHE_JSON, "w", encoding="utf-8") as f:
+                json.dump(clean_cache, f, separators=(",", ":"))
+
+            dfs: Dict[str, pd.Series] = {}
+            for sym, item in clean_cache.items():
+                idx = pd.to_datetime(item["dates"])
+                s = pd.Series(item["closes"], index=idx)
+                s.attrs["vol24h"] = float(item.get("vol24h", 0.0) or 0.0)
+                s.attrs["symbol"] = item.get("symbol", f"PF_{sym}USD")
+                dfs[sym] = s
+            if "XBT" in dfs and "BTC" not in dfs:
+                dfs["BTC"] = dfs["XBT"]
+            return dfs
+    except Exception as e:
+        print(f"[WARN] Refresh Kraken Futures non riuscito: {e}")
+    return {}
+
+
 def load_crypto_universe_data(
     force_live: bool = False,
     timeout_sec: int = 4
@@ -654,11 +758,9 @@ def load_crypto_universe_data(
     Carica le serie storiche dei prezzi di chiusura giornalieri per l'universo di contratti liquidi
     su Kraken Futures e Bitcoin.
     Architettura multi-tier:
-    1. Base offline/cache: carica crypto_screener_cache.json tracciato nel repository Git.
-    2. Overlay live: esegue query concorrente leggera alle API Yahoo Finance (ThreadPoolExecutor)
-       per aggiornare le candele odierne in tempo reale.
-    3. Fallback trasparente: se offline o se le API non rispondono, i dati storici del file JSON
-       garantiscono il funzionamento immediato senza errori su qualsiasi istanza Cloud o locale.
+    1. Base offline/cache estesa: carica kraken_futures_screener_cache.json (250+ contratti).
+    2. Overlay live: se force_live=True o se la cache non e' presente, aggiorna da Kraken Futures API.
+    3. Fallback trasparente: se offline, carica il bundle crypto_screener_cache.json.
     """
     import pandas as pd
     import urllib.request
@@ -667,8 +769,34 @@ def load_crypto_universe_data(
 
     dfs: Dict[str, pd.Series] = {}
 
-    # 1. Caricamento da bundle JSON locale tracciato nel repository Git
-    if os.path.exists(DEFAULT_CRYPTO_CACHE_JSON):
+    # 1. Caricamento da bundle JSON di Kraken Futures tracciato nel repository Git
+    if os.path.exists(DEFAULT_KRAKEN_FUTURES_CACHE_JSON) and not force_live:
+        try:
+            with open(DEFAULT_KRAKEN_FUTURES_CACHE_JSON, "r", encoding="utf-8") as f:
+                cached_raw = json.load(f)
+            for sym, item in cached_raw.items():
+                if isinstance(item, dict) and "dates" in item and "closes" in item:
+                    idx = pd.to_datetime(item["dates"])
+                    s = pd.Series(item["closes"], index=idx)
+                    s.attrs["vol24h"] = float(item.get("vol24h", 0.0) or 0.0)
+                    s.attrs["symbol"] = item.get("symbol", f"PF_{sym}USD")
+                    dfs[sym] = s
+            if "XBT" in dfs and "BTC" not in dfs:
+                dfs["BTC"] = dfs["XBT"]
+        except Exception as e:
+            print(f"[WARN] Impossibile leggere {DEFAULT_KRAKEN_FUTURES_CACHE_JSON}: {e}")
+
+    # 2. Se force_live o se la cache Kraken ha pochi dati, scarica da Kraken Futures
+    if force_live or len(dfs) < 10:
+        try:
+            live_dfs = refresh_kraken_futures_cache(timeout_sec=timeout_sec)
+            if live_dfs:
+                dfs = live_dfs
+        except Exception as e:
+            print(f"[WARN] Aggiornamento live Kraken Futures non riuscito: {e}")
+
+    # 3. Fallback sul file storico standard Yahoo se ancora vuoto
+    if not dfs and os.path.exists(DEFAULT_CRYPTO_CACHE_JSON):
         try:
             with open(DEFAULT_CRYPTO_CACHE_JSON, "r", encoding="utf-8") as f:
                 cached_raw = json.load(f)
@@ -679,57 +807,7 @@ def load_crypto_universe_data(
         except Exception as e:
             print(f"[WARN] Impossibile leggere {DEFAULT_CRYPTO_CACHE_JSON}: {e}")
 
-    # 2. Fetch live concorrente per aggiornare alle quotazioni odierne
-    def _fetch_single_ticker(ticker_item):
-        base_sym, yf_tick = ticker_item
-        url = f"https://query2.finance.yahoo.com/v8/finance/chart/{yf_tick}?range=1y&interval=1d"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
-                data = json.loads(resp.read().decode())
-                res = data["chart"]["result"][0]
-                timestamps = res["timestamp"]
-                closes = res["indicators"]["quote"][0]["close"]
-                clean_dates = []
-                clean_closes = []
-                for ts_val, c_val in zip(timestamps, closes):
-                    if c_val is not None:
-                        clean_dates.append(time.strftime("%Y-%m-%d", time.gmtime(ts_val)))
-                        clean_closes.append(round(float(c_val), 6))
-                if len(clean_closes) >= 30:
-                    idx = pd.to_datetime(clean_dates)
-                    return base_sym, pd.Series(clean_closes, index=idx)
-        except Exception:
-            pass
-        return base_sym, None
-
-    try:
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            live_results = dict(executor.map(_fetch_single_ticker, YAHOO_CRYPTO_MAP.items()))
-        for base_sym, s_px in live_results.items():
-            if s_px is not None and not s_px.empty:
-                dfs[base_sym] = s_px
-    except Exception as e:
-        print(f"[WARN] Fetch live concorrente non riuscito ({e}). Uso dati bundle.")
-
-    # 3. Fallback su directory locali se il dizionario e' ancora vuoto
-    if not dfs:
-        for fallback_dir in ["/home/davide/Scaricati/trading/cache_daily", "research/crypto_ohlcv_cache"]:
-            if os.path.exists(fallback_dir):
-                import glob
-                for csv_path in glob.glob(os.path.join(fallback_dir, "*-USD.csv")):
-                    b_name = os.path.basename(csv_path).replace("-USD.csv", "").replace(".csv", "")
-                    try:
-                        df_local = pd.read_csv(csv_path, index_col=0, parse_dates=True)
-                        c_col = "close" if "close" in df_local.columns else "Close"
-                        if c_col in df_local.columns:
-                            dfs[b_name] = df_local[c_col].dropna()
-                    except Exception:
-                        pass
-                if dfs:
-                    break
-
-    btc_series = dfs.get("BTC", dfs.get("BTC-USD", None))
+    btc_series = dfs.get("BTC", dfs.get("XBT", dfs.get("BTC-USD", None)))
     return dfs, btc_series
 
 
@@ -741,12 +819,11 @@ def screen_venture_candidates(
     cross_kraken_futures: bool = True
 ) -> Dict[str, Any]:
     """
-    Esegue lo screening a 4 stadi sui token crypto:
+    Esegue lo screening quantitativo sui contratti perpetual di Kraken Futures:
     1. Gate Macro: Bitcoin > MA 40 settimane e Bitcoin > MA 20 settimane
-    2. Breakout Tecnico: Prezzo attuale > Massimo a `lookback_bo` giorni
-    3. Forza Relativa vs BTC: Rendimento a `lookback_rs` giorni > Rendimento BTC
-    4. Filtro Kraken Futures & Esclusione Wrapped/Stablecoins: il token deve avere
-       un contratto Perpetual (PF_*) liquido attivo su Kraken Futures.
+    2. Breakout Tecnico: Prezzo attuale > Massimo a `lookback_bo` giorni (30d)
+    3. Forza Relativa vs BTC: Rendimento a `lookback_rs` giorni (20d) > Rendimento BTC
+    4. Filtro Kraken Futures & Esclusione Wrapped/Stablecoins/TradFi.
     Ritorna lo stato del gate macro, i token in breakout immediato ('candidates')
     e l'intera classifica dell'universo ordinata per forza relativa ('ranked_universe').
     """
@@ -777,7 +854,7 @@ def screen_venture_candidates(
 
     for sym, s_px in crypto_close_dict.items():
         base_ticker = sym.replace("-USD", "").replace("USD", "").upper().strip()
-        if base_ticker in ("BTC", "BITCOIN") or base_ticker in EXCLUDED_CRYPTO_SYMBOLS:
+        if base_ticker in ("BTC", "BITCOIN", "XBT") or base_ticker in EXCLUDED_CRYPTO_SYMBOLS:
             continue
         if len(s_px) < max(lookback_bo + 5, lookback_rs + 5):
             continue
@@ -788,6 +865,9 @@ def screen_venture_candidates(
 
         p_cur = float(s_px.iloc[-1])
         roll_high = float(s_px.iloc[:-1].rolling(lookback_bo, min_periods=lookback_bo).max().iloc[-1])
+        if p_cur <= 0 or roll_high <= 0 or pd.isna(p_cur) or pd.isna(roll_high):
+            continue
+
         is_breakout = p_cur > roll_high
         dist_bo_pct = round(((p_cur / roll_high) - 1.0) * 100.0, 1)
 
@@ -809,15 +889,19 @@ def screen_venture_candidates(
                 vol_ratio = round(cur_v / med_v, 2) if med_v > 0 else 1.0
                 vol_confirmed = vol_ratio >= 1.5
 
-        is_crowded = ((p_cur / roll_high) - 1.0) > 0.30
+        is_crowded = ((p_cur / roll_high) - 1.0) > 0.30 if roll_high > 0 else False
 
         p_prev_rs = float(s_px.iloc[-1 - lookback_rs])
-        r_alt_rs = (p_cur / p_prev_rs) - 1.0 if p_prev_rs > 0 else -1.0
+        if p_prev_rs <= 0 or pd.isna(p_prev_rs):
+            continue
+        r_alt_rs = (p_cur / p_prev_rs) - 1.0
         rs_excess = (r_alt_rs - btc_ret_rs) * 100.0
 
         # Classificazione operativa qualitativa
         if is_breakout and rs_excess > 0:
             op_status = "BREAKOUT ATTIVO (BUY)"
+        elif dist_bo_pct >= -7.0 and rs_excess > 0 and above_sma20w:
+            op_status = f"FINESTRA OTTIMALE ({dist_bo_pct:+.1f}%)"
         elif dist_bo_pct >= -5.0 and rs_excess > 0:
             op_status = "A RIDOSSO DEL BREAKOUT (<5%)"
         elif rs_excess > 0 and above_sma20w:
@@ -826,6 +910,12 @@ def screen_venture_candidates(
             op_status = "TREND RIALZISTA"
         else:
             op_status = "FASE CORRETTIVA"
+
+        vol_24h_quote = 0.0
+        if kraken_info and "vol24h" in kraken_info:
+            vol_24h_quote = float(kraken_info["vol24h"])
+        elif hasattr(s_px, "attrs") and "vol24h" in s_px.attrs:
+            vol_24h_quote = float(s_px.attrs["vol24h"])
 
         token_summary = {
             "ticker": base_ticker,
@@ -845,6 +935,7 @@ def screen_venture_candidates(
             "vol_confirmed": vol_confirmed,
             "is_breakout": is_breakout,
             "is_crowded": is_crowded,
+            "vol24h": vol_24h_quote,
             "status": op_status
         }
         ranked_universe.append(token_summary)
@@ -861,7 +952,12 @@ def screen_venture_candidates(
     total_valid_alts = 0
     for sym, s_px in crypto_close_dict.items():
         b_tick = sym.replace("-USD", "").replace("USD", "").upper().strip()
-        if b_tick in ("BTC", "BITCOIN") or b_tick in EXCLUDED_CRYPTO_SYMBOLS:
+        if b_tick in ("BTC", "BITCOIN", "XBT") or b_tick in EXCLUDED_CRYPTO_SYMBOLS:
+            continue
+        if len(s_px) < 30:
+            continue
+        cur_p = float(s_px.iloc[-1])
+        if cur_p <= 0 or pd.isna(cur_p):
             continue
         if len(s_px) >= 140:
             total_valid_alts += 1
