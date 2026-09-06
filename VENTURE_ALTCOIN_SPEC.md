@@ -71,6 +71,16 @@ Un token diventa candidato ammissibile SOLO se supera TUTTI e 4 i filtri seguent
 3. **Filtro di Momentum Tecnico**: rottura del massimo a 30 giorni, forza relativa positiva vs BTC a 20 giorni, prezzo sopra la media mobile a 140 giorni (20 settimane), non esteso oltre il 10% dal livello di rottura (anti-crowding).
 4. **Filtro Fondamentale (trazione on-chain verificabile)**: variazione del TVL (Total Value Locked) a 90 giorni non inferiore a $-20\%$, calcolata via l'API pubblica DefiLlama (`get_tvl_trend_90d`) — a livello di chain per le Layer 1/L2 note, a livello di protocollo per gli altri token con presenza su DefiLlama. **Fail-safe**: nessuna presenza tracciata su DefiLlama (es. puro gas token o meme coin) → filtro non superato. Questo filtro copre SOLO la trazione on-chain oggettivamente misurabile — non tenta di quantificare "narrativa" o "catalizzatori imminenti", intrinsecamente soggettivi e non riducibili a un numero verificabile.
 
+### 5.1 Altcoin Season Macro Gate (Filtro di Regime Sovraordinato)
+
+Nessun nuovo slot viene mai aperto — anche se un token supera singolarmente tutti e 4 i filtri micro precedenti — a meno che non sia attivo l'**Altcoin Season Macro Gate**:
+1. **Gate Macro Bitcoin**: Prezzo di BTC superiore sia alla SMA 20 settimane che alla SMA 40 settimane ($P_{\text{BTC}} > \text{SMA}_{20w} \land P_{\text{BTC}} > \text{SMA}_{40w}$), a presidio contro i bear market sistemici.
+2. **Gate Altcoin Breadth**: Almeno il **45,0%** dell'universo altcoin liquido deve trovarsi contemporaneamente al di sopra della propria media mobile a 20 settimane ($\text{Breadth} \ge 45,0\%$).
+
+Quando l'Altcoin Breadth scende al di sotto del $45,0\%$ (fase laterale, bear market secolare o dominanza esclusiva di Bitcoin, come registrato nel 2024-2025):
+- Tutti i nuovi acquisti sono tassativamente congelati (`macro_gate_active = False`).
+- Il capitale del satellite rimane al **100% in liquidità protetta**, azzerando il rischio di trappole distributive da falsi breakout e sanguinamento seriale da stop-loss.
+
 ---
 
 ## 6. Struttura Dati e Persistenza

@@ -378,3 +378,81 @@ def test_screen_venture_candidates_gates_on_fundamentals():
     assert "SCARTATO" in bad_row["status"]
 
 
+def test_screen_venture_candidates_altcoin_season_gate_blocks_when_breadth_low():
+    """
+    Se l'ampiezza aggregata delle altcoin e' inferiore al 45.0% (anche se BTC e' bull),
+    l'Altcoin Season Gate blocca gli acquisti (macro_gate_active = False, candidates = []).
+    """
+    import pandas as pd
+    import numpy as np
+    from altcoin_venture_engine import screen_venture_candidates
+
+    dates = pd.date_range("2024-01-01", periods=160, freq="D")
+    btc_series = pd.Series(np.linspace(40000, 65000, 160), index=dates)
+
+    # 1 altcoin su 5 sopra SMA 20w -> 20.0% breadth < 45.0%
+    crypto_dict = {
+        "STRONG-USD": pd.Series(np.linspace(10, 50, 160), index=dates),
+        "WEAK1-USD": pd.Series(np.linspace(50, 10, 160), index=dates),
+        "WEAK2-USD": pd.Series(np.linspace(50, 10, 160), index=dates),
+        "WEAK3-USD": pd.Series(np.linspace(50, 10, 160), index=dates),
+        "WEAK4-USD": pd.Series(np.linspace(50, 10, 160), index=dates),
+    }
+
+    fundamentals_map = {
+        "STRONG": {"mc_fdv_ratio": 0.8, "tvl_trend_90d_pct": 25.0,
+                   "tokenomics_qualified": True, "fundamental_qualified": True},
+        "WEAK1": {"mc_fdv_ratio": 0.8, "tvl_trend_90d_pct": 0.0, "tokenomics_qualified": True, "fundamental_qualified": True},
+        "WEAK2": {"mc_fdv_ratio": 0.8, "tvl_trend_90d_pct": 0.0, "tokenomics_qualified": True, "fundamental_qualified": True},
+        "WEAK3": {"mc_fdv_ratio": 0.8, "tvl_trend_90d_pct": 0.0, "tokenomics_qualified": True, "fundamental_qualified": True},
+        "WEAK4": {"mc_fdv_ratio": 0.8, "tvl_trend_90d_pct": 0.0, "tokenomics_qualified": True, "fundamental_qualified": True},
+    }
+
+    res = screen_venture_candidates(crypto_dict, btc_series, cross_kraken_futures=False, fundamentals_map=fundamentals_map)
+
+    assert res["btc_macro_bull"] is True
+    assert res["altcoin_breadth_pct"] == 20.0
+    assert res["altcoin_season_active"] is False
+    assert res["macro_gate_active"] is False
+    assert len(res["candidates"]) == 0
+    assert len(res["qualified_pool"]) == 1
+    assert res["qualified_pool"][0]["ticker"] == "STRONG"
+    assert "RESTRITTIVO" in res["altcoin_breadth_regime"]
+
+
+def test_screen_venture_candidates_altcoin_season_gate_allows_when_breadth_high():
+    """
+    Se BTC e' bull E l'ampiezza aggregata e' >= 45.0%, l'Altcoin Season Gate
+    autorizza gli acquisti (macro_gate_active = True, candidates populated).
+    """
+    import pandas as pd
+    import numpy as np
+    from altcoin_venture_engine import screen_venture_candidates
+
+    dates = pd.date_range("2024-01-01", periods=160, freq="D")
+    btc_series = pd.Series(np.linspace(40000, 65000, 160), index=dates)
+
+    # 4 altcoin su 5 sopra SMA 20w -> 80.0% breadth >= 45.0%
+    crypto_dict = {
+        "STRONG1-USD": pd.Series(np.linspace(10, 50, 160), index=dates),
+        "STRONG2-USD": pd.Series(np.linspace(10, 50, 160), index=dates),
+        "STRONG3-USD": pd.Series(np.linspace(10, 50, 160), index=dates),
+        "STRONG4-USD": pd.Series(np.linspace(10, 50, 160), index=dates),
+        "WEAK-USD": pd.Series(np.linspace(50, 10, 160), index=dates),
+    }
+
+    fundamentals_map = {k.replace("-USD", ""): {"mc_fdv_ratio": 0.8, "tvl_trend_90d_pct": 25.0,
+                                                "tokenomics_qualified": True, "fundamental_qualified": True}
+                        for k in crypto_dict}
+
+    res = screen_venture_candidates(crypto_dict, btc_series, cross_kraken_futures=False, fundamentals_map=fundamentals_map)
+
+    assert res["btc_macro_bull"] is True
+    assert res["altcoin_breadth_pct"] == 80.0
+    assert res["altcoin_season_active"] is True
+    assert res["macro_gate_active"] is True
+    assert len(res["candidates"]) >= 1
+    assert "FAVOREVOLE" in res["altcoin_breadth_regime"] or "IPERESTENSO" in res["altcoin_breadth_regime"]
+
+
+

@@ -32,6 +32,7 @@ TRAILING_STOP_MOONBAG_PCT = 0.30  # Trailing stop del 30% dal massimo post-Miles
 BREAKOUT_LOOKBACK_DAYS = 30  # Lookback breakout ottimale
 RS_LOOKBACK_DAYS = 20  # Lookback forza relativa vs BTC ottimale
 MAX_BREAKOUT_EXTENSION_PCT = 0.10  # Anti-crowding: esclude o filtra breakout estesi oltre +10% dal livello chiave
+MIN_ALTCOIN_SEASON_BREADTH_PCT = 45.0  # Altcoin Season Gate: ampiezza minima (% altcoin > SMA 20w) per consentire acquisti
 
 # Kill-switch pre-committato
 KILL_SWITCH_MAX_DRAWDOWN_PCT = -0.40  # Floor al -40% del budget (es. 6.000 EUR su 10.000 EUR)
@@ -1102,7 +1103,7 @@ def screen_venture_candidates(
     btc_ma20 = float(btc_wc.rolling(20, min_periods=5).mean().iloc[-1])
     cur_btc_px = float(btc_series.iloc[-1])
 
-    macro_gate_active = (cur_btc_px > btc_ma40) and (cur_btc_px > btc_ma20)
+    btc_macro_bull = (cur_btc_px > btc_ma40) and (cur_btc_px > btc_ma20)
 
     if len(btc_series) < lookback_rs + 1:
         btc_ret_rs = 0.0
@@ -1260,21 +1261,28 @@ def screen_venture_candidates(
                 alt_above_sma20w += 1
 
     breadth_pct = round((alt_above_sma20w / max(1, total_valid_alts)) * 100.0, 1) if total_valid_alts > 0 else 0.0
+    altcoin_season_active = breadth_pct >= MIN_ALTCOIN_SEASON_BREADTH_PCT
+    macro_gate_active = bool(btc_macro_bull and altcoin_season_active)
+
     if breadth_pct > 80.0:
-        breadth_regime = "IPERESTENSO (Attenzione: possibile rotazione imminente, non inseguire)"
-    elif breadth_pct >= 50.0:
-        breadth_regime = "FAVOREVOLE (Espansione sana del mercato altcoin)"
+        breadth_regime = "IPERESTENSO (Possibile rotazione o surriscaldamento: cautela sugli ingressi)"
+    elif breadth_pct >= MIN_ALTCOIN_SEASON_BREADTH_PCT:
+        breadth_regime = f"FAVOREVOLE (Espansione sana del mercato altcoin: Breadth {breadth_pct:.1f}% >= {MIN_ALTCOIN_SEASON_BREADTH_PCT:.0f}%)"
     else:
-        breadth_regime = "RESTRITTIVO (Solo leader in breakout relativo isolato)"
+        breadth_regime = f"RESTRITTIVO / BEAR (Breadth {breadth_pct:.1f}% < {MIN_ALTCOIN_SEASON_BREADTH_PCT:.0f}%: acquisti congelati per protezione capitale)"
 
     return {
         "macro_gate_active": macro_gate_active,
+        "btc_macro_bull": btc_macro_bull,
+        "altcoin_season_active": altcoin_season_active,
+        "min_breadth_required_pct": MIN_ALTCOIN_SEASON_BREADTH_PCT,
         "btc_price_usd": round(cur_btc_px, 2),
         "btc_ma40w_usd": round(btc_ma40, 2),
         "btc_ma20w_usd": round(btc_ma20, 2),
         "altcoin_breadth_pct": breadth_pct,
         "altcoin_breadth_regime": breadth_regime,
-        "candidates": qualified,
+        "candidates": qualified if macro_gate_active else [],
+        "qualified_pool": qualified,
         "ranked_universe": ranked_universe,
         "kraken_filtered": cross_kraken_futures
     }
@@ -1295,16 +1303,22 @@ def build_venture_telegram_alert(
     candidates = screen_results.get("candidates", [])
     ranked = screen_results.get("ranked_universe", [])
 
-    status_macro = "[ATTIVO]" if macro_active else "[BLOCCATO]"
-    regime_desc = "Acquisti autorizzati su Kraken Futures (BTC > MA40w/20w)" if macro_active else "100% Cash / Riserva (Nuovi acquisti congelati)"
+    btc_macro_bull = screen_results.get("btc_macro_bull", macro_active)
+    altcoin_season_active = screen_results.get("altcoin_season_active", False)
+    breadth_pct = screen_results.get("altcoin_breadth_pct", 0.0)
+    min_breadth = screen_results.get("min_breadth_required_pct", 45.0)
+
+    status_btc = "[BULL]" if btc_macro_bull else "[BEAR]"
+    status_season = "[ATTIVO]" if altcoin_season_active else "[BLOCCATO (NO EXPANSION)]"
+    status_overall = "[ATTIVO: ACQUISTI AUTORIZZATI]" if macro_active else "[BLOCCATO: 100% CASH / RISERVA]"
 
     lines = [
         f"*FRONTIER VENTURE (SATELLITE ASIMMETRICO)* · {oggi}",
         "",
-        f"*MACRO GATE BITCOIN*: {status_macro}",
-        f"• Prezzo BTC: ${btc_px:,.2f}",
-        f"• Regime: {regime_desc}",
-        f"• Altcoin Breadth: {screen_results.get('altcoin_breadth_pct', 0.0)}% sopra SMA 20w ({screen_results.get('altcoin_breadth_regime', 'N/D')})",
+        f"*MACRO GATE BITCOIN*: {status_btc} (Prezzo BTC: ${btc_px:,.2f})",
+        f"*ALTCOIN SEASON GATE*: {status_season} (Breadth: {breadth_pct:.1f}% vs Min {min_breadth:.0f}%)",
+        f"*STATO ACQUISTI*: {status_overall}",
+        f"• Regime Mercato: {screen_results.get('altcoin_breadth_regime', 'N/D')}",
         "",
         f"*STATO DEL SATELLITE ({portfolio_summary.get('budget_total_eur', 10000):,.0f} € - 5% NET WORTH)*:",
         f"• Cassa Disponibile: €{portfolio_summary.get('cash_available_eur', 0):,.2f}",

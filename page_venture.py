@@ -185,20 +185,30 @@ with c_kpi5:
 # Dati di screening
 crypto_dict, btc_s = load_screener_crypto_data()
 screen_res = screen_venture_candidates(crypto_dict, btc_s, cross_kraken_futures=True) if btc_s is not None else {"macro_gate_active": True, "candidates": [], "ranked_universe": []}
-macro_active = screen_res.get("macro_gate_active", True)
+macro_active = screen_res.get("macro_gate_active", False)
+btc_bull = screen_res.get("btc_macro_bull", macro_active)
+season_active = screen_res.get("altcoin_season_active", False)
 btc_px = screen_res.get("btc_price_usd", 0.0)
 breadth_val = screen_res.get("altcoin_breadth_pct", 0.0)
+min_breadth = screen_res.get("min_breadth_required_pct", 45.0)
 breadth_regime = screen_res.get("altcoin_breadth_regime", "N/D")
 
 # Riga di Regime di Mercato & Kill-Switch
 ks_info = engine.check_kill_switch(eur_usd_rate=eur_usd_rate)
-gate_label = "ATTIVO (Trend Bullish)" if macro_active else "BLOCCATO (Acquisti Congelati)"
-gate_color = "#78B68E" if macro_active else "#E0564C"
+
+gate_btc_label = "BULL" if btc_bull else "BEAR"
+gate_btc_color = "#78B68E" if btc_bull else "#E0564C"
+
+gate_season_label = f"ATTIVO ({breadth_val:.1f}% >= {min_breadth:.0f}%)" if season_active else f"BLOCCATO ({breadth_val:.1f}% < {min_breadth:.0f}%)"
+gate_season_color = "#78B68E" if season_active else "#E0564C"
+
+status_overall = "AUTORIZZATI" if macro_active else "100% CASH RISERVA"
+status_color = "#78B68E" if macro_active else "#E0564C"
 
 st.markdown(f"""
 <div style="background: rgba(255, 247, 237, 0.03); border: 1px solid rgba(255, 247, 237, 0.08); border-radius: 6px; padding: 6px 12px; margin-bottom: 12px; font-size: 11.5px; display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace;">
     <div>
-        <strong>GATE MACRO BTC:</strong> <span style="color: {gate_color}; font-weight: 700;">{gate_label}</span> (BTC ${btc_px:,.0f}) · <strong>BREADTH:</strong> {breadth_val:.1f}% sopra SMA 20w ({breadth_regime})
+        <strong>GATE BTC:</strong> <span style="color: {gate_btc_color}; font-weight: 700;">{gate_btc_label}</span> (${btc_px:,.0f}) · <strong>ALTCOIN SEASON:</strong> <span style="color: {gate_season_color}; font-weight: 700;">{gate_season_label}</span> · <strong>STATO:</strong> <span style="color: {status_color}; font-weight: 700;">{status_overall}</span>
     </div>
     <div style="opacity: 0.85;">
         <strong>KILL-SWITCH:</strong> Normale (Floor {ks_info['floor_equity_eur']:,.0f} € · Drawdown {ks_info['drawdown_pct']:+.1f}%)
@@ -293,7 +303,12 @@ with tab_screen:
         sym = tok_dict["_raw_ticker"]
         px = float(tok_dict["_raw_price"])
         if not macro_active:
-            st.error("Gate Macro Bitcoin bloccato: acquisti congelati da protocollo.")
+            if not btc_bull:
+                st.error("Gate Macro Bitcoin bloccato (BTC sotto SMA 20w o SMA 40w): acquisti congelati da protocollo.")
+            elif not season_active:
+                st.error(f"Altcoin Season Gate bloccato (Breadth {breadth_val:.1f}% < {min_breadth:.0f}%): acquisti congelati per assenza di espansione aggregata.")
+            else:
+                st.error("Macro Gate bloccato: acquisti congelati da protocollo.")
             return
         if summary["cash_available_eur"] < 1000.0:
             st.error(f"Cassa insufficiente ({summary['cash_available_eur']:,.2f} €) per aprire un nuovo slot da 1.000 €.")
