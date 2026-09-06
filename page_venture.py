@@ -13,9 +13,11 @@ Venture Satellite Altcoin asimmetrico:
 import os
 import datetime
 import glob
+import json
+import urllib.request
+from typing import Optional
 import pandas as pd
 import streamlit as st
-import yfinance as yf
 
 import altcoin_venture_engine
 from altcoin_venture_engine import (
@@ -24,6 +26,33 @@ from altcoin_venture_engine import (
     BREAKOUT_LOOKBACK_DAYS,
     RS_LOOKBACK_DAYS
 )
+
+def fetch_live_crypto_price(ticker: str) -> Optional[float]:
+    """
+    Recupera la quotazione live di un ticker crypto (es. 'SOL' o 'SOL-USD')
+    usando l'endpoint leggero standard HTTP via urllib, con fallback su yfinance se disponibile.
+    """
+    yf_ticker = f"{ticker}-USD" if not ticker.endswith("-USD") else ticker
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{yf_ticker}?range=2d&interval=1d"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=6) as res:
+            data = json.loads(res.read().decode())
+            closes = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+            last = next(c for c in reversed(closes) if c is not None)
+            return float(last)
+    except Exception:
+        pass
+
+    try:
+        import yfinance as yf
+        data = yf.Ticker(yf_ticker).history(period="1d")
+        if not data.empty:
+            return float(data["Close"].iloc[-1])
+    except Exception:
+        pass
+
+    return None
 
 CACHE_DAILY_DIR = "/home/davide/Scaricati/trading/cache_daily"
 
@@ -123,21 +152,18 @@ eur_usd_rate = 1.0850
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
 with col_btn1:
     if st.button("Aggiorna Prezzi Live", use_container_width=True):
-        with st.spinner("Aggiornamento quotazioni live via Yahoo Finance..."):
+        with st.spinner("Aggiornamento quotazioni live in corso..."):
             updated_count = 0
             for sym in list(engine.state["positions"].keys()):
-                yf_ticker = f"{sym}-USD" if not sym.endswith("-USD") else sym
-                try:
-                    data = yf.Ticker(yf_ticker).history(period="1d")
-                    if not data.empty:
-                        px = float(data["Close"].iloc[-1])
-                        engine.update_price(sym, px)
-                        updated_count += 1
-                except Exception as e:
-                    pass
+                px = fetch_live_crypto_price(sym)
+                if px is not None and px > 0:
+                    engine.update_price(sym, px)
+                    updated_count += 1
             engine.save_portfolio()
             if updated_count > 0:
                 st.success(f"Aggiornati prezzi per {updated_count} token.")
+            else:
+                st.info("Nessuna posizione aperta o quotazione invariata.")
 
 with col_btn2:
     if st.button("Notifica Telegram (Test)", use_container_width=True):
