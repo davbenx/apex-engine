@@ -781,6 +781,8 @@ def load_crypto_universe_data(
                     s = pd.Series(item["closes"], index=idx)
                     s.attrs["vol24h"] = float(item.get("vol24h", 0.0) or 0.0)
                     s.attrs["symbol"] = item.get("symbol", f"PF_{sym}USD")
+                    if "volumes" in item and len(item["volumes"]) == len(idx):
+                        s.attrs["volume_series"] = pd.Series(item["volumes"], index=idx)
                     dfs[sym] = s
             if "XBT" in dfs and "BTC" not in dfs:
                 dfs["BTC"] = dfs["XBT"]
@@ -879,16 +881,20 @@ def screen_venture_candidates(
             sma_20w_val = float(s_px.mean())
         above_sma20w = p_cur > sma_20w_val
 
-        # Controllo Volume Confirmation se disponibile
+        # Controllo Volume Confirmation reale
         vol_ratio = 1.0
         vol_confirmed = True
+        s_vol = None
         if hasattr(s_px, "columns") and "Volume" in s_px.columns:
             s_vol = s_px["Volume"].dropna()
-            if len(s_vol) >= 30:
-                med_v = float(s_vol.iloc[:-1].rolling(30, min_periods=10).median().iloc[-1])
-                cur_v = float(s_vol.iloc[-1])
-                vol_ratio = round(cur_v / med_v, 2) if med_v > 0 else 1.0
-                vol_confirmed = vol_ratio >= 1.5
+        elif hasattr(s_px, "attrs") and "volume_series" in s_px.attrs:
+            s_vol = s_px.attrs["volume_series"].dropna()
+
+        if s_vol is not None and len(s_vol) >= 30:
+            med_v = float(s_vol.iloc[:-1].rolling(30, min_periods=10).median().iloc[-1])
+            cur_v = float(s_vol.iloc[-1])
+            vol_ratio = round(cur_v / med_v, 2) if med_v > 0 else 1.0
+            vol_confirmed = vol_ratio >= 1.5
 
         is_crowded = ((p_cur / roll_high) - 1.0) > MAX_BREAKOUT_EXTENSION_PCT if roll_high > 0 else False
 

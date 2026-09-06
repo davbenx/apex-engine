@@ -156,6 +156,13 @@ with col_sync:
             load_screener_crypto_data(force_live=True)
             st.rerun()
 
+st.warning(
+    "STATO MODULO: SPERIMENTALE IN FASE DI REVISIONE QUANTITATIVA — OPERATIVITA' REALE SOSPESA.\n"
+    "I test empirici su dati storici reali (2018-2026) hanno confermato che nei regimi laterali e bear (2024-2026), "
+    "e in assenza di filtri fondamentali su Tokenomics (MC/FDV > 0.40) e macro breadth, i breakout tecnici incorrono in un "
+    "tasso di stop-loss del 70-100% con rischio di gap slippage significativo. Il modulo e' puramente a scopo di ricerca/studio."
+)
+
 # 5 Metriche Compatte in Riga Singola
 c_kpi1, c_kpi2, c_kpi3, c_kpi4, c_kpi5 = st.columns(5)
 with c_kpi1:
