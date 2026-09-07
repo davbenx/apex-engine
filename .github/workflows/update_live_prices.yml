@@ -29,4 +29,5 @@ jobs:
           git config --local user.name "GitHub Action"
           git add live_prices_cache.json
           git commit -m "Aggiornamento prezzi live Convex + benchmark SPY" || echo "Nessuna modifica da pushare"
+          git pull --rebase origin main || true
           git push

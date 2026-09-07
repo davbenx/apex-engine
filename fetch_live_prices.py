@@ -15,6 +15,7 @@ Esecuzione manuale: python fetch_live_prices.py
 """
 import datetime
 import json
+import os
 import urllib.request
 
 CONVEX_TICKERS = {
@@ -92,19 +93,33 @@ def main():
     print("[*] Recupero storico SPY...")
     spy_history = fetch_spy_history()
 
+    existing_cache = {}
+    if os.path.exists(OUTPUT_FILE):
+        try:
+            with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+                existing_cache = json.load(f)
+        except Exception as e:
+            print(f"[*] Impossibile leggere cache preesistente: {e}")
+
+    merged_convex_prices = existing_cache.get("convex_prices", {})
+    merged_convex_prices.update(convex_prices)
+
+    if not spy_history and "spy_history" in existing_cache:
+        spy_history = existing_cache["spy_history"]
+
     cache = {
         "fetched_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "convex_prices": convex_prices,
+        "convex_prices": merged_convex_prices,
         "spy_history": spy_history,
     }
 
-    with open(OUTPUT_FILE, "w") as f:
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(cache, f, indent=2)
 
-    ok_convex = len(convex_prices) == len(CONVEX_TICKERS)
+    ok_convex = len(merged_convex_prices) == len(CONVEX_TICKERS)
     ok_spy = len(spy_history) > 0
     print(f"\n[{'OK' if ok_convex and ok_spy else 'PARZIALE'}] Scritto {OUTPUT_FILE}: "
-          f"{len(convex_prices)}/{len(CONVEX_TICKERS)} prezzi Convex, "
+          f"{len(merged_convex_prices)}/{len(CONVEX_TICKERS)} prezzi Convex, "
           f"{len(spy_history)} punti SPY")
 
 
