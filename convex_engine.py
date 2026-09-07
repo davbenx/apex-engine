@@ -157,7 +157,7 @@ class ConvexPortfolioReport:
 def evaluate_convex_stack(
     current_holdings: Dict[str, float],      # {sym: shares}
     market_prices: Dict[str, float],         # {sym: price_in_eur}
-    monthly_pac_eur: float = 600.0,
+    monthly_pac_eur: float = 500.0,
     cash_balance: float = 0.0,
     instruments: Optional[Dict[str, Any]] = None
 ) -> ConvexPortfolioReport:
@@ -335,9 +335,9 @@ if __name__ == "__main__":
         "NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0
     }
 
-    rep = evaluate_convex_stack(holdings_example, prices_example, monthly_pac_eur=600.0)
+    rep = evaluate_convex_stack(holdings_example, prices_example, monthly_pac_eur=500.0)
     print(f"Valore Totale Convex: € {rep.total_value:,.2f}")
     print(f"TER Ponderato: {rep.ter_weighted*100:.3f}%")
     print(f"Esposizione Nozionale Totale: {rep.macro_exposure['Esposizione Nozionale Totale']*100:.1f}%")
     print(f"Azione PAC Consigliata: Compra {rep.pac_action.recommended_asset} ({rep.pac_action.estimated_shares} quote)")
-    print("✓ convex_engine.py operativo con successo!")
+    print("convex_engine.py operativo con successo!")

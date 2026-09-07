@@ -793,7 +793,7 @@ quinta volta: NAV $127.112 → **$127.479**.
 
 Prima parte della stessa domanda dell'utente: non era chiaro in dashboard
 come gestire i ribilanciamenti mensili. Verificato: il messaggio Telegram
-aveva gia' una sezione "🚀 Ordini da eseguire oggi" con il dettaglio delle
+aveva gia' una sezione " Ordini da eseguire oggi" con il dettaglio delle
 operazioni, ma quella lista non veniva mai salvata su disco — se l'utente
 perdeva la notifica, non c'era modo di recuperarla dalla dashboard senza
 scorrere l'intero storico operazioni. Corretto: `backend.py` ora persiste
@@ -809,7 +809,7 @@ consumer retail"), `backend.py::send_telegram_alert` è stato riscritto.
 
 **Prima:** un solo formato inviato ogni venerdì (`is_friday` è vero ogni
 venerdì, non solo nei venerdì di decisione), sempre con: header con emoji
-decorative (🦅/🎛️/💼/🚀/💡), l'intero elenco `open_positions` ripetuto per
+decorative (////), l'intero elenco `open_positions` ripetuto per
 intero (già lungo con 16 posizioni, destinato a crescere), e un footer
 statico identico ogni volta a prescindere dal contenuto.
 
@@ -824,14 +824,14 @@ statico identico ogni volta a prescindere dal contenuto.
   dashboard per il dettaglio completo.
 
 Entrambi i formati chiudono con una riga di stato sintetico per classe
-(🟢/⚪ per Azioni/Bitcoin/Oro/Obbligazioni).
+(/ per Azioni/Bitcoin/Oro/Obbligazioni).
 
 **Bug di semantica colore corretto nello stesso intervento:** la versione
-precedente usava 🔴 per "classe in pausa" (`alloc.get(classe,0)==0`) —
+precedente usava  per "classe in pausa" (`alloc.get(classe,0)==0`) —
 esattamente la stessa violazione della regola "il rosso è riservato al P&L
 negativo, mai allo stato attivo/inattivo" già trovata e corretta nella
 dashboard in questa stessa sessione (una classe in pausa è spesso una
-postura difensiva corretta, non una cattiva notizia). Sostituito con ⚪,
+postura difensiva corretta, non una cattiva notizia). Sostituito con ,
 coerente con `app.py`.
 
 Nessun cambio, in questo intervento, al contenuto salvato in
@@ -1799,10 +1799,10 @@ di strategia, resta escluso di proposito — non è una modifica UI):
 - **Capitale/valuta persistenti** via `st.query_params` — sopravvivono al
   reload della pagina (URL bookmarkabile).
 - **Radar** non è più una tab separata: è un expander collassato in fondo
-  al Tab Portafoglio ("📡 Radar Rotazione — basket in arrivo"). Le tab sono
+  al Tab Portafoglio (" Radar Rotazione — basket in arrivo"). Le tab sono
   ora 3 (Portafoglio, Metriche, Guida) invece di 4.
 - **Tabelle Azioni/Crypto**: vista compatta di default (Titolo, Peso %,
-  Rendimento %, Valore) con toggle "🔍 Mostra dettagli esecuzione" per le
+  Rendimento %, Valore) con toggle " Mostra dettagli esecuzione" per le
   colonne di dettaglio (Quote, Data Ingresso, prezzi ingresso/uscita) —
   nessuna colonna è stata eliminata, solo nascosta dietro un controllo.
 - **Card macro-engine**: le 5 card bordate sostituite da una "pill bar"
@@ -1854,7 +1854,7 @@ multi-asset (v2 usa solo BTC-USD, nessuna rotazione). Ordine di importanza:
    candidati di rotazione trimestrale — per Bitcoin non esiste candidacy
    (asset singolo, mai sostituito, solo on/off per segnale macro, già
    coperto da pill bar + card portafoglio). Va tolto dal Radar, che resta
-   solo la tabella Azionario (⭐ in portafoglio / 🆕 candidati) — stessa
+   solo la tabella Azionario (in portafoglio / candidati) — stessa
    tabella oggi duplicata, stesso principio "tabella solo per basket con
    vera rotazione" applicato in modo coerente sia a Portafoglio sia a
    Radar.
@@ -1891,7 +1891,7 @@ già rivista per leanness (§10-§12), ha ancora una "veste grafica" da app
 fintech consumer, non da terminale istituzionale. Cinque problemi concreti,
 individuabili nel codice attuale di `app.py`:
 
-1. **Emoji come iconografia funzionale.** 📈🪙🥇🛡️💵🔔📡📖🎯⚖️💎🏆🛑⏱️💡⚙️ compaiono
+1. **Emoji come iconografia funzionale.** Icone informali compaiono
    ovunque — su ogni card, ogni intestazione, ogni badge. È il singolo
    segnale più forte che allontana il prodotto da un terminale
    istituzionale (Bloomberg, FactSet, Addepar, strumenti interni hedge
@@ -1911,7 +1911,7 @@ individuabili nel codice attuale di `app.py`:
    contro l'obiettivo "basso carico mentale" già perseguito in §10.
 4. **Ridondanza di stato.** Un singolo stato (es. "classe attiva") viene
    comunicato tre volte insieme: pallino verde + bordo verde + badge
-   testuale "🟢 ATTIVO". Un solo segnale, ben scelto, basta.
+   testuale " ATTIVO". Un solo segnale, ben scelto, basta.
 5. **Buona base tipografica da preservare.** La coppia Inter/JetBrains Mono
    con tabular-nums per le cifre è già corretta e coerente con lo standard
    istituzionale — nessuna modifica necessaria qui, va solo sfruttata
@@ -1983,7 +1983,7 @@ le emoji nei loro contenuti vanno sostituite dai glifi lineari.
   riusata anche per Oro e Obbligazioni, garantendo parità informativa
   reale (stesso codice, non solo stesso aspetto).
 - **Radar**: ridotto alla sola tabella Azionario. Bitcoin rimosso (nessuna
-  candidacy di rotazione per un asset singolo). Badge ⭐/🆕 sostituiti da
+  candidacy di rotazione per un asset singolo). Badge grafici sostituiti da
   una colonna "Stato" testuale (NUOVO in accento blu, altrimenti vuota) —
   un solo segnale per fatto invece di pallino+bordo+badge ridondanti.
 - **Treemap** in cima al Tab Portafoglio (`go.Treemap`): dimensione = peso
@@ -2003,7 +2003,7 @@ le emoji nei loro contenuti vanno sostituite dai glifi lineari.
   intervallo del periodo selezionato.
 - **KPI cards**: superficie neutra uniforme per tutte e 6 (era: bordo
   colorato diverso per ciascuna, puramente decorativo). Rimossi i badge
-  "🟢 POSITIVO"/"🔴 NEGATIVO" su Rendimento Lordo e CAGR perché
+  " POSITIVO"/" NEGATIVO" su Rendimento Lordo e CAGR perché
   ridondanti col colore già presente sul valore; mantenuti i badge
   qualitativi (ECCELLENTE/STABILE, PROTETTO/ATTENZIONE, ecc.) perché
   aggiungono un giudizio soglia, non ripetono il segno.
@@ -2458,8 +2458,8 @@ normalizzazione, ripeterlo sull'asse era ridondante.
 **Colonne troppo larghe — proposta, non ancora implementata**. "Classe"
 (Azionario/Bitcoin/Oro/Obbligazioni/Monetario/TOTALE) e "Stato" (NUOVO)
 nella tabella posizioni, "Motivazione" nel registro operazioni chiuse
-(valori reali verificati in `backend.py`: "⚖️ Ribilanciamento mensile
-(trim parziale)", "🔄 Uscito da basket/classe disattivata", "🔁 Migrazione
+(valori reali verificati in `backend.py`: " Ribilanciamento mensile
+(trim parziale)", " Uscito da basket/classe disattivata", " Migrazione
 a v2" — lunghi e con emoji, residuo del formato pensato per i messaggi
 Telegram, non per una colonna di tabella). Proposta con mockup:
 <https://claude.ai/code/artifact/6188ce86-3cce-4aa6-a262-e92e73aa4afa> —

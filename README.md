@@ -1,4 +1,4 @@
-# Apex Engine + Convex Stack 🦅🛡️
+# Apex Engine + Convex Stack
 
 Due motori quantitativi, un'unica dashboard.
 
@@ -24,7 +24,7 @@ Questo README è solo un orientamento rapido.
 
 ---
 
-## 🏛️ Architettura del Sistema — Apex Engine
+## Architettura del Sistema — Apex Engine
 
 ```
         ┌──────────────────────────────────────────────────────────┐
@@ -48,7 +48,7 @@ Questo README è solo un orientamento rapido.
 └───────────┘   └───────────┘ └───────────┘ └───────────┘  └───────────┘
 ```
 
-## 🛡️ Architettura del Sistema — Convex Stack
+## Architettura del Sistema — Convex Stack
 
 5 strumenti UCITS/ETC (versione Completa), 4 (versione Semplice, senza
 AVWS): NTSG (equity core a leva) · AVWS (small cap value, solo Completa) ·
@@ -58,7 +58,7 @@ supera la propria banda di tolleranza (11.25% per PPFB/WBTC).
 
 ---
 
-## 📂 Struttura del Progetto
+## Struttura del Progetto
 
 ```text
 ├── .github/workflows/
@@ -86,7 +86,7 @@ supera la propria banda di tolleranza (11.25% per PPFB/WBTC).
 
 ---
 
-## 🚀 Avvio Locale
+## Avvio Locale
 
 ### 1. Prerequisiti e Installazione
 ```bash
@@ -107,7 +107,7 @@ streamlit run main.py
 
 ---
 
-## ⚙️ Variabili d'Ambiente (Opzionali)
+## Variabili d'Ambiente (Opzionali)
 
 Per abilitare le notifiche Telegram automatiche di Apex Engine:
 - `TELEGRAM_TOKEN`: Token del Bot Telegram

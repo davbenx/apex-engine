@@ -32,155 +32,18 @@ except Exception as _reload_err:
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
 # ==============================================================================
-# HTML RENDERING HELPERS & STYLING (DARK GLASSMORPHISM — identici ad Apex Engine)
+# HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
-def st_html(html_str):
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    st.markdown(cleaned, unsafe_allow_html=True)
+from ui_components import (
+    st_html, fill_slot, inject_page_styles, section_title, sub_hero_metric,
+    render_monthly_returns_html_table, get_logo_b64,
+    POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
+    BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
+)
 
-
-def fill_slot(slot, html_str):
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    slot.markdown(cleaned, unsafe_allow_html=True)
-
-
-st_html("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
-
-    html, body, [class*="css"], .stApp {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        letter-spacing: -0.01em;
-    }
-
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"], .stDataFrame, div[data-testid="stTable"], table {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-variant-numeric: tabular-nums !important;
-    }
-
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        border-bottom: 1px solid rgba(255,247,237,0.12);
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 8px 18px;
-        border-radius: 8px 8px 0px 0px;
-        font-weight: 600;
-        font-size: 13.5px;
-    }
-
-    div[style*="border-radius"] {
-        transition: border-color 0.15s ease-in-out;
-    }
-
-    .glass-card {
-        background: rgba(255, 247, 237, 0.045);
-        border: 1px solid rgba(255, 247, 237, 0.09);
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-    }
-    .glass-card-accent {
-        background: rgba(201, 164, 76, 0.10);
-        border: 1px solid rgba(201, 164, 76, 0.22);
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-    }
-
-    /* Rimuove completamente la sidebar e i relativi controlli */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarCollapsedControl"],
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
-</style>
-""")
-
-# Design Tokens (identici ad Apex Engine)
-POS = "#3DDC97"
-NEG = "#EC657B"
-MUTED_DOT = "#5B534B"
-ACCENT = "#C9A44C"
-ACCENT_SOFT = "rgba(201,164,76,0.10)"
-SURFACE = "rgba(255,247,237,0.045)"
-BORDER = "rgba(255,247,237,0.09)"
-BORDER_STRONG = "rgba(255,247,237,0.16)"
-MUTED = "#9C9187"
-MUTED_2 = "#6E655C"
-BADGE_TEXT = "#F5F1EA"
-
-FRAUNCES = "'Fraunces', Georgia, serif"
-MONO = "'JetBrains Mono', monospace"
-MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
-
-
-def section_title(text, top="26px", bottom="10px"):
-    return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
-
-
-def sub_hero_metric(label, value, subtext="", val_color=None, primary=False):
-    val_size = "32px" if primary else "20px"
-    return f"""
-    <div style="flex: 1 1 {'160px' if primary else '130px'};">
-        <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
-        <div style="font-family: {MONO}; font-size: {val_size}; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
-        <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
-    </div>
-    """
-
-
-def get_logo_b64():
-    import base64
-    for p in ["logo_icon.png", "logo.png"]:
-        if os.path.exists(p):
-            try:
-                with open(p, "rb") as f:
-                    return base64.b64encode(f.read()).decode()
-            except Exception:
-                pass
-    return ""
-
+inject_page_styles()
 
 get_macro_class_svg = portfolio_manager.get_macro_class_svg
-
-
-def render_monthly_returns_html_table(df_eq):
-    if df_eq is None or df_eq.empty:
-        return ''
-    df = df_eq.copy()
-    years = sorted(df.index.year.unique(), reverse=True)
-    th_cells = [f'<th style="padding:8px 10px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Anno</th>']
-    for m_name in MESI_IT:
-        th_cells.append(f'<th style="padding:8px 8px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{m_name}</th>')
-    th_cells.append(f'<th style="padding:8px 12px; font-weight:700; color:{ACCENT}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; border-left:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tot Anno</th>')
-
-    rows_html = []
-    for y in years:
-        td_cells = [f'<td style="padding:8px 10px; font-size:12px; font-weight:700; color:{BADGE_TEXT}; font-family:{MONO};">{y}</td>']
-        df_y = df[df.index.year == y]
-        df_prev = df[df.index.year < y]
-        y_start_val = df_prev['value'].iloc[-1] if not df_prev.empty else df_y['value'].iloc[0]
-        y_end_val = df_y['value'].iloc[-1]
-        y_ret = ((y_end_val / y_start_val) - 1.0) * 100.0 if y_start_val > 0 else 0.0
-        for m in range(1, 13):
-            df_ym = df[(df.index.year == y) & (df.index.month == m)]
-            if df_ym.empty:
-                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:center; color:{MUTED}; font-family:{MONO}; opacity:0.4;">—</td>')
-            else:
-                df_before = df[df.index < df_ym.index[0]]
-                m_start_val = df_before['value'].iloc[-1] if not df_before.empty else df_ym['value'].iloc[0]
-                m_end_val = df_ym['value'].iloc[-1]
-                m_ret = ((m_end_val / m_start_val) - 1.0) * 100.0 if m_start_val > 0 else 0.0
-                col = POS if m_ret > 0 else NEG if m_ret < 0 else MUTED
-                bg = 'rgba(61,220,151,0.07)' if m_ret > 0 else 'rgba(236,101,123,0.08)' if m_ret < 0 else 'transparent'
-                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:right; font-family:{MONO}; font-weight:600; color:{col}; background:{bg}; white-space:nowrap;">{m_ret:+.1f}%</td>')
-        y_col = POS if y_ret > 0 else NEG if y_ret < 0 else MUTED
-        y_bg = 'rgba(61,220,151,0.12)' if y_ret > 0 else 'rgba(236,101,123,0.12)' if y_ret < 0 else 'transparent'
-        td_cells.append(f'<td style="padding:8px 12px; font-size:12px; text-align:right; font-family:{MONO}; font-weight:700; color:{y_col}; background:{y_bg}; border-left:1px solid {BORDER_STRONG}; white-space:nowrap;">{y_ret:+.1f}%</td>')
-        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER};">{"".join(td_cells)}</tr>')
-
-    return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:22px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'
 
 
 # ==============================================================================
@@ -211,9 +74,9 @@ cfg = portfolio_manager.load_config()
 
 # Dati di tracking del modello
 _nav_usd = float(apex_portfolio.get("nav_usd", 0.0))
-_eur_usd_rate = float(apex_data.get("eur_usd", 0.0))
-# Capitale di riferimento Apex: valore standard configurabile (default 100.000 €)
-apex_val_eur = float(cfg.get("apex_capital_eur", 100000.0))
+_eur_usd_rate = float(apex_data.get("eur_usd", 1.085))
+_apex_live_eur = (_nav_usd / _eur_usd_rate) if (_nav_usd > 0 and _eur_usd_rate > 0) else None
+apex_val_eur = float(cfg.get("apex_capital_eur", _apex_live_eur if _apex_live_eur else 100000.0))
 
 # Prezzi e strumenti Convex
 _active_instruments = convex_engine.CONVEX_INSTRUMENTS
@@ -242,7 +105,7 @@ _target_apex = float(cfg.get("target_apex_ratio", 0.50))
 _cx_rep = convex_engine.evaluate_convex_stack(
     current_holdings=cx_holdings_dict,
     market_prices=_base_prices,
-    monthly_pac_eur=float(cfg.get("monthly_pac_eur", 600.0)),
+    monthly_pac_eur=float(cfg.get("monthly_pac_eur", 500.0)),
     cash_balance=convex_cash_eur,
     instruments=_active_instruments
 )
@@ -251,7 +114,7 @@ _apex_allocs = apex_data.get("allocations")
 unified_data = portfolio_manager.compute_unified_portfolio(
     apex_val=apex_val_eur,
     convex_report=_cx_rep,
-    monthly_pac=float(cfg.get("monthly_pac_eur", 600.0)),
+    monthly_pac=float(cfg.get("monthly_pac_eur", 500.0)),
     target_apex_ratio=_target_apex,
     apex_allocations=_apex_allocs
 )

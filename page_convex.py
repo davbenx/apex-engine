@@ -33,99 +33,20 @@ except Exception as _reload_err:
 # st.set_page_config() rimosso: la pagina gira dentro main.py (st.navigation), che lo imposta una sola volta.
 
 # ==============================================================================
-# HTML RENDERING HELPERS & STYLING (DARK GLASSMORPHISM — identici ad Apex Engine)
+# HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
-def st_html(html_str):
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    st.markdown(cleaned, unsafe_allow_html=True)
+from ui_components import (
+    st_html, fill_slot, inject_page_styles, section_title, sub_hero_metric,
+    render_monthly_returns_html_table, get_logo_b64,
+    POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
+    BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
+)
 
-st_html("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+inject_page_styles()
 
-    html, body, [class*="css"], .stApp {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        letter-spacing: -0.01em;
-    }
-
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"], .stDataFrame, div[data-testid="stTable"], table {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-variant-numeric: tabular-nums !important;
-    }
-
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        border-bottom: 1px solid rgba(255,247,237,0.12);
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 8px 18px;
-        border-radius: 8px 8px 0px 0px;
-        font-weight: 600;
-        font-size: 13.5px;
-    }
-
-    div[style*="border-radius"] {
-        transition: border-color 0.15s ease-in-out;
-    }
-
-    .glass-card {
-        background: rgba(255, 247, 237, 0.045);
-        border: 1px solid rgba(255, 247, 237, 0.09);
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-    }
-    .glass-card-accent {
-        background: rgba(201, 164, 76, 0.10);
-        border: 1px solid rgba(201, 164, 76, 0.22);
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-    }
-
-    /* Rimuove completamente la sidebar e controlli collegati */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarCollapsedControl"],
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
-</style>
-""")
-
-def fill_slot(slot, html_str):
-    """Riempie a posteriori un st.empty() riservato prima nel flusso."""
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    slot.markdown(cleaned, unsafe_allow_html=True)
-
-def sub_hero_metric(label, value, subtext="", val_color=None, primary=False):
-    """Card metrica a gerarchia istituzionale a due livelli (identica ad Apex Engine)."""
-    val_size = "32px" if primary else "20px"
-    return f"""
-    <div style="flex: 1 1 {'160px' if primary else '130px'};">
-        <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
-        <div style="font-family: {MONO}; font-size: {val_size}; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
-        <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
-    </div>
-    """
-
-# Design Tokens (identici ad Apex Engine — stesso sistema visivo)
-POS = "#3DDC97"
-NEG = "#EC657B"
-MUTED_DOT = "#5B534B"
-ACCENT = "#C9A44C"
-ACCENT_SOFT = "rgba(201,164,76,0.10)"
-SURFACE = "rgba(255,247,237,0.045)"
-BORDER = "rgba(255,247,237,0.09)"
-BORDER_STRONG = "rgba(255,247,237,0.16)"
-MUTED = "#9C9187"
-MUTED_2 = "#6E655C"
-BADGE_TEXT = "#F5F1EA"
 BADGE_POS_BG = "#1D5F42"
 BADGE_NEG_BG = "#7B2836"
 BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
-
-FRAUNCES = "'Fraunces', Georgia, serif"
-MONO = "'JetBrains Mono', monospace"
 
 _COLOR_MAP = {
     "NTSG": portfolio_manager.get_class_color("Azioni"),
@@ -233,43 +154,6 @@ def render_html_table(df, right_align_cols=None):
         f'<table style="width:100%; border-collapse:collapse; text-align:left;">'
         f'<thead><tr>{th_cells}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'
     )
-
-def render_monthly_returns_html_table(df_eq):
-    if df_eq is None or df_eq.empty:
-        return ''
-    df = df_eq.copy()
-    years = sorted(df.index.year.unique(), reverse=True)
-    th_cells = [f'<th style="padding:8px 10px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Anno</th>']
-    for m_name in MESI_IT:
-        th_cells.append(f'<th style="padding:8px 8px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{m_name}</th>')
-    th_cells.append(f'<th style="padding:8px 12px; font-weight:700; color:{ACCENT}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; border-left:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tot Anno</th>')
-
-    rows_html = []
-    for y in years:
-        td_cells = [f'<td style="padding:8px 10px; font-size:12px; font-weight:700; color:{BADGE_TEXT}; font-family:{MONO};">{y}</td>']
-        df_y = df[df.index.year == y]
-        df_prev = df[df.index.year < y]
-        y_start_val = df_prev['value'].iloc[-1] if not df_prev.empty else df_y['value'].iloc[0]
-        y_end_val = df_y['value'].iloc[-1]
-        y_ret = ((y_end_val / y_start_val) - 1.0) * 100.0 if y_start_val > 0 else 0.0
-        for m in range(1, 13):
-            df_ym = df[(df.index.year == y) & (df.index.month == m)]
-            if df_ym.empty:
-                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:center; color:{MUTED}; font-family:{MONO}; opacity:0.4;">—</td>')
-            else:
-                df_before = df[df.index < df_ym.index[0]]
-                m_start_val = df_before['value'].iloc[-1] if not df_before.empty else df_ym['value'].iloc[0]
-                m_end_val = df_ym['value'].iloc[-1]
-                m_ret = ((m_end_val / m_start_val) - 1.0) * 100.0 if m_start_val > 0 else 0.0
-                col = POS if m_ret > 0 else NEG if m_ret < 0 else MUTED
-                bg = 'rgba(61,220,151,0.07)' if m_ret > 0 else 'rgba(236,101,123,0.08)' if m_ret < 0 else 'transparent'
-                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:right; font-family:{MONO}; font-weight:600; color:{col}; background:{bg}; white-space:nowrap;">{m_ret:+.1f}%</td>')
-        y_col = POS if y_ret > 0 else NEG if y_ret < 0 else MUTED
-        y_bg = 'rgba(61,220,151,0.12)' if y_ret > 0 else 'rgba(236,101,123,0.12)' if y_ret < 0 else 'transparent'
-        td_cells.append(f'<td style="padding:8px 12px; font-size:12px; text-align:right; font-family:{MONO}; font-weight:700; color:{y_col}; background:{y_bg}; border-left:1px solid {BORDER_STRONG}; white-space:nowrap;">{y_ret:+.1f}%</td>')
-        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER};">{"".join(td_cells)}</tr>')
-
-    return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:22px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'
 
 # ==============================================================================
 # PREZZI LIVE DEI 5 STRUMENTI (cache 15 minuti, fallback dichiarato se il
@@ -724,22 +608,18 @@ with tab_metriche:
         st_html(section_title("Matrice dei Rendimenti"))
         st_html(render_monthly_returns_html_table(_cx_nav))
 
-        st_html(section_title("Costo e Regolarità"))
-        st.caption("Convex non ha operazioni da misurare (nessun tasso di successo o fattore di profitto: è un portafoglio a lungo termine, non trading attivo). Ciò che conta è il costo ricorrente e la costanza dei rendimenti.")
-        # TER ponderato reale sui pesi ATTUALI (non i target): riusa
-        # convex_report.ter_weighted, la stessa fonte già validata in
-        # convex_engine.py — evita di ricalcolarlo qui sui pesi target,
-        # che ignorerebbe lo scostamento reale del portafoglio dell'utente.
-        _cx_ter_annual = convex_report.ter_weighted if convex_report.total_value > 0 else \
-            sum(i["ter"] * i["target_weight"] for i in active_instruments.values())
-        _cx_ter_eur_year = convex_report.total_value * _cx_ter_annual if convex_report.total_value > 0 else 0.0
+        st_html(section_title("Regolarità e Distribuzione Rendimenti"))
+        st.caption("Convex non richiede trading attivo: è un portafoglio d'accumulo multi-asset a lungo termine. Ciò che conta è la costanza statistica e la preservazione del capitale nelle crisi.")
         _cx_pos_months = int((_cx_ret > 0).sum())
         _cx_tot_months = int(len(_cx_ret))
+        _cx_best_m = float(_cx_ret.max() * 100.0) if not _cx_ret.empty else 0.0
+        _cx_worst_m = float(_cx_ret.min() * 100.0) if not _cx_ret.empty else 0.0
+        _cx_pos_pct = (_cx_pos_months / _cx_tot_months * 100.0) if _cx_tot_months > 0 else 0.0
         st_html(f"""
         <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
-            {sub_hero_metric("TER Ponderato Reale", f"{_cx_ter_annual*100:.3f}%/anno", "Costo ponderato capitale reale")}
-            {sub_hero_metric("Costo TER Annuo Stimato", f"€ {_cx_ter_eur_year:,.0f}/anno", "Costo in euro sul capitale attuale")}
-            {sub_hero_metric("Mesi Positivi (Storico)", f"{_cx_pos_months}/{_cx_tot_months}", f"{_cx_pos_months/_cx_tot_months*100:.0f}% mesi in profitto (2000–2026)")}
+            {sub_hero_metric("Mesi Positivi (Storico)", f"{_cx_pos_months}/{_cx_tot_months}", f"{_cx_pos_pct:.0f}% mesi in profitto (2000–2026)", POS)}
+            {sub_hero_metric("Miglior Mese Storico", f"+{_cx_best_m:.2f}%", "Massimo rendimento mensile registrato", POS)}
+            {sub_hero_metric("Peggior Mese Storico", f"{_cx_worst_m:.2f}%", "Minimo rendimento mensile registrato", NEG)}
         </div>
         """)
     else:

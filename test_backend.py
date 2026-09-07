@@ -163,7 +163,7 @@ def test_weight_decrease_trims_partially_and_preserves_cost_basis():
     trade = pf_after["trade_history"][0]
     assert abs(trade["weight"] - 0.04) < 1e-9, "deve registrare solo la quota VENDUTA (4%), non l'intera posizione (10%)"
     assert trade["profit_pct"] == 50.0
-    assert trade["reason"] == "⚖️ Ribilanciamento mensile (trim parziale)"
+    assert trade["reason"] == "Ribilanciamento mensile (trim parziale)"
 
     expected_cost_frac = 0.04 * (10.0 / 10000.0)  # solo il 4% venduto, non il 10% totale
     expected_nav = 1000000.0 * (1.0 - expected_cost_frac)
@@ -189,7 +189,7 @@ def test_full_exit_still_logs_the_entire_position():
     trade = pf_after["trade_history"][0]
     assert abs(trade["weight"] - 0.05) < 1e-9, "l'uscita totale deve registrare l'intera posizione"
     assert trade["profit_pct"] == 25.0
-    assert trade["reason"] == "🔄 Uscito da basket/classe disattivata"
+    assert trade["reason"] == "Uscito da basket/classe disattivata"
 
 
 def test_tiny_weight_change_within_eps_does_not_trade():

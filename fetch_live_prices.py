@@ -37,7 +37,7 @@ CONVEX_TICKERS = {
     "WBTC": "WBTC-ETFP.MI",
 }
 
-OUTPUT_FILE = "live_prices_cache.json"
+OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "live_prices_cache.json")
 
 
 def _fetch_chart(ticker, rng="5d", interval="1d"):

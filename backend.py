@@ -248,8 +248,8 @@ def update_macro_regimes(allocations, old_data, today_str):
         else:
             macro_dates[engine] = today_str
             if old_data is not None:
-                status_label = "🟢 ATTIVATO" if is_active else "🔴 DISATTIVATO"
-                macro_events.append(f"⚠️ MACRO REGIME: Il motore {engine} è passato a {status_label}")
+                status_label = "[ATTIVATO]" if is_active else "[DISATTIVATO]"
+                macro_events.append(f"[REGIME MACRO]: Il motore {engine} è passato a {status_label}")
 
     return macro_dates, macro_events
 
@@ -367,7 +367,7 @@ def _close_position(pf, ticker, pos, exit_price, exit_date, reason, action_log, 
         "weight": pos.get("weight", 0.0),
         "reason": reason,
     })
-    action_log.append(f"🔴 {verb}: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
+    action_log.append(f"[{verb}]: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
 
 
 def update_portfolio(allocations, basket, prices_by_ticker, today_str):
@@ -390,7 +390,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
         for ticker, pos in list(pf.get("open_positions", {}).items()):
             sym = ticker + "-USD" if pos.get("is_crypto") else ticker
             exit_price = prices_by_ticker.get(sym, pos.get("entry_price", 0.0))
-            _close_position(pf, ticker, pos, exit_price, today_str, "🔁 Migrazione a v2", action_log, verb="MIGRAZIONE V2 (VENDITA)")
+            _close_position(pf, ticker, pos, exit_price, today_str, "Migrazione a v2", action_log, verb="MIGRAZIONE V2 (VENDITA)")
         for asset, pos in list(pf.get("macro_positions", {}).items()):
             # Chiusura di migrazione: l'entry_price di v1 per "Gold" era in convenzione
             # GC=F (futures, $/oncia), non GLD (ETF, scala di prezzo completamente diversa
@@ -398,7 +398,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
             # da mismatch di unita' di misura, non un rendimento reale. Si usa invece
             # l'ultimo current_price gia' tracciato da v1 nella stessa convenzione dell'entry.
             exit_price = pos.get("current_price", pos.get("entry_price", 0.0))
-            _close_position(pf, f"{asset} (Hedge)", pos, exit_price, today_str, "🔁 Migrazione a v2", action_log, verb="MIGRAZIONE V2 (CHIUSURA HEDGE)")
+            _close_position(pf, f"{asset} (Hedge)", pos, exit_price, today_str, "Migrazione a v2", action_log, verb="MIGRAZIONE V2 (CHIUSURA HEDGE)")
         pf["open_positions"] = {}
         pf["macro_positions"] = {}
         pf["v2_migrated"] = True
@@ -434,7 +434,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
             "profit_pct": round(profit_pct * 100, 2), "weight": round(traded_weight, 6),
             "reason": reason,
         })
-        action_log.append(f"🔴 CHIUSURA: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
+        action_log.append(f"[CHIUSURA]: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
         return profit_pct
 
     # Ribilancia le posizioni gia' detenute: NIENTE PIU' chiusura+riapertura totale ad ogni
@@ -452,7 +452,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
         entry_price = pos.get("entry_price", price)
 
         if tgt_w is None:
-            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), cur_w, "🔄 Uscito da basket/classe disattivata")
+            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), cur_w, "Uscito da basket/classe disattivata")
             turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
             del current[ticker]
             continue
@@ -473,11 +473,11 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
                 pos["entry_price"] = (cur_w + delta_w) / total_shares_equiv
             pos["weight"] = tgt_w
             pos["current_price"] = price
-            action_log.append(f"🟢 INCREMENTO: {ticker} ({cur_w*100:.2f}% → {tgt_w*100:.2f}%) | Prezzo: {fmt_usd(price)}")
+            action_log.append(f"[INCREMENTO]: {ticker} ({cur_w*100:.2f}% a {tgt_w*100:.2f}%) | Prezzo: {fmt_usd(price)}")
             turnover_cost_frac += delta_w * (cost_bps(ticker) / 10000.0)
         else:
             trimmed_w = -delta_w
-            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), trimmed_w, "⚖️ Ribilanciamento mensile (trim parziale)")
+            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), trimmed_w, "Ribilanciamento mensile (trim parziale)")
             pos["weight"] = tgt_w
             pos["current_price"] = price
             turnover_cost_frac += trimmed_w * (cost_bps(ticker) / 10000.0)
@@ -490,7 +490,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
         sym = ticker + "-USD" if is_crypto else ticker
         price = prices_by_ticker.get(sym)
         if price is None or price <= 0:
-            action_log.append(f"⚠️ Impossibile aprire {ticker}: prezzo non disponibile")
+            action_log.append(f"[ATTENZIONE] Impossibile aprire {ticker}: prezzo non disponibile")
             continue
         current[ticker] = {
             "entry_date": today_str,
@@ -500,7 +500,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
             "is_crypto": is_crypto,
             "weight": tgt_w,
         }
-        action_log.append(f"🟢 APERTURA: {ticker} (peso {tgt_w * 100:.2f}%) | Prezzo: {fmt_usd(price)}")
+        action_log.append(f"[APERTURA]: {ticker} (peso {tgt_w * 100:.2f}%) | Prezzo: {fmt_usd(price)}")
         turnover_cost_frac += tgt_w * (cost_bps(ticker) / 10000.0)
 
     # Aggiorna il prezzo corrente delle posizioni rimaste invariate
@@ -604,7 +604,7 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "desc": f"Riduzione a {tgt_w_pct:.2f}% (-{abs(delta_w_pct):.2f}% del capitale)"
             }
             sells.append(order_info)
-            action_log.append(f"RIDUZIONE: {display_name} | Riduce di {abs(delta_w_pct):.2f}% (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}% del capitale) | Prezzo: {fmt_usd(price)}")
+            action_log.append(f"RIDUZIONE: {display_name} | Riduce di {abs(delta_w_pct):.2f}% (da {cur_w_pct:.2f}% a {tgt_w_pct:.2f}% del capitale) | Prezzo: {fmt_usd(price)}")
         elif cur_w <= EPS and tgt_w > EPS:
             order_info = {
                 "action": "APERTURA",
@@ -634,7 +634,7 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
                 "desc": f"Aumento a {tgt_w_pct:.2f}% (+{delta_w_pct:.2f}% del capitale)"
             }
             buys.append(order_info)
-            action_log.append(f"INCREMENTO: {display_name} | Aumenta di +{delta_w_pct:.2f}% (da {cur_w_pct:.2f}% → {tgt_w_pct:.2f}% del capitale) | Prezzo: {fmt_usd(price)}")
+            action_log.append(f"INCREMENTO: {display_name} | Aumenta di +{delta_w_pct:.2f}% (da {cur_w_pct:.2f}% a {tgt_w_pct:.2f}% del capitale) | Prezzo: {fmt_usd(price)}")
 
     return {"sells": sells, "buys": buys, "orders": sells + buys, "action_log": action_log}
 
@@ -661,7 +661,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             _, is_rotation_now = is_rebalancing_schedule()
 
         def _dot(pct):
-            return "[●]" if pct > 0 else "[○]"
+            return "[ON]" if pct > 0 else "[OFF]"
 
         signals_line = (
             f"*REGIMI DI MERCATO*\n"
@@ -689,7 +689,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             if macro_evs:
                 msg += "*CAMBIO DI REGIME MACRO*\n"
                 for ev in macro_evs:
-                    clean_ev = ev.replace("⚠️ MACRO REGIME: ", "").replace("⚠️ ", "").replace("🟢 ", "").replace("🔴 ", "")
+                    clean_ev = ev.replace("[REGIME MACRO]: ", "")
                     msg += f"• {clean_ev}\n"
                 msg += "\n"
 
@@ -717,10 +717,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             elif action_log:
                 msg += "*ORDINI DA ESEGUIRE*\n"
                 for log in action_log:
-                    clean = log
-                    for e in ("🟢 ", "🔴 ", "🔁 ", "⚖️ ", "🔄 "):
-                        clean = clean.replace(e, "")
-                    msg += f"• {clean}\n"
+                    msg += f"• {log}\n"
                 msg += "\n"
 
             msg += f"{signals_line}\n\nQuote, controvalori e dettagli operativi su Dashboard."

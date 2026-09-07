@@ -63,91 +63,17 @@ def _load_price_cache():
 
 
 # ==============================================================================
-# HTML RENDERING HELPERS & STYLING
+# HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
-def st_html(html_str):
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    st.markdown(cleaned, unsafe_allow_html=True)
+from ui_components import (
+    st_html, fill_slot, inject_page_styles, section_title, sub_hero_metric,
+    render_monthly_returns_html_table, get_logo_b64,
+    POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
+    BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
+)
 
+inject_page_styles()
 
-def fill_slot(slot, html_str):
-    """Riempie a posteriori un st.empty() riservato prima nel flusso — usato
-    per il valore hero, che deve apparire visivamente PRIMA del controllo
-    capitale ma puo' essere calcolato solo DOPO aver letto il widget."""
-    cleaned = "\n".join(line.strip() for line in html_str.strip().splitlines())
-    slot.markdown(cleaned, unsafe_allow_html=True)
-
-
-st_html("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
-
-    html, body, [class*="css"], .stApp {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        letter-spacing: -0.01em;
-    }
-
-    /* Tabular numbers for financial metrics and dataframes */
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"], .stDataFrame, div[data-testid="stTable"], table {
-        font-family: 'JetBrains Mono', monospace !important;
-        font-variant-numeric: tabular-nums !important;
-    }
-
-    /* Tab navigation polish */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
-        border-bottom: 1px solid rgba(255,247,237,0.12);
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 8px 18px;
-        border-radius: 8px 8px 0px 0px;
-        font-weight: 600;
-        font-size: 13.5px;
-    }
-
-    div[style*="border-radius"] {
-        transition: border-color 0.15s ease-in-out;
-    }
-
-    .glass-card {
-        background: rgba(255, 247, 237, 0.045);
-        border: 1px solid rgba(255, 247, 237, 0.09);
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-    }
-    .glass-card-accent {
-        background: rgba(201, 164, 76, 0.10);
-        border: 1px solid rgba(201, 164, 76, 0.22);
-        border-radius: 8px;
-        padding: 14px 16px;
-        margin-bottom: 16px;
-    }
-
-    /* Rimuove completamente la sidebar e controlli collegati */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarCollapsedControl"],
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
-</style>
-""")
-
-
-# ==============================================================================
-# DESIGN TOKENS (identici al vero Apex Engine)
-# ==============================================================================
-POS = "#3DDC97"
-NEG = "#EC657B"
-MUTED_DOT = "#5B534B"
-ACCENT = "#C9A44C"
-ACCENT_SOFT = "rgba(201,164,76,0.10)"
-SURFACE = "rgba(255,247,237,0.045)"
-BORDER = "rgba(255,247,237,0.09)"
-BORDER_STRONG = "rgba(255,247,237,0.16)"
-MUTED = "#9C9187"
-MUTED_2 = "#6E655C"
-BADGE_TEXT = "#F5F1EA"
 BADGE_POS_BG = "#1D5F42"
 BADGE_NEG_BG = "#7B2836"
 BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
@@ -157,11 +83,6 @@ CLASS_COLOR_BTC = portfolio_manager.get_class_color("Bitcoin")
 CLASS_COLOR_GOLD = portfolio_manager.get_class_color("Oro")
 CLASS_COLOR_BOND = portfolio_manager.get_class_color("Obbligazioni")
 CLASS_COLOR_CASH = portfolio_manager.get_class_color("Liquidità")
-
-FRAUNCES = "'Fraunces', Georgia, serif"
-MONO = "'JetBrains Mono', monospace"
-
-MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
 
 
 # ==============================================================================
@@ -385,67 +306,8 @@ def render_hist_trades_html_table(df, active_cols):
     return f'''<div style="width:100%; max-height:420px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
-def render_monthly_returns_html_table(df_eq):
-    """Genera la matrice HTML istituzionale dei rendimenti mensili e annuali."""
-    if df_eq is None or df_eq.empty:
-        return ''
-    df = df_eq.copy()
-    years = sorted(df.index.year.unique(), reverse=True)
-    months = list(range(1, 13))
-
-    th_cells = [f'<th style="padding:8px 10px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Anno</th>']
-    for m_name in MESI_IT:
-        th_cells.append(f'<th style="padding:8px 8px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{m_name}</th>')
-    th_cells.append(f'<th style="padding:8px 12px; font-weight:700; color:{ACCENT}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; border-left:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tot Anno</th>')
-
-    rows_html = []
-    for y in years:
-        td_cells = [f'<td style="padding:8px 10px; font-size:12px; font-weight:700; color:{BADGE_TEXT}; font-family:{MONO};">{y}</td>']
-        df_y = df[df.index.year == y]
-        df_prev = df[df.index.year < y]
-        y_start_val = df_prev['value'].iloc[-1] if not df_prev.empty else df_y['value'].iloc[0]
-        y_end_val = df_y['value'].iloc[-1]
-        y_ret = ((y_end_val / y_start_val) - 1.0) * 100.0 if y_start_val > 0 else 0.0
-
-        for m in months:
-            df_ym = df[(df.index.year == y) & (df.index.month == m)]
-            if df_ym.empty:
-                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:center; color:{MUTED}; font-family:{MONO}; opacity:0.4;">—</td>')
-            else:
-                df_before = df[df.index < df_ym.index[0]]
-                m_start_val = df_before['value'].iloc[-1] if not df_before.empty else df_ym['value'].iloc[0]
-                m_end_val = df_ym['value'].iloc[-1]
-                m_ret = ((m_end_val / m_start_val) - 1.0) * 100.0 if m_start_val > 0 else 0.0
-
-                col = POS if m_ret > 0 else NEG if m_ret < 0 else MUTED
-                bg = 'rgba(61,220,151,0.07)' if m_ret > 0 else 'rgba(236,101,123,0.08)' if m_ret < 0 else 'transparent'
-                td_cells.append(f'<td style="padding:8px 8px; font-size:11.5px; text-align:right; font-family:{MONO}; font-weight:600; color:{col}; background:{bg}; white-space:nowrap;">{m_ret:+.1f}%</td>')
-
-        y_col = POS if y_ret > 0 else NEG if y_ret < 0 else MUTED
-        y_bg = 'rgba(61,220,151,0.12)' if y_ret > 0 else 'rgba(236,101,123,0.12)' if y_ret < 0 else 'transparent'
-        td_cells.append(f'<td style="padding:8px 12px; font-size:12px; text-align:right; font-family:{MONO}; font-weight:700; color:{y_col}; background:{y_bg}; border-left:1px solid {BORDER_STRONG}; white-space:nowrap;">{y_ret:+.1f}%</td>')
-        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-
-    return f'''<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:22px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
-
-
-def section_title(text, top="26px", bottom="10px"):
-    return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
-
-
 def monogram(text, size=26):
     return f'''<span style="display:inline-flex; align-items:center; justify-content:center; width:{size}px; height:{size}px; border-radius:6px; border:1px solid {ACCENT}; color:{ACCENT}; font-family:{MONO}; font-weight:700; font-size:10px; letter-spacing:-0.3px; flex-shrink:0;">{text}</span>'''
-
-
-def get_logo_b64():
-    for p in ["logo_icon.png", "logo.png"]:
-        if os.path.exists(p):
-            try:
-                with open(p, "rb") as f:
-                    return base64.b64encode(f.read()).decode()
-            except Exception:
-                pass
-    return ""
 
 
 def calculate_days(entry_date_str):
@@ -683,9 +545,9 @@ with tab_pf:
                     st.error("Errore nel salvataggio della configurazione.")
 
         if _apex_live_eur:
-            st.caption(f"↳ Capitale configurabile · default 100.000 € (NAV storico del modello: €{_apex_live_eur:,.0f} / ${_nav_usd:,.0f})")
+            st.caption(f"Capitale configurabile · default 100.000 € (NAV storico del modello: €{_apex_live_eur:,.0f} / ${_nav_usd:,.0f})")
         else:
-            st.caption("↳ Valore standard da config.json")
+            st.caption("Valore standard da config.json")
 
 
 
@@ -974,16 +836,6 @@ with tab_perf:
     # contano per chi non è un esperto); le 3 di supporto tecnico (Volatilità,
     # Sortino, Calmar — variazioni/dettagli delle prime) sono più piccole,
     # sotto un separatore. Prima erano 6 numeri tutti uguali, senza gerarchia.
-    def sub_hero_metric(label, value, subtext="", val_color=None, primary=False):
-        val_size = "32px" if primary else "20px"
-        return f"""
-        <div style="flex: 1 1 {'160px' if primary else '130px'};">
-            <div style="font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: {MUTED}; margin-bottom: 5px;">{label}</div>
-            <div style="font-family: {MONO}; font-size: {val_size}; font-weight: 800; color: {val_color or 'inherit'};">{value}</div>
-            <div style="font-size: 11px; color: {MUTED}; margin-top: 2px;">{subtext}</div>
-        </div>
-        """
-
     st_html(f"""
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
         {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}%", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
@@ -1016,8 +868,9 @@ with tab_perf:
 
     @st.cache_data(ttl=3600)
     def load_benchmark():
+        # 1. Carica dalla cache pre-scaricata (aggiornata offline dal workflow)
         cache = _load_price_cache()
-        if cache and cache.get("spy_history") and cache["_age_hours"] <= _PRICE_CACHE_MAX_AGE_H:
+        if cache and cache.get("spy_history"):
             hist = cache["spy_history"]
             idx = pd.to_datetime([h["date"] for h in hist])
             df_b = pd.DataFrame({
@@ -1026,25 +879,24 @@ with tab_perf:
                 "low": [h["low"] for h in hist],
                 "close": [h["close"] for h in hist],
             }, index=idx).ffill().dropna()
-            return df_b
-        try:
-            # range=10y (non 2y): con solo 2 anni di SPY il benchmark veniva
-            # normalizzato a un punto di partenza a metà grafico invece che
-            # dall'inizio reale, producendo una curva incoerente per il
-            # periodo "Da Inizio" (segnalato dall'utente). 10y copre l'intero
-            # storico reale di Apex senza alcun costo aggiuntivo.
-            url = "https://query2.finance.yahoo.com/v8/finance/chart/SPY?range=10y&interval=1d"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            res = json.loads(urllib.request.urlopen(req, timeout=5).read().decode())
-            data_spy = res['chart']['result'][0]
-            timestamps = pd.to_datetime(data_spy['timestamp'], unit='s')
-            quote = data_spy['indicators']['quote'][0]
-            df_b = pd.DataFrame({
-                'open': quote['open'], 'high': quote['high'], 'low': quote['low'], 'close': quote['close']
-            }, index=timestamps).ffill().dropna()
-            return df_b
-        except Exception:
-            return pd.DataFrame()
+            if not df_b.empty:
+                return df_b
+        # 2. Fallback deterministico offline: serie storica locale SPY
+        csv_path = os.path.join(os.path.dirname(__file__), "spy_monthly_history.csv")
+        if os.path.exists(csv_path):
+            try:
+                df_csv = pd.read_csv(csv_path)
+                df_csv['Date'] = pd.to_datetime(df_csv['Date'])
+                df_csv = df_csv.set_index('Date').sort_index()
+                return pd.DataFrame({
+                    'open': df_csv['Close'],
+                    'high': df_csv['Close'],
+                    'low': df_csv['Close'],
+                    'close': df_csv['Close']
+                }, index=df_csv.index).ffill().dropna()
+            except Exception:
+                pass
+        return pd.DataFrame()
 
     # Storico della simulazione Apex, calcolato da segnali e prezzi di mercato
     # reali (nessun dato inventato) — non un conto broker reale, vedi didascalia.
@@ -1076,14 +928,14 @@ with tab_perf:
             df_agg = df_eq
 
         last_dt = df_agg.index[-1]
-        if selected_range == "1M":
-            start_dt = last_dt - pd.DateOffset(months=1)
-        elif selected_range == "3M":
-            start_dt = last_dt - pd.DateOffset(months=3)
-        elif selected_range == "6M":
+        if selected_range == "6M":
             start_dt = last_dt - pd.DateOffset(months=6)
         elif selected_range == "1A":
             start_dt = last_dt - pd.DateOffset(years=1)
+        elif selected_range == "3A":
+            start_dt = last_dt - pd.DateOffset(years=3)
+        elif selected_range == "5A":
+            start_dt = last_dt - pd.DateOffset(years=5)
         else:
             start_dt = df_agg.index[0]
 

@@ -390,7 +390,7 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     72 mesi) -- fuori campione per ENTRAMBE le strategie, la stessa identica
     finestra della casella Apex, cosi' le tre cifre sono confrontabili.
     Su questa finestra il CAGR combinato torna correttamente IN MEZZO ai due
-    componenti (15.91% tra 14.38% Apex e 16.88% Convex, tutti lordi) -- il
+    componenti (15.91% tra 14.16% Apex e 16.88% Convex, tutti lordi) -- il
     beneficio di diversificazione reale si vede nel MaxDD (-7.80%, inferiore
     a entrambe le componenti), non nel CAGR. Sharpe/Sortino/MaxDD/Calmar
     calcolati sulle due serie LORDE (apex_monthly_returns_extended_gross.csv
@@ -416,7 +416,7 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "synergy_summary": (
             "Mix 50% Apex / 50% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 15.91% (netto stimato 13.03%), correttamente tra il 14.38% di Apex e il 16.88% di Convex "
+            "CAGR 15.91% (netto stimato 13.03%), correttamente tra il 14.16% di Apex e il 16.88% di Convex "
             "isolatamente. Il beneficio di diversificazione si vede nel MaxDD -7.80% — inferiore a entrambe "
             "le componenti singole (-10.12% Apex, -15.76% Convex) — non nel CAGR: una miscela pesata non può "
             "mai battere entrambi i componenti sul rendimento, solo sul rischio. Correlazione reale: 0.424."
@@ -427,7 +427,7 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
 def compute_unified_portfolio(
     apex_val: float,
     convex_report: convex_engine.ConvexPortfolioReport,
-    monthly_pac: float = 600.0,
+    monthly_pac: float = 500.0,
     target_apex_ratio: float = 0.50,
     apex_allocations: Dict[str, float] = None
 ) -> Dict[str, Any]:
