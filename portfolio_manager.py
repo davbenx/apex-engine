@@ -7,6 +7,7 @@ Consente l'aggiornamento dei parametri utente (campi compilabili salvati in conf
 """
 
 from __future__ import annotations
+import datetime
 import json
 import os
 from typing import Dict, Any, Tuple
@@ -162,28 +163,27 @@ def get_class_color(classe: str) -> str:
     return ASSET_CLASSES_INFO["Liquidità"]["color"]
 
 
-def get_default_convex_holdings_100k(prices: Dict[str, float] = None) -> Dict[str, Any]:
+def get_default_convex_holdings_100k(prices: Dict[str, float] = None, target_capital: float = 100000.0) -> Dict[str, Any]:
     """
     Calcola le quote di default per un capitale standard di 100.000 € in Convex Stack
     perfettamente allineato ai pesi target (NTSG 45%, AVWS 15%, DBMFE 25%, PPFB 7.5%, WBTC 7.5%).
+    La liquidita residua non allocata in quote intere viene assegnata alla cassa fino a raggiungere esattamente 100.000 €.
     """
     base_prices = {"NTSG": 28.69, "AVWS": 25.64, "DBMFE": 123.50, "PPFB": 75.15, "WBTC": 16.60}
     p = {**base_prices, **(prices or {})}
     
-    total_target = 100000.0
-    shares = {
-        "NTSG": int(round((total_target * 0.45) / p["NTSG"])),
-        "AVWS": int(round((total_target * 0.15) / p["AVWS"])),
-        "DBMFE": int(round((total_target * 0.25) / p["DBMFE"])),
-        "PPFB": int(round((total_target * 0.075) / p["PPFB"])),
-        "WBTC": int(round((total_target * 0.075) / p["WBTC"])),
-    }
-    invested = sum(shares[k] * p[k] for k in shares)
-    cash = max(0.0, total_target - invested)
+    target_weights = {"NTSG": 0.45, "AVWS": 0.15, "DBMFE": 0.25, "PPFB": 0.075, "WBTC": 0.075}
+    shares = {}
+    for k, w in target_weights.items():
+        price = max(0.01, float(p.get(k, base_prices.get(k, 1.0))))
+        shares[k] = int((target_capital * w) / price)
+        
+    invested = sum(shares[k] * float(p.get(k, base_prices.get(k, 1.0))) for k in shares)
+    cash = max(0.0, target_capital - invested)
     return {
         "cash_eur": round(cash, 2),
-        "holdings": {k: {"shares": float(shares[k]), "last_price": p[k]} for k in shares},
-        "last_updated": "2026-09-01"
+        "holdings": {k: {"shares": float(shares[k]), "last_price": float(p.get(k, base_prices.get(k, 1.0)))} for k in shares},
+        "last_updated": datetime.date.today().strftime("%Y-%m-%d")
     }
 
 
@@ -220,7 +220,7 @@ def save_config(config_dict: Dict[str, Any]) -> bool:
         return False
 
 
-def load_convex_portfolio() -> Dict[str, Any]:
+def load_convex_portfolio(prices: Dict[str, float] = None) -> Dict[str, Any]:
     """Carica le posizioni attuali dei 5 asset in Convex Stack. Se assenti o vuote, restituisce il default istituzionale da 100k €."""
     if os.path.exists(CONVEX_FILE):
         try:
@@ -231,7 +231,7 @@ def load_convex_portfolio() -> Dict[str, Any]:
                     return data
         except Exception:
             pass
-    return get_default_convex_holdings_100k()
+    return get_default_convex_holdings_100k(prices)
 
 
 def save_convex_portfolio(data: Dict[str, Any]) -> bool:

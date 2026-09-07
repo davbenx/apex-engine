@@ -1,26 +1,26 @@
 {
-    "cash_eur": 49.48,
+    "cash_eur": 134.87,
     "holdings": {
         "NTSG": {
-            "shares": 1568.0,
-            "last_price": 28.69
+            "shares": 1555.0,
+            "last_price": 28.925
         },
         "AVWS": {
             "shares": 585.0,
-            "last_price": 25.64
+            "last_price": 25.61
         },
         "DBMFE": {
-            "shares": 202.0,
-            "last_price": 123.5
+            "shares": 203.0,
+            "last_price": 122.85
         },
         "PPFB": {
-            "shares": 100.0,
-            "last_price": 75.15
+            "shares": 102.0,
+            "last_price": 73.28
         },
         "WBTC": {
-            "shares": 452.0,
-            "last_price": 16.6
+            "shares": 459.0,
+            "last_price": 16.322
         }
     },
-    "last_updated": "2026-09-01"
+    "last_updated": "2026-09-07"
 }
