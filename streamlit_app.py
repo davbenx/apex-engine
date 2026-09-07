@@ -104,21 +104,18 @@ st.markdown(f"""
 p_home = st.Page("home_app.py", title="Visione d'Insieme", url_path="home", icon=None, default=True)
 p_apex = st.Page("page_apex.py", title="Apex Engine", url_path="apex", icon=None)
 p_convex = st.Page("page_convex.py", title="Convex Stack", url_path="convex", icon=None)
-p_venture = st.Page("page_venture.py", title="Venture Altcoin", url_path="venture", icon=None)
 
 # position="hidden" nasconde la barra interna nativa di Streamlit, evitando doppioni o problemi su mobile
-pg = st.navigation([p_home, p_apex, p_convex, p_venture], position="hidden")
+pg = st.navigation([p_home, p_apex, p_convex], position="hidden")
 
-# Quattro bottoni di navigazione "Home", "Apex", "Convex", "Venture" sotto al titolo, sulla stessa linea
-col_nav1, col_nav2, col_nav3, col_nav4 = st.columns(4)
+# Tre bottoni di navigazione "Home", "Apex", "Convex" sotto al titolo, sulla stessa linea
+col_nav1, col_nav2, col_nav3 = st.columns(3)
 with col_nav1:
     st.page_link(p_home, label="Home", use_container_width=True)
 with col_nav2:
     st.page_link(p_apex, label="Apex", use_container_width=True)
 with col_nav3:
     st.page_link(p_convex, label="Convex", use_container_width=True)
-with col_nav4:
-    st.page_link(p_venture, label="Venture", use_container_width=True)
 
 st.markdown("<div style='margin-bottom: 12px; border-bottom: 1px solid rgba(255,247,237,0.08);'></div>", unsafe_allow_html=True)
 
