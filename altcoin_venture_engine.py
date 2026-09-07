@@ -1427,25 +1427,16 @@ def get_tvl_trend_90d(base_tickers: List[str], timeout_sec: int = 10) -> Dict[st
 def fetch_fundamentals_map(
     base_tickers: List[str],
     use_cache_fallback: bool = True,
-    timeout_sec: int = 10
+    timeout_sec: int = 10,
+    force_live: bool = False
 ) -> Dict[str, Dict[str, Any]]:
     """
     Orchestratore: calcola tokenomics_qualified/fundamental_qualified per ogni
-    ticker interrogando CoinGecko e DefiLlama in tempo reale. Se le chiamate
-    live falliscono per intero (rete non disponibile), ricade su una cache
-    locale gia' salvata (venture_fundamentals_cache.json) invece di bloccare
-    lo screening -- ma non inventa mai un valore per un ticker mai visto prima.
+    ticker interrogando la cache locale venture_fundamentals_cache.json in modo
+    istantaneo (cache-first), e richiedendo CoinGecko/DefiLlama live solo per i
+    ticker mancanti o quando force_live=True. Non inventa mai valori mancanti.
     """
     tickers_upper = [t.upper() for t in base_tickers]
-    try:
-        mc_fdv = get_tokenomics_mc_fdv(tickers_upper, timeout_sec=timeout_sec)
-        tvl_trend = get_tvl_trend_90d(tickers_upper, timeout_sec=timeout_sec)
-        live_ok = any(v is not None for v in mc_fdv.values()) or any(v is not None for v in tvl_trend.values())
-    except Exception as e:
-        print(f"[WARN] Fetch fondamentali live fallito: {e}")
-        mc_fdv, tvl_trend, live_ok = {}, {}, False
-
-    result: Dict[str, Dict[str, Any]] = {}
     cached = {}
     if use_cache_fallback and os.path.exists(DEFAULT_FUNDAMENTALS_CACHE_JSON):
         try:
@@ -1454,6 +1445,21 @@ def fetch_fundamentals_map(
         except Exception:
             cached = {}
 
+    missing_tickers = [t for t in tickers_upper if t not in cached] if not force_live else tickers_upper
+
+    mc_fdv = {}
+    tvl_trend = {}
+    live_ok = False
+    if missing_tickers:
+        try:
+            mc_fdv = get_tokenomics_mc_fdv(missing_tickers, timeout_sec=timeout_sec)
+            tvl_trend = get_tvl_trend_90d(missing_tickers, timeout_sec=timeout_sec)
+            live_ok = any(v is not None for v in mc_fdv.values()) or any(v is not None for v in tvl_trend.values())
+        except Exception as e:
+            print(f"[WARN] Fetch fondamentali live fallito: {e}")
+            mc_fdv, tvl_trend, live_ok = {}, {}, False
+
+    result: Dict[str, Dict[str, Any]] = {}
     for t in tickers_upper:
         ratio = mc_fdv.get(t)
         trend = tvl_trend.get(t)

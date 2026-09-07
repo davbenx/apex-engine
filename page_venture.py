@@ -63,8 +63,19 @@ def fetch_live_crypto_price(ticker: str) -> Optional[float]:
 
 
 @st.cache_data(ttl=1800)
-def load_screener_crypto_data(force_live: bool = False):
-    return load_crypto_universe_data(force_live=force_live)
+def get_cached_screening(force_live: bool = False):
+    crypto_dict, btc_s = load_crypto_universe_data(force_live=force_live)
+    if btc_s is None:
+        return crypto_dict, btc_s, {
+            "macro_gate_active": True,
+            "alt_gate_active": False,
+            "regime_mode": "REGIME_BTC_DOMINANCE",
+            "regime_label": "Bitcoin Dominance (Idle in Riserva Bitcoin)",
+            "candidates": [],
+            "ranked_universe": []
+        }
+    screen_res = screen_venture_candidates(crypto_dict, btc_s, cross_kraken_futures=True)
+    return crypto_dict, btc_s, screen_res
 
 
 # STILI DARK GLASSMORPHISM
@@ -133,15 +144,7 @@ engine = VentureAltcoinEngine()
 eur_usd_rate = 1.0850
 
 # Dati di screening & regime macro duale
-crypto_dict, btc_s = load_screener_crypto_data()
-screen_res = screen_venture_candidates(crypto_dict, btc_s, cross_kraken_futures=True) if btc_s is not None else {
-    "macro_gate_active": True,
-    "alt_gate_active": False,
-    "regime_mode": "REGIME_BTC_DOMINANCE",
-    "regime_label": "Bitcoin Dominance (Idle in Riserva Bitcoin)",
-    "candidates": [],
-    "ranked_universe": []
-}
+crypto_dict, btc_s, screen_res = get_cached_screening(force_live=False)
 macro_active = screen_res.get("macro_gate_active", True)
 alt_gate_active = screen_res.get("alt_gate_active", False)
 regime_mode = screen_res.get("regime_mode", "REGIME_BTC_DOMINANCE")
@@ -168,14 +171,14 @@ with col_title:
     """, unsafe_allow_html=True)
 with col_sync:
     if st.button("Sincronizza Live", use_container_width=True):
-        load_screener_crypto_data.clear()
+        get_cached_screening.clear()
         with st.spinner("Aggiornamento live Kraken Futures..."):
             for sym in list(engine.state["positions"].keys()):
                 px = fetch_live_crypto_price(sym)
                 if px and px > 0:
                     engine.update_price(sym, px)
             engine.save_portfolio()
-            load_screener_crypto_data(force_live=True)
+            get_cached_screening(force_live=True)
             st.rerun()
 with col_reb:
     if st.button("Ribilancia Riserva BTC", use_container_width=True):

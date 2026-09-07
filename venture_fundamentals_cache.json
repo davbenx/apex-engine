@@ -385,7 +385,7 @@
   },
   "JUP": {
     "mc_fdv_ratio": 0.4838,
-    "tvl_trend_90d_pct": 29.53
+    "tvl_trend_90d_pct": 27.7
   },
   "DEXE": {
     "mc_fdv_ratio": 0.3654,
@@ -437,7 +437,7 @@
   },
   "LQTY": {
     "mc_fdv_ratio": 0.9877,
-    "tvl_trend_90d_pct": 46.9
+    "tvl_trend_90d_pct": 47.18
   },
   "ANIME": {
     "mc_fdv_ratio": 0.5539,
@@ -552,7 +552,7 @@
     "tvl_trend_90d_pct": null
   },
   "BAND": {
-    "mc_fdv_ratio": 0.9998,
+    "mc_fdv_ratio": 0.9997,
     "tvl_trend_90d_pct": null
   },
   "POWR": {
@@ -629,7 +629,7 @@
   },
   "ZEN": {
     "mc_fdv_ratio": 0.8729,
-    "tvl_trend_90d_pct": 23.36
+    "tvl_trend_90d_pct": 25.0
   },
   "XAU": {
     "mc_fdv_ratio": 1.0,
@@ -745,7 +745,7 @@
   },
   "MNT": {
     "mc_fdv_ratio": 0.531,
-    "tvl_trend_90d_pct": -28.47
+    "tvl_trend_90d_pct": -28.65
   },
   "CETUS": {
     "mc_fdv_ratio": 0.9609,
@@ -789,7 +789,7 @@
   },
   "PENDLE": {
     "mc_fdv_ratio": 0.6121,
-    "tvl_trend_90d_pct": 6.52
+    "tvl_trend_90d_pct": 6.41
   },
   "AEVO": {
     "mc_fdv_ratio": 0.9327,
@@ -837,7 +837,7 @@
   },
   "METIS": {
     "mc_fdv_ratio": 0.7929,
-    "tvl_trend_90d_pct": 16.51
+    "tvl_trend_90d_pct": 7.43
   },
   "NEIRO": {
     "mc_fdv_ratio": 1.0,
