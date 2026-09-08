@@ -62,6 +62,18 @@ def _load_price_cache():
         return None
 
 
+def _spy_benchmark_freshness_label():
+    """Etichetta onesta sulla freschezza del benchmark SPY mostrato — mai
+    lasciare che una cache vecchia passi per dato corrente senza dichiararlo."""
+    cache = _load_price_cache()
+    if cache and cache.get("spy_history"):
+        age_h = cache.get("_age_hours", 0.0)
+        if age_h > _PRICE_CACHE_MAX_AGE_H:
+            return f"Benchmark SPY non aggiornato da {age_h/24:.0f} giorni (ultimo aggiornamento: {cache['fetched_at'][:10]})"
+        return None
+    return "Benchmark SPY da serie storica locale (nessuna cache prezzi disponibile)"
+
+
 # ==============================================================================
 # HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
@@ -1021,6 +1033,10 @@ with tab_perf:
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
         )
         st.plotly_chart(fig, use_container_width=True)
+        if not df_spy.empty:
+            _spy_fresh_note = _spy_benchmark_freshness_label()
+            if _spy_fresh_note:
+                st.caption(_spy_fresh_note)
 
         st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
         df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
