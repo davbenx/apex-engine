@@ -130,6 +130,47 @@ def test_allocations_never_exceed_100_percent_even_with_base_weight_50():
     assert total <= 100.0 + 1e-6, f"la somma dei pesi non deve mai superare 100% (leva non dichiarata), trovato {total}"
 
 
+def test_base_weight_and_vol_target_default_to_current_production_values():
+    """base_weight_per_class/vol_target sono stati aggiunti come parametri
+    opzionali (per permettere una grid search indipendente sulla dimensione
+    delle posizioni per classe in validation_suite/) — non chiamarli non deve
+    cambiare il risultato di una virgola rispetto a prima dell'aggiunta."""
+    b_data = {
+        "SPY": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=20),
+        "IEF": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=21),
+        "GLD": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=22),
+        "BTC-USD": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=23),
+    }
+    alloc_default, _, _ = compute_v2_macro_signal(b_data, prev_hysteresis_state=None)
+    alloc_explicit, _, _ = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, base_weight_per_class=0.50, vol_target=0.22)
+    for cls in alloc_default:
+        assert abs(alloc_default[cls] - alloc_explicit[cls]) < 1e-9
+
+
+def test_base_weight_per_class_scales_allocation_proportionally():
+    """Un base_weight_per_class piu' basso deve produrre pesi finali piu' bassi
+    (a parita' di tutto il resto) — verifica che il parametro sia davvero
+    collegato, non solo accettato e ignorato."""
+    b_data = {
+        "SPY": make_trend_df(daily_drift=0.002, daily_vol=0.012, seed=20),
+        "IEF": make_flat_df(), "GLD": make_flat_df(), "BTC-USD": make_flat_df(),
+    }
+    alloc_50, _, _ = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, base_weight_per_class=0.50)
+    alloc_25, _, _ = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, base_weight_per_class=0.25)
+    assert alloc_25["Equities"] < alloc_50["Equities"]
+
+
+def test_vol_target_parameter_changes_scale_factor():
+    """Un vol_target piu' basso deve scalare piu' aggressivamente verso il
+    basso un portafoglio ad alta volatilita' rispetto a un vol_target piu'
+    alto — stessa proprieta' di V2_VOL_TARGET, ora parametrizzabile."""
+    high_vol = make_trend_df(daily_drift=0.004, daily_vol=0.04, seed=3)
+    b_data = {"SPY": high_vol, "IEF": make_flat_df(), "GLD": make_flat_df(), "BTC-USD": make_flat_df()}
+    _, _, debug_low_target = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, vol_target=0.10)
+    _, _, debug_high_target = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, vol_target=0.30)
+    assert debug_low_target["_vol_target"]["fattore_scala"] < debug_high_target["_vol_target"]["fattore_scala"]
+
+
 def test_select_low_vol_basket_ranks_correctly():
     eq_data = {
         "LOWVOL": make_trend_df(daily_drift=0.0005, daily_vol=0.002, seed=10),

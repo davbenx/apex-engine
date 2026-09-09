@@ -39,6 +39,7 @@ research/
 apex_stocks_data/
 altcoin_data/
 altcoin_daily_data/
+convex_grid_data/
 
 # Environment secrets
 .env

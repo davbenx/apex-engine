@@ -51,6 +51,11 @@ from tax_engine import apply_italian_tax as _apply_italian_tax
 
 DATA_DIR = Path(__file__).parent / "altcoin_data"  # rigenerabile, non tracciato in git (.gitignore)
 KRAKEN_TAKER_FEE = 0.0026  # verificato via ricerca web, fascia volume piu' bassa
+PERIODS_PER_YEAR = 52  # serie SETTIMANALI — bug reale trovato e corretto (vedi apex_stocks_vs_etf_backtest.py):
+# _cagr/_sharpe assumevano di default rendimenti mensili, sottostimando sistematicamente entrambi su
+# questa serie settimanale. La riga "Vol annualizzata" qui sotto usava GIA' sqrt(52) correttamente —
+# l'incoerenza con _cagr/_sharpe (senza periods_per_year) nello stesso file e' il segnale che ha
+# fatto scoprire il bug.
 COINS = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD", "ADA-USD", "AVAX-USD", "LTC-USD", "DOGE-USD"]
 
 
@@ -93,8 +98,10 @@ def backtest_strategy(weights_df: pd.DataFrame, returns_df: pd.DataFrame, label:
     port_net_after_costs = port_net - cost_drag
 
     print(f"\n=== {label} ===")
-    print(f"CAGR lordo (con costi Kraken): {_cagr(port_gross_after_costs)*100:.2f}%  |  CAGR netto (con tasse): {_cagr(port_net_after_costs)*100:.2f}%")
-    print(f"Sharpe lordo: {_sharpe(port_gross_after_costs):.2f}  |  Sharpe netto: {_sharpe(port_net_after_costs):.2f}")
+    print(f"CAGR lordo (con costi Kraken): {_cagr(port_gross_after_costs, PERIODS_PER_YEAR)*100:.2f}%  |  "
+          f"CAGR netto (con tasse): {_cagr(port_net_after_costs, PERIODS_PER_YEAR)*100:.2f}%")
+    print(f"Sharpe lordo: {_sharpe(port_gross_after_costs, periods_per_year=PERIODS_PER_YEAR):.2f}  |  "
+          f"Sharpe netto: {_sharpe(port_net_after_costs, periods_per_year=PERIODS_PER_YEAR):.2f}")
     print(f"Vol annualizzata: {port_gross_after_costs.std()*np.sqrt(52)*100:.1f}%")
     print(f"MaxDD lordo: {_max_drawdown(port_gross_after_costs)*100:.2f}%  |  MaxDD netto: {_max_drawdown(port_net_after_costs)*100:.2f}%")
     return port_gross_after_costs, port_net_after_costs
@@ -208,8 +215,8 @@ def main():
         mask_top2 |= (net_regime.index >= s) & (net_regime.index <= e)
     net_excluding_top2 = net_regime.copy()
     net_excluding_top2[mask_top2] = 0.0
-    print(f"CAGR netto ESCLUDENDO i 2 episodi piu' lunghi: {_cagr(net_excluding_top2)*100:.2f}% "
-          f"(contro {_cagr(net_regime)*100:.2f}% con tutto il campione) — "
+    print(f"CAGR netto ESCLUDENDO i 2 episodi piu' lunghi: {_cagr(net_excluding_top2, PERIODS_PER_YEAR)*100:.2f}% "
+          f"(contro {_cagr(net_regime, PERIODS_PER_YEAR)*100:.2f}% con tutto il campione) — "
           f"{mask_top2.sum()}/{len(net_regime)} settimane escluse ({mask_top2.mean()*100:.0f}%)")
 
     print("\nRiferimento: Apex ha gia' testato (APEX_V2_SPEC.md §8.1, dentro l'overlay macro completo)")

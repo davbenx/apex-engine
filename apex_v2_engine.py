@@ -53,9 +53,18 @@ def _realized_vol(weekly_close: pd.Series, window: int) -> Optional[float]:
 def compute_v2_macro_signal(
     b_data: Dict[str, pd.DataFrame],
     prev_hysteresis_state: Optional[Dict[str, bool]] = None,
+    base_weight_per_class: float = 0.50,
+    vol_target: float = V2_VOL_TARGET,
 ) -> Tuple[Dict[str, float], Dict[str, bool], Dict[str, dict]]:
     """
     Calcola i pesi target per le 4 classi + cash (§2-3 di APEX_V2_SPEC.md).
+
+    base_weight_per_class/vol_target esposti come parametri (default = valori
+    di produzione attuali, Percorso B/§8.25/§10.13) per permettere grid
+    search indipendenti sulla dimensione delle posizioni per classe senza
+    duplicare questa funzione — stessa idea gia' usata per top_n/max_per_sector
+    in select_low_vol_basket. Nessun cambio di comportamento per chi non
+    passa questi argomenti.
 
     Due raffinamenti aggiunti dopo test dedicati (§8.9): banda di isteresi
     adattiva alla volatilita' di ciascun asset (invece di un 2% fisso uguale
@@ -108,7 +117,7 @@ def compute_v2_macro_signal(
         is_active = trend_long_on and trend_short_on
         state[cls] = trend_long_on  # lo stato di isteresi segue solo il trend lungo; il breve e' un filtro extra
 
-        base_weight[cls] = 0.50 if is_active else 0.0  # alzato da 0.25 — vedi §8.25/§10.13 (Percorso B)
+        base_weight[cls] = base_weight_per_class if is_active else 0.0  # default 0.50, alzato da 0.25 — vedi §8.25/§10.13 (Percorso B)
         debug[cls] = {
             "price": price, "ma40w": ma_long_val, "ma20w": ma_short_val,
             "distanza_pct": round(dist * 100, 2), "banda_isteresi_pct": round(band * 100, 2), "attivo": is_active,
@@ -118,7 +127,7 @@ def compute_v2_macro_signal(
         debug.setdefault(cls, {})["vol_12w_ann_pct"] = round(vols[cls] * 100, 2) if cls in vols else None
 
     port_vol = sum(base_weight.get(cls, 0.0) * vols[cls] for cls in V2_CLASS_TICKER if cls in vols)
-    scale = min(1.0, V2_VOL_TARGET / port_vol) if port_vol > 1e-6 else 1.0
+    scale = min(1.0, vol_target / port_vol) if port_vol > 1e-6 else 1.0
 
     raw_weights = {cls: base_weight.get(cls, 0.0) * scale for cls in V2_CLASS_TICKER}
     # Limite esplicito di non-leva (vedi APEX_V2_SPEC.md §8.17/§8.20): con base_weight=0.25

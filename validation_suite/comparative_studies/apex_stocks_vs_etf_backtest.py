@@ -56,6 +56,13 @@ REPO_DIR = Path(__file__).parent
 DATA_DIR = REPO_DIR / "apex_stocks_data"  # prezzi: rigenerabili, non tracciati in git (.gitignore)
 POINTINTIME_FILE = REPO_ROOT / "validation_suite" / "pointintime_data" / "sp500_pointintime_snapshots.json"  # tracciato in git: non banale da rigenerare (Wikipedia rate-limit)
 TRANSACTION_COST_BPS = {"stock": 0.0010, "etf": 0.0008}
+PERIODS_PER_YEAR = 52  # serie SETTIMANALI — bug reale trovato e corretto: cagr/sharpe di
+# framework/metrics.py di default assumono rendimenti mensili (periods_per_year=12); usarle
+# su una serie settimanale senza specificare 52 sottostima sistematicamente sia il CAGR sia
+# lo Sharpe (anni impliciti gonfiati di un fattore ~4.3x). Bug presente nella prima versione
+# di questo file e propagato a sector_cap_grid_test.py e altcoin_vs_btc_backtest.py (corretti
+# nello stesso commit) — tutti i numeri "Sharpe"/"CAGR" riportati prima di questa correzione
+# per backtest settimanali in questa sessione erano sbagliati (sottostimati).
 
 
 def _fetch_weekly_adj(ticker: str, rng: str) -> pd.Series:
@@ -245,8 +252,12 @@ def main():
         port_net = _apply_italian_tax(returns_df, weights_df, tax_types=tax_types)
         port_net_after_costs = port_net - cost_drag
 
-        cagr_g, sharpe_g, dd_g = _cagr(port_gross_after_costs), _sharpe(port_gross_after_costs), _max_drawdown(port_gross_after_costs)
-        cagr_n, sharpe_n, dd_n = _cagr(port_net_after_costs), _sharpe(port_net_after_costs), _max_drawdown(port_net_after_costs)
+        cagr_g = _cagr(port_gross_after_costs, PERIODS_PER_YEAR)
+        sharpe_g = _sharpe(port_gross_after_costs, periods_per_year=PERIODS_PER_YEAR)
+        dd_g = _max_drawdown(port_gross_after_costs)
+        cagr_n = _cagr(port_net_after_costs, PERIODS_PER_YEAR)
+        sharpe_n = _sharpe(port_net_after_costs, periods_per_year=PERIODS_PER_YEAR)
+        dd_n = _max_drawdown(port_net_after_costs)
         results[label] = (cagr_g, sharpe_g, dd_g, cagr_n, sharpe_n, dd_n)
 
         print(f"\n=== {label} ===")
