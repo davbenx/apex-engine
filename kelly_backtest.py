@@ -35,7 +35,12 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-from kelly_engine import compute_kelly_weights
+from kelly_engine import (
+    compute_kelly_weights,
+    KELLY_VOL_TARGET,
+    KELLY_DD_DERISK_TRIGGER,
+    KELLY_DD_DERISK_FLOOR,
+)
 
 TAX_RATE = 0.26
 
@@ -119,6 +124,68 @@ def build_sleeve_returns(prices: Dict[str, pd.Series]) -> pd.DataFrame:
     return out
 
 
+def compute_dynamic_target_weights(
+    calib_returns: pd.DataFrame,
+    oos_returns: pd.DataFrame,
+    base_weights: Dict[str, float],
+    vol_target: float = KELLY_VOL_TARGET,
+    dd_trigger: float = KELLY_DD_DERISK_TRIGGER,
+    dd_floor: float = KELLY_DD_DERISK_FLOOR,
+    vol_window: int = 12,
+) -> pd.DataFrame:
+    """
+    Applica mese per mese, SENZA guardare avanti, il governatore dinamico
+    (Livello 2 di kelly_engine.py: vol-target + deleva su drawdown) ai pesi
+    base fissi calcolati dal walk-forward. Nessuna sleeve viene mai
+    ri-ottimizzata: il governatore scala l'ESPOSIZIONE TOTALE verso cash
+    (`compute_kelly_weights` fa esattamente questo, qui lo si applica passo
+    passo invece che una volta sola — spec §3).
+
+    I segnali di vol/drawdown usano la storia REALIZZATA (governata) del
+    portafoglio, non quella ai pesi base non scalati — coerente con come si
+    comporterebbe il motore live (guarda il proprio NAV reale, non un NAV
+    ipotetico senza governatore). La finestra di warm-up per la vol (prima che
+    esistano `vol_window` mesi di storia governata) usa gli ultimi mesi della
+    CALIBRAZIONE ai pesi base — dati noti prima dell'inizio dell'OOS, nessun
+    lookahead.
+
+    Ritorna un DataFrame (stesso indice di oos_returns, una colonna per
+    sleeve) di pesi effettivi mese per mese, da passare a walk_forward_backtest
+    style functions o direttamente a _apply_italian_tax.
+    """
+    keys = list(base_weights.keys())
+    w = pd.Series(base_weights)
+    warmup_port_returns = list((calib_returns[keys] * w).sum(axis=1).iloc[-vol_window:])
+
+    governed_port_returns: List[float] = []
+    scales: List[float] = []
+    nav, peak = 1.0, 1.0
+
+    for _, row in oos_returns.iterrows():
+        trailing = (warmup_port_returns + governed_port_returns)[-vol_window:]
+        if len(trailing) >= vol_window:
+            realized_vol = float(np.std(trailing, ddof=1) * np.sqrt(12))
+        else:
+            realized_vol = None
+        vol_scale = min(1.0, vol_target / realized_vol) if realized_vol and realized_vol > 1e-6 else 1.0
+
+        drawdown = nav / peak - 1.0
+        dd_scale = dd_floor if drawdown < -dd_trigger else 1.0
+        scale = min(vol_scale, dd_scale)
+        scales.append(scale)
+
+        r_base = float((row[keys] * w).sum())
+        r_governed = r_base * scale
+        governed_port_returns.append(r_governed)
+        nav *= (1 + r_governed)
+        peak = max(peak, nav)
+
+    return pd.DataFrame(
+        [{k: base_weights[k] * s for k in keys} for s in scales],
+        index=oos_returns.index,
+    )
+
+
 SLEEVE_TAX_TYPE = {
     "NTSG_proxy": "REDDITO_CAPITALE",
     "AVWS_proxy": "REDDITO_CAPITALE",
@@ -178,16 +245,24 @@ def _max_drawdown(monthly_returns: pd.Series) -> float:
 
 def _apply_italian_tax(
     sleeve_returns: pd.DataFrame,
-    target_weights: Dict[str, float],
+    target_weights,  # Dict[str, float] (fisso) oppure pd.DataFrame (un peso per mese, stesso indice di sleeve_returns)
     tax_types: Optional[Dict[str, str]] = None,
     rebalance_every: int = 1,
 ) -> pd.Series:
     """
-    Simula un portafoglio a pesi target fissi con ribilanciamento mensile
-    (rebalance_every=1) verso quei pesi, tassando SOLO la porzione
-    effettivamente venduta ad ogni ribilanciamento (stesso principio del bug
-    corretto in backend.py, APEX_V2_SPEC.md §8.8: mai tassare l'intera
-    posizione per un aggiustamento parziale di peso).
+    Simula un portafoglio a pesi target verso cui si ribilancia ogni mese
+    (rebalance_every=1), tassando SOLO la porzione effettivamente venduta ad
+    ogni ribilanciamento (stesso principio del bug corretto in backend.py,
+    APEX_V2_SPEC.md §8.8: mai tassare l'intera posizione per un aggiustamento
+    parziale di peso).
+
+    target_weights puo' essere un dict a pesi FISSI (come nel walk-forward
+    "statico" di walk_forward_backtest) oppure un pd.DataFrame con un peso per
+    ciascuna sleeve per ciascun mese (come nel governatore dinamico di
+    compute_dynamic_target_weights) — stesso ciclo di ribilanciamento/tassazione
+    in entrambi i casi, cambia solo il target verso cui ribilanciare ogni mese.
+    Un peso implicito su una sleeve non elencata quel mese vale 0 (cash, mai
+    tassato).
 
     Semplificazione dichiarata: costo medio ponderato (PMC) senza il limite
     FIFO a 4 anni sul riporto minusvalenze (Apex ha gia' verificato che quel
@@ -207,14 +282,18 @@ def _apply_italian_tax(
     >10.000%, causato esattamente da questa confusione).
     """
     tax_types = tax_types if tax_types is not None else SLEEVE_TAX_TYPE
-    keys = list(target_weights.keys())
+    is_dynamic = isinstance(target_weights, pd.DataFrame)
+    first_weights = target_weights.iloc[0].to_dict() if is_dynamic else target_weights
+    keys = list(first_weights.keys())
     nav = 1.0  # capitale proprio — MAI ricavato sommando i valori nozionali delle posizioni
-    value = {k: target_weights[k] * nav for k in keys}  # valori nozionali, la somma puo' superare nav (leva)
+    value = {k: first_weights[k] * nav for k in keys}  # valori nozionali, la somma puo' superare nav (leva)
     cost_basis = dict(value)
     loss_pool_diverso = 0.0  # minusvalenze REDDITO_DIVERSO non ancora compensate
 
     net_returns = []
-    for _, row in sleeve_returns.iterrows():
+    for i, (_, row) in enumerate(sleeve_returns.iterrows()):
+        target_weights_t = target_weights.iloc[i].to_dict() if is_dynamic else target_weights
+
         # 1. rendimento lordo di portafoglio del mese dai pesi CORRENTI (rispetto al nav
         #    pre-rivalutazione) — stessa convenzione lineare gia' usata per port_gross
         weights_now = {k: value[k] / nav for k in keys}
@@ -225,12 +304,12 @@ def _apply_italian_tax(
         for k in keys:
             value[k] *= (1 + row[k])
 
-        # 3. ribilancia le posizioni verso i pesi target rispetto al NUOVO nav (pre-tasse),
-        #    tassando solo il delta venduto (mai l'intera posizione — stesso principio del
-        #    bug corretto in backend.py, APEX_V2_SPEC.md §8.8)
+        # 3. ribilancia le posizioni verso i pesi target (del mese corrente) rispetto al
+        #    NUOVO nav (pre-tasse), tassando solo il delta venduto (mai l'intera posizione
+        #    — stesso principio del bug corretto in backend.py, APEX_V2_SPEC.md §8.8)
         tax_due = 0.0
         for k in keys:
-            target_val = target_weights[k] * nav_after_market
+            target_val = target_weights_t.get(k, 0.0) * nav_after_market
             delta = target_val - value[k]
             if delta < 0:
                 sold_fraction = min(1.0, (-delta) / value[k]) if value[k] > 1e-12 else 0.0
@@ -328,6 +407,7 @@ def rolling_walk_forward(
     kelly_fraction: float = 0.5,
     max_gross_leverage: float = 1.5,
     max_sleeve_weight: float = 0.6,
+    use_dynamic_governor: bool = False,
 ) -> List[BacktestResult]:
     """
     Walk-forward a finestra espansiva su n_folds fold, invece di un singolo split
@@ -364,13 +444,22 @@ def rolling_walk_forward(
             max_sleeve_weight=max_sleeve_weight,
         )
         weights = res.final_weights
-        port_gross = (oos * pd.Series(weights)).sum(axis=1)
-        port_net = _apply_italian_tax(oos, weights)
+        governor_suffix = ""
+        if use_dynamic_governor:
+            dynamic_weights = compute_dynamic_target_weights(calib, oos, weights)
+            port_gross = (oos * dynamic_weights).sum(axis=1)
+            port_net = _apply_italian_tax(oos, dynamic_weights)
+            avg_leverage = float(dynamic_weights.sum(axis=1).mean())
+            governor_suffix = f" [governatore ON, leva media {avg_leverage*100:.0f}%]"
+        else:
+            port_gross = (oos * pd.Series(weights)).sum(axis=1)
+            port_net = _apply_italian_tax(oos, weights)
+            avg_leverage = res.gross_leverage_final
 
         results.append(BacktestResult(
-            label=f"{label} — fold {i}/{n_folds} ({oos.index[0].date()} -> {oos.index[-1].date()})",
+            label=f"{label} — fold {i}/{n_folds} ({oos.index[0].date()} -> {oos.index[-1].date()}){governor_suffix}",
             n_months_calibration=len(calib), n_months_oos=len(oos),
-            weights_used=weights, gross_leverage=res.gross_leverage_final,
+            weights_used=weights, gross_leverage=avg_leverage,
             monthly_returns_gross=port_gross, monthly_returns_net=port_net,
             cagr_gross=_cagr(port_gross), cagr_net=_cagr(port_net),
             sharpe_gross=_sharpe(port_gross), sharpe_net=_sharpe(port_net),

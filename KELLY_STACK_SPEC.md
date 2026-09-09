@@ -408,6 +408,28 @@ PBO tra le varianti di `KELLY_FRACTION` sul campione lungo = 26% (sotto il
 50% di puro rumore, ma con solo 2 varianti realmente distinte a causa della
 saturazione del Risultato 2 — informativo ma non conclusivo).
 
+**Risultato 4 — il governatore dinamico (§3, Livello 2) aiuta, ma solo dove
+c'e' qualcosa da contenere.** Attivato mese per mese nel walk-forward
+(`compute_dynamic_target_weights`, nessun lookahead: vol/drawdown calcolati
+sulla storia gia' trascorsa, warm-up dagli ultimi mesi di calibrazione) e
+confrontato direttamente con lo stesso disegno a pesi fissi:
+
+| Campione | CAGR netto medio: fisso → governato | MaxDD netto peggiore: fisso → governato |
+|---|---|---|
+| Completo (con DBMFE/WBTC) | 17.1% → **17.6%** | -27.3% → **-14.7%** |
+| Lungo (senza DBMFE/WBTC) | 12.9% → **11.3%** | -24.2% → **-24.0%** |
+
+Sul campione che include le sleeve a coda grassa (DBMFE/WBTC — il disegno
+realmente deployato), il governatore quasi dimezza il worst-case drawdown
+**senza costare rendimento** (anzi con un piccolo guadagno). Sul campione
+senza quelle sleeve non aiuta affatto — stesso identico pattern gia' trovato
+da Apex per il proprio vol-targeting (`APEX_V2_SPEC.md`, apex_v2_engine.py:
+"il beneficio viene specificamente dal contenere i picchi di volatilita' di
+BTC... sullo stesso disegno senza crypto... non aiuta"). **Adottato per
+questo motivo specifico e misurato — non perche' Apex lo usa.** Se il design
+venisse mai deployato senza DBMFE/WBTC, andrebbe ri-verificato se tenerlo
+ancora ha senso.
+
 **Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
 su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
 sostenuto del 30%+. La media piu' favorevole (17.1%, campione corto, gonfiato da bull BTC/IA)
@@ -424,12 +446,12 @@ confermano che quel tetto non era pessimistico).
 2. ~~Test di falsificazione stile Apex (DSR, PBO)~~ — fatto (§7.1), con lo
    stesso limite: la profondita' del multiple-testing testato qui e' modesta
    rispetto ai 16+ tentativi documentati per Apex (`APEX_V2_SPEC.md` §8.1).
-3. **Il governatore dinamico vol-target/drawdown (§3, Livello 2) non e' mai
-   stato attivato nel backtest** — i pesi restano fissi per l'intera finestra
-   out-of-sample di ogni fold. I drawdown osservati in §7.1 (fino a -27%) sono
-   quindi probabilmente un LIMITE SUPERIORE rispetto a quanto il disegno
-   realmente costruito (con il governatore attivo mese per mese) produrrebbe —
-   ma questo va verificato, non assunto: prossimo passo prioritario.
+3. ~~Il governatore dinamico vol-target/drawdown non era mai stato attivato
+   nel backtest~~ — fatto (§7.1, Risultato 4): aiuta sul campione con
+   DBMFE/WBTC (drawdown quasi dimezzato, CAGR invariato o leggermente
+   migliore), non aiuta senza — comportamento coerente con quanto gia'
+   osservato in Apex per lo stesso meccanismo, ma verificato qui
+   indipendentemente, non ereditato per analogia.
 4. **Solver Kelly vincolato (QP, f≥0)** al posto del clip a zero approssimato
    in `compute_kelly_weights` (§2).
 5. **Stress test delle correlazioni in regime di crisi** (2008 incluso nella

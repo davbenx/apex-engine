@@ -7,7 +7,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from kelly_backtest import _cagr, _max_drawdown, _sharpe, _apply_italian_tax, build_sleeve_returns
+from kelly_backtest import (
+    _cagr, _max_drawdown, _sharpe, _apply_italian_tax, build_sleeve_returns,
+    compute_dynamic_target_weights,
+)
 
 
 def test_cagr_constant_monthly_return():
@@ -102,6 +105,60 @@ def test_leveraged_tax_never_inflates_nav_beyond_gross():
         f"un drag fiscale che dimezza la crescita totale su {n} mesi indicherebbe un bug di scala, "
         f"non un effetto fiscale plausibile (lordo {gross_growth:.2f}x, netto {net_growth:.2f}x)"
     )
+
+
+def test_dynamic_governor_deleverages_on_high_volatility():
+    """Un regime di volatilita' realizzata alta (oltre il vol-target) deve
+    produrre pesi finali SCALATI verso il basso rispetto ai pesi base — stesso
+    principio del vol-targeting gia' validato in apex_v2_engine.py."""
+    rng = np.random.default_rng(1)
+    calib = pd.DataFrame({"A": rng.normal(0.01, 0.02, 24), "B": rng.normal(0.005, 0.015, 24)})
+    oos_calm = pd.DataFrame({"A": rng.normal(0.01, 0.02, 24), "B": rng.normal(0.005, 0.015, 24)})
+    oos_stormy = pd.DataFrame({"A": rng.normal(0.01, 0.20, 24), "B": rng.normal(0.005, 0.15, 24)})
+    base_weights = {"A": 0.8, "B": 0.4}
+
+    w_calm = compute_dynamic_target_weights(calib, oos_calm, base_weights)
+    w_stormy = compute_dynamic_target_weights(calib, oos_stormy, base_weights)
+
+    # dopo la finestra di warm-up (12 mesi), il regime turbolento deve avere pesi
+    # sistematicamente piu' bassi di quello calmo
+    assert w_stormy.iloc[12:].sum(axis=1).mean() < w_calm.iloc[12:].sum(axis=1).mean()
+
+
+def test_dynamic_governor_halves_exposure_after_severe_drawdown():
+    """Un drawdown che supera KELLY_DD_DERISK_TRIGGER deve far scattare la
+    deleva al pavimento KELLY_DD_DERISK_FLOOR sui mesi successivi."""
+    from kelly_engine import KELLY_DD_DERISK_FLOOR
+    calib = pd.DataFrame({"A": [0.01] * 24, "B": [0.005] * 24})
+    # crollo netto nei primi mesi OOS, poi mesi piatti: il drawdown resta sopra la soglia
+    oos = pd.DataFrame({
+        "A": [-0.20, -0.15] + [0.0] * 10,
+        "B": [-0.20, -0.15] + [0.0] * 10,
+    })
+    base_weights = {"A": 0.8, "B": 0.4}
+    w = compute_dynamic_target_weights(calib, oos, base_weights)
+    total_base = sum(base_weights.values())
+    # nei mesi finali, dopo il crollo, l'esposizione deve essere scesa al pavimento
+    assert abs(w.iloc[-1].sum() - total_base * KELLY_DD_DERISK_FLOOR) < 1e-9
+
+
+def test_dynamic_governor_has_no_lookahead():
+    """Il peso assegnato ai primi mesi OOS non deve dipendere da cosa succede
+    DOPO in quello stesso OOS — solo dalla calibrazione e dai mesi OOS gia'
+    trascorsi. Verificato modificando gli ultimi mesi OOS e controllando che i
+    primi pesi restino identici."""
+    rng = np.random.default_rng(5)
+    calib = pd.DataFrame({"A": rng.normal(0.01, 0.02, 24), "B": rng.normal(0.005, 0.015, 24)})
+    oos_base = pd.DataFrame({"A": rng.normal(0.01, 0.03, 20), "B": rng.normal(0.005, 0.02, 20)})
+    base_weights = {"A": 0.8, "B": 0.4}
+
+    oos_altered = oos_base.copy()
+    oos_altered.iloc[15:] = oos_altered.iloc[15:] * 10  # sconvolge SOLO la coda finale
+
+    w_base = compute_dynamic_target_weights(calib, oos_base, base_weights)
+    w_altered = compute_dynamic_target_weights(calib, oos_altered, base_weights)
+
+    pd.testing.assert_frame_equal(w_base.iloc[:15], w_altered.iloc[:15])
 
 
 def test_build_sleeve_returns_inner_join_drops_misaligned_months():
