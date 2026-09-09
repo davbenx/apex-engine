@@ -31,6 +31,12 @@ research/
 *.pkl
 *.tmp
 
+# Dati di prezzo scaricabili (rigenerabili con --fetch, vedi apex_stocks_vs_etf_backtest.py
+# e altcoin_vs_btc_backtest.py) — non lo snapshot point-in-time S&P 500 (quello resta
+# tracciato, richiede uno scraping soggetto a rate-limit, non banale da rigenerare)
+apex_stocks_data/
+altcoin_data/
+
 # Environment secrets
 .env
 .env.local
