@@ -116,6 +116,46 @@ def deflated_sharpe_ratio(
     return float(dsr)
 
 
+def block_bootstrap_ci(
+    monthly_returns: np.ndarray,
+    metric_fn,
+    n_bootstrap: int = 2000,
+    block_size: int = 6,
+    ci: float = 0.90,
+    seed: int = 42,
+) -> tuple:
+    """
+    Intervallo di confidenza per una metrica (CAGR, Sharpe, ecc.) via block
+    bootstrap sui rendimenti mensili — non un singolo numero puntuale come
+    tutti i risultati riportati finora in KELLY_STACK_SPEC.md, ma la sua
+    incertezza campionaria. "Block" (non bootstrap i.i.d. mese-per-mese):
+    i rendimenti mensili sono autocorrelati (momentum/vol clustering), un
+    resampling i.i.d. distruggerebbe quella struttura e sottostimerebbe
+    l'incertezza vera — si ricampionano blocchi contigui di `block_size` mesi
+    per preservarla almeno in parte (stessa idea dei blocchi in pbo_cscv).
+
+    metric_fn: funzione che prende un array di rendimenti mensili e ritorna
+    un float (es. _cagr, _sharpe di kelly_backtest.py).
+
+    Ritorna (lower, upper): l'intervallo di confidenza `ci` (default 90%,
+    percentili 5%-95% della distribuzione bootstrap).
+    """
+    rng = np.random.default_rng(seed)
+    n = len(monthly_returns)
+    n_blocks = int(np.ceil(n / block_size))
+
+    estimates = []
+    for _ in range(n_bootstrap):
+        block_starts = rng.integers(0, n - block_size + 1, size=n_blocks)
+        sample = np.concatenate([monthly_returns[s:s + block_size] for s in block_starts])[:n]
+        estimates.append(metric_fn(sample))
+
+    alpha = (1 - ci) / 2
+    lower = float(np.percentile(estimates, alpha * 100))
+    upper = float(np.percentile(estimates, (1 - alpha) * 100))
+    return lower, upper
+
+
 def pbo_cscv(performance_matrix: np.ndarray, n_splits: int = 8) -> float:
     """
     Probability of Backtest Overfitting via Combinatorially Symmetric

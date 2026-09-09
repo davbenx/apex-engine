@@ -606,6 +606,90 @@ versamenti, ed e' comunque coerente con il tetto teorico assoluto di §2
 (~19.2% a Kelly pieno illimitato, calcolato sui prior — i dati reali qui
 confermano che quel tetto non era pessimistico).
 
+### 7.1bis Principi aggiuntivi di matematica/statistica/gestione del rischio
+(su richiesta esplicita dell'utente: "implementa i migliori principi
+matematici, statistici, strategici, stop, position sizing")
+
+Sei principi testati con lo stesso standard di sempre — implementati,
+validati su dati sintetici a comportamento noto, poi su dati reali con
+walk-forward, adottati SOLO se aiutano davvero:
+
+**1. Shrinkage di Ledoit-Wolf (2004) sulla covarianza — ADOTTATO (default).**
+Sostituisce la covarianza campionaria grezza usata finora nella calibrazione
+(`_calibrate_mu_sigma_corr`, `kelly_backtest.py`) con una versione shrunk
+verso un target diagonale, intensità stimata dai dati stessi (nessun
+parametro libero). Corregge l'instabilità già segnalata in `kelly_engine.py`
+(pinv invece di inv per lo stesso motivo). Effetto reale: aiuta di più dove
+la stima è più rumorosa (Sharpe netto 1.26→1.33 sul campione corto, 44 mesi
+di calibrazione) ed è neutro dove i dati bastano già (campione lungo, 130
+mesi) — esattamente la predizione della teoria, non un caso isolato.
+
+**2. Conferma multi-timeframe sul segnale TSMOM — TESTATO, NON adottato.**
+Stessa idea della conferma di Apex (`V2_SHORT_MA_WEEKS`, §8.9) applicata al
+segnale di momentum invece che a un incrocio di medie: richiedere accordo
+tra momentum breve (1/3/6 mesi) e lungo (12 mesi). Risultato onesto: non
+aiuta mai, in nessuna combinazione (Sharpe uguale o leggermente peggiore su
+entrambi i campioni) — a differenza di Apex, dove la stessa idea ha
+funzionato. Non ereditata solo perché ha funzionato altrove.
+
+**3. Governatore di volatilità EWMA — TESTATO, NON adottato.** Media mobile
+esponenziale (convenzione RiskMetrics, λ=0.85/0.94) invece della finestra
+piatta a 12 mesi per la vol realizzata nel governatore dinamico — dovrebbe
+reagire più in fretta a un cambio di regime. A cadenza MENSILE il vantaggio
+teorico non si materializza (Sharpe uguale o leggermente peggiore su
+entrambi i campioni): la finestra piatta a 12 mesi è già abbastanza reattiva
+quando i dati sono mensili, non giornalieri/settimanali — il vantaggio
+dell'EWMA è probabilmente reale a frequenze più alte, non qui.
+
+**4. Solver Kelly vincolato ESATTO (QP) — ADOTTATO, sostituisce
+un'approssimazione.** `kelly_optimization.solve_kelly_qp_long_only`
+(projected gradient ascent, converge al vero massimo vincolato perché
+l'obiettivo Kelly è concavo) sostituisce il clip a zero della soluzione non
+vincolata in `kelly_engine.compute_kelly_weights` — chiudeva il punto 4 già
+aperto in §7.2. Verificato che la QP non è mai peggiore del clip e a volte
+strettamente migliore (test dedicati). **Effetto pratico su dati reali:
+piccolo e misto** (Sharpe quasi invariato sul campione completo, leggermente
+peggiore sul lungo) — coerente con la critica nota di Michaud
+("l'ottimizzazione è massimizzazione dell'errore di stima"): una soluzione
+più esatta per gli input dati può amplificare leggermente il rumore di
+stima di quegli input. Adottato perché matematicamente corretto per il
+problema posto, non perché il backtest lo confermi in modo netto — onestà
+dichiarata, non millantata come miglioramento.
+
+**5. Intervalli di confidenza bootstrap — IMPLEMENTATO, riformula l'intera
+conversazione su "batte Apex".** `kelly_validation.block_bootstrap_ci`
+(block bootstrap, preserva l'autocorrelazione mensile) applicato ai
+risultati chiave: Sharpe netto 1.69 sul campione completo ha un **IC 90%
+di [1.11, 2.82]**; 1.09 sul campione lungo ha IC90% **[0.57, 1.66]**.
+**Questi intervalli sono larghi abbastanza da rendere il confronto puntuale
+con l'1.49 di Apex, fatto in tutta questa sessione, meno conclusivo di
+quanto i singoli numeri suggerissero** — il divario Kelly Stack/Apex
+discusso nei turni precedenti potrebbe non essere statisticamente
+distinguibile dal rumore campionario, dato quanto pochi mesi indipendenti
+esistono (44-131). Non invalida il lavoro fatto (bug reali sono stati
+trovati e corretti, principi reali sono stati testati) ma impone di
+riportare i risultati come range, non come punti, da qui in avanti.
+
+**6. Stop-loss per singola sleeve — TESTATO INDIPENDENTEMENTE, NON
+adottato.** Diverso dallo stop per singola posizione già respinto da Apex
+(`APEX_V2_SPEC.md` §4, titoli individuali) e dal governatore di
+PORTAFOGLIO già validato (§3): qui uno stop applicato a ciascuna sleeve
+diversificata (non un singolo titolo), sopra il governatore. Testato a tre
+soglie (-10%/-15%/-20%) su entrambi i campioni: **peggiora lo Sharpe in
+OGNI configurazione**, e il MaxDD non migliora sempre (sul campione lungo,
+-20% ha un MaxDD peggiore di nessuno stop: -22.8% contro -19.0%). Conferma
+IN MODO INDIPENDENTE — non ereditata — la stessa diagnosi di Apex: lo stop
+taglia durante ritracciamenti normali che il governatore già assorbe,
+senza protezione reale aggiuntiva.
+
+**Bilancio onesto:** su 6 principi testati, 3 adottati (shrinkage, QP
+esatta, IC bootstrap come pratica di reporting) e 3 respinti (conferma
+multi-timeframe, EWMA, stop per sleeve) — lo stesso rapporto di successo
+di tutto il resto di questa sessione. Nessuno dei 3 adottati cambia la
+conclusione su "batte Apex" (§7.1 Risultato 8): il gap resta, ridotto,
+non chiuso, e ora sappiamo che è meno statisticamente netto di quanto
+sembrasse.
+
 ### 7.2 Cosa manca ancora prima di capitale reale
 
 1. ~~Backtest point-in-time~~ — fatto (§7.1), con il limite dichiarato che le

@@ -5,7 +5,7 @@ kelly_backtest.py. Stessa disciplina di test_apex_v2_engine.py.
 """
 import numpy as np
 
-from kelly_validation import deflated_sharpe_ratio, pbo_cscv, _norm_cdf, _norm_ppf
+from kelly_validation import deflated_sharpe_ratio, pbo_cscv, _norm_cdf, _norm_ppf, block_bootstrap_ci
 
 
 def test_norm_cdf_ppf_are_inverses():
@@ -69,6 +69,29 @@ def test_pbo_low_when_one_variant_has_persistent_edge():
     perf[:, 0] += 0.03  # variante 0 ha un vero edge persistente, non rumore
     pbo = pbo_cscv(perf, n_splits=n_splits)
     assert pbo < 0.25, f"PBO con un edge vero e persistente deve essere basso, ottenuto {pbo:.2f}"
+
+
+def test_bootstrap_ci_contains_true_mean_for_iid_data():
+    """Su dati davvero i.i.d. (nessuna autocorrelazione da preservare), l'IC
+    bootstrap della media deve contenere la vera media nota con alta
+    probabilita' — verifica di correttezza di base."""
+    rng = np.random.default_rng(1)
+    true_mean = 0.01
+    returns = rng.normal(true_mean, 0.05, size=200)
+    lower, upper = block_bootstrap_ci(returns, metric_fn=np.mean, block_size=1, n_bootstrap=1000)
+    assert lower < true_mean < upper
+
+
+def test_bootstrap_ci_widens_with_fewer_observations():
+    """Meno osservazioni -> maggiore incertezza -> l'intervallo di confidenza
+    deve essere piu' largo, non piu' stretto — il motivo per cui riportare un
+    IC (non solo il punto stimato) e' informativo."""
+    rng = np.random.default_rng(2)
+    returns_many = rng.normal(0.01, 0.05, size=200)
+    returns_few = rng.normal(0.01, 0.05, size=24)
+    lo_many, hi_many = block_bootstrap_ci(returns_many, metric_fn=np.mean, block_size=1, n_bootstrap=1000)
+    lo_few, hi_few = block_bootstrap_ci(returns_few, metric_fn=np.mean, block_size=1, n_bootstrap=1000)
+    assert (hi_few - lo_few) > (hi_many - lo_many)
 
 
 def test_pbo_requires_at_least_two_variants():

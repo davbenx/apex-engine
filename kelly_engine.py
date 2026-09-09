@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 import numpy as np
 
+from kelly_optimization import solve_kelly_qp_long_only
+
 # ==============================================================================
 # PARAMETRI STRUTTURALI KELLY STACK (vedi KELLY_STACK_SPEC.md per la giustificazione)
 # ==============================================================================
@@ -172,19 +174,17 @@ def compute_kelly_weights(
     # singolare (sleeve altamente correlate, es. NTSG/AVWS a 0.85) — un'inversione
     # diretta potrebbe esplodere in pesi enormi e instabili proprio nel caso in cui
     # la diversificazione reale e' minore di quanto sembri dal conteggio delle sleeve.
-    f_star_unconstrained = np.linalg.pinv(cov) @ mu_vec
     # Vincolo long-only: l'universo di Kelly Stack e' ETC/ETF (spec §6, stesso
     # principio di Convex — nessun margine di broker personale, nessuna posizione
-    # corta disponibile). La soluzione Kelly non vincolata puo' assegnare peso
-    # negativo a una sleeve a basso rendimento atteso ma positivamente correlata
-    # con le altre (es. oro nei prior di default): matematicamente "ottimale" nel
-    # problema non vincolato, ma non implementabile con questi strumenti.
-    # Il clip a zero e' un'approssimazione della vera ottimizzazione vincolata
-    # (che richiederebbe una QP con f>=0, non solo un pinv) — conservativa nella
-    # direzione giusta (mai suggerisce una posizione che non si puo' aprire), ma
-    # non ridistribuisce esattamente il peso "risparmiato" sulle altre sleeve
-    # come farebbe la soluzione QP esatta. Vedi KELLY_STACK_SPEC.md §7.
-    f_star = np.clip(f_star_unconstrained, 0.0, None)
+    # corta disponibile). Risolto ESATTAMENTE via QP (kelly_optimization.py,
+    # projected gradient ascent — l'obiettivo Kelly e' concavo dato che Sigma e'
+    # semidefinita positiva, quindi converge al vero massimo vincolato), non piu'
+    # approssimato con un clip a zero della soluzione non vincolata: il clip
+    # lascia valore sul tavolo sulle sleeve NON vincolate quando il vincolo e'
+    # attivo su almeno una — verificato nei test di kelly_optimization.py
+    # (la QP ottiene un valore dell'obiettivo sempre >= al clip, spesso
+    # strettamente maggiore). Vedi KELLY_STACK_SPEC.md §7.2 punto 4.
+    f_star = solve_kelly_qp_long_only(mu_vec, cov)
     raw_kelly = {k: float(v) for k, v in zip(keys, f_star)}
 
     fractional = {k: v * kelly_fraction for k, v in raw_kelly.items()}

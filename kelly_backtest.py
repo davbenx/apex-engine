@@ -99,6 +99,7 @@ def compute_tsmom_sleeve_returns(
     lookback_months: int = 12,
     vol_target_per_market: float = 0.10,
     vol_window: int = 12,
+    short_lookback_months: Optional[int] = None,
 ) -> pd.Series:
     """
     Sleeve di trend-following sistematico MULTI-MERCATO — non un gate
@@ -113,6 +114,15 @@ def compute_tsmom_sleeve_returns(
     correttamente DENTRO una singola sleeve di trend, non tra classi di
     rischio eterogenee dove Apex l'ha gia' vista fallire, §8.1).
 
+    `short_lookback_months`: se impostato, richiede che il momentum a breve
+    concordi in segno con quello a `lookback_months` (altrimenti flat quel
+    mese) — stessa idea della conferma multi-timeframe di Apex
+    (`V2_SHORT_MA_WEEKS`, APEX_V2_SPEC.md §8.9), qui su un segnale di
+    momentum invece che su un incrocio di medie mobili. Filtra i whipsaw in
+    cui il trend di lungo periodo si e' appena invertito ma quello breve non
+    lo confirma ancora. None (default) = nessuna conferma, comportamento
+    originale (KELLY_STACK_SPEC.md §7.1 Risultato 8).
+
     Nessun lookahead: il segnale e il vol-scale del mese t usano solo prezzi
     fino al mese t-1 (shift(1) esplicito prima di applicarli al rendimento
     realizzato nel mese t).
@@ -125,8 +135,16 @@ def compute_tsmom_sleeve_returns(
     position_returns = pd.DataFrame(index=df.index, columns=keys, dtype=float)
     for k in keys:
         trailing_vol = df[k].rolling(vol_window).std() * np.sqrt(12)
-        trailing_mom = price_index[k].pct_change(lookback_months)
-        signal = np.sign(trailing_mom.shift(1))
+        trailing_mom_long = price_index[k].pct_change(lookback_months)
+        signal_long = np.sign(trailing_mom_long.shift(1))
+
+        if short_lookback_months is not None:
+            trailing_mom_short = price_index[k].pct_change(short_lookback_months)
+            signal_short = np.sign(trailing_mom_short.shift(1))
+            signal = signal_long.where(signal_long == signal_short, 0.0)
+        else:
+            signal = signal_long
+
         vol_scale = (vol_target_per_market / trailing_vol.shift(1)).clip(upper=2.0)
         position_returns[k] = signal * vol_scale * df[k]
 
@@ -267,6 +285,61 @@ def compute_trend_gated_weights(
     return gated_weights.mul(scale_series, axis=0)
 
 
+def apply_per_sleeve_stop_loss(
+    oos_returns: pd.DataFrame,
+    weights: pd.DataFrame,
+    stop_threshold: float = -0.15,
+    recovery_buffer: float = 0.05,
+) -> pd.DataFrame:
+    """
+    Stop-loss PER SLEEVE (non per singola posizione dentro una sleeve, e non
+    il governatore di PORTAFOGLIO gia' validato): se il rendimento cumulato
+    di una sleeve dal proprio ultimo picco scende sotto `stop_threshold`,
+    quella sleeve viene azzerata (capitale implicito in cash) finche' il
+    prezzo non recupera a `recovery_buffer` sopra il minimo toccato.
+
+    Testato indipendentemente da quanto gia' trovato in Apex per gli stop su
+    singola posizione (APEX_V2_SPEC.md §4: "peggiora sia l'edge sia l'alpha
+    CAPM... genera whipsaw, non protezione aggiuntiva") — il contesto e'
+    diverso (sleeve diversificate multi-asset, non singoli titoli), quindi
+    non si eredita quella conclusione senza riverificarla qui (stesso
+    principio di onesta' intellettuale gia' applicato al governatore
+    drawdown, KELLY_STACK_SPEC.md §3).
+
+    Riceve pesi (fissi o gia' governati) e applica lo stop SOPRA di essi —
+    componibile con compute_dynamic_target_weights/compute_trend_gated_weights.
+    """
+    keys = list(weights.columns)
+    price_index = (1 + oos_returns[keys]).cumprod()
+
+    peak = {k: 1.0 for k in keys}
+    trough = {k: None for k in keys}
+    stopped_out = {k: False for k in keys}
+
+    rows = []
+    for i in range(len(oos_returns)):
+        row_weight = {}
+        for k in keys:
+            price = float(price_index[k].iloc[i])
+            peak[k] = max(peak[k], price)
+            drawdown = price / peak[k] - 1.0
+
+            if stopped_out[k]:
+                trough[k] = min(trough[k], price) if trough[k] is not None else price
+                if price >= trough[k] * (1 + recovery_buffer):
+                    stopped_out[k] = False
+                    peak[k] = price  # ripartenza: il nuovo picco e' il punto di rientro
+                    trough[k] = None
+            elif drawdown < stop_threshold:
+                stopped_out[k] = True
+                trough[k] = price
+
+            row_weight[k] = 0.0 if stopped_out[k] else weights[k].iloc[i]
+        rows.append(row_weight)
+
+    return pd.DataFrame(rows, index=oos_returns.index)
+
+
 def compute_dynamic_target_weights(
     calib_returns: pd.DataFrame,
     oos_returns: pd.DataFrame,
@@ -275,6 +348,7 @@ def compute_dynamic_target_weights(
     dd_trigger: float = KELLY_DD_DERISK_TRIGGER,
     dd_floor: float = KELLY_DD_DERISK_FLOOR,
     vol_window: int = 12,
+    ewma_lambda: Optional[float] = None,
 ) -> pd.DataFrame:
     """
     Applica mese per mese, SENZA guardare avanti, il governatore dinamico
@@ -292,6 +366,14 @@ def compute_dynamic_target_weights(
     CALIBRAZIONE ai pesi base — dati noti prima dell'inizio dell'OOS, nessun
     lookahead.
 
+    ewma_lambda: se impostato (es. 0.94, la convenzione RiskMetrics per dati
+    mensili/giornalieri), la volatilità realizzata usa una media mobile
+    esponenziale della varianza (piu' peso ai mesi recenti, decadimento
+    geometrico) invece della finestra piatta a `vol_window` mesi — reagisce
+    piu' in fretta a un cambio di regime (un singolo mese di vol alta pesa
+    subito, non solo "un dodicesimo" come nella finestra piatta). None
+    (default) = finestra piatta, comportamento originale.
+
     Ritorna un DataFrame (stesso indice di oos_returns, una colonna per
     sleeve) di pesi effettivi mese per mese, da passare a walk_forward_backtest
     style functions o direttamente a _apply_italian_tax.
@@ -304,12 +386,20 @@ def compute_dynamic_target_weights(
     scales: List[float] = []
     nav, peak = 1.0, 1.0
 
+    ewma_var = float(np.var(warmup_port_returns, ddof=1)) if (ewma_lambda is not None and len(warmup_port_returns) >= 2) else None
+    last_return = warmup_port_returns[-1] if warmup_port_returns else None
+
     for _, row in oos_returns.iterrows():
-        trailing = (warmup_port_returns + governed_port_returns)[-vol_window:]
-        if len(trailing) >= vol_window:
-            realized_vol = float(np.std(trailing, ddof=1) * np.sqrt(12))
+        if ewma_lambda is not None:
+            if ewma_var is not None and last_return is not None:
+                ewma_var = ewma_lambda * ewma_var + (1 - ewma_lambda) * last_return ** 2
+                realized_vol = float(np.sqrt(ewma_var) * np.sqrt(12))
+            else:
+                realized_vol = None
         else:
-            realized_vol = None
+            trailing = (warmup_port_returns + governed_port_returns)[-vol_window:]
+            realized_vol = float(np.std(trailing, ddof=1) * np.sqrt(12)) if len(trailing) >= vol_window else None
+
         vol_scale = min(1.0, vol_target / realized_vol) if realized_vol and realized_vol > 1e-6 else 1.0
 
         drawdown = nav / peak - 1.0
@@ -320,6 +410,7 @@ def compute_dynamic_target_weights(
         r_base = float((row[keys] * w).sum())
         r_governed = r_base * scale
         governed_port_returns.append(r_governed)
+        last_return = r_governed
         nav *= (1 + r_governed)
         peak = max(peak, nav)
 
@@ -362,6 +453,60 @@ def _annualize_mean(monthly_returns: pd.Series) -> float:
 
 def _annualize_vol(monthly_returns: pd.Series) -> float:
     return float(monthly_returns.std(ddof=1) * np.sqrt(12))
+
+
+def shrink_covariance_ledoit_wolf(monthly_returns: pd.DataFrame) -> tuple:
+    """
+    Shrinkage di Ledoit-Wolf (2004, "Honey, I Shrunk the Sample Covariance
+    Matrix") verso il target diagonale — riduce l'instabilita' della matrice
+    di covarianza campionaria su finestre di calibrazione corte, lo stesso
+    problema gia' segnalato in kelly_engine.py (pinv invece di inv proprio
+    perche' l'inversione diretta di una covarianza quasi singolare produce
+    pesi enormi e instabili). La covarianza campionaria pura e' uno stimatore
+    non biased ma ad ALTA VARIANZA quando il numero di osservazioni T non e'
+    molto piu' grande del numero di asset N (qui T~40-200, N~5-7 — non un
+    campione enorme); la shrinkage introduce un piccolo bias per una
+    riduzione di varianza molto maggiore, un trade-off documentato in
+    letteratura, non un aggiustamento ad-hoc.
+
+    Target F = matrice diagonale con le stesse varianze campionarie (le
+    correlazioni vengono ridotte verso zero, le varianze restano esatte).
+    Intensita' di shrinkage δ* stimata dai dati stessi (formula Ledoit-Wolf,
+    non fissata a mano) — nessun parametro libero da scegliere/tunare.
+
+    Ritorna (covarianza_shrunk_annualizzata, delta) — delta in [0,1]: 0 =
+    nessuna correzione (covarianza campionaria pura), 1 = solo il target
+    diagonale (correlazioni azzerate).
+    """
+    X = monthly_returns.values
+    T, N = X.shape
+    X = X - X.mean(axis=0, keepdims=True)
+
+    S = (X.T @ X) / T  # covarianza campionaria (popolazione, mensile)
+    F = np.diag(np.diag(S))  # target: stesse varianze, correlazioni a zero
+
+    # Stima dell'intensita' di shrinkage ottimale (Ledoit-Wolf 2004, eq. 2-5):
+    # pi_hat = somma delle varianze asintotiche stimate di ciascuna entrata di S,
+    # rho_hat = la parte di pi_hat che il target F "assorbe gratis" (qui solo la
+    # diagonale, dove F coincide esattamente con S), gamma_hat = distanza al
+    # quadrato tra S e il target (solo le entrate fuori diagonale, dove F=0).
+    pi_mat = np.zeros((N, N))
+    for t in range(T):
+        outer_t = np.outer(X[t], X[t])
+        pi_mat += (outer_t - S) ** 2
+    pi_mat /= T
+    pi_hat = pi_mat.sum()
+    rho_hat = np.diag(pi_mat).sum()  # solo le entrate diagonali: il target coincide con S li'
+    gamma_hat = ((S - F) ** 2).sum()  # F ha zero sulle non-diagonali, quindi qui sono i quadrati di S fuori diagonale
+
+    if gamma_hat < 1e-12:
+        delta = 0.0
+    else:
+        kappa_hat = (pi_hat - rho_hat) / gamma_hat
+        delta = float(np.clip(kappa_hat / T, 0.0, 1.0))
+
+    S_shrunk = delta * F + (1 - delta) * S
+    return S_shrunk * 12, delta  # annualizzata (rendimenti mensili -> varianza annua = mensile * 12)
 
 
 def _cagr(monthly_returns: pd.Series) -> float:
@@ -491,6 +636,28 @@ def _apply_italian_tax(
     return pd.Series(net_returns, index=sleeve_returns.index)
 
 
+def _calibrate_mu_sigma_corr(calib: pd.DataFrame, keys: List[str], use_shrinkage: bool = True):
+    """
+    Calibra mu/sigma/corr sulla finestra di calibrazione. Con use_shrinkage=True
+    (default) la covarianza usa lo shrinkage di Ledoit-Wolf
+    (shrink_covariance_ledoit_wolf) invece della covarianza campionaria grezza
+    — riduce l'instabilita' della stima su finestre corte, lo stesso motivo
+    per cui compute_kelly_weights usa pinv invece di inv. use_shrinkage=False
+    e' mantenuto solo per confronto A/B diretto negli esperimenti di
+    validazione (KELLY_STACK_SPEC.md §7.1).
+    """
+    mu = {k: _annualize_mean(calib[k]) for k in keys}
+    if use_shrinkage:
+        cov_shrunk, _delta = shrink_covariance_ledoit_wolf(calib[keys])
+        sigma_arr = np.sqrt(np.diag(cov_shrunk))
+        sigma = {k: float(s) for k, s in zip(keys, sigma_arr)}
+        corr = cov_shrunk / np.outer(sigma_arr, sigma_arr)
+    else:
+        sigma = {k: _annualize_vol(calib[k]) for k in keys}
+        corr = calib[keys].corr().values
+    return mu, sigma, corr
+
+
 def walk_forward_backtest(
     sleeve_returns: pd.DataFrame,
     label: str,
@@ -498,6 +665,7 @@ def walk_forward_backtest(
     max_gross_leverage: float = 1.5,
     max_sleeve_weight: float = 0.6,
     tax_types: Optional[Dict[str, str]] = None,
+    use_shrinkage: bool = True,
 ) -> BacktestResult:
     """
     Split a meta': calibra mu/sigma/corr SOLO sulla prima meta', applica i pesi
@@ -509,9 +677,7 @@ def walk_forward_backtest(
     oos = sleeve_returns.iloc[split:]
 
     keys = list(sleeve_returns.columns)
-    mu = {k: _annualize_mean(calib[k]) for k in keys}
-    sigma = {k: _annualize_vol(calib[k]) for k in keys}
-    corr = calib.corr().loc[keys, keys].values
+    mu, sigma, corr = _calibrate_mu_sigma_corr(calib, keys, use_shrinkage=use_shrinkage)
 
     dummy_sleeves = {k: {"mu_prior": mu[k], "sigma_prior": sigma[k]} for k in keys}
     res = compute_kelly_weights(
@@ -555,6 +721,8 @@ def rolling_walk_forward(
     use_trend_gate: bool = False,
     trend_hysteresis_band: float = 0.02,
     tax_types: Optional[Dict[str, str]] = None,
+    use_shrinkage: bool = True,
+    ewma_lambda: Optional[float] = None,
 ) -> List[BacktestResult]:
     """
     Walk-forward a finestra espansiva su n_folds fold, invece di un singolo split
@@ -581,9 +749,7 @@ def rolling_walk_forward(
             continue
 
         keys = list(sleeve_returns.columns)
-        mu = {k: _annualize_mean(calib[k]) for k in keys}
-        sigma = {k: _annualize_vol(calib[k]) for k in keys}
-        corr = calib.corr().loc[keys, keys].values
+        mu, sigma, corr = _calibrate_mu_sigma_corr(calib, keys, use_shrinkage=use_shrinkage)
         dummy_sleeves = {k: {"mu_prior": mu[k], "sigma_prior": sigma[k]} for k in keys}
         res = compute_kelly_weights(
             mu=mu, sigma=sigma, corr=corr, sleeves=dummy_sleeves,
@@ -599,7 +765,7 @@ def rolling_walk_forward(
             avg_leverage = float(dynamic_weights.sum(axis=1).mean())
             governor_suffix = f" [trend-gate+governatore ON, leva media {avg_leverage*100:.0f}%]"
         elif use_dynamic_governor:
-            dynamic_weights = compute_dynamic_target_weights(calib, oos, weights)
+            dynamic_weights = compute_dynamic_target_weights(calib, oos, weights, ewma_lambda=ewma_lambda)
             port_gross = (oos * dynamic_weights).sum(axis=1)
             port_net = _apply_italian_tax(oos, dynamic_weights, tax_types=tax_types)
             avg_leverage = float(dynamic_weights.sum(axis=1).mean())

@@ -10,7 +10,7 @@ import pytest
 from kelly_backtest import (
     _cagr, _max_drawdown, _sharpe, _apply_italian_tax, build_sleeve_returns,
     compute_dynamic_target_weights, compute_trend_gate, compute_trend_gated_weights,
-    compute_tsmom_sleeve_returns,
+    compute_tsmom_sleeve_returns, shrink_covariance_ledoit_wolf, apply_per_sleeve_stop_loss,
 )
 
 
@@ -162,6 +162,46 @@ def test_dynamic_governor_has_no_lookahead():
     pd.testing.assert_frame_equal(w_base.iloc[:15], w_altered.iloc[:15])
 
 
+def test_per_sleeve_stop_zeroes_weight_after_breach():
+    n = 20
+    oos = pd.DataFrame({"A": [-0.20] + [0.0] * (n - 1), "B": [0.01] * n})
+    weights = pd.DataFrame({"A": [0.5] * n, "B": [0.5] * n})
+    out = apply_per_sleeve_stop_loss(oos, weights, stop_threshold=-0.15)
+    assert out["A"].iloc[1] == 0.0, "dopo un calo oltre la soglia, la sleeve deve azzerarsi dal mese successivo"
+    assert out["B"].iloc[1] == 0.5, "una sleeve non colpita dallo stop non deve essere toccata"
+
+
+def test_per_sleeve_stop_recovers_after_buffer():
+    n = 10
+    # crolla del 20%, risale poco (non basta a superare il buffer 5% dal minimo),
+    # poi risale ancora abbastanza da superarlo
+    oos = pd.DataFrame({"A": [-0.20, 0.02, 0.10, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]})
+    weights = pd.DataFrame({"A": [1.0] * n})
+    out = apply_per_sleeve_stop_loss(oos, weights, stop_threshold=-0.15, recovery_buffer=0.05)
+    assert out["A"].iloc[1] == 0.0, "subito dopo il crollo, con un recupero ancora insufficiente, deve restare fuori"
+    assert out["A"].iloc[-1] == 1.0, "dopo il recupero oltre il buffer deve rientrare"
+
+
+def test_ewma_governor_reacts_faster_than_flat_window():
+    """Dopo un singolo mese di volatilita' molto alta, l'EWMA deve scalare
+    l'esposizione GIU' immediatamente, mentre la finestra piatta a 12 mesi
+    (che pesa quel mese solo 1/12) deve reagire molto meno — il motivo per
+    cui l'EWMA esiste."""
+    rng = np.random.default_rng(2)
+    calib = pd.DataFrame({"A": rng.normal(0.01, 0.02, 24), "B": rng.normal(0.005, 0.015, 24)})
+    oos = pd.DataFrame({"A": [0.30] + [0.01] * 11, "B": [0.20] + [0.005] * 11})  # shock nel primo mese, poi calmo
+    base_weights = {"A": 0.8, "B": 0.4}
+
+    w_flat = compute_dynamic_target_weights(calib, oos, base_weights, vol_window=12)
+    w_ewma = compute_dynamic_target_weights(calib, oos, base_weights, ewma_lambda=0.85)
+
+    scale_flat_month2 = w_flat.iloc[1].sum() / sum(base_weights.values())
+    scale_ewma_month2 = w_ewma.iloc[1].sum() / sum(base_weights.values())
+    assert scale_ewma_month2 < scale_flat_month2, (
+        "l'EWMA deve scalare l'esposizione giu' piu' della finestra piatta subito dopo uno shock di volatilita'"
+    )
+
+
 def test_trend_gate_turns_off_in_sustained_downtrend():
     """Una sleeve in caduta netta e sostenuta deve finire con gate=0 (inattiva)
     dopo la finestra di isteresi, mentre una sleeve in salita netta resta gate=1."""
@@ -237,6 +277,20 @@ def test_tsmom_goes_short_or_flat_in_sustained_downtrend():
     )
 
 
+def test_tsmom_multi_timeframe_confirmation_flattens_disagreement():
+    """Se il momentum di lungo periodo e' ancora positivo (trend non ancora
+    invertito nella finestra lunga) ma quello di breve e' negativo (appena
+    girato), la conferma multi-timeframe deve dare posizione FLAT (0), non
+    long — altrimenti la conferma non farebbe nulla."""
+    idx = pd.date_range("2015-01-31", periods=30, freq="ME")
+    prices = pd.Series(list(100 * (1.02 ** np.arange(24))) + list(100 * (1.02**23) * (0.95 ** np.arange(1, 7))), index=idx)
+    tsmom_no_confirm = compute_tsmom_sleeve_returns({"A": prices}, lookback_months=12, vol_window=6)
+    tsmom_confirm = compute_tsmom_sleeve_returns({"A": prices}, lookback_months=12, vol_window=6, short_lookback_months=3)
+    # negli ultimi mesi (dopo l'inversione recente) la versione con conferma deve
+    # avere rendimento di posizione piu' vicino a zero (flat) di quella senza
+    assert abs(tsmom_confirm.iloc[-1]) <= abs(tsmom_no_confirm.iloc[-1]) + 1e-9
+
+
 def test_tsmom_has_no_lookahead():
     """Il rendimento di posizione dei primi mesi non deve dipendere da prezzi
     futuri — stessa proprieta' gia' verificata per governatore e trend-gate."""
@@ -252,6 +306,62 @@ def test_tsmom_has_no_lookahead():
 
     common_idx = tsmom_base.index[tsmom_base.index < idx[29]]
     pd.testing.assert_series_equal(tsmom_base.loc[common_idx], tsmom_altered.loc[common_idx])
+
+
+def test_shrinkage_matrix_is_symmetric_and_positive_semidefinite():
+    """Proprieta' che la matrice DEVE avere per essere usabile nell'ottimizzazione
+    Kelly (pinv su una matrice non valida darebbe pesi senza senso)."""
+    rng = np.random.default_rng(4)
+    returns = pd.DataFrame(rng.normal(0, 0.05, size=(30, 5)))
+    cov, delta = shrink_covariance_ledoit_wolf(returns)
+    assert np.allclose(cov, cov.T)
+    eigvals = np.linalg.eigvalsh(cov)
+    assert (eigvals >= -1e-8).all(), "la covarianza shrunk deve restare semidefinita positiva"
+
+
+def test_shrinkage_intensity_between_zero_and_one():
+    rng = np.random.default_rng(5)
+    returns = pd.DataFrame(rng.normal(0, 0.05, size=(24, 6)))
+    _, delta = shrink_covariance_ledoit_wolf(returns)
+    assert 0.0 <= delta <= 1.0
+
+
+def test_shrinkage_more_aggressive_with_fewer_observations():
+    """Con una VERA struttura di correlazione sottostante (non rumore puro,
+    altrimenti sia la stima che il target collassano a zero insieme e il
+    confronto e' degenere), meno osservazioni -> stima piu' rumorosa della
+    correlazione vera -> l'intensita' di shrinkage deve essere maggiore — il
+    punto centrale della correzione di Ledoit-Wolf."""
+    rng = np.random.default_rng(6)
+    n_assets = 8
+    true_corr = np.full((n_assets, n_assets), 0.4)
+    np.fill_diagonal(true_corr, 1.0)
+    true_cov = true_corr * (0.05 ** 2)
+
+    sample_many = pd.DataFrame(rng.multivariate_normal(np.zeros(n_assets), true_cov, size=300))
+    sample_few = pd.DataFrame(rng.multivariate_normal(np.zeros(n_assets), true_cov, size=15))
+
+    _, delta_many_obs = shrink_covariance_ledoit_wolf(sample_many)
+    _, delta_few_obs = shrink_covariance_ledoit_wolf(sample_few)
+    assert delta_few_obs > delta_many_obs, (
+        "con poche osservazioni rispetto al numero di asset, l'intensita' di shrinkage deve essere piu' alta"
+    )
+
+
+def test_shrinkage_reduces_condition_number():
+    """La covarianza shrunk deve essere meglio condizionata (piu' stabile da
+    invertire) della covarianza campionaria pura — il motivo per cui la
+    shrinkage esiste."""
+    rng = np.random.default_rng(8)
+    n_assets = 6
+    returns = pd.DataFrame(rng.normal(0, 0.05, size=(20, n_assets)))  # T poco sopra N: caso instabile
+    X = returns.values - returns.values.mean(axis=0, keepdims=True)
+    S_raw = (X.T @ X) / len(X)
+    S_shrunk, delta = shrink_covariance_ledoit_wolf(returns)
+    assert delta > 0.0
+    cond_raw = np.linalg.cond(S_raw)
+    cond_shrunk = np.linalg.cond(S_shrunk)
+    assert cond_shrunk < cond_raw, "la shrinkage deve migliorare (abbassare) il numero di condizionamento"
 
 
 def test_build_sleeve_returns_inner_join_drops_misaligned_months():
