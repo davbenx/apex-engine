@@ -482,6 +482,49 @@ gia' riservato a BTC (il salto di CAGR coincide con l'unico campione
 disponibile, non con piu' finestre indipendenti). Nessuno di questi 7 cambia
 la conclusione sul target 30-35% (sotto).
 
+**Risultato 7 — tentativo di battere Apex con un filtro di trend per sleeve
+(su richiesta esplicita dell'utente: "deve essere migliori di Apex").**
+Diagnosi di partenza: il governatore di Kelly Stack finora è solo REATTIVO a
+livello di portafoglio (vol-target + drawdown) — mai un segnale di trend PER
+SLEEVE come quello che dà ad Apex il suo Sharpe/Calmar superiori (isteresi su
+MA, `apex_v2_engine.compute_v2_macro_signal`). Implementato lo stesso
+meccanismo (`compute_trend_gate`/`compute_trend_gated_weights`, isteresi
+mensile su indice di prezzo sintetico per sleeve, nessun lookahead — 4 nuovi
+test) e confrontato su un singolo split:
+
+| | CAGR lordo | Sharpe lordo | MaxDD lordo | CAGR netto | Sharpe netto |
+|---|---|---|---|---|---|
+| Campione completo, banda 2% | **29.1%** | **2.00** | **-8.0%** | 15.0% | 1.08 |
+| Campione lungo, banda 2% | **19.5%** | **1.72** | **-10.1%** | 8.4% | 0.66 |
+| Apex deployato (rif.) | 16.0% | 1.49 | 12.3% | — | — |
+
+**Al lordo il trend-gate batte Apex nettamente su entrambi i campioni.** Ma
+il netto CROLLA (Sharpe 2.00→1.08, 1.72→0.66) — causa diagnosticata, non
+generica: il trend-gate aumenta il turnover (ogni cambio di trend è una
+vendita) e le sleeve proxy sono tutte ETF a "reddito di capitale" (non
+compensabile). **È esattamente il problema che Apex ha già risolto** usando
+titoli individuali per la gamba azionaria (redditi diversi, compensabili,
+`APEX_V2_SPEC.md` §1) — non ancora replicato qui.
+
+Sweep della banda di isteresi (2%→20%) per ridurre il turnover: un singolo
+split a banda 12% sembrava recuperare l'edge (Sharpe netto 0.96, meglio della
+baseline 0.83) — ma **verificato con walk-forward multi-finestra, non
+regge**: nessuna banda testata (2/8/12%) batte in modo robusto il governatore
+semplice senza trend-gate su Sharpe netto, su nessuno dei due campioni. Lo
+stesso identico pattern del Risultato 1 (un singolo split mente, il
+multi-finestra dice la verità) si ripete qui una quarta volta.
+
+**Conclusione onesta su "deve essere migliore di Apex":** con la validazione
+multi-finestra fatta finora, **Kelly Stack non batte Apex al netto delle
+tasse in nessuna configurazione testata**. Il trend-gate ha dimostrato di
+funzionare al lordo (Sharpe 1.72-2.00 contro 1.49 di Apex) — l'ipotesi era
+corretta — ma la sua implementazione con strumenti ETF non tax-efficient
+distrugge l'edge. Il percorso concreto per davvero superare Apex non è
+un'altra ricerca di parametri: è replicare per Kelly Stack la stessa
+soluzione fiscale che Apex già usa (strumenti a reddito diverso/compensabile
+per le sleeve soggette a trend-gate) — un lavoro di implementazione
+sostanziale, non ancora fatto, tracciato in §7.2.
+
 **Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
 su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
 sostenuto del 30%+. La media piu' favorevole (17.1%, campione corto, gonfiato da bull BTC/IA)
@@ -511,6 +554,13 @@ confermano che quel tetto non era pessimistico).
    dedicata).
 6. **Verifica di liquidità/AUM aggiornata su JELS** (§4.1) — AUM ~€10M
    rilevato in ricerca, dato puntuale non monitorato in continuo.
+7. **Implementazione tax-efficient del trend-gate per sleeve** (§7.1 Risultato
+   7) — il segnale di trend batte Apex al lordo (Sharpe 1.72-2.00 vs 1.49) ma
+   l'implementazione attuale a ETF (reddito di capitale, non compensabile)
+   distrugge l'edge al netto. Serve l'equivalente di ciò che Apex già fa per
+   la propria gamba azionaria (strumenti a reddito diverso/compensabile) —
+   non ancora costruito per Kelly Stack. **Prerequisito prima di poter
+   affermare che Kelly Stack batte Apex.**
 
 Fino a quel punto, questo motore va trattato come un **framework di calcolo
 pesi**, utile per capire la direzione e la logica dell'allocazione, non come un

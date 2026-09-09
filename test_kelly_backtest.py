@@ -9,7 +9,7 @@ import pytest
 
 from kelly_backtest import (
     _cagr, _max_drawdown, _sharpe, _apply_italian_tax, build_sleeve_returns,
-    compute_dynamic_target_weights,
+    compute_dynamic_target_weights, compute_trend_gate, compute_trend_gated_weights,
 )
 
 
@@ -159,6 +159,58 @@ def test_dynamic_governor_has_no_lookahead():
     w_altered = compute_dynamic_target_weights(calib, oos_altered, base_weights)
 
     pd.testing.assert_frame_equal(w_base.iloc[:15], w_altered.iloc[:15])
+
+
+def test_trend_gate_turns_off_in_sustained_downtrend():
+    """Una sleeve in caduta netta e sostenuta deve finire con gate=0 (inattiva)
+    dopo la finestra di isteresi, mentre una sleeve in salita netta resta gate=1."""
+    n = 30
+    calib = pd.DataFrame({
+        "UP": [0.02] * n, "DOWN": [0.02] * n,  # entrambe in salita durante la calibrazione
+    })
+    oos = pd.DataFrame({
+        "UP": [0.02] * 15,     # continua a salire
+        "DOWN": [-0.05] * 15,  # crollo netto e sostenuto
+    })
+    gate = compute_trend_gate(calib, oos, ma_window=10, hysteresis_band=0.02)
+    assert gate["UP"].iloc[-1] == 1.0
+    assert gate["DOWN"].iloc[-1] == 0.0, "una caduta sostenuta oltre la banda di isteresi deve disattivare la sleeve"
+
+
+def test_trend_gate_hysteresis_keeps_small_dip_active():
+    """Una sleeve gia' attiva con un calo piccolo (dentro la banda di isteresi)
+    deve restare attiva — stesso principio gia' validato in apex_v2_engine.py."""
+    n = 30
+    calib = pd.DataFrame({"A": [0.02] * n})
+    oos = pd.DataFrame({"A": [0.02] * 10 + [-0.005] * 5})  # calo minimo, dentro la banda 2%
+    gate = compute_trend_gate(calib, oos, ma_window=10, hysteresis_band=0.02)
+    assert gate["A"].iloc[-1] == 1.0
+
+
+def test_trend_gate_has_no_lookahead():
+    """Il gate dei primi mesi OOS non deve dipendere da cosa succede DOPO in
+    quello stesso OOS — stessa proprieta' gia' verificata per il governatore
+    dinamico di portafoglio."""
+    rng = np.random.default_rng(9)
+    calib = pd.DataFrame({"A": rng.normal(0.01, 0.03, 24), "B": rng.normal(0.005, 0.02, 24)})
+    oos_base = pd.DataFrame({"A": rng.normal(0.01, 0.04, 20), "B": rng.normal(0.005, 0.03, 20)})
+    oos_altered = oos_base.copy()
+    oos_altered.iloc[15:] = oos_altered.iloc[15:] * 10
+
+    gate_base = compute_trend_gate(calib, oos_base)
+    gate_altered = compute_trend_gate(calib, oos_altered)
+    pd.testing.assert_frame_equal(gate_base.iloc[:15], gate_altered.iloc[:15])
+
+
+def test_trend_gated_weights_zero_out_inactive_sleeve():
+    """Una sleeve disattivata dal filtro di trend deve avere peso ESATTAMENTE
+    zero nei mesi in cui e' inattiva (capitale implicitamente in cash)."""
+    n = 30
+    calib = pd.DataFrame({"UP": [0.02] * n, "DOWN": [0.02] * n})
+    oos = pd.DataFrame({"UP": [0.02] * 15, "DOWN": [-0.05] * 15})
+    weights = compute_trend_gated_weights(calib, oos, {"UP": 0.6, "DOWN": 0.6})
+    assert weights["DOWN"].iloc[-1] == 0.0
+    assert weights["UP"].iloc[-1] > 0.0
 
 
 def test_build_sleeve_returns_inner_join_drops_misaligned_months():

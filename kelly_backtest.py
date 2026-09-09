@@ -124,6 +124,110 @@ def build_sleeve_returns(prices: Dict[str, pd.Series]) -> pd.DataFrame:
     return out
 
 
+def compute_trend_gate(
+    calib_returns: pd.DataFrame,
+    oos_returns: pd.DataFrame,
+    ma_window: int = 10,
+    hysteresis_band: float = 0.02,
+) -> pd.DataFrame:
+    """
+    Stato di trend (1.0 attivo / 0.0 inattivo) PER SLEEVE, mese per mese, con
+    isteresi — stesso meccanismo di apex_v2_engine.compute_v2_macro_signal
+    (APEX_V2_SPEC.md §2), qui a cadenza mensile invece che settimanale e su un
+    indice di prezzo sintetico per ciascuna sleeve (costruito componendo i suoi
+    stessi rendimenti) invece che su un ticker di mercato dedicato — necessario
+    perche' alcune sleeve (es. NTSG_proxy) sono gia' un blend, non un singolo
+    strumento tradabile.
+
+    Motivazione: kelly_engine.py aveva finora SOLO un governatore reattivo a
+    livello di PORTAFOGLIO (vol-target + drawdown, compute_dynamic_target_weights)
+    — mai un segnale di trend per singola sleeve. E' proprio quel segnale (uscire
+    da un downtrend PRIMA che danneggi il portafoglio, non scalare l'esposizione
+    DOPO che il danno e' gia' visibile nella volatilita'/drawdown realizzati) a
+    dare ad Apex il suo Sharpe/Calmar superiori — vedi confronto in
+    KELLY_STACK_SPEC.md §7.1 Risultato 7.
+
+    Stato riportato avanti dalla calibrazione all'OOS (nessun reset artificiale
+    al bordo del walk-forward — lo stato di isteresi del motore live non si
+    resetta il giorno dello split di un test). Nessun lookahead: ogni mese usa
+    solo prezzi fino a quel mese incluso.
+    """
+    keys = list(calib_returns.columns)
+    all_returns = pd.concat([calib_returns, oos_returns])
+    price_index = (1 + all_returns).cumprod()
+    start_idx = len(calib_returns)
+
+    state = {k: True for k in keys}  # fail-open: attivo finche' non emerge un segnale contrario
+    gate_rows = []
+    for pos in range(len(all_returns)):
+        row_gate = {}
+        for k in keys:
+            hist = price_index[k].iloc[:pos + 1]
+            if len(hist) < ma_window + 1:
+                row_gate[k] = 1.0  # dati insufficienti per una MA piena: fail-open, resta attivo
+                continue
+            ma = hist.iloc[-ma_window:].mean()
+            price = float(hist.iloc[-1])
+            dist = price / ma - 1.0 if ma > 0 else 0.0
+            was_active = state[k]
+            is_active = (dist > -hysteresis_band) if was_active else (dist > hysteresis_band)
+            state[k] = is_active
+            row_gate[k] = 1.0 if is_active else 0.0
+        if pos >= start_idx:
+            gate_rows.append(row_gate)
+
+    return pd.DataFrame(gate_rows, index=oos_returns.index)
+
+
+def compute_trend_gated_weights(
+    calib_returns: pd.DataFrame,
+    oos_returns: pd.DataFrame,
+    base_weights: Dict[str, float],
+    ma_window: int = 10,
+    hysteresis_band: float = 0.02,
+    vol_target: float = KELLY_VOL_TARGET,
+    dd_trigger: float = KELLY_DD_DERISK_TRIGGER,
+    dd_floor: float = KELLY_DD_DERISK_FLOOR,
+    vol_window: int = 12,
+) -> pd.DataFrame:
+    """
+    Combina il filtro di trend per sleeve (compute_trend_gate) con il
+    governatore dinamico di portafoglio gia' validato
+    (compute_dynamic_target_weights): una sleeve fuori trend viene spenta
+    (peso 0, capitale implicitamente in cash) PRIMA che il governatore di
+    volatilita'/drawdown—che guarda il portafoglio nel suo complesso, non le
+    singole sleeve—abbia modo di reagire.
+    """
+    keys = list(base_weights.keys())
+    w = pd.Series(base_weights)
+    trend_gate = compute_trend_gate(calib_returns[keys], oos_returns[keys], ma_window, hysteresis_band)
+    gated_weights = trend_gate.mul(w, axis=1)
+
+    warmup_port_returns = list((calib_returns[keys] * w).sum(axis=1).iloc[-vol_window:])
+    governed_port_returns: List[float] = []
+    scales: List[float] = []
+    nav, peak = 1.0, 1.0
+
+    for i in range(len(oos_returns)):
+        trailing = (warmup_port_returns + governed_port_returns)[-vol_window:]
+        realized_vol = float(np.std(trailing, ddof=1) * np.sqrt(12)) if len(trailing) >= vol_window else None
+        vol_scale = min(1.0, vol_target / realized_vol) if realized_vol and realized_vol > 1e-6 else 1.0
+
+        drawdown = nav / peak - 1.0
+        dd_scale = dd_floor if drawdown < -dd_trigger else 1.0
+        scale = min(vol_scale, dd_scale)
+        scales.append(scale)
+
+        r_base = float((oos_returns.iloc[i][keys] * gated_weights.iloc[i]).sum())
+        r_governed = r_base * scale
+        governed_port_returns.append(r_governed)
+        nav *= (1 + r_governed)
+        peak = max(peak, nav)
+
+    scale_series = pd.Series(scales, index=oos_returns.index)
+    return gated_weights.mul(scale_series, axis=0)
+
+
 def compute_dynamic_target_weights(
     calib_returns: pd.DataFrame,
     oos_returns: pd.DataFrame,
@@ -409,6 +513,8 @@ def rolling_walk_forward(
     max_gross_leverage: float = 1.5,
     max_sleeve_weight: float = 0.6,
     use_dynamic_governor: bool = False,
+    use_trend_gate: bool = False,
+    trend_hysteresis_band: float = 0.02,
     tax_types: Optional[Dict[str, str]] = None,
 ) -> List[BacktestResult]:
     """
@@ -447,7 +553,13 @@ def rolling_walk_forward(
         )
         weights = res.final_weights
         governor_suffix = ""
-        if use_dynamic_governor:
+        if use_trend_gate:
+            dynamic_weights = compute_trend_gated_weights(calib, oos, weights, hysteresis_band=trend_hysteresis_band)
+            port_gross = (oos * dynamic_weights).sum(axis=1)
+            port_net = _apply_italian_tax(oos, dynamic_weights, tax_types=tax_types)
+            avg_leverage = float(dynamic_weights.sum(axis=1).mean())
+            governor_suffix = f" [trend-gate+governatore ON, leva media {avg_leverage*100:.0f}%]"
+        elif use_dynamic_governor:
             dynamic_weights = compute_dynamic_target_weights(calib, oos, weights)
             port_gross = (oos * dynamic_weights).sum(axis=1)
             port_net = _apply_italian_tax(oos, dynamic_weights, tax_types=tax_types)
