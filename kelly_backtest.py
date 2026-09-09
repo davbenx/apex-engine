@@ -354,6 +354,7 @@ def walk_forward_backtest(
     kelly_fraction: float = 0.5,
     max_gross_leverage: float = 1.5,
     max_sleeve_weight: float = 0.6,
+    tax_types: Optional[Dict[str, str]] = None,
 ) -> BacktestResult:
     """
     Split a meta': calibra mu/sigma/corr SOLO sulla prima meta', applica i pesi
@@ -378,7 +379,7 @@ def walk_forward_backtest(
     weights = res.final_weights
 
     port_gross = (oos * pd.Series(weights)).sum(axis=1)
-    port_net = _apply_italian_tax(oos, weights)
+    port_net = _apply_italian_tax(oos, weights, tax_types=tax_types)
 
     total_tax_fraction = float((1 + port_gross).prod() - (1 + port_net).prod())
 
@@ -408,6 +409,7 @@ def rolling_walk_forward(
     max_gross_leverage: float = 1.5,
     max_sleeve_weight: float = 0.6,
     use_dynamic_governor: bool = False,
+    tax_types: Optional[Dict[str, str]] = None,
 ) -> List[BacktestResult]:
     """
     Walk-forward a finestra espansiva su n_folds fold, invece di un singolo split
@@ -448,12 +450,12 @@ def rolling_walk_forward(
         if use_dynamic_governor:
             dynamic_weights = compute_dynamic_target_weights(calib, oos, weights)
             port_gross = (oos * dynamic_weights).sum(axis=1)
-            port_net = _apply_italian_tax(oos, dynamic_weights)
+            port_net = _apply_italian_tax(oos, dynamic_weights, tax_types=tax_types)
             avg_leverage = float(dynamic_weights.sum(axis=1).mean())
             governor_suffix = f" [governatore ON, leva media {avg_leverage*100:.0f}%]"
         else:
             port_gross = (oos * pd.Series(weights)).sum(axis=1)
-            port_net = _apply_italian_tax(oos, weights)
+            port_net = _apply_italian_tax(oos, weights, tax_types=tax_types)
             avg_leverage = res.gross_leverage_final
 
         results.append(BacktestResult(

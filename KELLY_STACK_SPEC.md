@@ -457,6 +457,31 @@ CAGR nel caso onesto (lungo) è modesto rispetto al peggioramento di drawdown,
 esattamente il tipo di scommessa che il criterio di Kelly (§2) dice di evitare
 quando non si è certi che l'edge sia reale e non un artefatto del campione.
 
+**Risultato 6 — ricerca di nuovi candidati diversificatori, uno alla volta.**
+Su richiesta esplicita dell'utente ("puoi cercarne altre?"), 7 asset class
+liquide aggiuntive (ognuna un ticker reale, storico verificato via Yahoo)
+testate UNA ALLA VOLTA sopra l'universo base (NTSG/AVWS/PPFB proxy), stesso
+walk-forward multi-finestra, governatore attivo, stessa leva 150%/60%:
+
+| Candidato | Sharpe: base→+cand | CAGR: base→+cand | MaxDD: base→+cand | Verdetto |
+|---|---|---|---|---|
+| EEM (mercati emergenti) | 0.96→0.81 | 12.8%→10.8% | -15.9%→-26.1% | Peggiora tutto |
+| QUAL (fattore qualita') | 1.24→1.21 | 9.6%→12.5% | invariato | Marginale (campione corto, dal 2013) |
+| MTUM (fattore momentum) | 1.38→1.27 | 9.5%→17.5% | -18.6%→-24.3% | **Sospetto**: stesso pattern di fortuna da campione breve gia' visto per BTC/IA (dal 2013) |
+| HYG (credito high yield) | 0.80→0.78 | 10.5%→10.2% | invariato | Non aiuta |
+| **VNQ (REIT)** | **0.96→0.97** | **12.8%→13.2%** | **-15.9%→-15.3%** | **Unico che migliora Sharpe, CAGR e MaxDD insieme** (modesto, non trasformativo) |
+| MNA (merger arbitrage) | 0.99→1.07 | 8.3%→9.3% | -18.7%→-20.3% | Promettente, campione piu' corto (dal 2010) |
+| TIP (inflation-linked) | 0.96→0.89 | 12.8%→11.5% | -15.9%→-21.3% | Peggiora tutto |
+
+**Nessuno di questi 7 e' stato adottato nell'universo di produzione
+(`kelly_engine.py`)** — un singolo test additivo non basta (stesso principio
+di §7.2 punto 2: serve DSR/PBO prima di trattare un risultato come edge reale,
+non rumore di un singolo confronto). VNQ e MNA sono i candidati piu' credibili
+per un prossimo giro di validazione; MTUM va trattato con lo stesso sospetto
+gia' riservato a BTC (il salto di CAGR coincide con l'unico campione
+disponibile, non con piu' finestre indipendenti). Nessuno di questi 7 cambia
+la conclusione sul target 30-35% (sotto).
+
 **Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
 su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
 sostenuto del 30%+. La media piu' favorevole (17.1%, campione corto, gonfiato da bull BTC/IA)
