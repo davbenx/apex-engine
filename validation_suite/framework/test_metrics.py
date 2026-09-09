@@ -39,6 +39,31 @@ def test_calmar_matches_cagr_over_abs_maxdd():
     assert abs(calmar(monthly) - expected) < 1e-9
 
 
+def test_sharpe_daily_annualization_differs_from_monthly_default():
+    """Bug latente reale: usare il default mensile (periods_per_year=12) su
+    una serie daily annualizzerebbe con sqrt(12) invece di sqrt(365) — uno
+    Sharpe sbagliato per un fattore ~5.5x, silenziosamente. periods_per_year
+    deve cambiare il risultato in modo prevedibile (stesso rapporto delle
+    radici)."""
+    daily = pd.Series([0.001] * 100 + [-0.0005] * 50)  # vol non nulla, valore arbitrario
+    sr_monthly_default = sharpe(daily)
+    sr_daily = sharpe(daily, periods_per_year=365)
+    ratio = sr_daily / sr_monthly_default
+    expected_ratio = (365 ** 0.5) / (12 ** 0.5)
+    assert abs(ratio - expected_ratio) < 1e-9
+
+
+def test_cagr_daily_periods_per_year_gives_lower_implied_years_than_monthly_default():
+    """252 giorni ~ 1 anno di trading, ma con periods_per_year=365 (crypto
+    24/7, non 252 come le borse azionarie) lo stesso conteggio di
+    osservazioni implica MENO anni che con il default mensile (12) — cioe'
+    un CAGR piu' alto in valore assoluto per un rendimento totale identico."""
+    returns = pd.Series([0.0005] * 365)  # esattamente 1 "anno crypto" di osservazioni
+    g = cagr(returns, periods_per_year=365)
+    total_growth = (1 + returns).prod()
+    assert abs(g - (total_growth - 1)) < 1e-6, "con esattamente 365 osservazioni e periods_per_year=365, CAGR == crescita totale (1 anno)"
+
+
 def test_calmar_is_nan_when_no_drawdown_ever_occurs():
     """Una serie sempre in crescita non ha mai un drawdown: dividere per zero
     deve dare NaN esplicito, non una ZeroDivisionError o un numero fittizio —

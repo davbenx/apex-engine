@@ -38,6 +38,7 @@ research/
 # TRACCIATI in git, non rigenerabili banalmente (scraping soggetto a rate-limit).
 apex_stocks_data/
 altcoin_data/
+altcoin_daily_data/
 
 # Environment secrets
 .env

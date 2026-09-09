@@ -1,43 +1,50 @@
 """
 metrics.py — metriche di performance standard (CAGR, Sharpe, Max Drawdown,
-Calmar) su serie di rendimenti MENSILI. Estratte da kelly_backtest.py
-(dove erano nate come funzioni private `_cagr`/`_sharpe`/`_max_drawdown`)
-perche' generiche — nessuna dipendenza da Kelly Stack — e riusate da tre
-script indipendenti in validation_suite/comparative_studies/. Nessuna
-logica cambiata nello spostamento: solo promosse da private a pubbliche.
+Calmar) su una serie di rendimenti PERIODICI qualsiasi. Estratte da
+kelly_backtest.py (dove erano nate come funzioni private
+`_cagr`/`_sharpe`/`_max_drawdown`, sempre e solo su rendimenti mensili)
+perche' generiche — nessuna dipendenza da Kelly Stack — e riusate da script
+indipendenti in validation_suite/comparative_studies/.
+
+`periods_per_year` (default 12, mensile — comportamento IDENTICO
+all'originale per ogni chiamante esistente) permette di usare le stesse
+funzioni su rendimenti settimanali (52) o giornalieri (365, crypto 24/7 —
+non 252 come le borse azionarie) senza reimplementarle: usarle su una serie
+daily con il default 12 sarebbe un bug silenzioso (annualizzazione sbagliata
+di un fattore ~5.5x sullo Sharpe), non un'approssimazione accettabile.
 """
 from __future__ import annotations
 import numpy as np
 import pandas as pd
 
 
-def cagr(monthly_returns: pd.Series) -> float:
-    total_growth = float((1 + monthly_returns).prod())
-    years = len(monthly_returns) / 12
+def cagr(returns: pd.Series, periods_per_year: int = 12) -> float:
+    total_growth = float((1 + returns).prod())
+    years = len(returns) / periods_per_year
     if years <= 0 or total_growth <= 0:
         return float("nan")
     return total_growth ** (1 / years) - 1
 
 
-def sharpe(monthly_returns: pd.Series, rf_annual: float = 0.0) -> float:
-    excess = monthly_returns - rf_annual / 12
+def sharpe(returns: pd.Series, rf_annual: float = 0.0, periods_per_year: int = 12) -> float:
+    excess = returns - rf_annual / periods_per_year
     if excess.std(ddof=1) < 1e-12:
         return 0.0
-    return float(excess.mean() / excess.std(ddof=1) * np.sqrt(12))
+    return float(excess.mean() / excess.std(ddof=1) * np.sqrt(periods_per_year))
 
 
-def max_drawdown(monthly_returns: pd.Series) -> float:
-    nav = (1 + monthly_returns).cumprod()
+def max_drawdown(returns: pd.Series) -> float:
+    nav = (1 + returns).cumprod()
     peak = nav.cummax()
     dd = nav / peak - 1
     return float(dd.min())
 
 
-def calmar(monthly_returns: pd.Series) -> float:
+def calmar(returns: pd.Series, periods_per_year: int = 12) -> float:
     """CAGR / |MaxDD|. NaN se il drawdown e' zero (serie senza mai una perdita) —
     evita una ZeroDivisionError silenziosa nei molti punti del progetto che
     finora calcolavano questo rapporto inline in modo incoerente."""
-    dd = max_drawdown(monthly_returns)
+    dd = max_drawdown(returns)
     if abs(dd) < 1e-12:
         return float("nan")
-    return cagr(monthly_returns) / abs(dd)
+    return cagr(returns, periods_per_year=periods_per_year) / abs(dd)

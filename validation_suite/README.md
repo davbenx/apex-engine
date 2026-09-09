@@ -45,11 +45,13 @@ validation_suite/
 │   ├── kelly_backtest.py         <- fetch universo, walk-forward (usa framework/metrics.py e tax_engine.py)
 │   └── test_kelly_*.py           <- 36 test (pytest) sui 3 moduli sopra
 ├── comparative_studies/          <- script di backtest indipendenti, uno-per-domanda, non un motore persistente
-│   ├── apex_stocks_vs_etf_backtest.py   <- basket azionario Apex vs ETF, netto tasse, point-in-time
-│   ├── altcoin_vs_btc_backtest.py       <- altcoin vs BTC buy&hold, netto tasse + fee Kraken
-│   ├── sector_cap_grid_test.py          <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
-│   ├── apex_stocks_data/                <- cache prezzi (rigenerabile, gitignored)
-│   └── altcoin_data/                    <- cache prezzi (rigenerabile, gitignored)
+│   ├── apex_stocks_vs_etf_backtest.py     <- basket azionario Apex vs ETF, netto tasse, point-in-time
+│   ├── altcoin_vs_btc_backtest.py         <- altcoin vs BTC, SETTIMANALE/universo fisso ETH+SOL — superata dalla successiva
+│   ├── altcoin_vs_btc_daily_backtest.py   <- altcoin vs BTC, DAILY + universo point-in-time reale (5 candidati, PBO/DSR/bootstrap)
+│   ├── sector_cap_grid_test.py            <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
+│   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
+│   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
+│   └── altcoin_daily_data/                <- cache prezzi daily (rigenerabile, gitignored)
 └── pointintime_data/             <- DATASET POINT-IN-TIME REALI, tracciati in git (non rigenerabili banalmente)
     ├── sp500_pointintime_snapshots.json          <- composizione reale S&P 500 per anno, 2012-2026
     └── cmc_altcoin_pointintime_snapshots.json    <- classifica reale altcoin per market cap, 2019-2026
@@ -235,14 +237,36 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   contro SPY 3,38% / 0,49 / 0,13 — il basket vince su ogni metrica netta di
   tasse italiane (redditi diversi compensabili vs redditi di capitale non
   compensabili).
-- **Altcoin vs BTC (settimanale)**: nessun candidato testato (equal-weight,
-  inverse-vol, rotazione momentum, rotazione di regime "altseason") batte
-  BTC buy&hold a parità o minor rischio; la strategia di regime più
-  promettente concentra il 100% del suo apparente edge in 2 soli episodi
-  su un campione di 6 anni (2021 e 2023-24) — non è un edge robusto.
-  **In corso**: retest alla granularità daily (segnale settimanale ritenuto
-  troppo lento per i regimi crypto) con universo altcoin point-in-time
-  reale invece di ETH/SOL fissi — vedi `cmc_altcoin_pointintime_snapshots.json`.
+- **Altcoin vs BTC (settimanale, universo fisso ETH/SOL)**: nessun candidato
+  testato (equal-weight, inverse-vol, rotazione momentum, rotazione di
+  regime "altseason") batte BTC buy&hold a parità o minor rischio; la
+  strategia di regime più promettente concentra il 100% del suo apparente
+  edge in 2 soli episodi su un campione di 6 anni (2021 e 2023-24) — non è
+  un edge robusto.
+- **Altcoin vs BTC (daily, universo point-in-time reale, top-3/top-5 alt per
+  trimestre)**: confermato e rafforzato il risultato settimanale con un
+  design molto più esigente (5 candidati, incl. uno switch "BTC rallenta ->
+  singola alt migliore" mai testato prima, PBO-CSCV + DSR + bootstrap CI).
+  BTC buy&hold resta il migliore su ogni metrica netta (CAGR 38,0%, Sharpe
+  0,84, MaxDD -76,6%, 2019-2026). Il candidato più vicino (inverse-vol
+  BTC+top-3) arriva a CAGR netto 31,2%/Sharpe 0,75 — sotto BTC su
+  CAGR e Sharpe, con MaxDD di poco migliore ma non abbastanza da qualificarsi
+  come "rischio pari o minore CON rendimento pari o migliore". Rotazione
+  momentum e switch su rallentamento BTC sono attivamente dannosi (CAGR
+  netto negativo in 3 configurazioni su 4): l'alta frequenza di liquidazioni
+  totali su un asset molto volatile realizza l'intera plusvalenza accumulata
+  ad ogni cambio di posizione, un drag fiscale che si compone e che i
+  whipsaw di momentum non ripagano. L'edge del candidato "regime altseason"
+  resta concentrato in 2 episodi (~5% dei giorni, 2021 e 2025) — escluderli
+  fa crollare il CAGR netto (top-3: 2,71%→-6,66%; top-5: 10,73%→2,75%),
+  stessa fragilità già trovata in settimanale. **Bug reale trovato e corretto
+  durante lo sviluppo**: la prima versione applicava il peso deciso al giorno
+  t al rendimento dello STESSO giorno t (nessun `.shift(1)`, nonostante il
+  docstring lo dichiarasse) — un look-ahead che produceva CAGR lordi
+  assurdi (423%-1093%) prima della correzione; buon esempio del perché
+  ogni risultato numerico va sanity-checked per plausibilità, non solo
+  fatto girare. Vedi `altcoin_vs_btc_daily_backtest.py` per il codice e
+  l'output completo.
 
 ## Cosa NON è (ancora) qui, e perché
 

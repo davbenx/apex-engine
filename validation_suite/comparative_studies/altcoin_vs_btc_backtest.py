@@ -7,6 +7,13 @@ apex_stocks_vs_etf_backtest.py) e costi reali di trading spot su Kraken
 (taker ~0.26%, fascia volumi piu' bassa, verificato via ricerca web
 settembre 2026 — non un numero a memoria)?
 
+VERSIONE SETTIMANALE, universo fisso ETH/SOL — superata da
+altcoin_vs_btc_daily_backtest.py (segnale/decisione daily, universo altcoin
+POINT-IN-TIME reale invece di ETH/SOL scelti a memoria) su richiesta
+esplicita dell'utente ("un segnale settimanale puo' essere troppo lento").
+Lasciata qui per la cronologia (§ discussa in validation_suite/README.md) —
+usare la versione daily per qualsiasi nuova domanda su questo tema.
+
 Contesto: Apex ha gia' testato (APEX_V2_SPEC.md §8.1) due varianti di
 espansione crypto DENTRO il proprio overlay macro completo (mix statico
 70/30 BTC/ETH, basket low-vol top-2 di 5) — entrambe peggiorano ogni
