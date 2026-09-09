@@ -10,6 +10,7 @@ import pytest
 from kelly_backtest import (
     _cagr, _max_drawdown, _sharpe, _apply_italian_tax, build_sleeve_returns,
     compute_dynamic_target_weights, compute_trend_gate, compute_trend_gated_weights,
+    compute_tsmom_sleeve_returns,
 )
 
 
@@ -211,6 +212,46 @@ def test_trend_gated_weights_zero_out_inactive_sleeve():
     weights = compute_trend_gated_weights(calib, oos, {"UP": 0.6, "DOWN": 0.6})
     assert weights["DOWN"].iloc[-1] == 0.0
     assert weights["UP"].iloc[-1] > 0.0
+
+
+def test_tsmom_goes_long_a_sustained_uptrend():
+    """Un mercato in salita netta e sostenuta deve produrre rendimenti di
+    posizione POSITIVI dopo la finestra di lookback (segnale long, non flat)."""
+    idx = pd.date_range("2015-01-31", periods=40, freq="ME")
+    up_prices = pd.Series(100 * (1.02 ** np.arange(40)), index=idx)
+    flat_prices = pd.Series(100.0, index=idx)
+    tsmom = compute_tsmom_sleeve_returns({"UP": up_prices, "FLAT": flat_prices}, lookback_months=12, vol_window=6)
+    assert tsmom.iloc[-1] > 0, "un trend rialzista sostenuto deve tradursi in rendimento di posizione positivo"
+
+
+def test_tsmom_goes_short_or_flat_in_sustained_downtrend():
+    """Un mercato in caduta netta e sostenuta deve produrre rendimenti di
+    posizione NON negativi (short di un asset che scende contribuisce
+    positivamente, o flat) — mai la stessa perdita subita da un long passivo."""
+    idx = pd.date_range("2015-01-31", periods=40, freq="ME")
+    down_prices = pd.Series(100 * (0.98 ** np.arange(40)), index=idx)
+    tsmom_down = compute_tsmom_sleeve_returns({"DOWN": down_prices}, lookback_months=12, vol_window=6)
+    passive_return = down_prices.pct_change().dropna().iloc[-1]
+    assert tsmom_down.iloc[-1] > passive_return, (
+        "il time-series momentum su un downtrend sostenuto deve fare meglio del long passivo dello stesso asset"
+    )
+
+
+def test_tsmom_has_no_lookahead():
+    """Il rendimento di posizione dei primi mesi non deve dipendere da prezzi
+    futuri — stessa proprieta' gia' verificata per governatore e trend-gate."""
+    rng = np.random.default_rng(11)
+    idx = pd.date_range("2015-01-31", periods=40, freq="ME")
+    base_prices = pd.Series(100 * np.exp(np.cumsum(rng.normal(0.005, 0.03, 40))), index=idx)
+
+    altered_prices = base_prices.copy()
+    altered_prices.iloc[30:] = altered_prices.iloc[30:] * 3  # sconvolge solo la coda finale
+
+    tsmom_base = compute_tsmom_sleeve_returns({"A": base_prices}, lookback_months=12, vol_window=6)
+    tsmom_altered = compute_tsmom_sleeve_returns({"A": altered_prices}, lookback_months=12, vol_window=6)
+
+    common_idx = tsmom_base.index[tsmom_base.index < idx[29]]
+    pd.testing.assert_series_equal(tsmom_base.loc[common_idx], tsmom_altered.loc[common_idx])
 
 
 def test_build_sleeve_returns_inner_join_drops_misaligned_months():

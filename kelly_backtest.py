@@ -94,6 +94,45 @@ def load_monthly_series(data_dir: str, tickers: List[str]) -> Dict[str, pd.Serie
     return out
 
 
+def compute_tsmom_sleeve_returns(
+    prices: Dict[str, pd.Series],
+    lookback_months: int = 12,
+    vol_target_per_market: float = 0.10,
+    vol_window: int = 12,
+) -> pd.Series:
+    """
+    Sleeve di trend-following sistematico MULTI-MERCATO — non un gate
+    acceso/spento su sleeve gia' esistenti (gia' testato e limitato dalle
+    tasse, KELLY_STACK_SPEC.md §7.1 Risultato 7), ma una sleeve INDIPENDENTE
+    che applica il time-series momentum (Moskowitz/Ooi/Pedersen 2012,
+    "Time Series Momentum") su piu' mercati scorrelati — la stessa logica
+    usata dai CTA sistematici (Winton, Dunn Capital, AHL): ogni mercato viene
+    tradato long o flat in base al segno del proprio rendimento cumulato a
+    `lookback_months`, scalato a un vol-target comune (altrimenti il mercato
+    piu' volatile domina — stesso principio della risk parity, qui applicato
+    correttamente DENTRO una singola sleeve di trend, non tra classi di
+    rischio eterogenee dove Apex l'ha gia' vista fallire, §8.1).
+
+    Nessun lookahead: il segnale e il vol-scale del mese t usano solo prezzi
+    fino al mese t-1 (shift(1) esplicito prima di applicarli al rendimento
+    realizzato nel mese t).
+    """
+    rets = {k: v.pct_change().dropna() for k, v in prices.items()}
+    df = pd.DataFrame(rets).dropna(how="any")
+    keys = list(df.columns)
+    price_index = (1 + df).cumprod()
+
+    position_returns = pd.DataFrame(index=df.index, columns=keys, dtype=float)
+    for k in keys:
+        trailing_vol = df[k].rolling(vol_window).std() * np.sqrt(12)
+        trailing_mom = price_index[k].pct_change(lookback_months)
+        signal = np.sign(trailing_mom.shift(1))
+        vol_scale = (vol_target_per_market / trailing_vol.shift(1)).clip(upper=2.0)
+        position_returns[k] = signal * vol_scale * df[k]
+
+    return position_returns.mean(axis=1).dropna()
+
+
 def build_sleeve_returns(prices: Dict[str, pd.Series]) -> pd.DataFrame:
     """
     Costruisce i rendimenti mensili delle 5 sleeve backtestabili (JELS escluso,

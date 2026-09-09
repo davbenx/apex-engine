@@ -544,12 +544,59 @@ ridurre i whipsaw senza perdere Sharpe/Calmar. Non ancora testato per Kelly
 Stack: prossimo passo naturale, non ancora intrapreso senza una decisione
 esplicita dell'utente vista la scala di lavoro già investita su questo filone.
 
+**Risultato 8 — ispirazione dai CTA sistematici (Winton/Dunn Capital/AHL) e
+dal paper accademico che ne formalizza il metodo (Moskowitz/Ooi/Pedersen 2012,
+"Time Series Momentum"): una sleeve di trend multi-mercato INDIPENDENTE,
+non un gate su sleeve esistenti.** Su richiesta esplicita dell'utente
+("ispirati ai migliori trader"). A differenza del trend-gate (Risultato 7,
+respinto per il turnover fiscale), questa è una sleeve AGGIUNTIVA con pesi
+Kelly propri, ribilanciata alla stessa cadenza mensile di tutte le altre —
+nessun turnover extra, nessun problema fiscale nuovo. Segnale: long/flat per
+mercato in base al segno del rendimento cumulato a 12 mesi, scalato a
+vol-target comune (SPY/IEF/GLD/DBC — 4 mercati liquidi e scorrelati),
+`compute_tsmom_sleeve_returns`, 3 nuovi test (nessun lookahead, segnale
+coerente su trend sostenuti).
+
+| Campione | Sharpe netto: base→+TSMOM | CAGR netto: base→+TSMOM | MaxDD netto: base→+TSMOM |
+|---|---|---|---|
+| Completo (con BTC/DBMFE) | 1.17→**1.26** | 17.6%→19.5% | -14.7%→-15.9% |
+| Lungo (senza) | 0.83→**1.16** | 11.3%→12.2% | **-24.0%→-16.1%** |
+
+Miglioramento reale su entrambi i campioni, non un singolo split fortunato.
+DSR sullo Sharpe netto, contando conservativamente **20 varianti** provate
+in questa intera sessione (leva, bande di isteresi, 7 diversificatori,
+riclassificazione fiscale, TSMOM stesso) = 1.00 — resiste anche a una
+correzione severa per multiple-testing.
+
+**Due limiti onesti, non aggirabili:**
+1. **Correlazione 0.55 con DBMFE_proxy** — non è una fonte di edge
+   indipendente, è più esposizione allo stesso tipo di premio
+   (trend-following), costruita diversamente. Diversificazione parziale, non
+   piena.
+2. **Non è un prodotto acquistabile.** È una regola di trading mensile fatta
+   in casa su 4 ETF (SPY/IEF/GLD/DBC), non un fondo con un ISIN verificabile
+   come tutte le altre sleeve di questo documento. Implementarla per davvero
+   richiede o (a) eseguirla manualmente ogni mese (costi di transazione non
+   modellati, onere operativo reale, errore umano) o (b) trovare un fondo
+   UCITS che replichi questo stile — non ancora cercato/verificato. **Per
+   questo NON è stata aggiunta a `KELLY_SLEEVES` in produzione** — resta un
+   segnale validato, non uno strumento pronto, stesso standard già applicato
+   a JELS (AUM piccolo, dichiarato) e a Xtrackers Hedge Fund Index (scartato).
+
+**Confronto finale onesto, lordo su lordo (la base comparabile con l'headline
+di Apex):** Kelly Stack + TSMOM raggiunge Sharpe lordo 1.21-1.30 contro
+l'1.49 di Apex — il gap si è ridotto sostanzialmente (da 1.17-1.24 pre-TSMOM)
+ma **non è chiuso**.
+
 **Conclusione onesta su "deve essere migliore di Apex":** con tutta la
-validazione fatta finora (trend-gate + tax-efficient), **Kelly Stack non
-batte ancora Apex al netto delle tasse**. Il gap si è ridotto ma non chiuso.
-Due cause diagnosticate, non generiche: (1) tassazione — parzialmente
-risolta, effetto piccolo; (2) qualità del segnale di trend — non ancora
-affrontata, ipotesi principale per il gap residuo.
+validazione fatta finora (trend-gate + tax-efficient + TSMOM), **Kelly Stack
+si avvicina ad Apex ma non lo supera ancora**, né al lordo né al netto, in
+nessuna configurazione con strumenti realmente acquistabili. Tre cause
+diagnosticate, non generiche: (1) tassazione — parzialmente risolta, effetto
+piccolo; (2) qualità del segnale di trend (isteresi adattiva + multi-
+timeframe di Apex) — non ancora affrontata; (3) TSMOM aggiunge un
+miglioramento reale ma parzialmente ridondante con DBMFE e non ancora
+implementabile con un prodotto verificato.
 
 **Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
 su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
@@ -587,6 +634,13 @@ confermano che quel tetto non era pessimistico).
    la propria gamba azionaria (strumenti a reddito diverso/compensabile) —
    non ancora costruito per Kelly Stack. **Prerequisito prima di poter
    affermare che Kelly Stack batte Apex.**
+8. **Segnale di trend adattivo/multi-timeframe** (§7.1 Risultato 8, causa
+   diagnosticata #2 del gap residuo) — replicare per Kelly Stack
+   `V2_HYSTERESIS_K`/`V2_SHORT_MA_WEEKS` di Apex, non ancora fatto.
+9. **Prodotto reale per la sleeve TSMOM** (§7.1 Risultato 8) — o un fondo
+   UCITS verificato con stile simile, o un piano operativo onesto per
+   l'esecuzione manuale mensile (costi di transazione, disciplina) prima di
+   poterla considerare più di un segnale validato in backtest.
 
 Fino a quel punto, questo motore va trattato come un **framework di calcolo
 pesi**, utile per capire la direzione e la logica dell'allocazione, non come un
