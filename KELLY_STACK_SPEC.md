@@ -8,7 +8,23 @@ niente viene presentato come "pronto per capitale reale" finché non è validato
 backtest point-in-time e test di robustezza — esattamente lo standard che ha già
 prodotto due bug di produzione corretti in Apex (§8.5, §8.8 di `APEX_V2_SPEC.md`).
 
-**Stato di questo documento: DESIGN, non ancora backtestato.** Vedi §7.
+**Stato di questo documento: DESIGN, parzialmente validato con dati reali.** Vedi §7.
+
+**Obiettivo numerico riconciliato (dopo la validazione di §7.1):** l'obiettivo
+iniziale ("100k→2M in 10 anni, CAGR 30-35%") non è sostenuto da nessun
+walk-forward reale a nessuna combinazione di parametri provata — vedi §7.1.
+Con un versamento mensile reale di 600€ e i CAGR netti onesti osservati
+(12.9%-17.1% a seconda del campione storico usato), la proiezione a 10 anni è
+**~476k-659k**, non 2M. Su richiesta esplicita dell'utente, che ha scelto il
+percorso a rischio controllato (non alzare i governatori oltre quanto validato
+in §3) invece di inseguire il target originale con più leva, l'obiettivo
+numerico è riconciliato così: **~2M resta un traguardo plausibile su un
+orizzonte di ~18-22 anni** (899k-2.45M a 18 anni, a seconda del campione,
+secondo lo stesso calcolo), oppure **~500-700k rimane il traguardo realistico
+a 10 anni** mantenendo la stessa disciplina di rischio. Nessuna modifica ai
+parametri di rischio (`KELLY_FRACTION`, `MAX_GROSS_LEVERAGE`,
+`MAX_SLEEVE_WEIGHT`) è stata fatta per inseguire il numero originale — sarebbe
+stato l'errore di data-snooping che questo intero documento esiste per evitare.
 
 **Revisione del mandato (dopo la prima stesura):** su richiesta esplicita
 dell'utente, l'universo di strumenti non è più vincolato ai 5 asset di Convex
