@@ -26,7 +26,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+REPO_ROOT = Path(__file__).resolve().parents[2]  # validation_suite/comparative_studies/ -> validation_suite/ -> repo root
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "kelly_stack"))
 from apex_v2_engine import compute_v2_macro_signal, select_low_vol_basket, V2_CLASS_TICKER
 from kelly_backtest import _apply_italian_tax, _cagr, _sharpe, _max_drawdown
 from apex_stocks_vs_etf_backtest import (

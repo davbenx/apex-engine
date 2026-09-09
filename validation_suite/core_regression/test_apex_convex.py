@@ -14,7 +14,8 @@ import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.dirname(__file__))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # core_regression/ -> validation_suite/ -> repo root
+sys.path.insert(0, REPO_ROOT)
 
 import convex_engine
 import portfolio_manager
@@ -137,7 +138,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
         spy = portfolio_manager.load_monthly_benchmark_spy()
         self.assertGreaterEqual(len(spy), 400, "Lo storico SPY deve contenere oltre 400 mesi dal 1993")
 
-        base_dir = os.path.dirname(__file__)
+        base_dir = REPO_ROOT
         cx_path = os.path.join(base_dir, "convex_monthly_returns.csv")
         apex_path = os.path.join(base_dir, "apex_monthly_returns_extended.csv")
 
@@ -193,7 +194,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
             '[\u2194-\u2199]|'
             '[\u21A9-\u21AA]'
         )
-        base_dir = os.path.dirname(__file__)
+        base_dir = REPO_ROOT
         py_files = ["main.py", "app.py", "home_app.py", "page_apex.py", "page_convex.py",
                     "convex_stack_app.py", "streamlit_app.py", "portfolio_manager.py"]
         for pf in py_files:
@@ -231,7 +232,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
 
     def test_forbidden_strings_and_renames(self):
         """Verifica la rimozione delle diciture vietate e la presenza delle nuove etichette."""
-        base_dir = os.path.dirname(__file__)
+        base_dir = REPO_ROOT
         home_path = os.path.join(base_dir, "home_app.py")
         apex_path = os.path.join(base_dir, "page_apex.py")
 
@@ -263,7 +264,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
 
     def test_router_identity_and_navigation_layout(self):
         """Verifica che i 4 file router siano identici e contengano la nuova barra di navigazione."""
-        base_dir = os.path.dirname(__file__)
+        base_dir = REPO_ROOT
         routers = ["main.py", "app.py", "convex_stack_app.py", "streamlit_app.py"]
         contents = {}
         for r in routers:

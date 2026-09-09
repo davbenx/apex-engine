@@ -31,9 +31,11 @@ research/
 *.pkl
 *.tmp
 
-# Dati di prezzo scaricabili (rigenerabili con --fetch, vedi apex_stocks_vs_etf_backtest.py
-# e altcoin_vs_btc_backtest.py) — non lo snapshot point-in-time S&P 500 (quello resta
-# tracciato, richiede uno scraping soggetto a rate-limit, non banale da rigenerare)
+# Dati di prezzo scaricabili (rigenerabili, vedi validation_suite/comparative_studies/
+# apex_stocks_vs_etf_backtest.py e altcoin_vs_btc_backtest.py) — cache locali sotto
+# validation_suite/comparative_studies/. Non gli snapshot point-in-time (S&P 500,
+# altcoin CMC): quelli vivono in validation_suite/pointintime_data/ e restano
+# TRACCIATI in git, non rigenerabili banalmente (scraping soggetto a rate-limit).
 apex_stocks_data/
 altcoin_data/
 

@@ -28,6 +28,7 @@ correttamente NAV/valore nozionale/PMC) invece di una nuova funzione ad-hoc.
 
 from __future__ import annotations
 import json
+import sys
 import time
 import urllib.request
 from pathlib import Path
@@ -35,6 +36,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "kelly_stack"))
 from kelly_backtest import _cagr, _sharpe, _max_drawdown, _apply_italian_tax
 
 DATA_DIR = Path(__file__).parent / "altcoin_data"  # rigenerabile, non tracciato in git (.gitignore)

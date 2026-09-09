@@ -44,14 +44,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).parent))
+REPO_ROOT = Path(__file__).resolve().parents[2]  # validation_suite/comparative_studies/ -> validation_suite/ -> repo root
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "kelly_stack"))
 from apex_v2_engine import compute_v2_macro_signal, select_low_vol_basket, V2_CLASS_TICKER
 from kelly_backtest import _apply_italian_tax, _cagr, _sharpe, _max_drawdown
 from backend import get_sp500_tickers
 
 REPO_DIR = Path(__file__).parent
 DATA_DIR = REPO_DIR / "apex_stocks_data"  # prezzi: rigenerabili, non tracciati in git (.gitignore)
-POINTINTIME_FILE = REPO_DIR / "sp500_pointintime_snapshots.json"  # tracciato in git: non banale da rigenerare (Wikipedia rate-limit)
+POINTINTIME_FILE = REPO_ROOT / "validation_suite" / "pointintime_data" / "sp500_pointintime_snapshots.json"  # tracciato in git: non banale da rigenerare (Wikipedia rate-limit)
 TRANSACTION_COST_BPS = {"stock": 0.0010, "etf": 0.0008}
 
 
