@@ -49,9 +49,13 @@ validation_suite/
 │   ├── altcoin_vs_btc_backtest.py         <- altcoin vs BTC, SETTIMANALE/universo fisso ETH+SOL — superata dalla successiva
 │   ├── altcoin_vs_btc_daily_backtest.py   <- altcoin vs BTC, DAILY + universo point-in-time reale (5 candidati, PBO/DSR/bootstrap)
 │   ├── sector_cap_grid_test.py            <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
+│   ├── apex_basket_size_grid_test.py      <- grid search su V2_EQUITY_TOP_N (10/12/15/18/20/25 titoli)
+│   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
+│   ├── convex_weights_grid_test.py        <- grid search sui pesi target di Convex Stack (9 combinazioni vs 45/15/25/7.5/7.5)
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
-│   └── altcoin_daily_data/                <- cache prezzi daily (rigenerabile, gitignored)
+│   ├── altcoin_daily_data/                <- cache prezzi daily (rigenerabile, gitignored)
+│   └── convex_grid_data/                  <- cache prezzi mensili proxy Convex (rigenerabile, gitignored)
 └── pointintime_data/             <- DATASET POINT-IN-TIME REALI, tracciati in git (non rigenerabili banalmente)
     ├── sp500_pointintime_snapshots.json          <- composizione reale S&P 500 per anno, 2012-2026
     └── cmc_altcoin_pointintime_snapshots.json    <- classifica reale altcoin per market cap, 2019-2026
@@ -67,7 +71,11 @@ un segnale chiaro che il posto era sbagliato. Promossi qui (settembre 2026,
 audit "lean/frictionless/institutional" — vedi sotto) come API pubblica,
 senza cambiare una riga di logica: verificato che ogni backtest gia'
 riportato in questo file produce numeri IDENTICI post-spostamento
-(`apex_stocks_vs_etf_backtest.py`: 3.59%/3.38% CAGR netto, invariati).
+(nota: i numeri di CAGR/Sharpe di `apex_stocks_vs_etf_backtest.py` citati
+nella prima versione di questa nota, 3.59%/3.38%, erano gia' corretti
+*rispetto allo spostamento* ma sono stati poi trovati SBAGLIATI per un
+motivo indipendente — vedi il bug periods_per_year più sotto in "Storia
+delle scoperte": i numeri veri sono 16.52%/15.50%).
 `kelly_backtest.py` mantiene un thin wrapper `_apply_italian_tax` per
 compatibilita' con le proprie chiamate interne (fallback implicito alle
 sleeve di Kelly Stack) — la versione in `framework/` richiede `tax_types`
@@ -217,12 +225,56 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   fail-open deliberati e documentati (es. `fetch_sector`), non bug.
 - **Cap settore (`V2_MAX_PER_SECTOR`)**: grid search reale {nessun vincolo,
   2, 3, 4, 5}/settore (`sector_cap_grid_test.py`) — performance
-  indistinguibili su tutta la griglia (CAGR entro 3bps, Sharpe identico a 2
-  decimali); l'unica variabile che cambia in modo monotono è la
-  concentrazione peggiore (13,3%→80% allentando il cap). Confermato: il
-  valore adottato in produzione (2) non è mai stato altro nella storia del
-  codice (`git log -S "V2_MAX_PER_SECTOR"`), e resta la scelta corretta
-  (stesso rendimento, massima protezione).
+  indistinguibili su tutta la griglia (CAGR netto 16,4-16,5%, Sharpe 1,08
+  su tutte le configurazioni); l'unica variabile che cambia in modo
+  monotono è la concentrazione peggiore (13,3%→80% allentando il cap).
+  Confermato: il valore adottato in produzione (2) non è mai stato altro
+  nella storia del codice (`git log -S "V2_MAX_PER_SECTOR"`), e resta la
+  scelta corretta (stesso rendimento, massima protezione).
+- **Dimensione del basket azionario (`V2_EQUITY_TOP_N`)**: grid search reale
+  {10, 12, 15, 18, 20, 25} titoli, buffer_rank=N+5
+  (`apex_basket_size_grid_test.py`) — completa il singolo confronto
+  15-vs-20 già in APEX_V2_SPEC.md §8.27. Performance indistinguibili
+  (CAGR netto 16,1-16,6%, Sharpe 1,06-1,09); PBO-CSCV 51,4% (esattamente
+  al livello del "lancio di moneta" — nessuna taglia batte le altre in modo
+  robusto). Il "migliore" nominale (top_n=12, Sharpe 1,09) ha una CI 90%
+  bootstrap [0,61; 1,58] che include comodamente lo Sharpe dell'attuale
+  (1,08) — nessun cambiamento consigliato.
+- **Dimensione delle posizioni per classe macro (`base_weight_per_class`/
+  `vol_target`)**: griglia di 7 combinazioni attorno all'attuale 50%/22%
+  ("Percorso B", §8.25/§8.28), incl. il valore precedente 25%/13%
+  (`apex_class_size_grid_test.py`) — richiesto esporre questi due valori
+  come parametri di `apex_v2_engine.compute_v2_macro_signal` (prima
+  letterali hardcoded, default invariati, 3 nuovi test di regressione).
+  Risultato: Sharpe netto sostanzialmente PIATTO su tutta la griglia
+  (1,07-1,11) — PBO-CSCV 52,9% (nessuna combinazione batte le altre in modo
+  robusto), CI 90% sul "migliore" nominale (25%/13%, Sharpe 1,11) [0,65;
+  1,59] include comodamente l'attuale. CAGR e MaxDD invece SALGONO insieme
+  in modo monotono con l'esposizione (25%/13%: CAGR 10,2%/MaxDD -12,5%  →
+  50%/35%: CAGR 20,7%/MaxDD -28,0%) — un vero trade-off rischio/rendimento
+  lungo una frontiera, non un pasto gratis. **Conferma indipendente**, con
+  strumenti mai usati nella ricerca originale (PBO/DSR/bootstrap), di
+  quanto §8.19/§8.21/§8.25 avevano già trovato con la ricerca originale:
+  "Percorso B" è una scelta di rischio esplicita su un plateau reale, non
+  un punto Sharpe-ottimo nascosto — e nessun punto della griglia lo batte
+  su Sharpe in modo che regga a un controllo di overfitting.
+- **Pesi target di Convex Stack**: 9 combinazioni alternative contro
+  l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
+  storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
+  **Correzione FX trovata durante lo sviluppo** (domanda diretta
+  dell'utente su DBMFE): tutti gli strumenti reali di Convex sono quotati
+  in EUR ma UNHEDGED (verificato empiricamente sui prezzi reali, anche se
+  corti, di DBMFE.PA: la sua crescita reale combacia con DBMF convertito
+  via EURUSD — 28,42% contro 28,47% reale — non con DBMF grezzo in USD,
+  30,87%) — tutti i proxy USD vanno quindi convertiti in EUR prima del
+  blend, non solo DBMFE. Con la correzione: PBO-CSCV 68,6% (sopra la soglia
+  del 50% — un segnale ATTIVO di overfitting se si scegliesse il
+  "migliore" nominale, che comunque ha una CI 90% [0,39; 1,98] che include
+  ampiamente lo Sharpe attuale). **Nessuna combinazione di pesi batte
+  l'attuale in modo statisticamente robusto.** La stessa correzione FX
+  varrebbe anche per il backtest di Kelly Stack (usa gli stessi proxy),
+  non applicata li' per non alterare silenziosamente numeri già pubblicati
+  in KELLY_STACK_SPEC.md (Kelly Stack è comunque già scartata).
 - **Bug fetch_sector 401**: Yahoo richiede da fine 2024 un cookie di
   sessione + crumb anche su `quoteSummary` — l'endpoint rispondeva 401 su
   ogni richiesta, disattivando silenziosamente (fail-open by design) il cap
@@ -233,10 +285,29 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   posizioni), quindi nessuna correzione necessaria al track record già
   mostrato in dashboard.
 - **Titoli individuali vs ETF (Apex)**: sul basket reale a 15 titoli,
-  point-in-time, 15 anni: CAGR netto 3,59% / Sharpe 0,52 / Calmar 0,17
-  contro SPY 3,38% / 0,49 / 0,13 — il basket vince su ogni metrica netta di
-  tasse italiane (redditi diversi compensabili vs redditi di capitale non
-  compensabili).
+  point-in-time, 12 anni: CAGR netto 16,52% / Sharpe 1,08 / Calmar 0,77
+  contro SPY 15,50% / 1,02 / 0,62 — il basket vince su ogni metrica netta
+  di tasse italiane (redditi diversi compensabili vs redditi di capitale
+  non compensabili). (Numeri corretti — vedi il bug `periods_per_year`
+  qui sotto: la prima versione riportava erroneamente 3,59%/0,52 e
+  3,38%/0,49.)
+- **Bug reale: `periods_per_year` mancante sui backtest settimanali**:
+  `framework/metrics.py` (`cagr`/`sharpe`) assume di default rendimenti
+  MENSILI (`periods_per_year=12`, per compatibilità con l'uso originale in
+  Kelly Stack). `apex_stocks_vs_etf_backtest.py`, `sector_cap_grid_test.py`
+  e `altcoin_vs_btc_backtest.py` (la versione settimanale) chiamavano
+  queste funzioni su serie **settimanali** senza passare `periods_per_year=52`
+  — il conteggio implicito degli anni risultava gonfiato di un fattore
+  ~4,3x (52/12), sottostimando sistematicamente sia il CAGR sia lo Sharpe.
+  Scoperto per caso mentre si costruiva `apex_class_size_grid_test.py` (i
+  numeri di CAGR erano sospettosamente bassi per un basket azionario a 12
+  anni). **Non cambia le conclusioni relative** (basket ancora meglio di
+  SPY, cap settore ancora indifferente) ma cambia sostanzialmente l'entità
+  assoluta di ogni numero riportato in questa sessione per quei tre script
+  prima della correzione — vedi le voci sopra per i valori corretti. La
+  versione daily di altcoin-vs-BTC e i backtest mensili (Kelly Stack,
+  Convex, Apex institutional validation) non erano affetti (già passavano
+  o non necessitavano `periods_per_year` esplicito).
 - **Altcoin vs BTC (settimanale, universo fisso ETH/SOL)**: nessun candidato
   testato (equal-weight, inverse-vol, rotazione momentum, rotazione di
   regime "altseason") batte BTC buy&hold a parità o minor rischio; la
