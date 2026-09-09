@@ -6,6 +6,7 @@ Specifica completa: APEX_V2_SPEC.md.
 """
 
 import datetime
+import http.cookiejar
 import io
 import json
 import os
@@ -190,17 +191,45 @@ def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asse
 fetch_bulk_parallel = download_universe_batch
 
 
+_yahoo_crumb_cache = None  # (cookiejar, crumb) — quoteSummary richiede auth da fine 2024, vedi _get_yahoo_crumb
+
+
+def _get_yahoo_crumb():
+    """Yahoo richiede da fine 2024 un cookie di sessione + crumb anche per quoteSummary
+    (prima bastava lo user-agent, come per fetch_yahoo_history: senza crumb l'endpoint
+    risponde 401 Unauthorized su ogni richiesta). Cache in-process: un solo cookie/crumb
+    per processo, riusato da tutte le chiamate di fetch_sector (altrimenti ogni ticker in
+    fetch_sector_map rifarebbe l'intero handshake, inutile e piu' lento sotto ThreadPoolExecutor)."""
+    global _yahoo_crumb_cache
+    if _yahoo_crumb_cache is not None:
+        return _yahoo_crumb_cache
+    cj = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    try:
+        opener.open(urllib.request.Request('https://fc.yahoo.com', headers={'User-Agent': USER_AGENT}), timeout=HTTP_TIMEOUT)
+    except Exception:
+        pass  # risponde 404 ma imposta comunque il cookie di sessione necessario al passo successivo
+    req = urllib.request.Request('https://query1.finance.yahoo.com/v1/test/getcrumb', headers={'User-Agent': USER_AGENT})
+    crumb = opener.open(req, timeout=HTTP_TIMEOUT).read().decode()
+    _yahoo_crumb_cache = (opener, crumb)
+    return _yahoo_crumb_cache
+
+
 def fetch_sector(ticker):
     """Recupera il settore GICS (endpoint Yahoo quoteSummary/assetProfile) con retry, stesso stile
-    di fetch_yahoo_history — nessuna dipendenza da yfinance."""
+    di fetch_yahoo_history — nessuna dipendenza da yfinance. Richiede cookie+crumb (_get_yahoo_crumb),
+    a differenza di fetch_yahoo_history che resta pubblico senza auth."""
     for attempt in range(2):
         try:
-            url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile"
+            opener, crumb = _get_yahoo_crumb()
+            url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile&crumb={urllib.parse.quote(crumb)}"
             req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-            res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
+            res = json.loads(opener.open(req, timeout=HTTP_TIMEOUT).read().decode())
             profile = res['quoteSummary']['result'][0]['assetProfile']
             return ticker, profile.get('sector')
         except Exception:
+            global _yahoo_crumb_cache
+            _yahoo_crumb_cache = None  # crumb/cookie forse scaduto: forza un nuovo handshake al prossimo tentativo
             if attempt == 0:
                 time.sleep(0.3)
     return ticker, None

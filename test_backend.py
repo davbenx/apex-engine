@@ -376,6 +376,97 @@ def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch=None):
             urllib.request.urlopen = orig_urlopen
 
 
+class _FakeYahooResponse:
+    def __init__(self, body):
+        self._body = body
+
+    def read(self):
+        return self._body
+
+
+def test_fetch_sector_uses_cookie_crumb_handshake_and_caches_it(monkeypatch=None):
+    """Yahoo richiede da fine 2024 un cookie di sessione + crumb anche su quoteSummary
+    (senza, l'endpoint risponde 401 su ogni richiesta — bug reale trovato in questa
+    sessione). Verifica che fetch_sector esegua l'handshake e che il crumb sia
+    riusato (non richiesto a ogni ticker, altrimenti fetch_sector_map raddoppierebbe
+    inutilmente le richieste sotto ThreadPoolExecutor)."""
+    backend._yahoo_crumb_cache = None
+    calls = []
+
+    class FakeOpener:
+        def open(self, req, timeout=10):
+            url = req.full_url
+            calls.append(url)
+            if "getcrumb" in url:
+                return _FakeYahooResponse(b"FAKECRUMB")
+            if "fc.yahoo.com" in url:
+                return _FakeYahooResponse(b"")
+            if "quoteSummary" in url:
+                assert "crumb=FAKECRUMB" in url, "deve passare il crumb ottenuto dall'handshake"
+                payload = json.dumps({"quoteSummary": {"result": [{"assetProfile": {"sector": "Technology"}}]}}).encode()
+                return _FakeYahooResponse(payload)
+            raise AssertionError(f"URL inatteso: {url}")
+
+    def fake_build_opener(*handlers):
+        return FakeOpener()
+
+    orig_build_opener = urllib.request.build_opener
+    if monkeypatch is not None:
+        monkeypatch.setattr(urllib.request, "build_opener", fake_build_opener)
+    else:
+        urllib.request.build_opener = fake_build_opener
+
+    try:
+        ticker, sector = backend.fetch_sector("AAPL")
+        assert (ticker, sector) == ("AAPL", "Technology")
+        assert any("getcrumb" in c for c in calls)
+
+        calls.clear()
+        ticker2, sector2 = backend.fetch_sector("MCD")
+        assert (ticker2, sector2) == ("MCD", "Technology")
+        assert not any("getcrumb" in c for c in calls), "il crumb va cachato, non richiesto a ogni ticker"
+    finally:
+        if monkeypatch is None:
+            urllib.request.build_opener = orig_build_opener
+        backend._yahoo_crumb_cache = None
+
+
+def test_fetch_sector_fails_open_and_resets_crumb_cache_on_error(monkeypatch=None):
+    """Un settore non recuperabile (crumb scaduto, ticker senza profilo, ecc.) non
+    deve propagare l'eccezione: select_low_vol_basket tratta il settore mancante
+    come non vincolato, mai come motivo per bloccare la selezione (APEX_V2_SPEC.md
+    §8.7, fail-open). L'errore deve anche invalidare il crumb cachato, per non
+    restare bloccati su una sessione scaduta al giro successivo."""
+    backend._yahoo_crumb_cache = None
+
+    class FakeOpener:
+        def open(self, req, timeout=10):
+            url = req.full_url
+            if "getcrumb" in url:
+                return _FakeYahooResponse(b"FAKECRUMB")
+            if "fc.yahoo.com" in url:
+                return _FakeYahooResponse(b"")
+            raise urllib.error.HTTPError(url, 401, "Unauthorized", {}, None)
+
+    def fake_build_opener(*handlers):
+        return FakeOpener()
+
+    orig_build_opener = urllib.request.build_opener
+    if monkeypatch is not None:
+        monkeypatch.setattr(urllib.request, "build_opener", fake_build_opener)
+    else:
+        urllib.request.build_opener = fake_build_opener
+
+    try:
+        ticker, sector = backend.fetch_sector("XYZ")
+        assert (ticker, sector) == ("XYZ", None)
+        assert backend._yahoo_crumb_cache is None, "un errore deve forzare un nuovo handshake al prossimo tentativo"
+    finally:
+        if monkeypatch is None:
+            urllib.request.build_opener = orig_build_opener
+        backend._yahoo_crumb_cache = None
+
+
 if __name__ == "__main__":
     import inspect
     fns = [f for name, f in list(globals().items()) if name.startswith("test_") and inspect.isfunction(f)]
