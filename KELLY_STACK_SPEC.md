@@ -514,16 +514,42 @@ semplice senza trend-gate su Sharpe netto, su nessuno dei due campioni. Lo
 stesso identico pattern del Risultato 1 (un singolo split mente, il
 multi-finestra dice la verità) si ripete qui una quarta volta.
 
-**Conclusione onesta su "deve essere migliore di Apex":** con la validazione
-multi-finestra fatta finora, **Kelly Stack non batte Apex al netto delle
-tasse in nessuna configurazione testata**. Il trend-gate ha dimostrato di
-funzionare al lordo (Sharpe 1.72-2.00 contro 1.49 di Apex) — l'ipotesi era
-corretta — ma la sua implementazione con strumenti ETF non tax-efficient
-distrugge l'edge. Il percorso concreto per davvero superare Apex non è
-un'altra ricerca di parametri: è replicare per Kelly Stack la stessa
-soluzione fiscale che Apex già usa (strumenti a reddito diverso/compensabile
-per le sleeve soggette a trend-gate) — un lavoro di implementazione
-sostanziale, non ancora fatto, tracciato in §7.2.
+**Risultato 7b — implementazione tax-efficient testata, effetto reale ma
+piccolo.** Su decisione esplicita dell'utente ("opzione 1"), NTSG_proxy e
+AVWS_proxy riclassificate a REDDITO_DIVERSO (come se implementate via basket
+di titoli individuali, sul modello dell'equity leg di Apex) — DBMFE_proxy
+resta REDDITO_CAPITALE: un'esposizione a managed futures/CTA non ha un
+equivalente "titoli individuali", quindi per quella sleeve il problema fiscale
+non è risolvibile con questa leva, limite dichiarato non aggirabile.
+
+| Campione | Banda | Sharpe netto: ETF → tax-efficient |
+|---|---|---|
+| Completo | 2% | 1.08 → **1.13** |
+| Completo | 12% | 1.13 → **1.14** |
+| Lungo | 2% | 0.66 → **0.71** |
+| Lungo | 8% | 0.86 → **0.88** |
+
+Il miglioramento è reale (mai peggiora) ma **piccolo** — non chiude il divario
+con Apex (Sharpe 1.49). Motivo probabile, distinto dalla tassazione: la
+compensazione di redditi diversi riduce la tassa SOLO quando c'è un pool di
+minusvalenze pregresse da cui attingere — con un trend-gate che realizza
+prevalentemente guadagni (non un'alternanza equilibrata perdita/guadagno), il
+beneficio della compensazione è strutturalmente limitato. La causa più
+probabile del divario residuo non è più la tassazione, ma la QUALITÀ del
+segnale: il trend-gate qui usa isteresi a banda fissa su una MA mensile
+semplice, mentre Apex usa isteresi ADATTIVA alla volatilità di ciascun asset
+più una conferma multi-timeframe (`V2_HYSTERESIS_K`, `V2_SHORT_MA_WEEKS`,
+§8.9 di `APEX_V2_SPEC.md`) — un segnale più raffinato, validato da Apex per
+ridurre i whipsaw senza perdere Sharpe/Calmar. Non ancora testato per Kelly
+Stack: prossimo passo naturale, non ancora intrapreso senza una decisione
+esplicita dell'utente vista la scala di lavoro già investita su questo filone.
+
+**Conclusione onesta su "deve essere migliore di Apex":** con tutta la
+validazione fatta finora (trend-gate + tax-efficient), **Kelly Stack non
+batte ancora Apex al netto delle tasse**. Il gap si è ridotto ma non chiuso.
+Due cause diagnosticate, non generiche: (1) tassazione — parzialmente
+risolta, effetto piccolo; (2) qualità del segnale di trend — non ancora
+affrontata, ipotesi principale per il gap residuo.
 
 **Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
 su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
