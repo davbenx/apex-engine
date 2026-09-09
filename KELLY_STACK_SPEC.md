@@ -430,6 +430,33 @@ questo motivo specifico e misurato — non perche' Apex lo usa.** Se il design
 venisse mai deployato senza DBMFE/WBTC, andrebbe ri-verificato se tenerlo
 ancora ha senso.
 
+**Risultato 5 — quanto si può "spingere" alzando la leva col governatore
+attivo? Dipende dal campione, e la differenza è la lezione principale.** Sweep
+di `MAX_GROSS_LEVERAGE`/`MAX_SLEEVE_WEIGHT` da 150%/60% a 400%/130%, governatore
+sempre attivo:
+
+| Leva max | Campione completo (con DBMFE/WBTC): CAGR medio / MaxDD peggiore / Sharpe | Campione lungo (senza): CAGR medio / MaxDD peggiore / Sharpe |
+|---|---|---|
+| 150% | 17.6% / -14.7% / 1.17 | 11.3% / -24.0% / 0.83 |
+| 200% | 20.3% / -15.0% / 1.16 | 12.2% / -26.2% / 0.81 |
+| 250% | 22.6% / -17.3% / 1.16 | 13.9% / -28.3% / 0.80 |
+| 300% | 24.6% / -18.9% / 1.17 | 14.9% / -29.9% / 0.79 |
+| 400% | 27.4% / -22.6% / 1.16 | 16.2% / -33.0% / 0.80 |
+
+Sul campione completo lo Sharpe resta quasi costante alzando la leva (il
+governatore normalizza il rischio, quindi CAGR e drawdown scalano quasi
+insieme) — un quadro che sembrerebbe quasi un pasto gratis fino al 400%. **Sul
+campione lungo, il quadro reale, questo non regge**: lo stesso aumento di leva
+compra molto meno CAGR (11.3%→16.2%, non 17.6%→27.4%) a fronte di un drawdown
+peggiore che sale fino al **-33%**, con fold worst-case che diventano
+NEGATIVI in modo crescente (-0.5%→-5.2%). La differenza tra le due tabelle È
+il punto: il primo quadro amplifica la fortuna del campione breve (Risultato
+1), il secondo mostra il vero trade-off leva/rischio quando quella fortuna non
+c'è. **Spingere la leva oltre 150-200% non è raccomandato**: il guadagno di
+CAGR nel caso onesto (lungo) è modesto rispetto al peggioramento di drawdown,
+esattamente il tipo di scommessa che il criterio di Kelly (§2) dice di evitare
+quando non si è certi che l'edge sia reale e non un artefatto del campione.
+
 **Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
 su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
 sostenuto del 30%+. La media piu' favorevole (17.1%, campione corto, gonfiato da bull BTC/IA)
