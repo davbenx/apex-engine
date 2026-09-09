@@ -330,34 +330,97 @@ turnover minimo = drag fiscale minimo composto su decenni):
 
 ---
 
-## 7. Stato di validazione — cosa manca prima di capitale reale
+## 7. Stato di validazione
 
-**Questo è un motore di design, non ancora backtestato.** In coerenza con la
-disciplina di `APEX_V2_SPEC.md` (mai dichiarare pronto qualcosa di non
-verificato), prima di allocare capitale reale a Kelly Stack servono, nello
-stesso ordine di rigore usato per Apex:
+### 7.1 Risultati di validazione reali (walk-forward + DSR/PBO, su richiesta esplicita dell'utente)
 
-1. **Solver Kelly vincolato (QP, f≥0)** al posto del clip a zero approssimato
-   attualmente in `compute_kelly_weights` (§2) — il clip è conservativo ma non
-   esatto: non ridistribuisce il peso "risparmiato" da un vincolo attivo.
-2. **Backtest point-in-time** dei 5 strumenti (o dei loro proxy storici più
-   lunghi, come già fatto in Apex per il basket azionario) per stimare
-   `μ`/`σ`/`Σ` **fuori campione** invece di usare i prior di letteratura di §4.
-3. **Stress test delle correlazioni in regime di crisi** (2008, 2020, 2022) —
-   verificare che il governatore di leva (§3) si attivi in tempo utile nei
-   drawdown storici reali, non solo in simulazione teorica.
-4. **Test di falsificazione stile Apex** (Deflated Sharpe Ratio, ingresso
-   casuale, walk-forward) sulla scelta di `KELLY_FRACTION` e `MAX_GROSS_LEVERAGE`
-   — evitare lo stesso errore di data-snooping già commesso (e corretto) nel
-   motore di selezione titoli v1 di Apex.
-5. **Validazione del governatore drawdown indipendente da quello di Apex**
-   (§3, nota di onestà intellettuale) — non ereditare la conclusione "il
-   kill-switch non serve" senza ritestarla in presenza di leva.
-6. **Verifica di liquidità/AUM aggiornata su JELS** (§4.1) prima di allocare
-   capitale reale — l'AUM di ~€10M rilevato in ricerca è un dato puntuale,
-   non un monitoraggio continuo; un fondo di quella taglia può chiudere con
-   preavviso breve (visto realizzarsi per un prodotto concorrente nella
-   stessa ricerca).
+**Metodologia:** `kelly_backtest.py` calibra μ/σ/Σ SOLO sulla prima parte del
+campione storico (dati reali via Yahoo Finance, rendimenti mensili adjusted-
+for-dividend) e applica i pesi risultanti SENZA ri-ottimizzare sul resto —
+stesso principio del walk-forward gia' validato in Apex (`APEX_V2_SPEC.md`
+§8.4). `kelly_validation.py` implementa Deflated Sharpe Ratio e PBO via CSCV
+(Bailey/Lopez de Prado) da zero (nessuna dipendenza da scipy, coerente con
+`requirements.txt`) — verificati su dati sintetici a comportamento noto
+(`test_kelly_validation.py`) e incrociati contro l'algoritmo di `pypbo`
+(libreria open-source di riferimento dopo che mlfinlab e' diventata a
+pagamento): stessa struttura combinatoria, stesso criterio rank-based.
+
+Le sleeve UCITS reali (NTSG/AVWS/DBMFE/PPFB) hanno storico troppo corto o non
+tradabile per un backtest robusto — si usano PROXY a storico lungo, stesso
+principio con cui Apex usa SPY come proxy di segnale (§1): NTSG →
+`0.9×SPY + 0.6×IEF` (la stessa decomposizione di leva gia' documentata in
+`convex_engine.py`), AVWS → VBR (small-cap value), DBMFE → DBMF (sorella USA
+di DBMFE, storico dal 2019), PPFB → GLD, WBTC → BTC-USD. **JELS non ha storico
+sufficiente ed e' escluso dal backtest** — resta validato solo dal prior
+strutturale di §4.1, limite dichiarato, non nascosto.
+
+**Risultato 1 — un solo split e' fuorviante.** Il primo walk-forward
+(50/50, campione 2019-2026 con DBMFE+WBTC) dava CAGR netto 28.7%, quasi il
+target. Un walk-forward a **5 finestre mobili** (invece di un solo split)
+rivela perche' quel numero non e' affidabile:
+
+| Campione | Finestre OOS | CAGR netto: media | CAGR netto: min | CAGR netto: max | MaxDD netto peggiore |
+|---|---|---|---|---|---|
+| Completo (2019-2026, con DBMFE+WBTC) | 4 | **17.1%** | **-10.0%** | **+45.9%** | -27.3% |
+| Lungo (2005-2026, senza DBMFE/WBTC) | 5 | **12.9%** | **-0.3%** | **+26.4%** | -24.2% |
+
+Il 28.7% iniziale era un artefatto del punto di split: cadeva subito dopo il
+grosso del bear 2022 e catturava in pieno il rally IA/Bitcoin 2023-2025 —
+esattamente il tipo di bias gia' identificato da Apex per BTC
+(`APEX_V2_SPEC.md` §8.2 test 4: "la maggior parte del rendimento... viene dal
+campione breve... periodo di bull secolare"). La media onesta su piu' finestre
+e' 13-17%, con una finestra realmente osservata **vicina allo zero o
+negativa** (2012-2015 nel campione lungo, complice il crollo dell'oro 2013;
+Apr 2022-Ago 2023 nel campione completo, il bear rialzo-tassi).
+
+**Risultato 2 — alzare `KELLY_FRACTION` oltre ~0.5 non cambia nulla.** Test
+diretto (0.25/0.5/0.75/1.0) sul campione lungo: a 0.5 il segnale Kelly satura
+gia' il cap di concentrazione per singola sleeve (§3, Livello 1bis) su
+NTSG_proxy e PPFB_proxy — 0.75 e 1.0 producono **pesi finali identici** a 0.5.
+Conferma sperimentale, non solo teorica, del fatto dichiarato in §2: oltre un
+certo punto la leva non e' vincolata dalla propria propensione al rischio, e'
+vincolata dai governatori — "alzare il rischio" cambiando `KELLY_FRACTION` da
+solo non fa nulla finche' non si alza anche `MAX_SLEEVE_WEIGHT`/
+`MAX_GROSS_LEVERAGE`, il che significa esplicitamente accettare un rischio di
+rovina piu' alto, non un pasto gratis.
+
+**Risultato 3 — DSR/PBO.** DSR sullo Sharpe netto del campione completo
+(1.76, 44 mesi OOS, contando conservativamente 3 varianti di universo provate)
+= 1.00 — ma questo corregge solo per multiple-testing, non per il bias di
+regime del Risultato 1 (sono diagnostiche complementari, non sostituibili).
+PBO tra le varianti di `KELLY_FRACTION` sul campione lungo = 26% (sotto il
+50% di puro rumore, ma con solo 2 varianti realmente distinte a causa della
+saturazione del Risultato 2 — informativo ma non conclusivo).
+
+**Conclusione onesta sul target 30-35% CAGR:** nessuno dei walk-forward reali,
+su nessun campione o combinazione di parametri provata, sostiene un CAGR netto
+sostenuto del 30%+. La media piu' favorevole (17.1%, campione corto, gonfiato da bull BTC/IA)
+resta ben sotto il 34.9% che servirebbe per 100k→2M in 10 anni senza nuovi
+versamenti, ed e' comunque coerente con il tetto teorico assoluto di §2
+(~19.2% a Kelly pieno illimitato, calcolato sui prior — i dati reali qui
+confermano che quel tetto non era pessimistico).
+
+### 7.2 Cosa manca ancora prima di capitale reale
+
+1. ~~Backtest point-in-time~~ — fatto (§7.1), con il limite dichiarato che le
+   sleeve UCITS reali sono sostituite da proxy a storico lungo e JELS resta
+   non testato.
+2. ~~Test di falsificazione stile Apex (DSR, PBO)~~ — fatto (§7.1), con lo
+   stesso limite: la profondita' del multiple-testing testato qui e' modesta
+   rispetto ai 16+ tentativi documentati per Apex (`APEX_V2_SPEC.md` §8.1).
+3. **Il governatore dinamico vol-target/drawdown (§3, Livello 2) non e' mai
+   stato attivato nel backtest** — i pesi restano fissi per l'intera finestra
+   out-of-sample di ogni fold. I drawdown osservati in §7.1 (fino a -27%) sono
+   quindi probabilmente un LIMITE SUPERIORE rispetto a quanto il disegno
+   realmente costruito (con il governatore attivo mese per mese) produrrebbe —
+   ma questo va verificato, non assunto: prossimo passo prioritario.
+4. **Solver Kelly vincolato (QP, f≥0)** al posto del clip a zero approssimato
+   in `compute_kelly_weights` (§2).
+5. **Stress test delle correlazioni in regime di crisi** (2008 incluso nella
+   sola calibrazione del campione lungo, mai in una finestra out-of-sample
+   dedicata).
+6. **Verifica di liquidità/AUM aggiornata su JELS** (§4.1) — AUM ~€10M
+   rilevato in ricerca, dato puntuale non monitorato in continuo.
 
 Fino a quel punto, questo motore va trattato come un **framework di calcolo
 pesi**, utile per capire la direzione e la logica dell'allocazione, non come un
