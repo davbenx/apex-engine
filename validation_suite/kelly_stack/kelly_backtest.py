@@ -26,6 +26,7 @@ turnover simile a questo, §8.9 punto 3).
 
 from __future__ import annotations
 import json
+import sys
 import time
 import urllib.request
 from dataclasses import dataclass, field
@@ -35,14 +36,15 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "framework"))
 from kelly_engine import (
     compute_kelly_weights,
     KELLY_VOL_TARGET,
     KELLY_DD_DERISK_TRIGGER,
     KELLY_DD_DERISK_FLOOR,
 )
-
-TAX_RATE = 0.26
+from metrics import cagr as _cagr, sharpe as _sharpe, max_drawdown as _max_drawdown
+from tax_engine import apply_italian_tax as _apply_italian_tax_generic, TAX_RATE_ITALY_FLAT as TAX_RATE
 
 # Universo di ticker fetchabili usati come proxy a storico lungo delle sleeve
 # reali (vedi build_sleeve_returns per la mappatura esatta).
@@ -509,26 +511,9 @@ def shrink_covariance_ledoit_wolf(monthly_returns: pd.DataFrame) -> tuple:
     return S_shrunk * 12, delta  # annualizzata (rendimenti mensili -> varianza annua = mensile * 12)
 
 
-def _cagr(monthly_returns: pd.Series) -> float:
-    total_growth = float((1 + monthly_returns).prod())
-    years = len(monthly_returns) / 12
-    if years <= 0 or total_growth <= 0:
-        return float("nan")
-    return total_growth ** (1 / years) - 1
-
-
-def _sharpe(monthly_returns: pd.Series, rf_annual: float = 0.0) -> float:
-    excess = monthly_returns - rf_annual / 12
-    if excess.std(ddof=1) < 1e-12:
-        return 0.0
-    return float(excess.mean() / excess.std(ddof=1) * np.sqrt(12))
-
-
-def _max_drawdown(monthly_returns: pd.Series) -> float:
-    nav = (1 + monthly_returns).cumprod()
-    peak = nav.cummax()
-    dd = nav / peak - 1
-    return float(dd.min())
+# _cagr/_sharpe/_max_drawdown: importate da framework/metrics.py (vedi sopra) — erano
+# nate qui come funzioni private ma sono generiche, promosse e riusate anche dagli
+# script indipendenti in validation_suite/comparative_studies/.
 
 
 def _apply_italian_tax(
@@ -537,103 +522,15 @@ def _apply_italian_tax(
     tax_types: Optional[Dict[str, str]] = None,
     rebalance_every: int = 1,
 ) -> pd.Series:
-    """
-    Simula un portafoglio a pesi target verso cui si ribilancia ogni mese
-    (rebalance_every=1), tassando SOLO la porzione effettivamente venduta ad
-    ogni ribilanciamento (stesso principio del bug corretto in backend.py,
-    APEX_V2_SPEC.md §8.8: mai tassare l'intera posizione per un aggiustamento
-    parziale di peso).
-
-    target_weights puo' essere un dict a pesi FISSI (come nel walk-forward
-    "statico" di walk_forward_backtest) oppure un pd.DataFrame con un peso per
-    ciascuna sleeve per ciascun mese (come nel governatore dinamico di
-    compute_dynamic_target_weights) — stesso ciclo di ribilanciamento/tassazione
-    in entrambi i casi, cambia solo il target verso cui ribilanciare ogni mese.
-    Un peso implicito su una sleeve non elencata quel mese vale 0 (cash, mai
-    tassato).
-
-    Semplificazione dichiarata: costo medio ponderato (PMC) senza il limite
-    FIFO a 4 anni sul riporto minusvalenze (Apex ha gia' verificato che quel
-    limite quasi mai vincola su un orizzonte di questa lunghezza, §8.9 punto 3)
-    e senza costi di transazione (separati dalla tassazione, non modellati qui
-    per isolare l'effetto fiscale — i costi di transazione sono gia' stress-
-    testati altrove nel progetto, APEX_V2_SPEC.md §8.2 test 2).
-
-    Ritorna la serie dei rendimenti mensili NETTI di tassazione.
-
-    NAV (capitale proprio) e valore nozionale delle posizioni sono tenuti
-    ESPLICITAMENTE separati: con leva (somma dei pesi target > 100%, come nel
-    disegno deployato), il valore nozionale delle posizioni supera il NAV per
-    costruzione — sommare i valori nozionali e trattarli come se fossero il NAV
-    porterebbe a un errore di scala che si COMPONE ogni mese (bug trovato e
-    corretto durante lo sviluppo di questo backtest: un CAGR netto assurdo,
-    >10.000%, causato esattamente da questa confusione).
-    """
-    tax_types = tax_types if tax_types is not None else SLEEVE_TAX_TYPE
-    is_dynamic = isinstance(target_weights, pd.DataFrame)
-    first_weights = target_weights.iloc[0].to_dict() if is_dynamic else target_weights
-    keys = list(first_weights.keys())
-    nav = 1.0  # capitale proprio — MAI ricavato sommando i valori nozionali delle posizioni
-    value = {k: first_weights[k] * nav for k in keys}  # valori nozionali, la somma puo' superare nav (leva)
-    cost_basis = dict(value)
-    loss_pool_diverso = 0.0  # minusvalenze REDDITO_DIVERSO non ancora compensate
-
-    net_returns = []
-    for i, (_, row) in enumerate(sleeve_returns.iterrows()):
-        target_weights_t = target_weights.iloc[i].to_dict() if is_dynamic else target_weights
-
-        # 1. rendimento lordo di portafoglio del mese dai pesi CORRENTI (rispetto al nav
-        #    pre-rivalutazione) — stessa convenzione lineare gia' usata per port_gross
-        weights_now = {k: value[k] / nav for k in keys}
-        gross_port_return = sum(weights_now[k] * row[k] for k in keys)
-        nav_after_market = nav * (1 + gross_port_return)
-
-        # 2. rivaluta ciascuna posizione al proprio rendimento
-        for k in keys:
-            value[k] *= (1 + row[k])
-
-        # 3. ribilancia le posizioni verso i pesi target (del mese corrente) rispetto al
-        #    NUOVO nav (pre-tasse), tassando solo il delta venduto (mai l'intera posizione
-        #    — stesso principio del bug corretto in backend.py, APEX_V2_SPEC.md §8.8)
-        tax_due = 0.0
-        for k in keys:
-            target_val = target_weights_t.get(k, 0.0) * nav_after_market
-            delta = target_val - value[k]
-            if delta < 0:
-                sold_fraction = min(1.0, (-delta) / value[k]) if value[k] > 1e-12 else 0.0
-                cost_sold = cost_basis[k] * sold_fraction
-                proceeds_sold = value[k] * sold_fraction
-                gain = proceeds_sold - cost_sold
-                tax_type = tax_types[k]
-                if tax_type == "REDDITO_CAPITALE":
-                    if gain > 0:
-                        tax_due += gain * TAX_RATE
-                    # minusvalenza REDDITO_CAPITALE: persa, non compensabile (stessa regola di Convex/Apex)
-                else:  # REDDITO_DIVERSO
-                    if gain > 0:
-                        offset = min(gain, loss_pool_diverso)
-                        loss_pool_diverso -= offset
-                        tax_due += (gain - offset) * TAX_RATE
-                    else:
-                        loss_pool_diverso += -gain
-                cost_basis[k] -= cost_sold
-            else:
-                cost_basis[k] += delta  # acquisto: aggiorna il costo base (media ponderata, PMC)
-            value[k] = target_val
-
-        nav_after_tax = nav_after_market - tax_due
-        # la tassa riduce il capitale proprio: scala tutte le posizioni proporzionalmente
-        # per mantenere la leva target costante dopo il prelievo fiscale
-        if nav_after_market > 1e-12 and tax_due > 0:
-            scale = nav_after_tax / nav_after_market
-            for k in keys:
-                value[k] *= scale
-                cost_basis[k] *= scale
-
-        net_returns.append(nav_after_tax / nav - 1)
-        nav = nav_after_tax
-
-    return pd.Series(net_returns, index=sleeve_returns.index)
+    """Wrapper su framework/tax_engine.apply_italian_tax: qui l'unica differenza e'
+    il fallback implicito di tax_types a SLEEVE_TAX_TYPE (le 5 sleeve/proxy di Kelly
+    Stack) quando non specificato — la funzione generica nel framework richiede
+    tax_types esplicito, non ha senso che conosca i nomi delle sleeve di Kelly."""
+    return _apply_italian_tax_generic(
+        sleeve_returns, target_weights,
+        tax_types=tax_types if tax_types is not None else SLEEVE_TAX_TYPE,
+        rebalance_every=rebalance_every,
+    )
 
 
 def _calibrate_mu_sigma_corr(calib: pd.DataFrame, keys: List[str], use_shrinkage: bool = True):
@@ -799,8 +696,7 @@ def print_result(r: BacktestResult) -> None:
 
 
 if __name__ == "__main__":
-    import sys
-    from kelly_validation import deflated_sharpe_ratio
+    from statistical_validation import deflated_sharpe_ratio
 
     data_dir = sys.argv[1] if len(sys.argv) > 1 else "./kelly_backtest_data"
     if not Path(data_dir).exists() or not any(Path(data_dir).glob("*_monthly.csv")):

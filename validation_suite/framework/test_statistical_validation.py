@@ -1,11 +1,12 @@
 """
-test_kelly_validation.py — Verifica su dati sintetici a comportamento noto che DSR
-e PBO si comportino come la teoria prevede, prima di applicarli ai dati reali di
-kelly_backtest.py. Stessa disciplina di test_apex_v2_engine.py.
+test_statistical_validation.py — Verifica su dati sintetici a comportamento noto
+che DSR e PBO si comportino come la teoria prevede, prima di applicarli ai dati
+reali di qualsiasi strategia del repository. Stessa disciplina di
+test_apex_v2_engine.py.
 """
 import numpy as np
 
-from kelly_validation import deflated_sharpe_ratio, pbo_cscv, _norm_cdf, _norm_ppf, block_bootstrap_ci
+from statistical_validation import deflated_sharpe_ratio, pbo_cscv, _norm_cdf, _norm_ppf, block_bootstrap_ci
 
 
 def test_norm_cdf_ppf_are_inverses():

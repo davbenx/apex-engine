@@ -1,0 +1,5 @@
+# Dipendenze SOLO per eseguire validation_suite/ (test/ricerca) — non richieste
+# dall'app in produzione (quelle sono in requirements.txt alla root). Installare
+# entrambi i file per lavorare su questo repo: pip install -r requirements.txt
+# -r validation_suite/requirements-test.txt
+pytest>=8.0.0

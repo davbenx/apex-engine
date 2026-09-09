@@ -24,19 +24,27 @@ solo la parte di test/ricerca/validazione e i dataset point-in-time.
 ```
 validation_suite/
 ├── README.md                    <- questo file
-├── conftest.py                  <- fa risolvere a pytest gli import dei moduli di produzione in root
-├── core_regression/             <- suite di non-regressione per il sistema LIVE (in CI, .github/workflows/ci.yml)
-│   ├── test_apex_convex.py      <- integrazione Apex+Convex+PortfolioManager (16 test)
-│   ├── test_apex_v2_engine.py   <- motore di segnale/basket Apex V2 canonico (13 test)
-│   └── test_backend.py          <- NAV/tassazione/rotazione/calendario/fetch_sector (19 test)
-├── kelly_stack/                 <- modulo di ricerca "Kelly Stack" (3° pilastro esplorato, NON adottato)
-│   ├── KELLY_STACK_SPEC.md      <- spec/diario di validazione completo, incl. perché è stato scartato (§7)
-│   ├── kelly_engine.py          <- pesi Kelly vincolati (QP long-only), governor di rischio
-│   ├── kelly_optimization.py    <- solver QP (projected gradient ascent)
-│   ├── kelly_backtest.py        <- fetch universo, tassazione italiana generalizzata, walk-forward
-│   ├── kelly_validation.py      <- FRAMEWORK DI INVALIDAZIONE ISTITUZIONALE GENERICO (vedi sotto) — riusabile, non specifico a Kelly Stack
-│   └── test_kelly_*.py          <- 53 test (pytest) sui 4 moduli sopra
-├── comparative_studies/         <- script di backtest indipendenti, uno-per-domanda, non un motore persistente
+├── conftest.py                  <- risolve per pytest gli import dei moduli di produzione in root + framework/
+├── pytest.ini                   <- testpaths = framework, kelly_stack, core_regression (comparative_studies escluso: lento)
+├── requirements-test.txt        <- dipendenze SOLO per eseguire questa cartella (pytest)
+├── run_fast_suite.sh            <- comando unico: tutta la suite veloce/deterministica, da qualunque cwd
+├── framework/                    <- TOOLKIT GENERICO, riusabile da QUALSIASI strategia (non specifico a Kelly Stack)
+│   ├── metrics.py                <- cagr/sharpe/max_drawdown/calmar
+│   ├── tax_engine.py              <- apply_italian_tax (redditi capitale/diversi, PMC, NAV/nozionale separati)
+│   ├── statistical_validation.py <- Deflated Sharpe Ratio, PBO/CSCV, block bootstrap CI (Bailey/Lopez de Prado)
+│   └── test_*.py                 <- 19 test sui 3 moduli sopra
+├── core_regression/              <- suite di non-regressione per il sistema LIVE (in CI, .github/workflows/ci.yml)
+│   ├── test_apex_convex.py                        <- integrazione Apex+Convex+PortfolioManager (16 test)
+│   ├── test_apex_v2_engine.py                     <- motore di segnale/basket Apex V2 canonico (13 test)
+│   ├── test_backend.py                            <- NAV/tassazione/rotazione/calendario/fetch_sector (19 test)
+│   └── test_apex_v2_institutional_validation.py   <- DSR/PBO/bootstrap sulla VERA serie di rendimenti Apex V2 (6 test)
+├── kelly_stack/                  <- modulo di ricerca "Kelly Stack" (3° pilastro esplorato, NON adottato)
+│   ├── KELLY_STACK_SPEC.md       <- spec/diario di validazione completo, incl. perché è stato scartato (§7)
+│   ├── kelly_engine.py           <- pesi Kelly vincolati (QP long-only), governor di rischio
+│   ├── kelly_optimization.py     <- solver QP (projected gradient ascent)
+│   ├── kelly_backtest.py         <- fetch universo, walk-forward (usa framework/metrics.py e tax_engine.py)
+│   └── test_kelly_*.py           <- 36 test (pytest) sui 3 moduli sopra
+├── comparative_studies/          <- script di backtest indipendenti, uno-per-domanda, non un motore persistente
 │   ├── apex_stocks_vs_etf_backtest.py   <- basket azionario Apex vs ETF, netto tasse, point-in-time
 │   ├── altcoin_vs_btc_backtest.py       <- altcoin vs BTC buy&hold, netto tasse + fee Kraken
 │   ├── sector_cap_grid_test.py          <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
@@ -46,6 +54,22 @@ validation_suite/
     ├── sp500_pointintime_snapshots.json          <- composizione reale S&P 500 per anno, 2012-2026
     └── cmc_altcoin_pointintime_snapshots.json    <- classifica reale altcoin per market cap, 2019-2026
 ```
+
+**Perche' `framework/` e' separato da `kelly_stack/`**: `metrics.py`,
+`tax_engine.py` e `statistical_validation.py` sono nati dentro Kelly Stack
+(rispettivamente come `_cagr`/`_sharpe`/`_max_drawdown`/`_apply_italian_tax`
+private in `kelly_backtest.py`, e come `kelly_validation.py`) ma non hanno
+NULLA di specifico a Kelly Stack — erano gia' importati da tre script
+indipendenti in `comparative_studies/` con nomi "privati" (prefisso `_`),
+un segnale chiaro che il posto era sbagliato. Promossi qui (settembre 2026,
+audit "lean/frictionless/institutional" — vedi sotto) come API pubblica,
+senza cambiare una riga di logica: verificato che ogni backtest gia'
+riportato in questo file produce numeri IDENTICI post-spostamento
+(`apex_stocks_vs_etf_backtest.py`: 3.59%/3.38% CAGR netto, invariati).
+`kelly_backtest.py` mantiene un thin wrapper `_apply_italian_tax` per
+compatibilita' con le proprie chiamate interne (fallback implicito alle
+sleeve di Kelly Stack) — la versione in `framework/` richiede `tax_types`
+esplicito, non ha senso che un modulo generico conosca nomi di sleeve.
 
 ## Perché esiste questa cartella (il problema che risolve)
 
@@ -62,35 +86,36 @@ quando**.
 
 ## Come eseguire tutto
 
-Dalla root del repo (`/home/user/apex-engine` o equivalente):
+Dalla root del repo (o da qualunque cwd — lo script risolve il percorso):
 
 ```bash
-# Suite di non-regressione core (quella in CI):
-PYTHONPATH=. python -m unittest validation_suite/core_regression/test_apex_convex.py
-PYTHONPATH=. python validation_suite/core_regression/test_apex_v2_engine.py
-PYTHONPATH=. python validation_suite/core_regression/test_backend.py
+# UN comando per tutta la suite veloce/deterministica (framework + kelly_stack + core_regression, 103 test):
+./validation_suite/run_fast_suite.sh
 
-# Framework di validazione Kelly Stack (pytest — conftest.py risolve gli import):
-python -m pytest validation_suite/kelly_stack/ -q
+# equivalente esplicito, se preferisci pytest direttamente:
+PYTHONPATH=. python -m pytest validation_suite/ -v
 
-# Studi comparativi (lenti — minuti, non secondi; scaricano/cacheano prezzi reali alla prima esecuzione):
+# Studi comparativi (lenti — minuti, non secondi; scaricano/cacheano prezzi reali alla prima esecuzione;
+# esclusi apposta da pytest.ini/CI — vedi sotto):
 python validation_suite/comparative_studies/apex_stocks_vs_etf_backtest.py
 python validation_suite/comparative_studies/altcoin_vs_btc_backtest.py
 python validation_suite/comparative_studies/sector_cap_grid_test.py
 ```
 
-In CI (`.github/workflows/ci.yml`) tutto questo gira automaticamente su ogni
-push/PR verso `main`, tranne gli studi comparativi in `comparative_studies/`
-(troppo lenti/dipendenti da rete per un gate di CI — restano strumenti da
-lanciare a mano quando serve rispondere a una domanda specifica).
+Installazione: `pip install -r requirements.txt -r validation_suite/requirements-test.txt`
+(il secondo file aggiunge solo `pytest`, non richiesto dall'app in produzione).
 
-## Il framework di invalidazione istituzionale (`kelly_stack/kelly_validation.py`)
+In CI (`.github/workflows/ci.yml`) `run_fast_suite.sh`-equivalente gira
+automaticamente su ogni push/PR verso `main`, tranne gli studi comparativi
+in `comparative_studies/` (troppo lenti/dipendenti da rete per un gate di
+CI — restano strumenti da lanciare a mano quando serve rispondere a una
+domanda specifica).
 
-Nonostante il nome del file e la cartella, questo modulo **non è specifico
-a Kelly Stack** — è un kit generico di statistica anti-overfitting,
-implementato da zero senza scipy (solo `math.erf` e l'algoritmo di Acklam
-per l'inversa della normale), pensato per essere riusato su QUALSIASI
-backtest di questo repository:
+## Il framework di invalidazione istituzionale (`framework/statistical_validation.py`)
+
+Kit generico di statistica anti-overfitting, implementato da zero senza
+scipy (solo `math.erf` e l'algoritmo di Acklam per l'inversa della normale),
+pensato per essere riusato su QUALSIASI backtest di questo repository:
 
 - `deflated_sharpe_ratio(...)` — corregge lo Sharpe osservato per il numero
   di varianti/parametri testati (senza, un Sharpe "buono" è spesso solo il
@@ -108,8 +133,36 @@ backtest di questo repository:
 
 Se prossimamente si vuole validare un'altra strategia (o un'altra variante
 di Apex/Convex) con lo stesso rigore, **importare da qui**, non
-reimplementare — vedi `kelly_stack/test_kelly_validation.py` per esempi
-d'uso.
+reimplementare — vedi `framework/test_statistical_validation.py` per
+esempi d'uso, e `core_regression/test_apex_v2_institutional_validation.py`
+per un'applicazione reale (non su dati sintetici).
+
+### Applicato per la prima volta alla strategia LIVE (Apex V2), non solo a Kelly Stack
+
+Fino a settembre 2026 questo framework era stato usato SOLO su Kelly Stack
+(un pilastro esplorato e scartato) — mai sulla strategia che gestisce
+davvero soldi. `test_apex_v2_institutional_validation.py` chiude il gap,
+leggendo la vera serie di rendimenti mensili di Apex V2
+(`apex_monthly_returns_extended.csv`/`_gross.csv` in root, la stessa dietro
+le cifre di dashboard):
+
+- **DSR sul campione pieno (142 mesi)**: >0.999 anche assumendo 100 varianti
+  testate prima di questa (il numero esatto di trial non è ricostruibile con
+  precisione dalla storia documentata in `APEX_V2_SPEC.md` §8 — riportiamo
+  una griglia 20/50/100 invece di un numero taroccato di precisione).
+- **DSR sul periodo TEST fuori campione (72 mesi, 2020-09-30 in poi, mai
+  usato per scegliere i parametri)**: Sharpe osservato 0.80, DSR >0.999
+  anche a 100 trial.
+- **CI 90% (block bootstrap) sullo Sharpe TEST**: [0.15, 1.41] — esclude
+  comodamente lo zero.
+
+Verdetto: l'alpha di Apex V2 fuori campione **resiste** a questi strumenti —
+DSR alto e CI che esclude lo zero anche sotto ipotesi pessimistiche sul
+numero di tentativi fatti. Non è una prova di verità assoluta (il numero di
+trial resta una stima, non un conteggio esatto, e nessuno di questi
+strumenti puo' escludere un regime futuro diverso dal campione storico) ma
+è la prova più severa che questo progetto abbia applicato alla propria
+strategia live, e il risultato è positivo.
 
 ## I dataset point-in-time
 
@@ -152,6 +205,14 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
 
 ## Storia delle scoperte rilevanti (aggiornare ad ogni risultato nuovo)
 
+- **Audit "lean/frictionless/institutional" (settembre 2026)**: promosse a
+  `framework/` le funzioni generiche nate dentro Kelly Stack (vedi sopra);
+  aggiunto `pytest.ini` + `conftest.py` + `run_fast_suite.sh` (un comando
+  per tutta la suite veloce, prima servivano 4+ comandi diversi); aggiunta
+  `test_apex_v2_institutional_validation.py` (DSR/PBO/bootstrap sulla vera
+  strategia live, non solo su Kelly Stack — vedi sopra). Verificato che nel
+  codice esistente le uniche `except Exception` "silenziose" trovate sono
+  fail-open deliberati e documentati (es. `fetch_sector`), non bug.
 - **Cap settore (`V2_MAX_PER_SECTOR`)**: grid search reale {nessun vincolo,
   2, 3, 4, 5}/settore (`sector_cap_grid_test.py`) — performance
   indistinguibili su tutta la griglia (CAGR entro 3bps, Sharpe identico a 2

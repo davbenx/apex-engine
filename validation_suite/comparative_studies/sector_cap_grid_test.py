@@ -29,9 +29,10 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]  # validation_suite/comparative_studies/ -> validation_suite/ -> repo root
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "kelly_stack"))
+sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "framework"))
 from apex_v2_engine import compute_v2_macro_signal, select_low_vol_basket, V2_CLASS_TICKER
-from kelly_backtest import _apply_italian_tax, _cagr, _sharpe, _max_drawdown
+from metrics import cagr as _cagr, sharpe as _sharpe, max_drawdown as _max_drawdown
+from tax_engine import apply_italian_tax as _apply_italian_tax
 from apex_stocks_vs_etf_backtest import (
     DATA_DIR, POINTINTIME_FILE, TRANSACTION_COST_BPS,
     load_weekly_macro, load_weekly_sp500, load_pointintime_snapshots,
@@ -45,9 +46,9 @@ def _capm_alpha(port_ret: pd.Series, bench_ret: pd.Series) -> tuple[float, float
     """Alpha annualizzato via OLS (port - rf ~ beta*(bench - rf) + alpha), rf=0
     (stessa convenzione usata altrove in questo progetto per i confronti netti).
     t-stat/p-value via approssimazione normale (no scipy, stesso stile di
-    kelly_validation._norm_cdf) — valida per n grande come nei nostri campioni
-    settimanali pluriennali."""
-    from kelly_validation import _norm_cdf
+    statistical_validation._norm_cdf) — valida per n grande come nei nostri
+    campioni settimanali pluriennali."""
+    from statistical_validation import _norm_cdf
     y = port_ret.values
     x = bench_ret.values
     n = len(y)

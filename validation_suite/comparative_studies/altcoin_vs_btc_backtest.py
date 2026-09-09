@@ -22,8 +22,9 @@ l'azionario) — le crypto tradano 24/7, settimanale resta un turnover basso
 modello di deriva tra ribilanciamenti mensili che avrebbe complicato
 inutilmente il confronto per un caso con target spesso costante.
 
-Riusa _apply_italian_tax di kelly_backtest.py (gia' validata, gestisce
-correttamente NAV/valore nozionale/PMC) invece di una nuova funzione ad-hoc.
+Riusa apply_italian_tax di validation_suite/framework/tax_engine.py (gia'
+validata, gestisce correttamente NAV/valore nozionale/PMC) invece di una
+nuova funzione ad-hoc.
 """
 
 from __future__ import annotations
@@ -37,8 +38,9 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "kelly_stack"))
-from kelly_backtest import _cagr, _sharpe, _max_drawdown, _apply_italian_tax
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "framework"))
+from metrics import cagr as _cagr, sharpe as _sharpe, max_drawdown as _max_drawdown
+from tax_engine import apply_italian_tax as _apply_italian_tax
 
 DATA_DIR = Path(__file__).parent / "altcoin_data"  # rigenerabile, non tracciato in git (.gitignore)
 KRAKEN_TAKER_FEE = 0.0026  # verificato via ricerca web, fascia volume piu' bassa

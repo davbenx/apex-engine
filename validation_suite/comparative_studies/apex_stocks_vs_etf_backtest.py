@@ -9,8 +9,8 @@ nel confronto originale di §8.3, superato da allora).
 
 Riusa le funzioni REALI di produzione (apex_v2_engine.compute_v2_macro_signal,
 select_low_vol_basket) — non una riimplementazione — e la stessa logica di
-tassazione italiana gia' validata in kelly_backtest.py (_apply_italian_tax,
-generalizzata per pesi variabili nel tempo).
+tassazione italiana gia' validata in validation_suite/framework/tax_engine.py
+(apply_italian_tax, generalizzata per pesi variabili nel tempo).
 
 Universo: i 499 titoli ATTUALI dell'S&P 500 (get_sp500_tickers() di
 backend.py, dati aggiustati per dividendi, storico daily vero via range="15y"
@@ -46,9 +46,10 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # validation_suite/comparative_studies/ -> validation_suite/ -> repo root
 sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "kelly_stack"))
+sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "framework"))
 from apex_v2_engine import compute_v2_macro_signal, select_low_vol_basket, V2_CLASS_TICKER
-from kelly_backtest import _apply_italian_tax, _cagr, _sharpe, _max_drawdown
+from metrics import cagr as _cagr, sharpe as _sharpe, max_drawdown as _max_drawdown
+from tax_engine import apply_italian_tax as _apply_italian_tax
 from backend import get_sp500_tickers
 
 REPO_DIR = Path(__file__).parent

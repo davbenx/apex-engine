@@ -1,0 +1,87 @@
+"""
+test_tax_engine.py — verifica su scenari sintetici a comportamento noto di
+apply_italian_tax (framework/tax_engine.py). Estratti da test_kelly_backtest.py:
+questa funzione e' generica, non specifica a Kelly Stack, ora vive e si testa
+nel framework condiviso. Unica differenza rispetto all'originale: tax_types
+qui e' sempre passato esplicitamente (la funzione generica non ha un fallback
+implicito ai nomi delle sleeve di Kelly Stack).
+"""
+import numpy as np
+import pandas as pd
+
+from tax_engine import apply_italian_tax
+
+
+def test_italian_tax_capital_income_pays_flat_26_on_realized_gain_only():
+    """Sleeve unica a reddito di capitale, cresce ininterrottamente: il
+    ribilanciamento mensile verso peso fisso 100% non vende nulla (nessun
+    eccesso rispetto al target), quindi non deve scattare tassazione fino a
+    che non c'e' un secondo asset che assorbe l'eccesso."""
+    returns = pd.DataFrame({"A": [0.10, 0.10], "B": [0.0, 0.0]})
+    net = apply_italian_tax(returns, {"A": 0.5, "B": 0.5}, tax_types={"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"})
+    # A cresce, B resta fermo -> il ribilanciamento VENDE una parte di A (reddito capitale)
+    # per riportarla al 50% -> deve scattare una tassa positiva su quel guadagno
+    gross = (returns["A"] * 0.5 + returns["B"] * 0.5)
+    assert (1 + net).prod() < (1 + gross).prod(), "la tassazione deve ridurre il rendimento netto rispetto al lordo"
+
+
+def test_italian_tax_reddito_diverso_offsets_loss_against_later_gain():
+    """Sleeve a reddito diverso: una minusvalenza realizzata deve compensare una
+    plusvalenza successiva, riducendo la tassa dovuta rispetto al caso senza
+    compensazione (verificato per confronto tra due scenari)."""
+    keys = {"WBTC_proxy": 0.5, "PPFB_proxy": 0.5}
+    tax_types = {"WBTC_proxy": "REDDITO_DIVERSO", "PPFB_proxy": "REDDITO_DIVERSO"}
+    # scenario con perdita poi guadagno (compensazione possibile)
+    returns_with_loss = pd.DataFrame({
+        "WBTC_proxy": [-0.30, 0.50, 0.10],
+        "PPFB_proxy": [0.0, 0.0, 0.0],
+    })
+    net = apply_italian_tax(returns_with_loss, keys, tax_types=tax_types)
+    gross = (returns_with_loss["WBTC_proxy"] * 0.5 + returns_with_loss["PPFB_proxy"] * 0.5)
+    # con compensazione minusvalenze, il drag fiscale totale deve essere STRETTAMENTE
+    # inferiore a quanto sarebbe senza compensazione (26% pieno su ogni plusvalenza lorda)
+    total_gross_growth = (1 + gross).prod()
+    total_net_growth = (1 + net).prod()
+    naive_full_tax_growth = total_gross_growth - (total_gross_growth - 1) * 0.26 if total_gross_growth > 1 else total_gross_growth
+    assert total_net_growth >= naive_full_tax_growth - 1e-6, (
+        "con compensazione minusvalenze il drag fiscale non deve superare la tassazione piena senza compensazione"
+    )
+
+
+def test_leveraged_tax_never_inflates_nav_beyond_gross():
+    """Regressione: con leva (somma pesi target > 100%, come nel disegno
+    deployato da Kelly Stack), la tassazione non deve MAI produrre una crescita
+    netta superiore alla crescita lorda, e i due ordini di grandezza devono
+    restare comparabili — bug reale trovato durante lo sviluppo: confondere
+    valore nozionale delle posizioni (che con leva supera il NAV) con il NAV
+    stesso produceva un errore di scala composto ogni mese, CAGR netto >10.000%."""
+    rng = np.random.default_rng(3)
+    n = 48
+    returns = pd.DataFrame({
+        "NTSG_proxy": rng.normal(0.008, 0.04, n),
+        "AVWS_proxy": rng.normal(0.007, 0.05, n),
+        "DBMFE_proxy": rng.normal(0.004, 0.025, n),
+        "PPFB_proxy": rng.normal(0.002, 0.035, n),
+        "WBTC_proxy": rng.normal(0.02, 0.15, n),
+    })
+    weights = {"NTSG_proxy": 0.6, "AVWS_proxy": 0.14, "DBMFE_proxy": 0.6, "PPFB_proxy": 0.0, "WBTC_proxy": 0.15}
+    tax_types = {
+        "NTSG_proxy": "REDDITO_CAPITALE", "AVWS_proxy": "REDDITO_CAPITALE", "DBMFE_proxy": "REDDITO_CAPITALE",
+        "PPFB_proxy": "REDDITO_DIVERSO", "WBTC_proxy": "REDDITO_DIVERSO",
+    }
+    assert sum(weights.values()) > 1.0, "questo test presuppone leva (somma pesi > 100%)"
+
+    net = apply_italian_tax(returns, weights, tax_types=tax_types)
+    gross = (returns * pd.Series(weights)).sum(axis=1)
+
+    gross_growth = float((1 + gross).prod())
+    net_growth = float((1 + net).prod())
+
+    assert net_growth <= gross_growth * 1.001, (
+        f"il netto ({net_growth:.2f}x) non deve mai superare il lordo ({gross_growth:.2f}x): "
+        "la tassazione riduce la ricchezza, non la aumenta"
+    )
+    assert net_growth > gross_growth * 0.5, (
+        f"un drag fiscale che dimezza la crescita totale su {n} mesi indicherebbe un bug di scala, "
+        f"non un effetto fiscale plausibile (lordo {gross_growth:.2f}x, netto {net_growth:.2f}x)"
+    )

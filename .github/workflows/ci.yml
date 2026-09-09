@@ -11,8 +11,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      # I test di core_regression/ vivono sotto validation_suite/ ma importano i moduli
-      # di produzione (backend, apex_v2_engine, convex_engine, ...) dalla root del repo.
+      # validation_suite/ importa i moduli di produzione (backend, apex_v2_engine,
+      # convex_engine, ...) dalla root del repo — vedi validation_suite/conftest.py
+      # per l'equivalente in esecuzione locale via pytest.
       PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
@@ -22,20 +23,10 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pytest
-      - name: Run Apex-Convex Ecosystem Tests
+          pip install -r requirements.txt -r validation_suite/requirements-test.txt
+      - name: Run Validation Suite (core_regression + kelly_stack + framework)
         run: |
-          python -m unittest validation_suite/core_regression/test_apex_convex.py
-      - name: Run Apex V2 Engine Tests
-        run: |
-          python validation_suite/core_regression/test_apex_v2_engine.py
-      - name: Run Backend Execution Tests
-        run: |
-          python validation_suite/core_regression/test_backend.py
-      - name: Run Kelly Stack Validation Suite
-        run: |
-          python -m pytest validation_suite/kelly_stack/ -q
+          python -m pytest validation_suite/ -v
       - name: Test Convex Telegram Dry Run
         run: |
           python convex_telegram_reminder.py --dry-run

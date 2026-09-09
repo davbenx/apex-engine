@@ -1,7 +1,10 @@
 """
-kelly_validation.py — Strumenti di validazione istituzionale per eliminare bias di
-data-snooping/overfitting, richiesti esplicitamente per Kelly Stack e già citati
-come standard in APEX_V2_SPEC.md per l'audit di Apex v1.
+statistical_validation.py — Strumenti di validazione istituzionale generici per
+eliminare bias di data-snooping/overfitting da QUALSIASI backtest di questo
+repository (non specifico a Kelly Stack, dove sono nati come kelly_validation.py
+prima di essere promossi qui — Apex V2 e Convex citano lo stesso standard in
+APEX_V2_SPEC.md per l'audit di Apex v1, ma non erano mai stati verificati con
+questi strumenti fino a validation_suite/core_regression/test_apex_v2_institutional_validation.py).
 
 Implementa due strumenti standard della letteratura (Bailey & Lopez de Prado):
 
