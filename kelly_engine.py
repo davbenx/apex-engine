@@ -73,18 +73,34 @@ KELLY_SLEEVES = {
         "sigma_prior": 0.60,
         "tolerance_band": 0.50,
     },
+    "JELS": {
+        "name": "JPMorgan Equity Long-Short UCITS ETF",
+        "role": "Alpha long/short market-neutral-ish (spec §4.1)",
+        "tax_type": "REDDITO_CAPITALE",
+        "mu_prior": 0.030,   # letteratura hedge fund equity market-neutral: tipicamente 2-4%/anno (spec §4.1)
+        "sigma_prior": 0.08,
+        "tolerance_band": 0.20,
+        # AUM ~10M EUR rilevato in ricerca (settembre 2026) — fondo piccolo, rischio di
+        # chiusura concreto (visto realizzarsi per un prodotto concorrente nella stessa
+        # famiglia di strategia). Verificare liquidita'/AUM aggiornati prima di allocare
+        # capitale reale (spec §7, punto 6). Gestisce lo short internamente (derivati a
+        # livello di fondo) — nessuna posizione a margine sul conto dell'investitore.
+    },
 }
 
 # Correlazioni prior (letteratura: equity/small-value alta corr, trend-following
 # vicino a zero o negativo con equity in coda, oro/BTC scarsamente correlati col
-# resto) — NON calibrate sui dati storici di questi strumenti (spec §4, §7).
-# Ordine righe/colonne: NTSG, AVWS, DBMFE, PPFB, WBTC
+# resto, JELS a bassa correlazione "tranquilla" ma non nulla per il rischio di
+# deleveraging dei fattori quant — spec §4.1) — NON calibrate sui dati storici
+# di questi strumenti (spec §4, §7). Ordine righe/colonne: NTSG, AVWS, DBMFE,
+# PPFB, WBTC, JELS
 KELLY_CORR_PRIOR = np.array([
-    [1.00, 0.85, -0.10, 0.05, 0.15],
-    [0.85, 1.00, -0.05, 0.05, 0.15],
-    [-0.10, -0.05, 1.00, 0.10, 0.05],
-    [0.05, 0.05, 0.10, 1.00, 0.10],
-    [0.15, 0.15, 0.05, 0.10, 1.00],
+    [1.00, 0.85, -0.10, 0.05, 0.15, 0.20],
+    [0.85, 1.00, -0.05, 0.05, 0.15, 0.20],
+    [-0.10, -0.05, 1.00, 0.10, 0.05, 0.00],
+    [0.05, 0.05, 0.10, 1.00, 0.10, 0.00],
+    [0.15, 0.15, 0.05, 0.10, 1.00, 0.10],
+    [0.20, 0.20, 0.00, 0.00, 0.10, 1.00],
 ])
 
 KELLY_FRACTION = 0.5          # mezzo-Kelly: ~75% della crescita di Kelly pieno, molta meno varianza (spec §2)
@@ -385,8 +401,8 @@ if __name__ == "__main__":
     print(f"Pesi frazionari (k={KELLY_FRACTION}): { {k: round(v, 3) for k, v in res.fractional_weights.items()} }")
     print(f"Leva lorda grezza: {res.gross_leverage_raw*100:.1f}% -> dopo tetto/governatori: {res.gross_leverage_final*100:.1f}%")
 
-    holdings_example = {"NTSG": 500, "AVWS": 200, "DBMFE": 300, "PPFB": 100, "WBTC": 50}
-    prices_example = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0}
+    holdings_example = {"NTSG": 500, "AVWS": 200, "DBMFE": 300, "PPFB": 100, "WBTC": 50, "JELS": 150}
+    prices_example = {"NTSG": 100.0, "AVWS": 50.0, "DBMFE": 25.0, "PPFB": 50.0, "WBTC": 100.0, "JELS": 100.0}
     rep = evaluate_kelly_stack(holdings_example, prices_example, res.final_weights, monthly_pac_eur=500.0, kelly_result=res)
     print(f"Valore Totale Kelly Stack: € {rep.total_value:,.2f}")
     print(f"Leva lorda corrente (da holding): {rep.gross_leverage*100:.1f}%")

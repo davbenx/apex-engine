@@ -9,10 +9,24 @@ from kelly_engine import (
     compute_kelly_weights,
     evaluate_kelly_stack,
     KELLY_SLEEVES,
+    KELLY_CORR_PRIOR,
     MAX_GROSS_LEVERAGE,
     KELLY_DD_DERISK_TRIGGER,
     KELLY_DD_DERISK_FLOOR,
 )
+
+
+def test_universe_matches_default_correlation_matrix_shape():
+    """Se qualcuno aggiunge/rimuove una sleeve da KELLY_SLEEVES senza aggiornare
+    KELLY_CORR_PRIOR (o viceversa), compute_kelly_weights() deve fallire in modo
+    esplicito (mismatch di shape in numpy), non produrre pesi silenziosamente
+    sbagliati — verifica che oggi le due strutture siano allineate, incluso
+    JELS (spec §4.1)."""
+    n = len(KELLY_SLEEVES)
+    assert KELLY_CORR_PRIOR.shape == (n, n)
+    assert "JELS" in KELLY_SLEEVES, "JELS (equity long/short, spec §4.1) deve far parte dell'universo di default"
+    res = compute_kelly_weights()
+    assert set(res.final_weights.keys()) == set(KELLY_SLEEVES.keys())
 
 
 def test_gross_leverage_respects_static_cap():

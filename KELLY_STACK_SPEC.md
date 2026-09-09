@@ -10,6 +10,14 @@ prodotto due bug di produzione corretti in Apex (§8.5, §8.8 di `APEX_V2_SPEC.m
 
 **Stato di questo documento: DESIGN, non ancora backtestato.** Vedi §7.
 
+**Revisione del mandato (dopo la prima stesura):** su richiesta esplicita
+dell'utente, l'universo di strumenti non è più vincolato ai 5 asset di Convex
+(§4) e sono ammesse strategie diverse dalla pura allocazione beta, incluso
+long/short — ciò che conta è CAGR/alpha/expectancy. Restano non negoziabili i
+due vincoli architetturali che servono a mantenere sotto controllo il rischio
+di rovina anche con un universo più ampio (§4): mai margine personale, mai ETP
+a leva/inversi a reset giornaliero come posizione di lungo periodo.
+
 ---
 
 ## 0. Obiettivo (definizione del problema, non solo il nome)
@@ -182,13 +190,33 @@ indipendentemente** (§7), non ereditato per analogia.
 
 ---
 
-## 4. Universo delle sleeve
+## 4. Universo delle sleeve — ora esplicitamente aperto
 
-Riusa gli **stessi strumenti UCITS/ETC già verificati** in `convex_engine.py`
-(ISIN e ticker confermati contro fonti reali, con la cronologia di bug di
-identificazione prodotto già corretti — vedi commenti in quel file) invece di
-introdurne di nuovi non verificati. La differenza di Kelly Stack rispetto a
-Convex non è l'universo di strumenti, è **come vengono pesati**.
+**Revisione su richiesta esplicita dell'utente:** l'universo non è più vincolato
+ai 5 strumenti di Convex. Ciò che conta è CAGR/alpha/expectancy, e sono ammesse
+strategie diverse, incluso long/short — non solo diversificazione beta. Restano
+**non negoziabili** due principi già stabiliti (motivati dall'obiettivo stesso di
+"rischio di rovina sotto controllo" che l'utente ha fissato all'origine di questo
+motore, §0):
+
+1. **Mai margine di broker personale.** Il caso peggiore per l'investitore deve
+   sempre essere "il NAV di un fondo scende", mai "arriva una richiesta di
+   margine che forza una liquidazione fuori dal proprio controllo". Vale anche
+   per l'esposizione long/short: si ottiene comprando un **fondo che shorta
+   internamente** (gestito da un terzo con il proprio risk management), non
+   aprendo posizioni corte a leva sul proprio conto.
+2. **Mai ETP a leva/inversi a reset giornaliero come posizione di lungo
+   periodo.** Decadono per compounding in mercati laterali (volatility decay
+   ben documentato) — incompatibili con l'orizzonte "buy&hold generazionale,
+   turnover minimo" di questo intero progetto. Se serve esposizione short,
+   si cerca un fondo che la implementa con un orizzonte multi-mese/anno, non
+   uno strumento tattico giornaliero.
+
+Ogni nuovo strumento aggiunto qui segue lo stesso standard di verifica già
+applicato in `convex_engine.py`: ISIN/ticker confermati contro fonti reali,
+mai inventati. `compute_kelly_weights()` accetta `mu`/`sigma`/`corr` come
+parametri — l'universo cresce editando `KELLY_SLEEVES`/`KELLY_CORR_PRIOR`,
+non riscrivendo la logica di ottimizzazione.
 
 | Sleeve | Strumento | Ruolo nel framework Kelly | μ atteso (prior, annuo, ecc. eccesso su cash) | σ atteso (prior, annuo) |
 |---|---|---|---|---|
@@ -197,6 +225,48 @@ Convex non è l'universo di strumenti, è **come vengono pesati**.
 | Managed futures / trend | DBMFE | **Crisis alpha** — ciò che rende sicura più leva sull'equity | 3.5% | 10% |
 | Oro fisico | PPFB | Hedge di coda / inflazione, bassa correlazione in stagflazione | 1.0% | 15% |
 | Bitcoin | WBTC | Convessità asimmetrica — bet piccolo, upside potenzialmente enorme | 15% | 60% |
+| Equity long/short | JELS | **Alpha market-neutral-ish**, bassa correlazione col beta azionario per costruzione | 3.0% | 8% |
+
+### 4.1 Equity Long/Short — JPMorgan Equity Long-Short UCITS ETF (JELS)
+
+**Verificato (ricerca web, settembre 2026):** ISIN `IE00BF4G7308`, ticker
+`JELS` (quotato LSE come `JELS.L`, anche varianti Xetra `JLEE`/`JLEA` e una
+classe GBP-hedged `IE00BDDRF254`). Fondo attivo, non un indice passivo:
+"exploiting pricing inefficiencies between global developed market equity
+securities by maintaining long and short positions... based on a systematic
+investment process." TER 0.67%. Il gestore implementa lo short internamente
+(derivati/swap a livello di fondo) — l'investitore non apre mai una posizione
+a margine.
+
+**Rischio dichiarato, non ipotetico:** l'AUM rilevato è **~€10 milioni** — un
+fondo molto piccolo. Rischio concreto di chiusura/fusione (visto realizzarsi
+nella ricerca sotto per un prodotto concorrente), spread bid-ask
+potenzialmente largo, tracking/execution risk più alto di un ETF passivo
+grande. Va monitorato esplicitamente, non trattato come rischio trascurabile
+solo perché il wrapper è "solo un ETF".
+
+**Scartato per lo stesso ruolo, con motivazione — Xtrackers db (Equity
+Strategies) Hedge Fund Index UCITS ETF** (varie classi, es. `DBX0DD`/
+ISIN `LU0434446117`, multi-strategy: Equity Hedge, Equity Market Neutral,
+Systematic Macro, Event Driven, Credit & Convertible Arbitrage, Global Macro):
+la ricerca ha trovato **più classi della stessa famiglia già liquidate o
+fuse** (1C EUR-hedged, 2C, 3C GBP-hedged, 5C CHF-hedged, e le varianti "Equity
+Strategies" 1C/2C/5C). Un segnale strutturale di fragilità dell'intera
+famiglia di prodotto, non di una singola share class isolata — coerente con
+il principio già seguito in Apex di non adottare un candidato solo perché
+sembra buono su carta (`APEX_V2_SPEC.md` §8.4, sleeve commodity DBC: buono nel
+campione breve, non robusto). Non incluso nell'universo.
+
+**μ/σ prior per JELS:** i fondi equity market-neutral/long-short hanno storicamente
+rendimenti in eccesso modesti (letteratura su hedge fund equity market-neutral:
+tipicamente 2-4%/anno) con volatilità bassa rispetto all'azionario long-only
+(per costruzione, gran parte del beta di mercato è neutralizzato) — ma con
+rischio di manager/esecuzione più alto di un indice passivo, e correlazione
+che può salire bruscamente in eventi di deleveraging dei fattori quantitativi
+(es. "quant crash" agosto 2007) invece di restare vicina a zero come nei
+periodi normali. Prior deliberatamente conservativo: μ=3.0%, σ=8%, correlazione
+positiva piccola (non zero) con le altre sleeve azionarie per riflettere
+questo rischio di coda, non la correlazione media "tranquilla".
 
 **I prior di μ/σ sono stime di letteratura accademica generiche (equity risk
 premium storico, momentum/trend-following CTA, oro reale, small-cap value
@@ -283,6 +353,11 @@ stesso ordine di rigore usato per Apex:
 5. **Validazione del governatore drawdown indipendente da quello di Apex**
    (§3, nota di onestà intellettuale) — non ereditare la conclusione "il
    kill-switch non serve" senza ritestarla in presenza di leva.
+6. **Verifica di liquidità/AUM aggiornata su JELS** (§4.1) prima di allocare
+   capitale reale — l'AUM di ~€10M rilevato in ricerca è un dato puntuale,
+   non un monitoraggio continuo; un fondo di quella taglia può chiudere con
+   preavviso breve (visto realizzarsi per un prodotto concorrente nella
+   stessa ricerca).
 
 Fino a quel punto, questo motore va trattato come un **framework di calcolo
 pesi**, utile per capire la direzione e la logica dell'allocazione, non come un
