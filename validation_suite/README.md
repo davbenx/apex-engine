@@ -67,6 +67,8 @@ validation_suite/
 │   ├── apex_theory5_lookback_finegrid_test.py <- terzo giro Teoria #5: griglia fine di 9 lookback (risultato: rafforzata, vantaggio consistente su banda 16-33 settimane, non un punto isolato)
 │   ├── apex_stable_beta_basket_test.py    <- quarto giro Teoria #5: beta medio su 4 finestre (13/26/39/52 sett.) invece di un singolo lookback (risultato: piu' debole dei migliori lookback singoli, l'edge sembra specifico a una banda di medio termine)
 │   ├── apex_theory5_band_ensemble_test.py <- quinto giro Teoria #5: ensemble di 6 basket indipendenti scoped sulla banda 22-33 sett. (risultato: effetto reale e consistente ma al limite della risoluzione statistica di ~11 anni di dati, valore marginale decrescente per ulteriori giri sullo stesso parametro)
+│   ├── apex_theory5_walkforward_selection_test.py <- checklist produzione Teoria #5, gap #1: selezione del lookback walk-forward (mai guardando dati futuri) — banda confermata stabile, ma la selezione adattiva non batte un lookback fisso
+│   ├── apex_theory5_composition_turnover_test.py <- checklist produzione Teoria #5, gap #3/#4: turnover e composizione settoriale quasi identici tra low-vol e low-beta, ma sovrapposizione titoli effettivi solo 6.9%
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -778,6 +780,48 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     replica fuori da questo specifico storico S&P 500.** Se adottata,
     andrebbe trattata come una posizione di convinzione moderata, non
     come un cambio a piena confidenza.
+- **Checklist di produzione per la Teoria #5**, richiesta diretta
+  dell'utente dopo la domanda "quali verifiche mancano per essere
+  approvato per la produzione?" — 7 gap identificati, chiusi punto per
+  punto ("procedi punto per punto").
+  - **Gap #1 — selezione del lookback con look-ahead, RISOLTO**,
+    `apex_theory5_walkforward_selection_test.py`. La banda 22-33 settimane
+    era stata identificata E testata sullo stesso campione completo — un
+    vero walk-forward (4 ere consecutive ~2,6 anni ciascuna, il lookback
+    scelto per ogni era SOLO con lo Sharpe delle ere precedenti, mai
+    quella corrente) mostra: (a) la selezione adattiva converge in modo
+    stabile su 22-24 settimane (mai un valore fuori dalla banda gia'
+    identificata — la banda non era un artefatto del guardare tutto il
+    campione insieme), ma (b) **la selezione ADATTIVA non batte un
+    lookback fisso a 26 settimane scelto a priori** (walk-forward
+    +1,16pp/anno CI 90% [-0,66;+2,55] contro fisso-26 +1,24pp/anno CI
+    [-0,32;+2,43] — il fisso e' leggermente MIGLIORE). **Implicazione
+    diretta per la produzione: se adottata, va implementata con un
+    lookback fisso, mai con ri-selezione adattiva — la sofisticazione
+    aggiuntiva non paga.** Il quadro sostanziale (positivo, non
+    significativo al 90%) e' confermato anche nel disegno piu' rigoroso
+    possibile fin qui: la banda non e' un artefatto del look-ahead, ma
+    nemmeno diventa piu' forte eliminandolo.
+  - **Gap #3/#4 — turnover e composizione, CHIUSI**,
+    `apex_theory5_composition_turnover_test.py`. Turnover quasi identico
+    (low-vol 8,5/15 titoli sostituiti a trimestre = 57%, low-beta 8,9/15
+    = 60% — differenza trascurabile, nessun costo di transazione
+    aggiuntivo rilevante). Concentrazione settoriale quasi identica
+    (13,3% nel settore piu' rappresentato per entrambi); 4 dei 6 settori
+    piu' comuni coincidono (Consumer Defensive, Utilities, Healthcare,
+    Industrials, Consumer Cyclical), low-beta preferisce leggermente Real
+    Estate al posto di Financial Services rispetto a low-vol — nessuna
+    concentrazione anomala in nessuno dei due. **Scoperta piu' rilevante,
+    non anticipata**: la sovrapposizione di titoli EFFETTIVI tra i due
+    basket, stessa data, e' solo **6,9% in media** (range 0-30%) — i due
+    criteri, pur simili su turnover/settore, selezionano quasi sempre
+    titoli COMPLETAMENTE DIVERSI. L'edge, se reale, viene da una
+    meccanica di selezione sostanzialmente diversa, non da un
+    aggiustamento marginale dello stesso basket.
+  - **Gap rimanenti**: #2 (campione indipendente, non fattibile senza
+    dati point-in-time di un altro mercato), #5 (comportamento nei crash
+    specifici), #6 (interazione col segnale di timing), #7 (criterio di
+    uscita — decisione di policy, non un test).
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
