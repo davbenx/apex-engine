@@ -66,6 +66,7 @@ validation_suite/
 │   ├── apex_theory1_rolling_attribution_test.py <- terzo giro Teoria #1: Sharpe rolling + attribuzione per classe (risultato: falsificata, edge quasi interamente da BTC 2017-2022, non riproporre)
 │   ├── apex_theory5_lookback_finegrid_test.py <- terzo giro Teoria #5: griglia fine di 9 lookback (risultato: rafforzata, vantaggio consistente su banda 16-33 settimane, non un punto isolato)
 │   ├── apex_stable_beta_basket_test.py    <- quarto giro Teoria #5: beta medio su 4 finestre (13/26/39/52 sett.) invece di un singolo lookback (risultato: piu' debole dei migliori lookback singoli, l'edge sembra specifico a una banda di medio termine)
+│   ├── apex_theory5_band_ensemble_test.py <- quinto giro Teoria #5: ensemble di 6 basket indipendenti scoped sulla banda 22-33 sett. (risultato: effetto reale e consistente ma al limite della risoluzione statistica di ~11 anni di dati, valore marginale decrescente per ulteriori giri sullo stesso parametro)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -738,6 +739,45 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   specifico di un orizzonte di stima di medio termine (~5-8 mesi), non
   un effetto beta generico presente su qualunque finestra** — un
   risultato che restringe ulteriormente, ma non chiude, la Teoria #5.
+- **Quinto giro — ensemble scoped sulla banda 22-33 settimane**, richiesta
+  diretta dell'utente ("procedi"), `apex_theory5_band_ensemble_test.py`.
+  A differenza del quarto giro (media del CRITERIO beta su un range ampio
+  13-52, che diluiva il segnale), qui si costruisce un ENSEMBLE dei
+  RISULTATI — 6 basket indipendenti selezionati ciascuno col proprio
+  lookback SOLO nella banda interna forte (22/24/26/28/30/33 sett.),
+  poi si media la SERIE DI RENDIMENTO netta dei 6 portafogli (un "fondo
+  di fondi" che preserva la selezione titoli distinta di ciascun lookback
+  invece di appiattirla in un unico criterio medio). Statistica scoped
+  SOLO su questa banda (8 configurazioni: baseline + 6 lookback + ensemble),
+  non sulla griglia intera di 9+ punti, per non riprodurre lo stesso
+  rischio di selezione post-hoc gia' segnalato nei giri precedenti.
+  - **Risultato: conferma l'ipotesi del quarto giro E stringe ulteriormente
+    il quadro.** Ensemble: CAGR 17,62% (contro 16,50%), Sharpe 1,14
+    (contro 1,08). Confronto accoppiato: **+0,98pp/anno, CI 90%
+    [-0,18; +1,98]** — PIU' vicino a escludere lo zero del quarto giro
+    (stable-beta ampio: [-0,48;+1,54]), ma ANCORA PIU' DEBOLE dei singoli
+    lookback piu' forti della banda (30 e 33 settimane, che da soli
+    escludevano lo zero). PBO-CSCV su questo set scoped: 31,4% (moderato,
+    ne' allarmante ne' rassicurante).
+  - **Train/test — il segnale piu' incoraggiante di tutta l'indagine
+    Teoria #5**: l'ensemble migliora in ENTRAMBE le meta' rispetto al
+    baseline (1a meta' 1,47->1,50; 2a meta' 0,59->0,67) — nessuna
+    inversione in nessun test su nessuna variante di questa teoria,
+    a differenza della Teoria #1.
+  - **Verdetto dopo 5 giri di verifica indipendenti**: la Teoria #5 mostra
+    un effetto REALE, modesto e consistente (mai un'inversione, sempre lo
+    stesso ordine di grandezza ~1pp/anno, concentrato in una banda di
+    lookback riproducibile 22-33 settimane), ma la sua magnitudine si
+    colloca esattamente al limite di risoluzione statistica di un
+    campione di ~11 anni — nessuna singola configurazione supera la
+    soglia di significativita' del 90% in modo scontato E robusto allo
+    stesso tempo. **Ulteriori giri di ricerca sulla stessa banda hanno
+    ora un valore marginale decrescente — la prossima verifica utile
+    non e' un altro parametro, ma un campione diverso (es. universo
+    azionario europeo o un'altra borsa) per vedere se l'effetto si
+    replica fuori da questo specifico storico S&P 500.** Se adottata,
+    andrebbe trattata come una posizione di convinzione moderata, non
+    come un cambio a piena confidenza.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
