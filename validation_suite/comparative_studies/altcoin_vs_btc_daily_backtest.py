@@ -111,7 +111,7 @@ def eligible_alts_asof(pointintime_top_alts: dict, day: pd.Timestamp) -> list:
 def build_candidate_weights(
     rets: pd.DataFrame, pointintime_top_alts: dict, mode: str,
     short_window: int = 20, long_window: int = 60, trail_window: int = 30, vol_window: int = 30,
-    trend_window: int = None,
+    trend_window: int = None, basket_n: int = 3,
 ) -> pd.DataFrame:
     """Ritorna un DataFrame di pesi TARGET (uno per colonna in rets.columns),
     un peso per ogni periodo, calcolato SENZA lookahead (decisione del
@@ -225,6 +225,24 @@ def build_candidate_weights(
                 betas = {a: (1.0 if a == "BTC-USD" else beta_alt[a].iloc[i]) for a in pool}
                 valid = {a: b for a, b in betas.items() if not pd.isna(b)}
                 decision = ("SINGLE", min(valid, key=lambda a: abs(valid[a]))) if valid else ("BTC",)
+
+        elif mode == "low_beta_basket":
+            # Generalizzazione di low_beta_pick a basket_n>1: invece di possedere il
+            # SINGOLO alt a beta assoluto piu' basso, si possiedono equal-weight i
+            # basket_n alt (SOLO alt, BTC escluso dal basket stesso — BTC resta il
+            # fallback se il pool eleggibile e' troppo corto) a beta assoluto piu'
+            # basso nel pool. Risponde alla domanda "un basket diversifica meglio del
+            # singolo pick?" richiesta esplicitamente dall'utente.
+            if i < warmup_short or not alts_today:
+                decision = ("BTC",)
+            else:
+                betas = {a: beta_alt[a].iloc[i] for a in alts_today}
+                valid = {a: b for a, b in betas.items() if not pd.isna(b)}
+                if not valid:
+                    decision = ("BTC",)
+                else:
+                    picks = sorted(valid, key=lambda a: abs(valid[a]))[:basket_n]
+                    decision = ("ALTS_EQUAL", tuple(picks))
 
         elif mode == "trend_following":
             # Filtro di trend PER ASSET (prezzo sopra la propria media mobile a

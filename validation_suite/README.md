@@ -917,6 +917,58 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       un artefatto di poche osservazioni fortunate. Richiederebbe lo
       stesso trattamento a piu' giri gia' applicato alla Teoria #5
       azionaria prima di qualunque considerazione seria.**
+  - **Approfondimento richiesto dall'utente ("walk-forward e piu'
+    storico"), `altcoin_low_beta_weekly_walkforward_test.py`: FALSIFICA il
+    risultato "intrigante" sopra.**
+    - **Bug trovato e corretto, non nuova raccolta dati**: l'harness
+      weekly costruiva i rendimenti con `.dropna()` sull'intero
+      DataFrame a 15 colonne — una riga con anche un solo ticker
+      mancante (TON-USD, inception reale 2020-08-24, la piu' tarda delle
+      15) veniva scartata per intero, anche se TON non era mai eleggibile
+      come "top alt" in quel periodo. La versione daily gia' usava
+      correttamente `.fillna(0.0)` — applicato qui. Recupera il campione
+      da 315 a 362 settimane (2019-10-11 → 2026-09-11, +47 settimane).
+    - **Selezione walk-forward onesta della finestra beta** (stesso
+      principio gia' applicato alla Teoria #5 azionaria): 3 ere non
+      sovrapposte, finestra scelta per ogni era SOLO con lo Sharpe delle
+      ere precedenti (griglia [4,8,13,20,26] settimane), valutata
+      out-of-sample sull'era corrente. **Risultato: la finestra
+      "vincente" cambia era per era (13→20 per top-3, 8→8 per top-5) e
+      non e' mai la 26 settimane che sembrava buona full-sample —
+      instabilita' classica da selezione in-sample.** OOS (ere 2+3, 242
+      settimane): top-3 **-6,98pp/anno** vs BTC (CI 90%
+      [-35,82;+27,67], segno invertito rispetto al preliminare), top-5
+      +3,51pp/anno ma CI 90% [-24,00;+40,75] (include ampiamente lo
+      zero); solo 40% delle settimane migliori di BTC in entrambi i casi.
+      **PBO-CSCV full-sample 55,0-60,0% — peggio di un lancio di moneta,
+      segnale attivo di overfitting, non solo assenza di edge.**
+      **Verdetto: il preliminare "26 settimane batte BTC" non sopravvive
+      alla selezione onesta — era rumore in-sample. BTC buy & hold resta
+      ottimale per lo slot Crypto. Nessuna modifica in produzione.**
+  - **Estensioni richieste dall'utente nonostante la falsificazione sopra
+    ("il numero di posizioni altcoin, l'universo e le percentuali —
+    sostituiscono Bitcoin o sono extra?"),
+    `altcoin_crypto_slot_basket_satellite_test.py`** — vol_window=13
+    settimane FISSO (valore centrale della griglia, non ottimizzato, per
+    non impilare un altro livello di selezione in-sample sopra
+    basket-size/satellite-pct):
+    - **Parte A — basket (sostituzione, livello-strumento)**: invece del
+      singolo pick, N=2 (universo top-3) e N=2/3/5 (universo top-5) alt a
+      beta piu' basso vs BTC, equal-weight. Nessuna configurazione batte
+      BTC in modo robusto (CAGR 17,80-32,91% contro 38,25% di BTC su
+      tutte le varianti; CI 90% sulla differenza sempre enormi e sempre
+      includenti lo zero, es. [-36,40;+15,16]; PBO-CSCV 40,0% su
+      entrambi gli universi). Diversificare su piu' altcoin non recupera
+      il segnale perso col walk-forward — come atteso, aggiunge gradi di
+      liberta' su un campione gia' corto.
+    - **Parte B — satellite (extra, livello-portafoglio Apex intero)**:
+      lo slot Crypto resta BTC (produzione attuale invariata); sleeve
+      satellite separata, attiva solo quando il segnale di trend Apex per
+      Crypto e' ON (stesso timing, nessun segnale nuovo), dimensionata a
+      satellite_pct del NAV fisso {10%,25%,50%} sul singolo alt a beta
+      piu' basso vs BTC, tassata REDDITO_DIVERSO come BTC. **Backtest in
+      corso — risultato aggiunto in un commit successivo appena
+      disponibile.**
   - **Gap rimanenti**: #2 (campione indipendente, non fattibile senza
     dati point-in-time di un altro mercato).
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
