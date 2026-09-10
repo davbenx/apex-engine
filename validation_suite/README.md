@@ -70,6 +70,10 @@ validation_suite/
 │   ├── apex_theory5_walkforward_selection_test.py <- checklist produzione Teoria #5, gap #1: selezione del lookback walk-forward (mai guardando dati futuri) — banda confermata stabile, ma la selezione adattiva non batte un lookback fisso
 │   ├── apex_theory5_composition_turnover_test.py <- checklist produzione Teoria #5, gap #3/#4: turnover e composizione settoriale quasi identici tra low-vol e low-beta, ma sovrapposizione titoli effettivi solo 6.9%
 │   ├── apex_theory5_crash_and_signal_test.py <- checklist produzione Teoria #5, gap #5/#6: low-beta meno correlato a SPY (-0.067) e protegge nei bear market lenti (2022, +6.46pp) ma non nei panici acuti (COVID 2020, leggermente peggio)
+│   ├── apex_theory5_exit_criterion_test.py <- checklist produzione Teoria #5, gap #7: switching adattivo low-vol/low-beta basato su Sharpe rolling (risultato: peggiora rispetto a una scelta fissa, non adottare un interruttore automatico)
+│   ├── apex_beta_basket_size_grid_test.py <- numero di titoli nel basket low-beta (risultato: 15, il valore attuale, e' gia' il migliore)
+│   ├── apex_beta_class_weight_test.py     <- pesare le classi macro per beta vs SPY invece che per volatilita' assoluta (risultato: falsificato nettamente, stesso meccanismo di fallimento della risk parity)
+│   ├── altcoin_low_beta_weekly_test.py    <- low-beta pick sulle altcoin a granularita' weekly con finestre beta piu' lunghe (risultato: batte BTC con finestra 26 sett., ma segnale statistico debolissimo, PBO ~45%)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -843,9 +847,78 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       nei test precedenti (train/test, walk-forward) — quella finestra e'
       dominata dal 2022, esattamente il tipo di regime in cui low-beta
       funziona meglio.
+  - **Gap #7 — criterio di uscita, CHIUSO (l'utente lo ha voluto testato
+    empiricamente, non lasciato solo come policy)**,
+    `apex_theory5_exit_criterion_test.py`. Regola testata: monitoraggio
+    dello Sharpe rolling a 104 settimane di low-beta contro low-vol,
+    controllato ogni 13 settimane, switch REVERSIBILE con costo di
+    transazione realistico (0,90%, coerente con la sovrapposizione
+    titoli solo 6,9% misurata nel gap #4). **Risultato: lo switching
+    adattivo PEGGIORA rispetto a una scelta fissa, non migliora.** Sempre
+    low-beta: +1,36pp/anno contro sempre low-vol (CI 90% [-0,16;+2,39],
+    coerente col resto dell'indagine). Switching adattivo: +0,06pp/anno
+    (CI [-1,03;+0,91], sostanzialmente NULLO) e MaxDD peggiore di
+    ENTRAMBE le alternative fisse (-24,10% contro -21,53/-21,60%) — gli 8
+    cambi nella finestra monitorata (2017-2026) costano piu' di quanto
+    guadagnino, stesso pattern gia' visto nel gap #1 (la selezione
+    adattiva del lookback non batteva un valore fisso). **Verdetto: se si
+    adotta low-beta, adottarlo in modo permanente — un interruttore
+    automatico basato su Sharpe rolling e' controproducente, non un
+    paracadute.**
+  - **Basket low-beta: quanti titoli?**, richiesta diretta dell'utente,
+    `apex_beta_basket_size_grid_test.py` — stessa griglia {10,12,15,18,
+    20,25} gia' usata per low-vol. **15 titoli (il valore attuale di
+    produzione) e' gia' il migliore per Sharpe** (1,14, a pari merito
+    con 18 ma con CAGR piu' alto), PBO-CSCV 18,6% (basso, nessun segnale
+    di overfitting). **Nessun cambio necessario sul numero di titoli.**
+  - **Beta-weighting sulle CLASSI macro invece che sui titoli — domanda
+    diretta dell'utente ("low beta si puo' testare anche sulle asset
+    class?"), FALSIFICATO in modo netto**,
+    `apex_beta_class_weight_test.py`. Ipotesi: la Teoria #3 (risk parity
+    per volatilita' assoluta) era stata bocciata perche' penalizzava
+    Crypto per la sua vol alta indipendentemente dalla sua bassa
+    correlazione con l'equity (0,09-0,17) — pesare per BETA vs SPY
+    invece che per volatilita' assoluta avrebbe potuto evitare questo
+    meccanismo di fallimento. **Non l'ha evitato**: -4,31pp/anno, CI 90%
+    **[-7,82;-1,26] ESCLUDE lo zero** — quasi lo stesso ordine di
+    grandezza della Teoria #3. Causa identica: Bonds ha beta vicino a
+    zero rispetto a SPY quanto la sua volatilita' assoluta e' bassa,
+    quindi domina comunque l'inverse-weighting (floor 0,10 raggiunto,
+    esposizione Bonds 31,2%->55,4%, Crypto 26,7%->19,4%). **Lezione
+    generalizzata**: qualunque schema che pesi le classi inversamente a
+    una misura di rischio (vol O beta) sovrappesa strutturalmente
+    Bonds/Gold e sottopesa Crypto/Equity, indipendentemente dalla misura
+    scelta — il problema non era la metrica, e' il principio stesso.
+  - **Low-beta sulle altcoin (invece che sui titoli S&P 500) — domanda
+    diretta dell'utente, risultato in DUE tempi**,
+    `altcoin_strategy_families_pointintime_test.py` (esteso con la
+    modalita' `low_beta_pick`) e `altcoin_low_beta_weekly_test.py`.
+    - **Daily, finestra beta ~6 settimane (equivalente ai 30gg usati per
+      vol_alt): FALLISCE nettamente.** Sharpe netto 0,39 (top-5)/0,07
+      (top-3) contro 0,84 di BTC buy&hold, che resta il migliore assoluto
+      su 11 candidati testati (PBO-CSCV 11,4%, robusto). L'effetto
+      low-beta NON si trasferisce all'universo altcoin con una finestra
+      corta.
+    - **Domanda di successivo dell'utente ("weekly sarebbe diverso?"),
+      risposta: SI', ma non per la granularita' in se' — per la finestra
+      di stima piu' lunga che la granularita' weekly permette di testare
+      in modo naturale.** Con finestra beta di 26 settimane (la banda che
+      ha funzionato per Apex equity), low-beta pick SUPERA BTC sia su
+      Sharpe (0,85-0,88 contro 0,82) sia nettamente su CAGR (46-57%
+      contro 37%) su entrambi gli universi top-3/top-5. **Ma il segnale
+      statistico e' debolissimo**: PBO-CSCV 42,9-45,7% (vicino al 50%,
+      nessun edge robusto rilevato), CI 90% sulla differenza vs BTC
+      **enormi** (es. [-26,36;+61,24]pp/anno) — solo 18-22 cambi di
+      posizione in tutto il campione (315 settimane, 2020-2026, molto
+      piu' corto dei 12 anni azionari). **Verdetto: risultato intrigante
+      ma NON validato — l'ipotesi "finestra piu' lunga, non
+      granularita'" e' confermata qualitativamente, ma il campione
+      crypto disponibile e' troppo corto per dire se e' un edge reale o
+      un artefatto di poche osservazioni fortunate. Richiederebbe lo
+      stesso trattamento a piu' giri gia' applicato alla Teoria #5
+      azionaria prima di qualunque considerazione seria.**
   - **Gap rimanenti**: #2 (campione indipendente, non fattibile senza
-    dati point-in-time di un altro mercato), #7 (criterio di uscita —
-    decisione di policy per l'utente, non un test empirico).
+    dati point-in-time di un altro mercato).
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.

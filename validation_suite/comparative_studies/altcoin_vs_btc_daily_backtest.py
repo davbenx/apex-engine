@@ -131,6 +131,8 @@ def build_candidate_weights(
     btc_trail_long = (1 + rets["BTC-USD"]).rolling(long_window).apply(lambda x: x.prod() - 1, raw=False)
     trail_alt = {c: (1 + rets[c]).rolling(trail_window).apply(lambda x: x.prod() - 1, raw=False) for c in cols}
     vol_alt = {c: rets[c].rolling(vol_window).std() for c in cols}
+    btc_var_roll = rets["BTC-USD"].rolling(vol_window).var()
+    beta_alt = {c: rets[c].rolling(vol_window).cov(rets["BTC-USD"]) / btc_var_roll for c in cols}
     price_idx = {c: (1 + rets[c]).cumprod() for c in cols}
     trend_ma = {c: price_idx[c].rolling(trend_window).mean() for c in cols}
     warmup_short = max(short_window, trail_window)
@@ -209,6 +211,20 @@ def build_candidate_weights(
                 vols = {a: vol_alt[a].iloc[i] for a in pool}
                 valid = {a: v for a, v in vols.items() if not pd.isna(v) and v > 1e-9}
                 decision = ("SINGLE", min(valid, key=valid.get)) if valid else ("BTC",)
+
+        elif mode == "low_beta_pick":
+            # Analogo a low_vol_pick ma per BETA rispetto a BTC (sensibilita' sistematica
+            # al movimento di BTC) invece che per volatilita' ASSOLUTA — un altcoin puo'
+            # essere molto volatile in assoluto ma muoversi poco IN SINTONIA con BTC (beta
+            # basso), o viceversa. Si possiede SOLO il singolo asset del pool (BTC incluso,
+            # beta=1 per definizione essendo il riferimento) a beta assoluto piu' basso.
+            if i < warmup_short:
+                decision = ("BTC",)
+            else:
+                pool = ["BTC-USD"] + alts_today
+                betas = {a: (1.0 if a == "BTC-USD" else beta_alt[a].iloc[i]) for a in pool}
+                valid = {a: b for a, b in betas.items() if not pd.isna(b)}
+                decision = ("SINGLE", min(valid, key=lambda a: abs(valid[a]))) if valid else ("BTC",)
 
         elif mode == "trend_following":
             # Filtro di trend PER ASSET (prezzo sopra la propria media mobile a

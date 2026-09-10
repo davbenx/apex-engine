@@ -12,6 +12,10 @@ apply_stop_loss_overlay, backtest_strategy — nessuna logica duplicata) con
   - mean_reversion: contrarian, compra l'asset piu' scaduto nel pool
   - low_vol_pick: possiede SOLO il singolo asset a vol piu' bassa (non un
     blend pesato come inverse_vol, gia' testato)
+  - low_beta_pick: come low_vol_pick ma per BETA rispetto a BTC (sensibilita'
+    sistematica) invece che volatilita' ASSOLUTA — estensione diretta della
+    Teoria #5 (basket low-beta di Apex, validata su azioni S&P 500 con 5+
+    giri di verifica) all'universo altcoin, richiesta diretta dell'utente
   - trend_following: filtro di trend PER ASSET (prezzo sopra la propria
     media mobile), puo' andare CASH (flat) se nessun asset e' in uptrend —
     diverso da ogni altro candidato, che ripiega sempre su BTC
@@ -77,6 +81,7 @@ def main():
             ("momentum_rotation", f"Momentum: rotazione {{BTC + top-{top_n}}} (vincitore unico)"),
             ("mean_reversion", "Mean reversion: contrarian sull'asset piu' scaduto"),
             ("low_vol_pick", "Low volatility: possiede il singolo asset a vol piu' bassa"),
+            ("low_beta_pick", "Low beta: possiede il singolo asset a beta (vs BTC) piu' basso — richiesta diretta dell'utente, estensione della Teoria #5 (basket low-beta di Apex) all'universo altcoin"),
             ("trend_following", "Trend following: filtro MA per asset, CASH se nessuno in uptrend"),
             ("regime_altseason", f"Regime altseason (BTC vs media top-{top_n} alt)"),
             ("btc_slowdown_switch", "Switch su rallentamento BTC -> singola alt migliore"),
