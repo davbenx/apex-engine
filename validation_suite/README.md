@@ -1329,6 +1329,20 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     `test_apex_v2_institutional_validation.py` e `test_apex_convex.py` —
     tutte le verifiche statistiche sostanziali (DSR, bootstrap CI,
     drawdown impossibile, netto≤lordo) restano invariate e verdi.
+- **RSP al posto di SPY — idea proposta direttamente dall'utente**
+  (`apex_rsp_vs_spy_test.py`): SPY (S&P 500 cap-weighted, dominato dalle
+  mega-cap) e' usato in due punti indipendenti — il segnale di TIMING
+  della classe Equities e il BENCHMARK per il ranking beta nel basket.
+  RSP (equal-weight) testato su entrambi, separatamente e insieme, per
+  isolare quale effetto guida un eventuale risultato (stessa disciplina
+  "isola la variabile" di tutta questa sessione). **Falsificato in tutte
+  le combinazioni**, degrado monotono: baseline SPY/SPY 18,98% CAGR
+  netto/Sharpe 1,25 → solo timing=RSP 18,77%/1,22 (-0,14pp/anno) → solo
+  beta=RSP 18,46%/1,22 (-0,45pp/anno) → entrambi=RSP 17,92%/1,17
+  (-0,87pp/anno). Nessuna singola differenza esclude lo zero alla CI 90%,
+  ma **PBO-CSCV 4,3%** — non "nessun segnale" (che darebbe ~50%), il
+  ranking si riproduce in modo stabile tra gli split: SPY vince in modo
+  riproducibile, non per caso campionario. Nessuna modifica in produzione.
 
 ## Cosa NON è (ancora) qui, e perché
 
