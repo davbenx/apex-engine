@@ -1,8 +1,25 @@
 """
-apex_add_commodities_dbc_test.py — Aggiungere una 5a classe macro, Commodities
-(proxy DBC, Invesco DB Commodity Index Tracking Fund, paniere ampio di 14
-materie prime a peso energia-pesante), ad Apex V2 migliora la strategia o e'
-ridondante con Gold (che gia' copre parte dell'esposizione a materie prime)?
+apex_add_commodities_test.py — Aggiungere una 5a classe macro, Commodities,
+ad Apex V2 migliora la strategia? Due varianti testate:
+  - DBC (Invesco DB Commodity Index Tracking Fund): beta commodity "ingenuo",
+    contratto front-month, paniere di 14 materie prime a peso energia-pesante.
+    Risultato (vedi README, prima versione di questo script): PBO-CSCV 50.0%,
+    nessun miglioramento robusto — e correlazione con l'Equity (0.33) PIU'
+    alta di quella dell'Oro (0.13), quindi non un diversificatore "pulito".
+  - PDBC (Invesco Optimum Yield Diversified Commodity Strategy No K-1):
+    stesso universo di 14 commodity, ma seleziona lungo la curva future il
+    contratto con il miglior roll yield implicito per ciascuna materia prima
+    invece del front-month fisso — un vero ETF liquido con "tilt di carry",
+    non una ricostruzione teorica non tradeable. Domanda diretta dell'utente:
+    il carry fa meglio del beta ingenuo, sia da solo sia dentro Apex?
+
+Limite dichiarato sul carry: PDBC e' un'ottimizzazione LONG-ONLY del roll
+yield (sceglie il contratto migliore per ogni commodity, resta investito su
+tutte e 14), non un vero fattore di carry long/short (long backwardation /
+short contango) come nella letteratura accademica (Erb & Harvey 2006) — quel
+costrutto richiederebbe dati di curva future per-commodity non liberamente
+disponibili. PDBC e' il proxy REALE, liquido, con storico tradeable piu'
+vicino disponibile, non un'approssimazione peggiorativa arbitraria.
 
 compute_v2_macro_signal() itera su apex_v2_engine.V2_CLASS_TICKER (dict
 globale di modulo, non un parametro) — per testare una classe aggiuntiva
@@ -12,18 +29,12 @@ test standard, nessuna modifica permanente al modulo). Stesso harness
 walk-forward point-in-time gia' validato in apex_class_size_grid_test.py
 (basket azionario reale, universo S&P 500 point-in-time, costi/tasse reali).
 
-Trattamento fiscale DBC: REDDITO_DIVERSO (come Gold/GLD in questo progetto,
-non REDDITO_CAPITALE) — DBC e' un ETF US-domiciliato strutturato come
-commodity pool, non un fondo UCITS armonizzato, stessa categoria strutturale
-di GLD (grantor trust US) gia' trattata come REDDITO_DIVERSO ovunque in
-questo progetto.
-
-Limite dichiarato: DBC e' un ETF su FUTURES su materie prime, non spot — il
-suo rendimento storico reale incorpora costi di roll (spesso negativi in
-regimi di contango prolungato, specialmente nel comparto energia che pesa
->50% dell'indice) che un indice spot di materie prime non avrebbe. Questo e'
-il proxy REALE e liquido disponibile per un investitore, non un'approssimazione
-peggiorativa arbitraria.
+Trattamento fiscale DBC/PDBC: REDDITO_DIVERSO (come Gold/GLD in questo
+progetto, non REDDITO_CAPITALE) — entrambi sono ETF US-domiciliati
+strutturati come commodity pool (PDBC esplicitamente "No K-1" via
+sussidiaria Cayman), non fondi UCITS armonizzati — stessa categoria
+strutturale di GLD (grantor trust US) gia' trattata come REDDITO_DIVERSO
+ovunque in questo progetto.
 """
 
 from __future__ import annotations
@@ -50,19 +61,23 @@ from apex_stocks_vs_etf_backtest import (
 from sector_cap_grid_test import SECTOR_MAP_FILE
 
 BASE_CLASS_TICKER = {"Equities": "SPY", "Bonds": "IEF", "Gold": "GLD", "Crypto": "BTC-USD"}
-WITH_COMMODITIES_CLASS_TICKER = dict(BASE_CLASS_TICKER, Commodities="DBC")
+WITH_DBC_CLASS_TICKER = dict(BASE_CLASS_TICKER, Commodities="DBC")
+WITH_PDBC_CLASS_TICKER = dict(BASE_CLASS_TICKER, Commodities="PDBC")
 
 # (label, class_ticker_map, base_weight, vol_target)
 GRID = [
     ("Attuale (4 classi, 50%/22%)", BASE_CLASS_TICKER, 0.50, 0.22),
-    ("+ Commodities/DBC (5 classi, 50%/22% invariato)", WITH_COMMODITIES_CLASS_TICKER, 0.50, 0.22),
-    ("+ Commodities/DBC (5 classi, 40%/22%)", WITH_COMMODITIES_CLASS_TICKER, 0.40, 0.22),
-    ("+ Commodities/DBC (5 classi, 40%/18%)", WITH_COMMODITIES_CLASS_TICKER, 0.40, 0.18),
+    ("+ DBC beta (5 classi, 50%/22% invariato)", WITH_DBC_CLASS_TICKER, 0.50, 0.22),
+    ("+ DBC beta (5 classi, 40%/22%)", WITH_DBC_CLASS_TICKER, 0.40, 0.22),
+    ("+ PDBC carry (5 classi, 50%/22% invariato)", WITH_PDBC_CLASS_TICKER, 0.50, 0.22),
+    ("+ PDBC carry (5 classi, 40%/22%)", WITH_PDBC_CLASS_TICKER, 0.40, 0.22),
+    ("+ PDBC carry (5 classi, 40%/18%)", WITH_PDBC_CLASS_TICKER, 0.40, 0.18),
 ]
 
 
-def fetch_dbc() -> None:
-    _fetch_weekly_adj("DBC", "15y").to_csv(DATA_DIR / "DBC_weekly.csv")
+def fetch_commodity_etfs() -> None:
+    for t in ["DBC", "PDBC"]:
+        _fetch_weekly_adj(t, "15y").to_csv(DATA_DIR / f"{t}_weekly.csv")
 
 
 def print_correlation_diagnostic(macro_prices: dict) -> None:
@@ -71,6 +86,21 @@ def print_correlation_diagnostic(macro_prices: dict) -> None:
     corr = rets.corr()
     print(corr.round(2).to_string())
     print(f"  Campione: {len(rets)} settimane\n")
+
+
+def print_standalone_comparison(macro_prices: dict) -> None:
+    """DBC vs PDBC da soli (non dentro Apex): il tilt di carry migliora
+    davvero il rischio/rendimento della materia prima stessa, prima ancora
+    di chiedersi se aiuta il portafoglio Apex?"""
+    common = macro_prices["DBC"].index.intersection(macro_prices["PDBC"].index)
+    print(f"--- DBC vs PDBC da soli, campione comune ({len(common)} settimane, "
+          f"{common.min().date()} -> {common.max().date()}) ---")
+    for t in ["DBC", "PDBC"]:
+        r = macro_prices[t].reindex(common).pct_change().dropna()
+        print(f"  {t:<6} CAGR: {_cagr(r, PERIODS_PER_YEAR)*100:>7.2f}%   "
+              f"Sharpe: {_sharpe(r, periods_per_year=PERIODS_PER_YEAR):>5.2f}   "
+              f"MaxDD: {_max_drawdown(r)*100:>7.2f}%")
+    print()
 
 
 def run_backtest(class_ticker: dict, base_weight: float, vol_target: float, sector_of: dict):
@@ -98,7 +128,8 @@ def run_backtest(class_ticker: dict, base_weight: float, vol_target: float, sect
         ief_ret = macro_prices["IEF"].pct_change()
         gld_ret = macro_prices["GLD"].pct_change()
         btc_ret = macro_prices["BTC-USD"].pct_change()
-        dbc_ret = macro_prices["DBC"].pct_change() if "DBC" in macro_prices else None
+        commodities_ticker = class_ticker.get("Commodities")
+        commodities_ret = macro_prices[commodities_ticker].pct_change() if commodities_ticker else None
 
         hysteresis_state, prev_basket_tickers, current_basket = None, None, []
         locked_alloc = None
@@ -159,9 +190,9 @@ def run_backtest(class_ticker: dict, base_weight: float, vol_target: float, sect
         tax_types = {"Equity": "REDDITO_DIVERSO", "Bonds": "REDDITO_CAPITALE", "Gold": "REDDITO_DIVERSO", "Crypto": "REDDITO_DIVERSO"}
 
         w_commodities = None
-        if "Commodities" in class_ticker:
+        if commodities_ticker:
             weights_data["Commodities"] = alloc_frac("Commodities")
-            returns_data["Commodities"] = dbc_ret.reindex(idx).fillna(0.0)
+            returns_data["Commodities"] = commodities_ret.reindex(idx).fillna(0.0)
             tax_types["Commodities"] = "REDDITO_DIVERSO"  # come Gold/GLD: ETF US non-UCITS, stessa categoria strutturale
             w_commodities = weights_data["Commodities"]
 
@@ -188,14 +219,16 @@ def run_backtest(class_ticker: dict, base_weight: float, vol_target: float, sect
 
 
 def main():
-    if not (DATA_DIR / "DBC_weekly.csv").exists():
-        print("[*] Scarico DBC da Yahoo Finance...")
-        fetch_dbc()
+    missing = [t for t in ["DBC", "PDBC"] if not (DATA_DIR / f"{t}_weekly.csv").exists()]
+    if missing:
+        print(f"[*] Scarico {missing} da Yahoo Finance...")
+        fetch_commodity_etfs()
 
     sector_of = json.load(open(SECTOR_MAP_FILE))
 
-    macro_prices_all = {t: load_weekly_macro(t) for t in ["SPY", "IEF", "GLD", "BTC-USD", "DBC"]}
+    macro_prices_all = {t: load_weekly_macro(t) for t in ["SPY", "IEF", "GLD", "BTC-USD", "DBC", "PDBC"]}
     print_correlation_diagnostic(macro_prices_all)
+    print_standalone_comparison(macro_prices_all)
 
     print(f"{'Config':<48}{'CAGR netto':>12}{'Sharpe netto':>14}{'MaxDD netto':>13}{'Calmar':>9}{'Espos. media':>13}")
     results = {}
@@ -215,11 +248,18 @@ def main():
                   f"({int(active.sum())}/{len(wc)}), esposizione media quando attiva {wc[active].mean()*100:.1f}%")
 
     variant_order = [label for label, _, _, _ in GRID]
-    perf_matrix = np.column_stack([results[m]["net"].values for m in variant_order])
+    # Le finestre comuni possono differire di poche settimane tra varianti (es. l'inception
+    # reale di PDBC, 2014-11-07, cade ~7 settimane dopo l'inizio della finestra vincolata da
+    # BTC-USD usata dal baseline/DBC) — si allinea tutto alla sotto-finestra comune PRIMA di
+    # impilare la matrice, altrimenti column_stack fallisce (lunghezze diverse per colonna).
+    common_stat_index = results[variant_order[0]]["net"].index
+    for m in variant_order[1:]:
+        common_stat_index = common_stat_index.intersection(results[m]["net"].index)
+    perf_matrix = np.column_stack([results[m]["net"].reindex(common_stat_index).values for m in variant_order])
     n_splits = 8
     usable_len = (len(perf_matrix) // n_splits) * n_splits
     pbo = pbo_cscv(perf_matrix[-usable_len:], n_splits=n_splits)
-    print(f"\nPBO-CSCV su {len(variant_order)} configurazioni (con/senza Commodities): {pbo*100:.1f}% "
+    print(f"\nPBO-CSCV su {len(variant_order)} configurazioni (baseline, DBC beta, PDBC carry): {pbo*100:.1f}% "
           "(vicino al 50% = nessuna combinazione batte le altre in modo robusto)")
 
     best_label = max(variant_order, key=lambda m: results[m]["sharpe_netto"])
@@ -244,8 +284,25 @@ def main():
         print(f"  Overperformance media annualizzata: {mean_diff_annual:+.2f}pp/anno")
         print(f"  CI 90% (block bootstrap): [{lo_d:+.2f}, {hi_d:+.2f}]pp/anno "
               f"({'ESCLUDE' if lo_d * hi_d > 0 else 'INCLUDE'} lo zero)")
-        print(f"  Settimane in cui la variante con Commodities ha fatto meglio: {n_weeks_better}/{len(diff_series)} "
+        print(f"  Settimane in cui la variante migliore ha fatto meglio: {n_weeks_better}/{len(diff_series)} "
               f"({n_weeks_better/len(diff_series)*100:.0f}%)")
+
+    # Confronto diretto DBC vs PDBC a parita' di base_weight/vol_target (isola l'effetto
+    # del tilt di carry dall'effetto della dimensione della posizione)
+    dbc_40 = "+ DBC beta (5 classi, 40%/22%)"
+    pdbc_40 = "+ PDBC carry (5 classi, 40%/22%)"
+    if dbc_40 in results and pdbc_40 in results:
+        diff_carry = (results[pdbc_40]["net"] - results[dbc_40]["net"]).dropna()
+        mean_diff_carry = diff_carry.mean() * PERIODS_PER_YEAR * 100
+        lo_c, hi_c = block_bootstrap_ci(diff_carry.values, lambda r: pd.Series(r).mean() * PERIODS_PER_YEAR * 100,
+                                         block_size=12, ci=0.90, seed=42)
+        n_weeks_carry_better = int((diff_carry > 0).sum())
+        print(f"\nConfronto accoppiato diretto PDBC carry meno DBC beta (stesso 40%/22%, isola l'effetto del tilt):")
+        print(f"  Overperformance media annualizzata del carry: {mean_diff_carry:+.2f}pp/anno")
+        print(f"  CI 90% (block bootstrap): [{lo_c:+.2f}, {hi_c:+.2f}]pp/anno "
+              f"({'ESCLUDE' if lo_c * hi_c > 0 else 'INCLUDE'} lo zero)")
+        print(f"  Settimane in cui il carry ha fatto meglio del beta ingenuo: {n_weeks_carry_better}/{len(diff_carry)} "
+              f"({n_weeks_carry_better/len(diff_carry)*100:.0f}%)")
 
 
 if __name__ == "__main__":

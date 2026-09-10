@@ -56,7 +56,11 @@ validation_suite/
 │   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
 │   ├── apex_profit_trailing_stop_test.py  <- trailing stop attivato dal profitto su BTC/Oro (risultato: peggiora, non adottare)
 │   ├── apex_crypto_execution_venue_test.py <- perp vs spot vs ETP (proxy IBIT) per la gamba Crypto: costi reali + effetto ore/giorni di mercato chiuso
-│   ├── apex_add_commodities_dbc_test.py   <- aggiungere una 5a classe macro Commodities (proxy DBC) ad Apex: correlazione + backtest (risultato: nessun miglioramento robusto, non adottare)
+│   ├── apex_add_commodities_test.py       <- aggiungere Commodities (DBC beta vs PDBC carry) ad Apex: correlazione + backtest (nessun miglioramento robusto)
+│   ├── apex_diversifier_candidates_test.py <- Currency (UUP) / TIPS (TIP) / Managed Futures (DBMF) / Trend (KMLM) / Commodity Carry (UEQC) come 5a classe (unico negativo significativo: TIP)
+│   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
+│   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
+│   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
 │   ├── convex_weights_grid_test.py        <- grid search sui pesi target di Convex Stack (9 combinazioni vs 45/15/25/7.5/7.5)
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
@@ -365,41 +369,155 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     settimane, il funding Kraken (che matura ora per ora) si accumula per
     mesi consecutivi di esposizione continua — l'orizzonte corretto per
     confrontarlo con il TER annuale, non giorni isolati.
-- **Aggiungere una 5a classe macro, Commodities (proxy DBC)**, richiesta
-  diretta dell'utente, `apex_add_commodities_dbc_test.py`. DBC (Invesco DB
-  Commodity Index Tracking Fund) e' un ETF su FUTURES di materie prime a peso
-  energia-pesante (>50%), non spot — limite dichiarato: il suo rendimento
-  storico incorpora costi di roll reali (spesso negativi in regimi di
-  contango prolungato), non un'approssimazione peggiorativa arbitraria.
-  Trattamento fiscale: REDDITO_DIVERSO, come Gold/GLD (stessa categoria
-  strutturale, ETF US non-UCITS). Tecnica di test: `V2_CLASS_TICKER` e' un
+- **Aggiungere una 5a classe macro ad Apex — Commodities (DBC/PDBC) e altri
+  candidati di diversificazione**, richiesta diretta dell'utente,
+  `apex_add_commodities_test.py` (DBC/PDBC) e
+  `apex_diversifier_candidates_test.py` (Currency/TIPS/Managed Futures/
+  Trend/Commodity Carry). Tecnica di test comune: `V2_CLASS_TICKER` e' un
   dict globale di modulo (non un parametro di `compute_v2_macro_signal`) —
-  sovrascritto a runtime nello script di test, mai modificato in modo
-  permanente in `apex_v2_engine.py`.
-  - **Correlazione settimanale reale** (625 settimane): DBC-Equities 0,33
-    (PIU' alta di Gold-Equities 0,13 — DBC NON e' un diversificatore
-    "pulito" come l'oro, ha beta equity non trascurabile, coerente con la
-    sua composizione energia-pesante ciclica), DBC-Gold 0,24, DBC-Bonds
-    -0,20, DBC-BTC 0,12.
-  - **Risultato backtest** (4 configurazioni, walk-forward point-in-time
-    586 settimane): PBO-CSCV **50,0%** — esattamente il caso base, nessuna
-    configurazione (con o senza Commodities) batte le altre in modo
-    robusto. Confronto accoppiato diretto (miglior variante con Commodities,
-    40%/22%, meno baseline 4 classi 50%/22%): overperformance media
-    **-0,40pp/anno**, CI 90% (block bootstrap) **[-3,43; +1,99]pp/anno —
-    include lo zero ampiamente**, vince solo 242/586 settimane (41%).
-    **Verdetto: nessun miglioramento robusto di rendimento** — aggiungere
-    DBC non e' statisticamente giustificato su questo campione.
-  - **Segnale secondario non conclusivo ma consistente**: il MaxDD netto si
-    riduce in TUTTE e 3 le varianti con Commodities testate rispetto al
-    baseline (-21,60% -> -14,52%/-16,39%/-15,47%), con Calmar sempre
-    migliore (0,76 -> 0,96-1,05) — pattern presente in ogni configurazione,
-    non un solo punto isolato, ma NON confermato dal test statistico
-    principale (la CI del confronto accoppiato include comunque lo zero).
-    Ipotesi plausibile (non verificata quantitativamente qui): un effetto
-    di diversificazione in coda durante regimi di stress simultaneo su
-    equity/bond (es. shock inflazionistico) catturato dalla finestra di
-    backtest (2021-2022), non un edge strutturale dimostrato.
+  sovrascritto a runtime negli script di test, mai modificato in modo
+  permanente in `apex_v2_engine.py`. Ogni candidato con storico piu' corto
+  del resto del paniere Apex viene confrontato con un baseline a 4 classi
+  RICALCOLATO sulla stessa identica finestra (mai un confronto tra finestre
+  diverse, stesso approccio di `apex_crypto_execution_venue_test.py`).
+  - **DBC (Invesco DB Commodity Index Tracking Fund, beta ingenuo,
+    front-month)**: correlazione con l'Equity 0,33 (PIU' alta di
+    Gold-Equities 0,13 — non un diversificatore "pulito"). Aggiunto a
+    588/586 settimane, PBO-CSCV (6 configurazioni incl. PDBC) **62,9%**
+    (zona di allerta overfitting, peggio del caso base). Nessun
+    miglioramento robusto.
+  - **PDBC (Invesco Optimum Yield, "carry" long-only — sceglie il
+    contratto migliore lungo la curva)**: standalone quasi identico a DBC
+    (correlazione DBC-PDBC **0,99** — stesso rischio, tilt di carry
+    marginale), CAGR/Sharpe standalone leggermente PEGGIORI di DBC (4,77%/
+    0,35 contro 4,91%/0,36). Dentro Apex, pero', il PUNTO STIMATO e'
+    costantemente migliore di DBC in ogni configurazione confrontabile
+    (Sharpe 1,14-1,17 contro 1,08-1,12) — un pattern consistente, non
+    isolato. **Ma non regge il test statistico**: confronto diretto PDBC
+    meno DBC (stesso 40%/22%, isola l'effetto del tilt) = +0,48pp/anno,
+    CI 90% **[-0,46; +0,53] include lo zero** (per un pelo). Miglior
+    variante PDBC contro baseline: +0,10pp/anno, CI 90% [-3,66; +1,85].
+    **Verdetto: il carry PDBC sembra sistematicamente migliore del beta
+    DBC guardando i punti stimati, ma la differenza non e' distinguibile
+    dal rumore su questo campione (~11 anni)** — non abbastanza per
+    adottarlo, ma un pattern piu' interessante di un beta puro.
+  - **UEQC.DE (UBS CMCI Commodity Carry, vero indice di carry, non
+    long-only optimum-yield)** — l'ETF chiesto direttamente dall'utente:
+    correlazione **~0,00 con l'Equity** (SPY +0,00, IEF +0,10, GLD -0,04,
+    BTC -0,03) — il profilo di correlazione piu' pulito di qualunque
+    candidato commodity testato, conferma netta della tesi di carry.
+    Storico reale corto (2020-10+, 308 settimane, EUR->USD via EURUSD=X).
+    Nel backtest: CAGR quasi invariato (12,04%->12,01%), Sharpe +0,05
+    (0,89->0,94), MaxDD migliora (-21,60%->-17,75%). Confronto accoppiato:
+    -0,15pp/anno, CI 90% [-2,35; +1,33], include lo zero. Nessun
+    miglioramento statisticamente robusto, ma nessun danno nemmeno — e la
+    correlazione quasi nulla lo rende il candidato piu' interessante da
+    ri-testare quando avra' piu' storico (fondo lanciato nel 2020).
+  - **UUP (Invesco DB US Dollar Index Bullish, valuta)**: correlazione
+    negativa con TUTTO il paniere esistente (SPY -0,26, IEF -0,27, GLD
+    -0,48, BTC -0,14) — profilo di diversificazione strutturalmente
+    diverso dalle commodity. MaxDD migliora molto (-21,60%->-16,05%),
+    Sharpe +0,07, ma CAGR leggermente peggiore (-0,68pp/anno, CI 90%
+    [-2,22; +0,76], include lo zero). Nessun miglioramento robusto.
+  - **TIP (iShares TIPS Bond, inflation-linked)**: **UNICO risultato
+    NEGATIVO statisticamente significativo** tra tutti i candidati di
+    diversificazione testati — correlazione 0,77 con Bonds/IEF esistente
+    (quasi ridondante), overperformance -1,44pp/anno, CI 90%
+    **[-2,81; -0,36] ESCLUDE lo zero**. Aggiungere TIP diluisce il budget
+    di vol-target su una classe gia' rappresentata senza aggiungere
+    diversificazione reale. **Verdetto: non aggiungere, unico caso in
+    questa indagine con evidenza statistica di danno.**
+  - **DBMF (iMGP DBi Managed Futures, stesso proxy US di DBMFE in Convex)**
+    e **KMLM (KFA/Mount Lucas, trend-following puro)**: profili di
+    correlazione interessanti — KMLM negativo sia con SPY (-0,21) sia con
+    IEF (-0,39) simultaneamente, il piu' pulito di tutta l'indagine dopo
+    UEQC. Storico corto (DBMF 2020+/344 sett., KMLM 2021+/262 sett.) su
+    una finestra Apex particolarmente debole (baseline ricalcolato:
+    CAGR 12,21%/7,49% contro 16,50% storico completo — 2022 e' un anno
+    duro sia per equity sia per bond). Entrambi mostrano MaxDD migliore
+    e Sharpe leggermente migliore, ma differenze paired minuscole e
+    ampiamente dentro l'intervallo di rumore (DBMF +0,18pp CI [-2,59;
+    +2,54]... KMLM +0,18pp CI [-4,31; +3,89]). Campione troppo corto per
+    un verdetto definitivo in un senso o nell'altro.
+  - **Pattern trasversale su TUTTI i candidati "buoni" (DBC/PDBC/UUP/DBMF/
+    KMLM/UEQC)**: riduzione consistente del MaxDD e Sharpe leggermente
+    migliore, MAI un miglioramento di CAGR/paired-test statisticamente
+    significativo. L'UNICA eccezione statisticamente significativa e'
+    TIP, ed e' negativa. **Nessuna nuova classe testata finora giustifica
+    un cambio di produzione sulla sola base del rendimento**; l'ipotesi
+    di un beneficio di coda (drawdown) resta plausibile ma non provata dal
+    test principale.
+- **Sostituire SPY con QQQ per la gamba Equity di Apex**, richiesta diretta
+  dell'utente, `apex_equity_qqq_swap_test.py`. Il basket attuale di titoli
+  S&P 500 a bassa volatilita' NON e' mai stato scelto per l'alpha (il suo
+  stesso docstring lo dichiara) — e' stato scelto per ottenere il
+  trattamento fiscale REDDITO_DIVERSO (compensabile). QQQ e' un ETF/UIT,
+  tassato REDDITO_CAPITALE (non compensabile, come IEF/TIP). Per non
+  confondere tre effetti diversi (segnale, beta sottostante, tasse), testate
+  3 varianti sulla stessa finestra (586 settimane, correlazione settimanale
+  SPY-QQQ 0,921):
+  - **A) Baseline**: segnale SPY + basket S&P500 low-vol, REDDITO_DIVERSO —
+    CAGR 16,50%/Sharpe 1,08/MaxDD -21,60%.
+  - **B) Solo segnale QQQ** (basket e tasse INVARIATI): CAGR 17,08%/Sharpe
+    1,15/MaxDD -18,60% — migliore su OGNI metrica rispetto al baseline.
+    A->B: +0,43pp/anno, CI 90% [-0,42; +1,36], include lo zero (ma il
+    limite inferiore e' il piu' vicino allo zero di tutta l'indagine sulle
+    varianti di segnale).
+  - **C) Pacchetto completo richiesto** (segnale QQQ + esposizione diretta
+    QQQ, no basket, REDDITO_CAPITALE): CAGR 16,92%/Sharpe 1,10/MaxDD
+    -20,95% — meglio del baseline ma PEGGIO di B su ogni metrica: passare
+    da basket a QQQ diretto restituisce la maggior parte del guadagno
+    ottenuto dal solo cambio di segnale. B->C: -0,04pp/anno, CI 90%
+    [-1,91; +1,73], include lo zero. A->C: +0,39pp/anno, CI 90%
+    [-1,57; +2,24], include lo zero.
+  - PBO-CSCV (3 varianti): 25,7% (basso, ma con solo 3 configurazioni il
+    test e' poco stabile/informativo — non sovra-interpretare).
+  - **Verdetto**: nessuna variante e' statisticamente significativa, ma il
+    pattern e' chiaro e coerente su ogni metrica: **usare QQQ SOLO come
+    segnale di timing, mantenendo il basket S&P500 low-vol e il suo
+    trattamento fiscale**, sembra la combinazione migliore delle tre — non
+    ancora abbastanza forte per un cambio di produzione, ma il pacchetto
+    completo richiesto (sostituire anche il basket) NON e' la scelta
+    migliore delle opzioni testate.
+- **Long/short su Equities invece di long/flat** (usare un -1x reale,
+  ProShares Short S&P500/SH, quando il trend e' ribassista, invece di
+  andare Cash) — idea diretta dell'utente ("avere sempre qualcosa da cui
+  guadagnare"), `apex_equity_long_short_overlay_test.py`. Segnale
+  simmetrico costruito SOLO nello script di test (stessa isteresi +
+  conferma multi-timeframe della produzione, mai modificata
+  `apex_v2_engine.py`), stati {LONG, SHORT, CASH}. Rendimento SHORT
+  realizzato con dati REALI di SH (non un -1x sintetico del basket/SPY) —
+  incorpora fee e decadimento da ribilanciamento giornaliero reali.
+  - **Risultato: FALSIFICATO in modo statisticamente significativo.**
+    CAGR netto 14,56% (contro 16,50% baseline), Sharpe 0,96 (contro 1,08),
+    e soprattutto **MaxDD PEGGIORE, non migliore** (-28,42% contro
+    -21,60% — l'esatto opposto dell'intuizione "avere sempre qualcosa da
+    cui guadagnare"). Confronto accoppiato: **-1,65pp/anno, CI 90%
+    [-3,35; -0,07] ESCLUDE lo zero.**
+  - **Causa identificata**: Equities e' rimasta LONG 75,4% delle settimane,
+    SHORT solo 15,2%, ma con **14 cambi di lato diretti** (LONG->SHORT o
+    viceversa senza passare da Cash) in 586 settimane — la banda di
+    isteresi di Apex e' stata calibrata e validata per un mondo long/flat;
+    in un mondo long/short lo stesso whipsaw che prima costava "stare in
+    Cash inutilmente" ora costa "essere dal lato sbagliato di un mercato
+    che si muove", un costo strutturalmente piu' alto. Confermata l'analisi
+    ex-ante: raddoppiare le decisioni della strategia senza ricalibrare la
+    banda di isteresi per il caso simmetrico peggiora, non migliora.
+- **Teorie accademiche da sondare — Teoria #1: segnale di trend CONTINUO
+  invece che BINARIO** (Moskowitz-Ooi-Pedersen 2012 "Time Series Momentum";
+  Baltas & Kosowski 2013), `apex_continuous_trend_signal_test.py`. Stessa
+  identica logica di ingresso/uscita (isteresi + conferma multi-timeframe)
+  della produzione — l'UNICA differenza e' che il peso, una volta attivo,
+  e' scalato dalla forza del trend (clip(distanza/banda, 1.0, 2.0), 1x alla
+  soglia fino a 2x a trend forte) invece di essere sempre fisso a
+  base_weight_per_class. Risultato: CAGR 17,09% (contro 16,50%), Sharpe
+  1,09 (contro 1,08), MaxDD sostanzialmente invariato (-21,75% contro
+  -21,60%). Confronto accoppiato: **+0,57pp/anno, CI 90% [-0,17; +1,44]**
+  — include lo zero, ma per il margine PIU' STRETTO di tutta questa
+  indagine (limite inferiore quasi a zero) — il candidato di modifica al
+  segnale core piu' promettente trovato finora, da riverificare con un
+  campione piu' lungo o un disegno alternativo (es. cap di forza diverso)
+  prima di considerarlo per produzione.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
