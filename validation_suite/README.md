@@ -1058,6 +1058,50 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   varrebbe anche per il backtest di Kelly Stack (usa gli stessi proxy),
   non applicata li' per non alterare silenziosamente numeri già pubblicati
   in KELLY_STACK_SPEC.md (Kelly Stack è comunque già scartata).
+- **Costo della policy "mai vendere" di Convex Stack — domanda diretta
+  dell'utente** (`convex_never_sell_cost_test.py`), letteratura di
+  riferimento: rebalancing premium/variance harvesting (Willenbrock 2011,
+  Chambers-Zdanowicz).
+  - **Bug trovato e corretto durante lo sviluppo**: `apply_italian_tax`
+    (framework/tax_engine.py) aveva un parametro `rebalance_every` nella
+    firma MAI letto nel corpo della funzione — ribilanciava
+    incondizionatamente ogni periodo a prescindere dal valore passato.
+    Significa che `convex_weights_grid_test.py` (sopra) ha testato i PESI
+    assumendo implicitamente ribilanciamento MENSILE per tutte le 9
+    combinazioni — un'assunzione diversa dalla policy reale di Convex (mai
+    vendere se non con nuovi versamenti). Quella conclusione resta valida
+    COME TEST SUI PESI SOTTO RIBILANCIAMENTO MENSILE IPOTETICO, non prova
+    nulla sulla frequenza. Implementato correttamente (`None` = mai
+    ribilanciare dopo l'allocazione iniziale, N = ogni N periodi;
+    default=1 invariato, zero regressioni per i chiamanti esistenti — 3
+    nuovi test in `test_tax_engine.py`).
+  - **Risultato, stessi pesi 45/15/25/7.5/7.5, 4 frequenze (mensile/
+    trimestrale/annuale/mai)**: nessun vincitore chiaro e netto — trade-off
+    reale, non un pranzo gratis in nessuna direzione. Campione pieno (81
+    mesi, limitato dallo storico DBMFE come nel test sui pesi): MAI ha
+    Sharpe netto PIU' BASSO (0,87 contro 0,91-1,00 delle frequenze
+    periodiche) e MaxDD nettamente PEGGIORE (-23,06% contro -15,69/-16,74%)
+    — il drift lascia correre i vincitori, concentrando rischio. Ma il CAGR
+    netto di MAI (16,71%) e' competitivo con Annuale (16,89%) e batte
+    Mensile (15,21%) — nel periodo TEST (piu' recente, 41 mesi) MAI ha
+    perfino il CAGR netto piu' alto in assoluto (17,49%, con "drag
+    fiscale" NEGATIVO: la tassa quasi nulla del non-vendere piu' che
+    compensa il vantaggio teorico del ribilanciamento in un campione a
+    forte trend, coerente con la letteratura — il rebalancing premium e'
+    piu' forte in mercati range-bound/mean-reverting, puo' sottoperformare
+    in mercati fortemente trend). **Confronto diretto MAI meno MENSILE:
+    +2,01pp/anno campione pieno, +3,63pp/anno su TEST, ma CI 90% include
+    SEMPRE lo zero in entrambi i casi** — non statisticamente distinguibile
+    dal rumore su un campione di questa lunghezza. PBO-CSCV 45,0% (vicino
+    al 50%, nessuna frequenza batte le altre in modo robusto).
+  - **Verdetto**: nessuna modifica alla policy — il trade-off reale
+    (rischio di coda peggiore per MAI, drag fiscale reale ma modesto per le
+    frequenze periodiche, 0,24-2,02pp/anno a seconda della frequenza) e'
+    ora quantificato ma non risolve a favore di un cambiamento
+    statisticamente difendibile. Il MaxDD peggiore di MAI e' il segnale piu'
+    concreto contro un cambiamento di policy nel senso opposto (piu'
+    frequente), ma nemmeno quello raggiunge significativita' netta su
+    questo campione corto.
 - **Bug fetch_sector 401**: Yahoo richiede da fine 2024 un cookie di
   sessione + crumb anche su `quoteSummary` — l'endpoint rispondeva 401 su
   ogni richiesta, disattivando silenziosamente (fail-open by design) il cap

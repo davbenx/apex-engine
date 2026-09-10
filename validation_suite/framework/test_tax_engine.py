@@ -85,3 +85,59 @@ def test_leveraged_tax_never_inflates_nav_beyond_gross():
         f"un drag fiscale che dimezza la crescita totale su {n} mesi indicherebbe un bug di scala, "
         f"non un effetto fiscale plausibile (lordo {gross_growth:.2f}x, netto {net_growth:.2f}x)"
     )
+
+
+def test_rebalance_every_none_never_taxes_and_matches_gross_drift():
+    """rebalance_every=None: mai ribilanciare dopo l'allocazione iniziale —
+    nessuna vendita, quindi nessuna tassa MAI, a prescindere da quanto le
+    posizioni divergano dal peso iniziale. Il netto deve combaciare col
+    lordo a pesi FISSI iniziali (nessun drift di peso modellato nel
+    confronto lordo qui sotto, quindi la crescita netta risultante deve
+    essere quella di un vero buy-and-hold, non quella di un portafoglio
+    ribilanciato)."""
+    returns = pd.DataFrame({"A": [0.20, 0.20, 0.20], "B": [0.0, 0.0, 0.0]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"}
+    net = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=None)
+    # Buy-and-hold vero: 0.5 unita' di A cresce (1.2)^3, 0.5 di B resta ferma.
+    expected_final_nav = 0.5 * (1.2 ** 3) + 0.5 * 1.0
+    assert abs(float((1 + net).prod()) - expected_final_nav) < 1e-9
+
+
+def test_rebalance_every_n_only_taxes_on_scheduled_periods():
+    """rebalance_every=3: nessun evento fiscale nei periodi 1-2 (nessuna
+    vendita), un solo evento al periodo 3 — il netto deve combaciare col
+    lordo nei primi due periodi (nessuna tassa ancora prelevata) e scendere
+    sotto il lordo cumulato solo a partire dal terzo."""
+    returns = pd.DataFrame({"A": [0.10, 0.10, 0.10], "B": [0.0, 0.0, 0.0]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"}
+    net = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=3)
+    # Senza ribilanciamento (periodi 1-2) il rendimento e' quello di un vero
+    # buy-and-hold col DRIFT dei pesi (A pesa via via di piu' perche' cresce e
+    # B no) — non il rendimento a pesi fissi ricalcolato ogni periodo, che e'
+    # una cifra diversa e piu' bassa.
+    true_bh_growth_2p = 0.5 * (1.10 ** 2) + 0.5 * 1.0
+    assert abs(float((1 + net.iloc[:2]).prod()) - true_bh_growth_2p) < 1e-9, (
+        "nei periodi prima del ribilanciamento programmato non deve scattare alcuna tassa "
+        "(il rendimento deve essere quello del drift, non quello a pesi fissi ricalcolati)"
+    )
+    true_bh_growth_3p_notax = 0.5 * (1.10 ** 3) + 0.5 * 1.0  # drift puro, IPOTETICO senza tassa al ribilanciamento
+    assert float((1 + net).prod()) < true_bh_growth_3p_notax, (
+        "al terzo periodo (ribilanciamento programmato) la tassa sul guadagno di A realizzato "
+        "deve far scendere il netto sotto il drift puro senza tassa"
+    )
+
+
+def test_rebalance_every_default_matches_historical_every_period_behavior():
+    """Il default (rebalance_every=1) deve produrre ESATTAMENTE lo stesso
+    risultato di prima di questo fix (la funzione ribilanciava ogni periodo
+    incondizionatamente, il parametro esisteva nella firma ma non veniva mai
+    letto) — nessuna regressione per i chiamanti esistenti che non passano
+    questo argomento."""
+    returns = pd.DataFrame({"A": [0.10, -0.05, 0.08], "B": [0.0, 0.02, -0.01]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_DIVERSO"}
+    net_default = apply_italian_tax(returns, weights, tax_types=tax_types)
+    net_explicit = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=1)
+    pd.testing.assert_series_equal(net_default, net_explicit)

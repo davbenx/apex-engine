@@ -26,7 +26,7 @@ def apply_italian_tax(
     sleeve_returns: pd.DataFrame,
     target_weights,  # Dict[str, float] (fisso) oppure pd.DataFrame (un peso per mese, stesso indice di sleeve_returns)
     tax_types: Dict[str, str],
-    rebalance_every: int = 1,
+    rebalance_every: Optional[int] = 1,
 ) -> pd.Series:
     """
     target_weights puo' essere un dict a pesi FISSI oppure un pd.DataFrame con
@@ -34,6 +34,22 @@ def apply_italian_tax(
     ribilanciamento/tassazione in entrambi i casi, cambia solo il target verso
     cui ribilanciare ogni mese. Un peso implicito su un asset non elencato quel
     mese vale 0 (cash, mai tassato).
+
+    rebalance_every: ogni quanti periodi eseguire l'aggiustamento verso il
+    target (con relativo evento fiscale) — default 1 = ogni periodo
+    (comportamento storico di questa funzione, invariato). None = MAI
+    ribilanciare dopo l'allocazione iniziale (le posizioni derivano libere
+    col proprio rendimento, nessuna vendita, nessuna tassa fino alla fine
+    della serie) — la policy reale di Convex Stack ("mai vendere", vedi
+    convex_engine.py), non modellabile prima di questo fix (il parametro
+    esisteva nella firma ma non veniva mai letto nel corpo della funzione —
+    bug trovato mentre si costruiva il test sul costo del never-sell,
+    richiesto direttamente dall'utente). Con target_weights dinamico
+    (DataFrame) rebalance_every si applica comunque: un target che CAMBIA
+    da un periodo all'altro forza un evento anche in un periodo "silenzioso"
+    solo se rebalance_every=1 lo raggiunge; con rebalance_every>1 o None il
+    target intermedio viene ignorato fino al prossimo evento programmato —
+    va usato con target dinamico solo se questo comportamento e' voluto.
 
     tax_types[asset] deve essere "REDDITO_CAPITALE" (minusvalenze perse, non
     compensabili — ETF/fondi) o "REDDITO_DIVERSO" (minusvalenze compensabili
@@ -77,33 +93,40 @@ def apply_italian_tax(
         for k in keys:
             value[k] *= (1 + row[k])
 
-        # 3. ribilancia le posizioni verso i pesi target (del periodo corrente) rispetto al
-        #    NUOVO nav (pre-tasse), tassando solo il delta venduto (mai l'intera posizione)
+        # 3. ribilancia le posizioni verso i pesi target SOLO nei periodi di
+        #    ribilanciamento programmati (rebalance_every) — negli altri periodi
+        #    le posizioni restano quelle appena rivalutate (nessuna vendita,
+        #    nessun evento fiscale, esattamente la policy "mai vendere" di
+        #    Convex Stack quando rebalance_every=None). Quando si ribilancia,
+        #    la tassa colpisce solo il delta effettivamente venduto (mai
+        #    l'intera posizione per un aggiustamento parziale di peso).
+        should_rebalance = rebalance_every is not None and (i + 1) % rebalance_every == 0
         tax_due = 0.0
-        for k in keys:
-            target_val = target_weights_t.get(k, 0.0) * nav_after_market
-            delta = target_val - value[k]
-            if delta < 0:
-                sold_fraction = min(1.0, (-delta) / value[k]) if value[k] > 1e-12 else 0.0
-                cost_sold = cost_basis[k] * sold_fraction
-                proceeds_sold = value[k] * sold_fraction
-                gain = proceeds_sold - cost_sold
-                tax_type = tax_types[k]
-                if tax_type == "REDDITO_CAPITALE":
-                    if gain > 0:
-                        tax_due += gain * TAX_RATE_ITALY_FLAT
-                    # minusvalenza REDDITO_CAPITALE: persa, non compensabile
-                else:  # REDDITO_DIVERSO
-                    if gain > 0:
-                        offset = min(gain, loss_pool_diverso)
-                        loss_pool_diverso -= offset
-                        tax_due += (gain - offset) * TAX_RATE_ITALY_FLAT
-                    else:
-                        loss_pool_diverso += -gain
-                cost_basis[k] -= cost_sold
-            else:
-                cost_basis[k] += delta  # acquisto: aggiorna il costo base (media ponderata, PMC)
-            value[k] = target_val
+        if should_rebalance:
+            for k in keys:
+                target_val = target_weights_t.get(k, 0.0) * nav_after_market
+                delta = target_val - value[k]
+                if delta < 0:
+                    sold_fraction = min(1.0, (-delta) / value[k]) if value[k] > 1e-12 else 0.0
+                    cost_sold = cost_basis[k] * sold_fraction
+                    proceeds_sold = value[k] * sold_fraction
+                    gain = proceeds_sold - cost_sold
+                    tax_type = tax_types[k]
+                    if tax_type == "REDDITO_CAPITALE":
+                        if gain > 0:
+                            tax_due += gain * TAX_RATE_ITALY_FLAT
+                        # minusvalenza REDDITO_CAPITALE: persa, non compensabile
+                    else:  # REDDITO_DIVERSO
+                        if gain > 0:
+                            offset = min(gain, loss_pool_diverso)
+                            loss_pool_diverso -= offset
+                            tax_due += (gain - offset) * TAX_RATE_ITALY_FLAT
+                        else:
+                            loss_pool_diverso += -gain
+                    cost_basis[k] -= cost_sold
+                else:
+                    cost_basis[k] += delta  # acquisto: aggiorna il costo base (media ponderata, PMC)
+                value[k] = target_val
 
         nav_after_tax = nav_after_market - tax_due
         # la tassa riduce il capitale proprio: scala tutte le posizioni proporzionalmente
