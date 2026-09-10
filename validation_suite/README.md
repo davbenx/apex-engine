@@ -65,6 +65,7 @@ validation_suite/
 │   ├── apex_theory1_theory5_second_round_test.py <- secondo giro di verifica per Teoria #1/#5: sensibilita' parametro, stacking, train/test split (nessuna delle due confermata in modo pulito)
 │   ├── apex_theory1_rolling_attribution_test.py <- terzo giro Teoria #1: Sharpe rolling + attribuzione per classe (risultato: falsificata, edge quasi interamente da BTC 2017-2022, non riproporre)
 │   ├── apex_theory5_lookback_finegrid_test.py <- terzo giro Teoria #5: griglia fine di 9 lookback (risultato: rafforzata, vantaggio consistente su banda 16-33 settimane, non un punto isolato)
+│   ├── apex_stable_beta_basket_test.py    <- quarto giro Teoria #5: beta medio su 4 finestre (13/26/39/52 sett.) invece di un singolo lookback (risultato: piu' debole dei migliori lookback singoli, l'edge sembra specifico a una banda di medio termine)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -714,6 +715,29 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     con un vincolo di stabilita' temporale piu' esplicito (es. media
     mobile del beta su piu' finestre) invece di continuare a cercare un
     singolo lookback ottimale.
+- **Quarto giro — beta stabilizzato su piu' finestre**, richiesta diretta
+  dell'utente ("insistiamo con il prossimo passo naturale"),
+  `apex_stable_beta_basket_test.py`. Invece di un singolo lookback, il
+  beta di ranking e' la MEDIA del beta calcolato su 4 finestre insieme
+  (13/26/39/52 settimane, da 3 mesi a 1 anno) — un classico strumento di
+  riduzione della varianza di stima (media di piu' orizzonti invece di
+  fidarsi di uno solo). Risultato: **PIU' DEBOLE, non piu' forte, dei
+  migliori lookback singoli della griglia fine.** Overperformance
+  +0,64pp/anno, CI 90% [-0,48; +1,54] — un intervallo PIU' ampio e un
+  punto stimato PIU' basso dei lookback singoli piu' forti (22/30/33
+  settimane, che arrivavano a +1,27/+1,35pp con CI quasi o del tutto
+  fuori dallo zero). Train/test: entrambe le meta' migliorano leggermente
+  rispetto al baseline (1,47->1,53 e 0,59->0,60) — nessuna inversione
+  come nella Teoria #1, ma un margine minimo nella seconda meta'.
+  **Interpretazione**: la stabilizzazione per media ha DILUITO l'effetto
+  invece di rafforzarlo — mescolare finestre piu' corte (13 sett.,
+  rumorose) e piu' lunghe (39-52 sett., piu' deboli nella griglia fine)
+  con quelle centrali (22-33 sett., le piu' forti) ha tirato la stima
+  verso la media invece di isolare la parte di segnale concentrata nella
+  banda centrale. **Se l'edge del basket low-beta e' reale, sembra
+  specifico di un orizzonte di stima di medio termine (~5-8 mesi), non
+  un effetto beta generico presente su qualunque finestra** — un
+  risultato che restringe ulteriormente, ma non chiude, la Teoria #5.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
