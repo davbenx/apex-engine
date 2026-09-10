@@ -57,7 +57,8 @@ validation_suite/
 │   ├── apex_profit_trailing_stop_test.py  <- trailing stop attivato dal profitto su BTC/Oro (risultato: peggiora, non adottare)
 │   ├── apex_crypto_execution_venue_test.py <- perp vs spot vs ETP (proxy IBIT) per la gamba Crypto: costi reali + effetto ore/giorni di mercato chiuso
 │   ├── apex_add_commodities_test.py       <- aggiungere Commodities (DBC beta vs PDBC carry) ad Apex: correlazione + backtest (nessun miglioramento robusto)
-│   ├── apex_diversifier_candidates_test.py <- Currency (UUP) / TIPS (TIP) / Managed Futures (DBMF) / Trend (KMLM) / Commodity Carry (UEQC) come 5a classe (unico negativo significativo: TIP)
+│   ├── apex_diversifier_candidates_test.py <- Currency (UUP) / TIPS (TIP) / Managed Futures (DBMF) / Trend (KMLM) / Commodity Carry (UEQC) / FX Carry (DBV) come 5a classe (negativi significativi: TIP, DBV)
+│   ├── apex_risk_parity_signal_test.py    <- peso inversamente proporzionale alla volatilita' invece di nozionale uguale (risultato: peggiora nettamente, non adottare)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -419,14 +420,25 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     diverso dalle commodity. MaxDD migliora molto (-21,60%->-16,05%),
     Sharpe +0,07, ma CAGR leggermente peggiore (-0,68pp/anno, CI 90%
     [-2,22; +0,76], include lo zero). Nessun miglioramento robusto.
-  - **TIP (iShares TIPS Bond, inflation-linked)**: **UNICO risultato
-    NEGATIVO statisticamente significativo** tra tutti i candidati di
-    diversificazione testati — correlazione 0,77 con Bonds/IEF esistente
-    (quasi ridondante), overperformance -1,44pp/anno, CI 90%
-    **[-2,81; -0,36] ESCLUDE lo zero**. Aggiungere TIP diluisce il budget
-    di vol-target su una classe gia' rappresentata senza aggiungere
-    diversificazione reale. **Verdetto: non aggiungere, unico caso in
-    questa indagine con evidenza statistica di danno.**
+  - **TIP (iShares TIPS Bond, inflation-linked)**: correlazione 0,77 con
+    Bonds/IEF esistente (quasi ridondante), overperformance -1,44pp/anno,
+    CI 90% **[-2,81; -0,36] ESCLUDE lo zero**. Aggiungere TIP diluisce il
+    budget di vol-target su una classe gia' rappresentata senza aggiungere
+    diversificazione reale. **Verdetto: non aggiungere.**
+  - **DBV (Invesco DB G10 Currency Harvest, FX carry classico — long le
+    valute alto rendimento, short le basso rendimento)**: completa insieme
+    a UEQC il test della teoria del carry cross-asset unificato
+    (Koijen-Moskowitz-Pedersen-Vrugt 2018). **Due problemi, non uno**: (1)
+    il fondo e' stato LIQUIDATO — lo storico dati finisce 2023-03-17, non
+    e' piu' investibile oggi, dichiarato non nascosto; (2) anche
+    storicamente il risultato e' negativo e statisticamente significativo,
+    -1,93pp/anno, CI 90% **[-3,67; -0,49] ESCLUDE lo zero**. Coerente con
+    la letteratura: il carry FX ha correlazione positiva con l'equity
+    (+0,34 qui, la piu' alta di tutti i candidati commodity/valuta
+    testati) perche' si "smonta" violentemente negli stessi episodi di
+    risk-off in cui l'equity crolla — non e' un buon diversificatore per
+    costruzione, oltre a non essere piu' disponibile. **Verdetto: non
+    aggiungere, doppiamente squalificato.**
   - **DBMF (iMGP DBi Managed Futures, stesso proxy US di DBMFE in Convex)**
     e **KMLM (KFA/Mount Lucas, trend-following puro)**: profili di
     correlazione interessanti — KMLM negativo sia con SPY (-0,21) sia con
@@ -436,14 +448,14 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     CAGR 12,21%/7,49% contro 16,50% storico completo — 2022 e' un anno
     duro sia per equity sia per bond). Entrambi mostrano MaxDD migliore
     e Sharpe leggermente migliore, ma differenze paired minuscole e
-    ampiamente dentro l'intervallo di rumore (DBMF +0,18pp CI [-2,59;
-    +2,54]... KMLM +0,18pp CI [-4,31; +3,89]). Campione troppo corto per
+    ampiamente dentro l'intervallo di rumore (DBMF -0,06pp CI [-2,59;
+    +2,54], KMLM +0,18pp CI [-4,31; +3,89]). Campione troppo corto per
     un verdetto definitivo in un senso o nell'altro.
-  - **Pattern trasversale su TUTTI i candidati "buoni" (DBC/PDBC/UUP/DBMF/
+  - **Pattern trasversale su TUTTI i candidati "neutri" (DBC/PDBC/UUP/DBMF/
     KMLM/UEQC)**: riduzione consistente del MaxDD e Sharpe leggermente
     migliore, MAI un miglioramento di CAGR/paired-test statisticamente
-    significativo. L'UNICA eccezione statisticamente significativa e'
-    TIP, ed e' negativa. **Nessuna nuova classe testata finora giustifica
+    significativo. Le eccezioni statisticamente significative sono TIP e
+    DBV, entrambe negative. **Nessuna nuova classe testata finora giustifica
     un cambio di produzione sulla sola base del rendimento**; l'ipotesi
     di un beneficio di coda (drawdown) resta plausibile ma non provata dal
     test principale.
@@ -518,6 +530,35 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   segnale core piu' promettente trovato finora, da riverificare con un
   campione piu' lungo o un disegno alternativo (es. cap di forza diverso)
   prima di considerarlo per produzione.
+- **Teoria #3: RISK PARITY vero (peso inversamente proporzionale alla
+  volatilita' di ciascuna classe attiva) invece del peso nozionale uguale
+  attuale** (Qian 2005; Maillard-Roncalli-Teiletche 2010),
+  `apex_risk_parity_signal_test.py`. Naive risk parity (1/volatilita', non
+  la vera ERC con covarianza) applicata SOLO alla distribuzione del peso
+  TRA le classi attive — stessa identica logica di ingresso/uscita e
+  stessa esposizione lorda totale pre-vol-target del baseline.
+  - **Risultato: FALSIFICATO in modo netto e ampiamente significativo —
+    il piu' grande effetto (in valore assoluto) di tutta questa indagine.**
+    CAGR crolla da 16,50% a **9,57%**, Sharpe peggiora (1,08->0,97)
+    NONOSTANTE il MaxDD migliori molto (-21,60%->-11,31%) — il rendimento
+    perso e' piu' che proporzionale al rischio ridotto. Confronto
+    accoppiato: **-6,79pp/anno, CI 90% [-12,00; -2,50] ESCLUDE lo zero
+    ampiamente.**
+  - **Causa identificata**: la redistribuzione del peso quando tutte le
+    classi sono attive mostra il meccanismo — Crypto (la piu' volatile)
+    passa da 26,7% a **10,9%** di esposizione media, mentre Bonds (la meno
+    volatile) passa da 31,2% a **56,4%**. Crypto e' stato storicamente il
+    driver di rendimento risk-adjusted piu' forte di Apex in questo
+    campione — la risk parity naive presume implicitamente che ogni classe
+    offra lo stesso Sharpe per unita' di rischio, un'assunzione FALSA qui:
+    penalizzare Crypto solo perche' e' volatile getta via una fonte di
+    edge reale, non solo diversifica.
+  - **Lezione generale**: la risk parity e' uno strumento di
+    diversificazione del rischio, non di massimizzazione del rendimento —
+    su un menu di asset con Sharpe storicamente molto diseguali (come
+    quello di Apex, dove Crypto ha sovraperformato risk-adjusted rispetto
+    a Bonds/Gold), forzare un contributo al rischio uguale combatte contro
+    l'edge esistente della strategia invece di proteggerlo.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.

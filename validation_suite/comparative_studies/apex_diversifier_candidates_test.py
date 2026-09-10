@@ -24,6 +24,17 @@ reimplementazione):
                           Carry e' un indice construito esplicitamente sul
                           fattore di carry (term structure) — piu' vicino
                           alla letteratura accademica (Erb & Harvey 2006).
+  - FX Carry:           DBV   (Invesco DB G10 Currency Harvest Fund) —
+                          implementa il classico FX carry trade (long le
+                          valute G10 ad alto rendimento, short quelle a
+                          basso rendimento). Completa, insieme a UEQC, il
+                          test della teoria del "carry cross-asset
+                          unificato" (Koijen-Moskowitz-Pedersen-Vrugt 2018,
+                          "Carry") — un fattore che la letteratura mostra
+                          funzionare su equity/bond/valute/commodity insieme,
+                          qui testato come due gambe indipendenti (commodity
+                          + FX) per mancanza di un unico ETF cross-asset
+                          carry liquido e tradeable.
 
 Trattamento fiscale (coerente con le classificazioni REALI gia' stabilite in
 questo progetto per gli stessi tipi di veicolo):
@@ -34,6 +45,8 @@ questo progetto per gli stessi tipi di veicolo):
   - DBMF/KMLM: REDDITO_CAPITALE — come DBMFE.PA in convex_engine.py (fondo
     '40 Act/UCITS registrato che replica CTA, non un commodity pool/ETC).
   - UEQC.DE: REDDITO_CAPITALE — come NTSG.MI/AVWS.DE/DBMFE.PA (fondo UCITS).
+  - DBV: REDDITO_DIVERSO — stesso sponsor/struttura "Invesco DB" di
+    DBC/UUP (commodity pool su currency futures, non un fondo OICR).
 
 UEQC.DE e' denominato in EUR (a differenza di tutto il resto del paniere
 macro di Apex, tutto USD) — convertito in equivalente USD via EURUSD=X
@@ -83,6 +96,7 @@ CANDIDATES = [
     ("Managed Futures (DBMF)", "DBMF", "DBMF", "REDDITO_CAPITALE", False),
     ("Trend (KMLM)", "KMLM", "KMLM", "REDDITO_CAPITALE", False),
     ("Commodity Carry (UEQC.DE)", "UEQC.DE", "UEQC_USD", "REDDITO_CAPITALE", True),
+    ("FX Carry (DBV)", "DBV", "DBV", "REDDITO_DIVERSO", False),
 ]
 CANDIDATE_BASE_WEIGHT, CANDIDATE_VOL_TARGET = 0.40, 0.22  # stessa dimensione "controllata" gia' usata per DBC/PDBC
 
