@@ -194,8 +194,8 @@ def load_config() -> Dict[str, Any]:
         "convex_capital_eur": 100000.0,
         "monthly_pac_eur": 500.0,
         "pac_annual_growth": 0.04,
-        "target_apex_ratio": 0.50,
-        "target_convex_ratio": 0.50,
+        "target_apex_ratio": 0.70,
+        "target_convex_ratio": 0.30,
         "wbtc_trim_threshold": 0.1125,
         "ppfb_trim_threshold": 0.1125,
         "last_updated": "2026-09-01"
@@ -386,49 +386,51 @@ def get_convex_metrics() -> Dict[str, Any]:
 
 
 def get_combined_dual_engine_metrics() -> Dict[str, Any]:
-    """Metriche reali della combinazione APEX+CONVEX al mix target standard 50/50.
-    BUG corretto: prima usava la finestra 2014-11/2026-08 (142 mesi) mentre
-    get_apex_metrics()/get_convex_metrics() erano gia' state corrette al solo
-    periodo TEST di ciascuna (72 e 155 mesi) -- tre finestre diverse per tre
-    numeri mostrati fianco a fianco, che produceva un CAGR combinato
-    apparentemente piu' alto di ENTRAMBE le componenti (un'impossibilita'
-    matematica per una media pesata, segnalata dall'utente). Causa: la
-    finestra vecchia includeva 2014-2020, il periodo TRAIN di Apex con un
-    rendimento eccezionalmente forte che la casella Apex non mostra piu'.
-    Ora usa l'intersezione dei due periodi TEST (2020-09-30 -> 2026-08-31,
-    72 mesi) -- fuori campione per ENTRAMBE le strategie, la stessa identica
-    finestra della casella Apex, cosi' le tre cifre sono confrontabili.
-    Su questa finestra il CAGR combinato torna correttamente IN MEZZO ai due
-    componenti (18.85% tra 16.88% Convex e 20.34% Apex, tutti lordi) -- il
-    beneficio di diversificazione reale si vede nel MaxDD (-7.88%, inferiore
-    a entrambe le componenti), non nel CAGR. Sharpe/Sortino/MaxDD/Calmar
-    calcolati sulle due serie LORDE (apex_monthly_returns_extended_gross.csv
-    + convex_monthly_returns.csv); cagr_net e' la media pesata delle stime
-    nette dei due componenti sulla stessa finestra, non una combinazione
-    fiscale rigorosa posizione-per-posizione.
-    Rigenerato dopo select_low_beta_basket + estensione storica di Apex a
-    1987-06 (vedi get_apex_metrics()) — la finestra TEST (2020-09/2026-08)
-    condivisa da Apex/Convex/combinato non cambia, quindi il ricalcolo qui
-    riflette SOLO il nuovo criterio di selezione azionario di Apex, non
-    l'estensione storica in se'."""
+    """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD
+    70/30 (Apex/Convex) — cambiato da 50/50 su decisione esplicita
+    dell'utente dopo il calcolo Kelly diretto sul mix (vedi
+    apex_convex_kelly_mix_test.py, validation_suite/README.md): lo Sharpe
+    del mix a leva zero (nessuna leva extra oltre quella gia' imbottita in
+    ciascun motore) picca teoricamente ed empiricamente nella zona
+    50/50-70/30 sul campione pieno (2000-2026, 312 mesi) — 70/30 e' dentro
+    quella zona, non un punto isolato.
+    **Nota onesta non ignorabile**: sul periodo TEST specifico qui sotto
+    (72 mesi, 2020-2026 — piu' corto e piu' recente del campione usato per
+    il calcolo Kelly) 70/30 ha CAGR piu' alto di 50/50 ma Sharpe (1,42
+    contro 1,49) e MaxDD (-8,90% contro -7,88%) leggermente PEGGIORI — il
+    tradeoff rendimento/rischio del mix dipende dalla finestra osservata,
+    non e' univoco. Il beneficio di diversificazione resta comunque intatto
+    rispetto a ciascuna componente isolata (MaxDD -8,90% e' ancora
+    nettamente inferiore a -14,52% Apex e -15,76% Convex).
+    BUG storico gia' corretto (invariato da qui): prima usava una finestra
+    diversa da get_apex_metrics()/get_convex_metrics(), producendo un CAGR
+    combinato apparentemente piu' alto di ENTRAMBE le componenti (impossibile
+    per una media pesata) — ora usa l'intersezione dei due periodi TEST
+    (2020-09-30 -> 2026-08-31), la stessa finestra della casella Apex.
+    Sharpe/Sortino/MaxDD/Calmar calcolati sulle due serie LORDE
+    (apex_monthly_returns_extended_gross.csv + convex_monthly_returns.csv);
+    cagr_net e' la media pesata delle stime nette dei due componenti sulla
+    stessa finestra, non una combinazione fiscale rigorosa posizione-per-
+    posizione."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1329,
-        "cagr_gross": 0.1885,
-        "volatility": 0.1217,
-        "sharpe": 1.487,
-        "sortino": 3.435,
-        "max_drawdown": -0.0788,
-        "calmar": 2.392,
-        "ulcer_index": 2.45,
+        "cagr_net": 0.1369,
+        "cagr_gross": 0.1953,
+        "volatility": 0.1324,
+        "sharpe": 1.420,
+        "sortino": 3.538,
+        "max_drawdown": -0.0890,
+        "calmar": 2.195,
+        "ulcer_index": 3.23,
         "correlation": 0.403,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "synergy_summary": (
-            "Mix 50% Apex / 50% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 18.85% (netto stimato 13.29%), correttamente tra il 16.88% di Convex e il 20.34% di Apex "
-            "isolatamente. Il beneficio di diversificazione si vede nel MaxDD -7.88% — inferiore a entrambe "
-            "le componenti singole (-14.52% Apex, -15.76% Convex) — non nel CAGR: una miscela pesata non può "
-            "mai battere entrambi i componenti sul rendimento, solo sul rischio. Correlazione reale: 0.403."
+            "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
+            "CAGR 19.53% (netto stimato 13.69%), tra il 16.88% di Convex e il 20.34% di Apex isolatamente. "
+            "Il beneficio di diversificazione si vede nel MaxDD -8.90% — inferiore a entrambe le componenti "
+            "singole (-14.52% Apex, -15.76% Convex) anche se leggermente meno marcato del mix 50/50 (-7.88%) "
+            "— una miscela pesata non può mai battere entrambi i componenti sul rendimento, solo sul rischio. "
+            "Correlazione reale: 0.403."
         )
     }
 
@@ -437,7 +439,7 @@ def compute_unified_portfolio(
     apex_val: float,
     convex_report: convex_engine.ConvexPortfolioReport,
     monthly_pac: float = 500.0,
-    target_apex_ratio: float = 0.50,
+    target_apex_ratio: float = 0.70,
     apex_allocations: Dict[str, float] = None
 ) -> Dict[str, Any]:
     """

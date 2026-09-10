@@ -1502,6 +1502,22 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     per uno spostamento leggero verso Apex (60/40) se si volesse
     ottimizzare, ma nessuna base solida per un cambio drastico. **Nessuna
     modifica al mix di default** sulla base di questo calcolo da solo.
+  - **Seguito — decisione esplicita dell'utente: mix di default cambiato
+    da 50/50 a 70/30 Apex/Convex.** `config.json` (stato reale
+    dell'utente), i default di `load_config()`/`compute_unified_portfolio`/
+    `home_app.py` e le cifre di `get_combined_dual_engine_metrics()`
+    aggiornati insieme, per coerenza — altrimenti la card "standard" e il
+    grafico personalizzato dell'utente avrebbero mostrato numeri
+    disallineati. **Nota onesta emersa SOLO ricalcolando sul periodo TEST
+    (72 mesi, 2020-2026, la finestra standard di dashboard — piu' corta e
+    piu' recente del campione 2000-2026 usato per il calcolo Kelly)**: su
+    questa finestra 70/30 ha CAGR lordo piu' alto (19,53% contro 18,85%)
+    ma Sharpe (1,42 contro 1,49) e MaxDD (-8,90% contro -7,88%)
+    leggermente PEGGIORI del 50/50 — il tradeoff dipende dalla finestra
+    osservata, non e' univoco nella direzione "70/30 sempre meglio". Il
+    beneficio di diversificazione resta comunque intatto rispetto a
+    ciascuna componente isolata. Segnalato esplicitamente all'utente prima
+    di confermare l'implementazione.
 
 ## Cosa NON è (ancora) qui, e perché
 

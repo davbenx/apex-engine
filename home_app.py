@@ -100,7 +100,7 @@ convex_val_eur = sum(cx_holdings_dict.get(k, 0.0) * _base_prices.get(k, 0.0) for
 _tot = apex_val_eur + convex_val_eur
 _real_apex_ratio = (apex_val_eur / _tot) if _tot > 0 else 0.50
 _real_convex_ratio = (convex_val_eur / _tot) if _tot > 0 else 0.50
-_target_apex = float(cfg.get("target_apex_ratio", 0.50))
+_target_apex = float(cfg.get("target_apex_ratio", 0.70))
 
 _cx_rep = convex_engine.evaluate_convex_stack(
     current_holdings=cx_holdings_dict,
@@ -277,7 +277,7 @@ with tab_pf:
         p_c1, p_c2 = st.columns(2)
         with p_c1:
             cfg_apex_cap = st.number_input("Capitale di Riferimento Apex (€)", min_value=1000.0, value=float(cfg.get("apex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
-            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(cfg.get("target_apex_ratio", 0.50)*100), step=5) / 100.0
+            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(cfg.get("target_apex_ratio", 0.70)*100), step=5) / 100.0
         with p_c2:
             cfg_convex_cap = st.number_input("Capitale di Riferimento Convex (€)", min_value=1000.0, value=float(cfg.get("convex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
             cfg_pac = st.number_input("Rata PAC Mensile (€)", min_value=50.0, value=float(cfg.get("monthly_pac_eur", 500.0)), step=50.0, format="%.0f")
