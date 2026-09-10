@@ -56,6 +56,7 @@ validation_suite/
 │   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
 │   ├── apex_profit_trailing_stop_test.py  <- trailing stop attivato dal profitto su BTC/Oro (risultato: peggiora, non adottare)
 │   ├── apex_crypto_execution_venue_test.py <- perp vs spot vs ETP (proxy IBIT) per la gamba Crypto: costi reali + effetto ore/giorni di mercato chiuso
+│   ├── apex_add_commodities_dbc_test.py   <- aggiungere una 5a classe macro Commodities (proxy DBC) ad Apex: correlazione + backtest (risultato: nessun miglioramento robusto, non adottare)
 │   ├── convex_weights_grid_test.py        <- grid search sui pesi target di Convex Stack (9 combinazioni vs 45/15/25/7.5/7.5)
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
@@ -364,6 +365,41 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     settimane, il funding Kraken (che matura ora per ora) si accumula per
     mesi consecutivi di esposizione continua — l'orizzonte corretto per
     confrontarlo con il TER annuale, non giorni isolati.
+- **Aggiungere una 5a classe macro, Commodities (proxy DBC)**, richiesta
+  diretta dell'utente, `apex_add_commodities_dbc_test.py`. DBC (Invesco DB
+  Commodity Index Tracking Fund) e' un ETF su FUTURES di materie prime a peso
+  energia-pesante (>50%), non spot — limite dichiarato: il suo rendimento
+  storico incorpora costi di roll reali (spesso negativi in regimi di
+  contango prolungato), non un'approssimazione peggiorativa arbitraria.
+  Trattamento fiscale: REDDITO_DIVERSO, come Gold/GLD (stessa categoria
+  strutturale, ETF US non-UCITS). Tecnica di test: `V2_CLASS_TICKER` e' un
+  dict globale di modulo (non un parametro di `compute_v2_macro_signal`) —
+  sovrascritto a runtime nello script di test, mai modificato in modo
+  permanente in `apex_v2_engine.py`.
+  - **Correlazione settimanale reale** (625 settimane): DBC-Equities 0,33
+    (PIU' alta di Gold-Equities 0,13 — DBC NON e' un diversificatore
+    "pulito" come l'oro, ha beta equity non trascurabile, coerente con la
+    sua composizione energia-pesante ciclica), DBC-Gold 0,24, DBC-Bonds
+    -0,20, DBC-BTC 0,12.
+  - **Risultato backtest** (4 configurazioni, walk-forward point-in-time
+    586 settimane): PBO-CSCV **50,0%** — esattamente il caso base, nessuna
+    configurazione (con o senza Commodities) batte le altre in modo
+    robusto. Confronto accoppiato diretto (miglior variante con Commodities,
+    40%/22%, meno baseline 4 classi 50%/22%): overperformance media
+    **-0,40pp/anno**, CI 90% (block bootstrap) **[-3,43; +1,99]pp/anno —
+    include lo zero ampiamente**, vince solo 242/586 settimane (41%).
+    **Verdetto: nessun miglioramento robusto di rendimento** — aggiungere
+    DBC non e' statisticamente giustificato su questo campione.
+  - **Segnale secondario non conclusivo ma consistente**: il MaxDD netto si
+    riduce in TUTTE e 3 le varianti con Commodities testate rispetto al
+    baseline (-21,60% -> -14,52%/-16,39%/-15,47%), con Calmar sempre
+    migliore (0,76 -> 0,96-1,05) — pattern presente in ogni configurazione,
+    non un solo punto isolato, ma NON confermato dal test statistico
+    principale (la CI del confronto accoppiato include comunque lo zero).
+    Ipotesi plausibile (non verificata quantitativamente qui): un effetto
+    di diversificazione in coda durante regimi di stress simultaneo su
+    equity/bond (es. shock inflazionistico) catturato dalla finestra di
+    backtest (2021-2022), non un edge strutturale dimostrato.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
