@@ -966,9 +966,45 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       satellite separata, attiva solo quando il segnale di trend Apex per
       Crypto e' ON (stesso timing, nessun segnale nuovo), dimensionata a
       satellite_pct del NAV fisso {10%,25%,50%} sul singolo alt a beta
-      piu' basso vs BTC, tassata REDDITO_DIVERSO come BTC. **Backtest in
-      corso — risultato aggiunto in un commit successivo appena
-      disponibile.**
+      piu' basso vs BTC, tassata REDDITO_DIVERSO come BTC. **Risultato
+      iniziale sorprendente (+3,21/+8,20/+16,97pp/anno, CI 90% sempre
+      ESCLUDENTI lo zero, PBO-CSCV 15,0%) — in netto contrasto con Parte
+      A. Contrasto cosi' netto da richiedere un controfattuale prima di
+      crederci.**
+    - **Controllo di confondimento (`altcoin_satellite_btc_confound_test.py`,
+      stesso harness, satellite invertito in BTC invece del pick
+      low-beta): FALSIFICA il risultato della Parte B come "vantaggio
+      della selezione low-beta".** Il satellite in BTC puro batte quello
+      in altcoin low-beta a OGNI livello (+5,17/+13,31/+27,88pp/anno
+      contro +3,21/+8,20/+16,97pp/anno, CI 90% sempre escludenti lo
+      zero). La selezione low-beta non aggiunge nulla — e' inferiore a
+      BTC semplice, coerente con la Parte A. **L'intero guadagno della
+      Parte B viene dall'aggiungere ESPOSIZIONE CRYPTO IN GENERALE (il
+      vol-target lasciava capacita' di rischio inutilizzata sulla classe
+      Crypto), non dalla scelta di QUALE moneta.** Questo chiude
+      definitivamente l'intera linea "altcoin low-beta" (pick, walk-
+      forward, basket, satellite: falliti in ogni forma testata, o la
+      loro apparente riuscita e' interamente spiegata da un
+      confondimento estraneo alla selezione).
+    - **Effetto collaterale da NON confondere con un edge validato**:
+      l'esposizione crypto extra (in QUALUNQUE forma) migliora il
+      backtest in modo monotono con CI 90% sempre significative — ma e'
+      il pattern classico "piu' leva su cio' che e' andato meglio nel
+      campione storico" (BTC CAGR 38,25% standalone in questo periodo),
+      non necessariamente skill. Segnali d'allarme concreti nella
+      versione BTC: Sharpe netto piatto/in calo (1,14→1,11) mentre il
+      MaxDD raddoppia (-21,54%→-52,18%) al 50% — il guadagno e' quasi
+      tutto leva, non miglioramento risk-adjusted — e PBO-CSCV 70,0%
+      (sopra il 50%, instabile) sulla versione BTC, che non e' nemmeno
+      robusto in senso overfitting-adjusted nonostante le CI strette.
+      **Non validato per produzione**: richiederebbe come minimo lo
+      stesso trattamento walk-forward gia' applicato altrove in questa
+      sezione (mai fatto qui) prima di qualunque considerazione seria —
+      concettualmente e' un test di "class-weight asimmetrico" (solo
+      Crypto sopra il 50% base, non tutte le classi uniformemente come
+      in `apex_class_size_grid_test.py`), distinto ma imparentato con la
+      Storia sul sizing per classe qui sopra, e va trattato con lo stesso
+      sospetto.
   - **Gap rimanenti**: #2 (campione indipendente, non fattibile senza
     dati point-in-time di un altro mercato).
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
