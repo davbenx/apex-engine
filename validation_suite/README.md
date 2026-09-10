@@ -1518,6 +1518,27 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     beneficio di diversificazione resta comunque intatto rispetto a
     ciascuna componente isolata. Segnalato esplicitamente all'utente prima
     di confermare l'implementazione.
+- **Approfondimento regime filter curva rendimenti CON RITARDO — richiesto
+  dall'utente dopo il risultato sfumato del filtro contemporaneo**
+  (`apex_yield_curve_lagged_filter_test.py`): Equities forzata a 0% se la
+  curva 10Y-3M ERA invertita `lag_weeks` fa (non ora) — griglia [0
+  (contemporaneo, test precedente), 26 (~6 mesi), 52 (~12 mesi), il range
+  tipico di ritardo recessione-dopo-inversione in letteratura). **Nessun
+  miglioramento robusto — la conclusione precedente si conferma, non si
+  ribalta.** Full-sample il lag a 12 mesi sembra il migliore (Sharpe 1,33
+  contro 1,29 del contemporaneo), ma il walk-forward smentisce: selezionando
+  il lag SOLO con informazione passata (Era 2→26 sett., Era 3→52 sett.), il
+  risultato OOS combinato (356 settimane) e' leggermente PEGGIORE del
+  semplice lag=0 gia' testato (CAGR 15,13% contro 15,47%, Sharpe 1,04
+  contro 1,06) — differenza -0,28pp/anno, CI 90% include lo zero, solo 31%
+  delle settimane migliori. PBO-CSCV 4,3% conferma che il ranking
+  full-sample e' riproducibile (lag=52 vince spesso sui singoli split) ma
+  questo non si traduce in un vantaggio OOS onesto quando la selezione
+  avviene senza guardare al futuro — aggiungere un ritardo deliberato
+  sposta dove il filtro sbaglia, non risolve il problema. **Nessuna
+  modifica in produzione**: il filtro sulla curva dei rendimenti, in
+  nessuna forma testata (contemporaneo o con lag), supera la produzione
+  attuale (nessun filtro) in modo robusto — linea di indagine chiusa.
 
 ## Cosa NON è (ancora) qui, e perché
 
