@@ -1343,6 +1343,27 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   ma **PBO-CSCV 4,3%** — non "nessun segnale" (che darebbe ~50%), il
   ranking si riproduce in modo stabile tra gli split: SPY vince in modo
   riproducibile, non per caso campionario. Nessuna modifica in produzione.
+- **Dual Momentum tra classi macro (Antonacci 2014) — idea #4 della lista
+  di approfondimento richiesta dall'utente**
+  (`apex_dual_momentum_class_weight_test.py`): tra le classi ATTIVE (trend
+  assoluto invariato), il peso nominale base viene inclinato dal momentum
+  RELATIVO (z-score del rendimento trailing 12 settimane), non da una
+  misura di rischio — meccanismo diverso da risk parity/class-weight
+  beta-pesato (entrambi falliti per la stessa dominanza di Bonds
+  sull'inverse-weighting), ma con un rischio speculare esplicitamente
+  anticipato in fase di design: Bonds ha tipicamente momentum piu' debole,
+  quindi potrebbe finire strutturalmente sotto-pesato. **Il rischio si e'
+  materializzato**: peso medio Bonds 14,3%→5,4% da alpha 0,0 a 1,0, CAGR
+  full-sample sale in modo monotono (17,71%→19,87%) ma Sharpe scende
+  (1,14→1,01) e MaxDD peggiora (-21,53%→-27,33%) — stesso pattern "leva su
+  Crypto, il vincitore storico" gia' visto nell'asymmetric class-weight.
+  **Walk-forward decisivo**: sia l'Era 2 sia l'Era 3, usando solo
+  informazione passata, selezionano SEMPRE alpha=0,0 — il meccanismo
+  libero di scegliere non si discosta mai dalla produzione attuale.
+  Risultato OOS quindi identico al baseline (differenza 0,00pp/anno, 0%
+  delle settimane migliori — letteralmente la stessa serie). PBO-CSCV
+  2,9%, coerente: alpha=0,0 vince in modo robusto su ogni split. Nessuna
+  modifica in produzione.
 
 ## Cosa NON è (ancora) qui, e perché
 
