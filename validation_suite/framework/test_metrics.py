@@ -6,7 +6,7 @@ Kelly Stack, ora vivono e si testano nel framework condiviso.
 """
 import pandas as pd
 
-from metrics import cagr, sharpe, max_drawdown, calmar
+from metrics import cagr, sharpe, max_drawdown, calmar, sortino_ratio, ulcer_index
 
 
 def test_cagr_constant_monthly_return():
@@ -72,3 +72,33 @@ def test_calmar_is_nan_when_no_drawdown_ever_occurs():
     monthly = pd.Series([0.01] * 12)
     result = calmar(monthly)
     assert result != result  # NaN != NaN e' l'unico modo standard di verificarlo senza math.isnan
+
+
+def test_sortino_ignores_upside_volatility():
+    """Rendimenti con molta piu' variabilita' sull'upside che sul downside: lo
+    Sharpe penalizza anche gli sbalzi positivi (volatilita' totale), il
+    Sortino solo la deviazione dei rendimenti negativi (piu' piccola qui) —
+    deve quindi risultare piu' alto."""
+    mixed = pd.Series([0.09, -0.01, 0.02, -0.012, 0.12, -0.008, 0.03, -0.011])
+    assert sortino_ratio(mixed) > sharpe(mixed)
+
+
+def test_sortino_is_nan_with_no_downside_observations():
+    monthly = pd.Series([0.01] * 12)  # mai un mese negativo
+    result = sortino_ratio(monthly)
+    assert result != result
+
+
+def test_ulcer_index_zero_when_never_drawdown():
+    monthly = pd.Series([0.01] * 12)
+    assert ulcer_index(monthly) == 0.0
+
+
+def test_ulcer_index_matches_known_drawdown_path():
+    # NAV: 1.0 -> 1.2 -> 0.9 -> 1.1 (stesso percorso di test_max_drawdown_known_path).
+    # Drawdown dal picco (1.2) in ciascun periodo: 0%, -25%, -8.33% (a t=2 il
+    # NAV recupera a 1.1 ma il picco resta 1.2, quindi non e' tornato a 0%).
+    monthly = pd.Series([0.20, -0.25, 0.2222222222])
+    dd_t2_pct = (1.1 / 1.2 - 1) * 100  # NAV recupera a 1.1, il picco resta 1.2 -> -8.33%
+    expected = (((0.0 ** 2) + (25.0 ** 2) + (dd_t2_pct ** 2)) / 3) ** 0.5
+    assert abs(ulcer_index(monthly) - expected) < 1e-3

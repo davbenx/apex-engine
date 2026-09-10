@@ -339,7 +339,7 @@ def get_apex_metrics() -> Dict[str, Any]:
         "calmar_netto_stimato": 0.770,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "cash_drag_protection": "100% Cash nei bear market macro",
-        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Vol (Buffer Rank 20) + Trend Macro 40w/20w con isteresi. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
+        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
 
 

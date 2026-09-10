@@ -48,3 +48,24 @@ def calmar(returns: pd.Series, periods_per_year: int = 12) -> float:
     if abs(dd) < 1e-12:
         return float("nan")
     return cagr(returns, periods_per_year=periods_per_year) / abs(dd)
+
+
+def sortino_ratio(returns: pd.Series, rf_annual: float = 0.0, periods_per_year: int = 12) -> float:
+    """Come sharpe() ma il denominatore usa solo la deviazione standard dei
+    rendimenti SOTTO la soglia (downside deviation), non la volatilita' totale —
+    non penalizza l'upside come fa lo Sharpe. NaN se meno di 2 osservazioni
+    negative (deviazione standard non definita)."""
+    excess = returns - rf_annual / periods_per_year
+    downside = excess[excess < 0]
+    if len(downside) < 2 or downside.std(ddof=1) < 1e-12:
+        return float("nan")
+    return float(excess.mean() / downside.std(ddof=1) * np.sqrt(periods_per_year))
+
+
+def ulcer_index(returns: pd.Series) -> float:
+    """Radice quadrata della media dei drawdown percentuali al quadrato —
+    penalizza profondita' E durata dei drawdown nel tempo, non solo il picco
+    peggiore come max_drawdown()."""
+    nav = (1 + returns).cumprod()
+    dd_pct = (nav / nav.cummax() - 1.0) * 100.0
+    return float(np.sqrt((dd_pct ** 2).mean()))
