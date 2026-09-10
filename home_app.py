@@ -195,7 +195,7 @@ with tab_pf:
                 <div style="font-size:11px; color:{MUTED};">Venerdì ore 21:00 CET</div>
             </div>
             <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
-                Tattico Alpha · Rotazione 15 S&P 500 Low-Vol + Trend multi-asset
+                Tattico Alpha · Rotazione 15 S&P 500 Low-Beta + Trend multi-asset
             </div>
             <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
                 <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
@@ -454,7 +454,7 @@ with tab_guide:
         <div class="glass-card" style="height: 195px;">
             <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">Apex Engine (Tattico Alpha)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
-                Motore quantitativo a selezione attiva (15 titoli S&P 500 a minima volatilità con buffer rank 20) e trend following macro a doppio filtro temporale (40w/20w con isteresi).
+                Motore quantitativo a selezione attiva (15 titoli S&P 500 a beta più basso vs il mercato, con buffer rank 20) e trend following macro a doppio filtro temporale (40w/20w con isteresi).
                 Durante i mercati ribassisti disattiva l'azionario e protegge il 100% del capitale in liquidità remunerata o Treasury.
             </div>
         </div>
