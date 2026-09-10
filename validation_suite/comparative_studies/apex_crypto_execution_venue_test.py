@@ -236,6 +236,22 @@ def main():
     print(f"  CI 90% Sharpe ETP: [{lo_etp:.2f}, {hi_etp:.2f}]  |  CI 90% Sharpe perp: [{lo_perp:.2f}, {hi_perp:.2f}] "
           "(campione corto, ~2.7 anni — CI larghe attese)")
 
+    # Confronto DIRETTO E ACCOPPIATO (piu' potente delle due CI separate sopra, che si
+    # sovrappongono anche quando la differenza settimana-per-settimana e' sistematica):
+    # differenza settimanale perp-ETP, stessa settimana stesso indice, poi bootstrap
+    # sulla MEDIA annualizzata di quella differenza.
+    diff_series = (net_perp - net_etp).dropna()
+    mean_diff_annual = diff_series.mean() * PERIODS_PER_YEAR * 100
+    lo_diff, hi_diff = block_bootstrap_ci(diff_series.values, lambda r: pd.Series(r).mean() * PERIODS_PER_YEAR * 100,
+                                           block_size=8, ci=0.90, seed=42)
+    n_weeks_perp_better = int((diff_series > 0).sum())
+    print(f"\nConfronto accoppiato diretto perp-ETP (stessa settimana, stesso indice):")
+    print(f"  Overperformance media annualizzata del perp sull'ETP: {mean_diff_annual:+.2f}pp/anno")
+    print(f"  CI 90% (block bootstrap, blocchi 8 settimane): [{lo_diff:+.2f}, {hi_diff:+.2f}]pp/anno "
+          f"({'ESCLUDE' if lo_diff * hi_diff > 0 else 'INCLUDE'} lo zero)")
+    print(f"  Settimane in cui il perp ha fatto meglio dell'ETP: {n_weeks_perp_better}/{len(diff_series)} "
+          f"({n_weeks_perp_better/len(diff_series)*100:.0f}%)")
+
     print("\n\n########## STORICO APEX COMPLETO (perp vs spot, IBIT non disponibile prima del 2024) ##########\n")
     run_scenario(btc_series, TAX_RATE_STANDARD, funding_annual, "Perpetual Kraken (26%, funding reale + taker 0.05%)", False)
     run_scenario(btc_series, TAX_RATE_STANDARD, 0.0, "Spot Kraken (26%, taker 0.26%)", False)

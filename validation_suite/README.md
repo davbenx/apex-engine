@@ -314,12 +314,18 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     aggiuntivo dal fatto di non tradare 24/7 (conferma, dentro il backtest
     vero di Apex, quanto già trovato in astratto con IBIT vs BTC: il
     wrapper insegue il prezzo senza deriva sistematica). La differenza di
-    CAGR ETP vs perp è -0,96pp (14,39% contro 15,35%) sulla finestra IBIT —
-    piccola e dentro il rumore campionario (CI 90% Sharpe ETP [0,29; 2,19]
-    contro perp [0,35; 2,27], ampiamente sovrapposte su un campione corto).
-    **Risposta: no, non rompe la strategia** — un costo reale ma modesto
-    (~1pp/anno, in gran parte il TER 0,15%), non distinguibile dal rumore
-    su questo campione.
+    CAGR ETP vs perp è -0,96pp (14,39% contro 15,35%) sulla finestra IBIT.
+    **Confronto accoppiato diretto** (perp meno ETP, stessa settimana,
+    stesso indice — più potente delle due CI separate, che si sovrappongono
+    anche a fronte di una differenza sistematica): overperformance media
+    del perp +0,82pp/anno, ma CI 90% (block bootstrap) [-0,02; +1,35]pp/anno
+    — **include lo zero per un pelo**, e il perp ha fatto meglio dell'ETP
+    solo in 53/139 settimane (38%) — la sua overperformance aggregata viene
+    da poche settimane con scarti grandi, non da un vantaggio settimanale
+    diffuso. **Risposta: no, non rompe la strategia** — un costo reale ma
+    modesto (~1pp/anno, in gran parte il TER 0,15%), alla soglia della
+    significatività statistica su questo campione corto (~2,7 anni), non
+    un problema strutturale.
   - **Sui costi, risultato che CONTRADDICE l'ipotesi di partenza
     dell'utente**: il perpetual su Kraken NON è la scelta peggiore in
     questo backtest — è la MIGLIORE o alla pari. Sample completo (586
