@@ -1384,6 +1384,31 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   forward sceglie sempre skip_weeks=0 in ogni era, risultato OOS identico
   al baseline. **PBO-CSCV 0,0%** — il segnale piu' forte di stabilita' del
   ranking visto in questa sessione. Nessuna modifica in produzione.
+- **Regime filter indipendente dal prezzo: curva dei rendimenti 10Y-3M
+  (Estrella-Mishkin 1996) — idea #6 della lista di approfondimento**
+  (`apex_yield_curve_regime_filter_test.py`): a differenza di tutto il
+  segnale Apex (sempre derivato da MA/volatilita' del prezzo), filtro
+  ADDITIVO (AND) SOLO su Equities — attiva solo se il trend di prezzo lo
+  conferma E la curva 10Y-3M (^TNX-^IRX) non e' invertita in quel momento
+  (contemporaneo, nessun ritardo aggiunto apposta per non introdurre
+  un'altra dimensione da ottimizzare). Rischio dichiarato in anticipo: la
+  curva invertita predice la recessione con un RITARDO tipico di 6-18
+  mesi (spesso le azioni salgono ancora dopo l'inversione, "l'ultimo
+  rally") — un filtro contemporaneo rischia di disattivare Equities
+  troppo presto. **Risultato misto, non una falsificazione netta come le
+  precedenti**: CAGR 19,17% (filtrato) contro 18,98% (baseline, leggermente
+  meglio) ma Sharpe 1,22 contro 1,25 e MaxDD -19,29% contro -18,49%
+  (entrambi leggermente peggiori) — il rischio anticipato si e' concretizzato:
+  il filtro taglia l'esposizione in anticipo rispetto al vero punto di
+  svolta. CI 90% sulla differenza CAGR [-0,48;+1,01], include lo zero.
+  PBO-CSCV 0,0%, coerente con "baseline vince in modo stabile sullo
+  Sharpe" (non con "il filtro e' validato" — con solo 2 configurazioni un
+  PBO basso premia chi ha lo Sharpe pieno-campione piu' alto in modo
+  consistente sugli split, qui il baseline). Nessuna modifica in
+  produzione — curva 10Y-3M dichiaratamente non lo strumento giusto in
+  questa forma contemporanea, un filtro con lag potrebbe comportarsi
+  diversamente ma introdurrebbe un altro parametro da walk-forward-are,
+  non testato qui.
 
 ## Cosa NON è (ancora) qui, e perché
 
