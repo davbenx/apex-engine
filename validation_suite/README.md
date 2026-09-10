@@ -1005,6 +1005,38 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       in `apex_class_size_grid_test.py`), distinto ma imparentato con la
       Storia sul sizing per classe qui sopra, e va trattato con lo stesso
       sospetto.
+    - **Fatto — approfondimento richiesto dall'utente ("sì
+      approfondisci"), `apex_crypto_asymmetric_weight_walkforward_test.py`:
+      FALSIFICA anche questo.** Non un satellite bolt-on ma
+      `base_weight_per_class` asimmetrico (Crypto sopra il 50% base, le
+      altre 3 classi invariate), con selezione walk-forward onesta del
+      valore (griglia [0.50,0.65,0.75,0.90,1.00], 3 ere, scelta per ogni
+      era SOLO con lo Sharpe delle ere precedenti) — stessa disciplina
+      mai applicata prima su questo asse. Efficienza: is_active/vol per
+      classe non dipendono da crypto_base_weight, quindi un solo giro
+      costoso su trend/basket precede l'intera griglia.
+      Full-sample (non il test principale, solo contesto): CAGR/Sharpe
+      migliorano in modo monotono con crypto_base_weight (17,71%/1,14 a
+      0,50 fino a 19,68%/1,12 a 1,00) — ma **PBO-CSCV 65,7%** (sopra il
+      50%, instabile) gia' segnala il pattern "leva su cio' che e' andato
+      bene storicamente" temuto. **Walk-forward OOS (ere 2+3, 391
+      settimane, 2019-2026): Sharpe netto PEGGIORE (0,96 contro 0,98
+      baseline), overperformance +0,23pp/anno con CI 90% [-0,74;+1,40]
+      (include lo zero), solo 17% delle settimane migliori della
+      baseline** — il guadagno e' concentrato in poche settimane
+      eccezionali, non un vantaggio consistente. **La selezione
+      walk-forward stessa e' rivelatrice**: l'Era 2 sceglie 0,90
+      (aggressivo) ma l'Era 3 — la piu' recente e informata — torna a
+      0,50, cioe' l'attuale, nessun cambio. Sensibilita' aggiuntiva:
+      escludendo 2023-2026 (il bull run piu' recente), crypto_base_weight
+      1,00 batte la baseline in modo significativo pre-2023 (+2,20pp/anno,
+      CI 90% [+0,33;+4,70]) — ma questo non si traduce in un vantaggio
+      walk-forward-onesto sull'intero campione OOS, confermando che
+      l'effetto e' concentrato in episodi specifici, non strutturale.
+      **Verdetto: nessuna modifica in produzione.** Chiude l'intero asse
+      "dare piu' spazio a Crypto" (satellite, basket, class-weight
+      asimmetrico): nessuna forma sopravvive al walk-forward onesto — il
+      sizing uniforme 50%/22% attuale resta l'unico validato.
   - **Gap rimanenti**: #2 (campione indipendente, non fattibile senza
     dati point-in-time di un altro mercato).
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
