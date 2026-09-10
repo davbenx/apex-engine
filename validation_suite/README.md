@@ -49,6 +49,8 @@ validation_suite/
 │   ├── altcoin_vs_btc_backtest.py         <- altcoin vs BTC, SETTIMANALE/universo fisso ETH+SOL — superata dalla successiva
 │   ├── altcoin_vs_btc_daily_backtest.py   <- altcoin vs BTC, DAILY + universo point-in-time reale (5 candidati, PBO/DSR/bootstrap)
 │   ├── altcoin_vs_btc_weekly_pointintime_backtest.py  <- stesso universo point-in-time, ma WEEKLY — isola granularità da universo
+│   ├── altcoin_strategy_families_pointintime_test.py  <- momentum/mean-reversion/low-vol/trend-following/stop-loss, point-in-time, daily
+│   ├── altcoin_carry_funding_rate_test.py             <- carry (funding rate perpetual), campione corto (~1 anno, limite API reale)
 │   ├── sector_cap_grid_test.py            <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
 │   ├── apex_basket_size_grid_test.py      <- grid search su V2_EQUITY_TOP_N (10/12/15/18/20/25 titoli)
 │   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
@@ -56,7 +58,8 @@ validation_suite/
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
 │   ├── altcoin_daily_data/                <- cache prezzi daily (rigenerabile, gitignored)
-│   └── convex_grid_data/                  <- cache prezzi mensili proxy Convex (rigenerabile, gitignored)
+│   ├── convex_grid_data/                  <- cache prezzi mensili proxy Convex (rigenerabile, gitignored)
+│   └── carry_funding_data/                <- cache funding rate orari Kraken Futures (rigenerabile, gitignored, ~1 anno)
 └── pointintime_data/             <- DATASET POINT-IN-TIME REALI, tracciati in git (non rigenerabili banalmente)
     ├── sp500_pointintime_snapshots.json          <- composizione reale S&P 500 per anno, 2012-2026
     └── cmc_altcoin_pointintime_snapshots.json    <- classifica reale altcoin per market cap, 2019-2026
@@ -368,12 +371,70 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   resta concentrato in 2 episodi anche qui (CAGR netto 10,36%→0,65% (top-3)
   e 12,41%→1,03% (top-5) escludendoli) — la fragilità è quindi una
   proprietà del candidato, non della granularità o dell'universo.
-  **Verdetto finale del progetto su altseason/picking altcoin**: nessuna
-  granularità, nessun universo (fisso o point-in-time) produce un'
-  alternativa a BTC buy&hold che sia contemporaneamente migliore E meno
-  rischiosa in modo robusto — l'unico modo in cui un'alternativa "vince" è
-  scegliere a memoria un universo che include, col senno di poi, i
-  vincitori (ETH/SOL).
+  **Verdetto (aggiornato dalla voce successiva)**: nessuna granularità,
+  nessun universo (fisso o point-in-time) tra i candidati provati FINO A
+  QUESTO PUNTO produce un'alternativa a BTC buy&hold che sia
+  contemporaneamente migliore E meno rischiosa in modo robusto — l'unico
+  modo in cui un'alternativa "vince" è scegliere a memoria un universo che
+  include, col senno di poi, i vincitori (ETH/SOL).
+- **Famiglie di strategia sistematiche su altcoin (momentum, mean
+  reversion, low volatility, trend following, stop-loss)** — richiesto
+  esplicitamente dall'utente, `altcoin_strategy_families_pointintime_test.py`:
+  10 candidati (i 3 già noti + momentum/mean-reversion/low-vol/trend-following
+  nuovi + stop-loss -15% su momentum e mean-reversion), stesso universo
+  point-in-time daily, PBO-CSCV su tutti e 10 insieme (14,3%/11,4% —
+  basso, cioè un segnale di edge non spurio: BTC vince in modo consistente
+  tra i fold, non per coincidenza di un singolo periodo).
+  - **Momentum** (rotazione sul vincitore) e **mean reversion** (contrarian
+    sul più scaduto): entrambi PEGGIO di BTC e spesso CAGR netto negativo
+    (-23,9%/-33,8% momentum; -11,5%/-23,3% mean reversion) — l'alta
+    liquidazione totale su un asset volatile realizza l'intera plusvalenza
+    ad ogni cambio (stesso meccanismo già visto), e la mean reversion in
+    particolare sembra "comprare il coltello che cade" più che un vero
+    rimbalzo.
+  - **Low volatility** (possiede il singolo asset a vol più bassa nel
+    pool): il candidato più interessante dei nuovi — MaxDD netto
+    REALMENTE migliore di BTC (-65,8%/-64,4% contro -76,6%), ma CAGR netto
+    molto più basso (15,1%/13,1% contro 38,0%) — su Sharpe/Calmar BTC vince
+    comunque perché il suo rendimento compensa ampiamente il rischio
+    maggiore. Non è un'alternativa "migliore", ma è l'unico candidato con
+    un profilo di rischio genuinamente diverso (utile se l'obiettivo fosse
+    minimizzare il drawdown assoluto, non massimizzare Sharpe).
+  - **Trend following** (filtro di media mobile per asset, può andare CASH
+    se nessuno è in uptrend): vol realizzata inferiore a BTC in entrambe le
+    configurazioni (57-59% contro 59,5%) ma Sharpe comunque sotto
+    (0,47/0,40 contro 0,84) — il costo dei whipsaw all'entrata/uscita del
+    trend supera il beneficio di stare fuori mercato nei ribassi.
+  - **Stop-loss (-15%) su momentum e mean reversion**: effetto MISTO, non
+    un miglioramento pulito. Su momentum aiuta leggermente (Sharpe
+    0,08→0,13 e -0,01→0,05) ma resta negativo. Su mean reversion
+    PEGGIORA (0,29→0,22 e 0,18→0,03) — uno stop-loss su una strategia
+    contrarian rischia di uscire proprio nel momento di massimo
+    ipervenduto, tagliando fuori il rimbalzo che la strategia sta
+    scommettendo di catturare. Lo stop-loss non è quindi un miglioramento
+    universale: dipende dalla natura della strategia sottostante.
+  - **Carry** (funding rate dei perpetual, `altcoin_carry_funding_rate_test.py`):
+    **limite dichiarato** — lo storico reale disponibile via API pubblica
+    (Kraken Futures) copre SOLO ~1 anno (2025-09/2026-09), non i 6-7 anni
+    degli altri test; il verdetto è quindi molto meno solido. Su questo
+    campione corto: il funding annualizzato è piccolo per tutti gli asset
+    testati (BTC -3,3%, ETH -3,1%, SOL +0,2%, XRP -0,8%, ADA +2,0%, DOGE
+    -2,1% — "yield al long", negativo quando i long pagano di più di
+    quanto ricevono), e un tilt direzionale verso il funding più
+    favorevole ha fatto MOLTO peggio di BTC semplice (CAGR -65,7% contro
+    -29,1% su questo specifico anno, entrambi negativi perché il campione
+    cade in una fase di mercato debole) — il segnale di funding non ha
+    protetto né sovraperformato. Non testato: un vero carry market-neutral
+    (long spot + short perpetual, che richiederebbe modellare anche la
+    gamba short, non presente altrove in questo framework long-only).
+  - **Verdetto complessivo aggiornato**: su TUTTE le famiglie di
+    strategia sistematica provate finora (momentum, mean reversion, low
+    vol, trend following, regime/switch su BTC, inverse-vol, stop-loss,
+    carry) — nessuna batte BTC buy&hold in modo robusto su Sharpe/Calmar,
+    netto tasse e costi reali, su nessun universo (point-in-time incluso)
+    o granularità testata. Questo NON dimostra che sia impossibile in
+    assoluto, ma il campo di ricerca esplorato è ormai ampio e coerente
+    con un solo esito.
 
 ## Cosa NON è (ancora) qui, e perché
 

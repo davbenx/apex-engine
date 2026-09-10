@@ -111,6 +111,7 @@ def eligible_alts_asof(pointintime_top_alts: dict, day: pd.Timestamp) -> list:
 def build_candidate_weights(
     rets: pd.DataFrame, pointintime_top_alts: dict, mode: str,
     short_window: int = 20, long_window: int = 60, trail_window: int = 30, vol_window: int = 30,
+    trend_window: int = None,
 ) -> pd.DataFrame:
     """Ritorna un DataFrame di pesi TARGET (uno per colonna in rets.columns),
     un peso per ogni periodo, calcolato SENZA lookahead (decisione del
@@ -125,12 +126,16 @@ def build_candidate_weights(
     settimane, non lo stesso numero — vedi altcoin_vs_btc_weekly_pointintime_backtest.py)."""
     idx = rets.index
     cols = list(rets.columns)
+    trend_window = trend_window if trend_window is not None else long_window
     btc_trail_short = (1 + rets["BTC-USD"]).rolling(short_window).apply(lambda x: x.prod() - 1, raw=False)
     btc_trail_long = (1 + rets["BTC-USD"]).rolling(long_window).apply(lambda x: x.prod() - 1, raw=False)
     trail_alt = {c: (1 + rets[c]).rolling(trail_window).apply(lambda x: x.prod() - 1, raw=False) for c in cols}
     vol_alt = {c: rets[c].rolling(vol_window).std() for c in cols}
+    price_idx = {c: (1 + rets[c]).cumprod() for c in cols}
+    trend_ma = {c: price_idx[c].rolling(trend_window).mean() for c in cols}
     warmup_short = max(short_window, trail_window)
     warmup_long = max(long_window, trail_window)
+    warmup_trend = max(trend_window, trail_window)
 
     weights_rows = []
     locked = {c: 0.0 for c in cols}
@@ -183,6 +188,40 @@ def build_candidate_weights(
                     inv = {a: 1 / v for a, v in vols.items()}
                     total = sum(inv.values())
                     decision = ("WEIGHTED", tuple((a, inv[a] / total) for a in pool))
+
+        elif mode == "mean_reversion":
+            # Contrarian: scommette sul rimbalzo dell'asset PIU' scaduto (trailing return
+            # piu' basso) nel pool — ipotesi opposta al momentum, stessa finestra trail_window.
+            if i < warmup_short:
+                decision = ("BTC",)
+            else:
+                pool = ["BTC-USD"] + alts_today
+                worst = min(pool, key=lambda a: trail_alt[a].iloc[i] if not pd.isna(trail_alt[a].iloc[i]) else np.inf)
+                decision = ("SINGLE", worst)
+
+        elif mode == "low_vol_pick":
+            # Diverso da inverse_vol: qui si POSSIEDE SOLO il singolo asset a volatilita'
+            # realizzata piu' bassa nel pool, non un blend pesato su tutti.
+            if i < warmup_short:
+                decision = ("BTC",)
+            else:
+                pool = ["BTC-USD"] + alts_today
+                vols = {a: vol_alt[a].iloc[i] for a in pool}
+                valid = {a: v for a, v in vols.items() if not pd.isna(v) and v > 1e-9}
+                decision = ("SINGLE", min(valid, key=valid.get)) if valid else ("BTC",)
+
+        elif mode == "trend_following":
+            # Filtro di trend PER ASSET (prezzo sopra la propria media mobile a
+            # trend_window periodi, non un confronto relativo come momentum/regime):
+            # equal-weight su tutti gli asset del pool (BTC incluso) in uptrend; CASH
+            # (0% ovunque, non BTC di default) se nessuno lo e' — un vero stato "flat",
+            # diverso da tutte le altre modalita' che ripiegano sempre su BTC.
+            if i < warmup_trend:
+                decision = ("BTC",)
+            else:
+                pool = ["BTC-USD"] + alts_today
+                trending = [a for a in pool if not pd.isna(trend_ma[a].iloc[i]) and price_idx[a].iloc[i] > trend_ma[a].iloc[i]]
+                decision = ("ALTS_EQUAL", tuple(trending)) if trending else ("CASH",)
         else:
             raise ValueError(mode)
 
@@ -207,6 +246,52 @@ def build_candidate_weights(
         weights_rows.append(dict(locked))
 
     return pd.DataFrame(weights_rows, index=idx)
+
+
+def apply_stop_loss_overlay(
+    weights_df: pd.DataFrame, rets: pd.DataFrame, stop_threshold: float = -0.15, recovery_asset: str = "BTC-USD",
+) -> pd.DataFrame:
+    """Overlay applicabile a QUALSIASI weights_df prodotto da build_candidate_weights
+    (nessuna logica duplicata per-strategia) — stesso principio di
+    kelly_backtest.apply_per_sleeve_stop_loss, qui a livello di intera posizione
+    invece che per singola sleeve indipendente.
+
+    Timing (nessun lookahead): weights_df e' nella convenzione PRE-shift (riga t =
+    decisione presa a chiusura del periodo t, applicata al rendimento di t+1 da
+    backtest_strategy piu' a valle). Il rendimento REALIZZATO dalla decisione presa
+    alla riga t e' quindi rets.iloc[t+1] — questa funzione traccia il valore cumulato
+    (e il drawdown dal picco) di ciascun blocco contiguo di decisione costante usando
+    esattamente questa relazione. Se lo stop scatta osservando il rendimento
+    realizzato alla riga k, il recovery_asset sostituisce la decisione ORIGINALE
+    dalla riga k in poi (che dopo lo shift a valle diventera' effettivo dal
+    rendimento di k+1, mai prima) fino alla fine del blocco originale — da li' la
+    strategia base riprende con la sua prossima decisione, del tutto indipendente."""
+    idx = weights_df.index
+    n = len(idx)
+    out = weights_df.copy()
+
+    row = 0
+    while row < n:
+        block_end = row
+        while block_end + 1 < n and weights_df.iloc[block_end + 1].equals(weights_df.iloc[row]):
+            block_end += 1
+
+        peak, value = 1.0, 1.0
+        for realize_at in range(row + 1, block_end + 2):  # rendimento realizzato dalla decisione di riga row..block_end
+            if realize_at >= n:
+                break
+            decision_row = realize_at - 1
+            period_ret = float((weights_df.iloc[decision_row] * rets.iloc[realize_at]).sum())
+            value *= (1 + period_ret)
+            peak = max(peak, value)
+            if peak > 1e-12 and (value / peak - 1) < stop_threshold:
+                out.iloc[realize_at:block_end + 1] = 0.0
+                out.loc[idx[realize_at:block_end + 1], recovery_asset] = 1.0
+                break
+
+        row = block_end + 1
+
+    return out
 
 
 def backtest_strategy(weights_df: pd.DataFrame, returns_df: pd.DataFrame, label: str, verbose: bool = True, periods_per_year: int = PERIODS_PER_YEAR):
