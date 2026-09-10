@@ -62,6 +62,7 @@ validation_suite/
 │   ├── apex_bond_value_signal_test.py     <- value tilt su Bonds via percentile rendimento Treasury 10Y (nessun miglioramento robusto)
 │   ├── apex_beta_basket_selection_test.py <- basket azionario selezionato per basso BETA (Betting Against Beta) invece che bassa volatilita' (candidato piu' promettente della sessione, non ancora significativo)
 │   ├── apex_momentum_crash_stress_test.py <- diagnostico: le uscite dell'isteresi sono seguite da rimbalzi anomali? (risultato: no, isteresi robusta)
+│   ├── apex_theory1_theory5_second_round_test.py <- secondo giro di verifica per Teoria #1/#5: sensibilita' parametro, stacking, train/test split (nessuna delle due confermata in modo pulito)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -615,6 +616,62 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   esistente, non un'opportunita' di miglioramento; **Teoria #2 (carry
   cross-asset)** e **Teoria #4 (value bonds)** sono nella zona neutra,
   nessun danno ma nessuna evidenza sufficiente.
+- **Secondo giro di verifica — Teorie #1 e #5**, richiesto direttamente
+  dall'utente, `apex_theory1_theory5_second_round_test.py`. Un singolo
+  punto stimato non basta a livello istituzionale: tre controlli aggiuntivi
+  per ciascuna teoria — sensibilita' al parametro scelto arbitrariamente,
+  stacking (le due si combinano?), e uno split TRAIN/TEST temporale (prima
+  meta' vs seconda meta' del campione, mai casuale) per vedere se l'effetto
+  e' stabile nel tempo o guidato da un sotto-periodo.
+  - **Teoria #1 (segnale continuo, sensibilita' a STRENGTH_CAP)**: pattern
+    MONOTONO e pulito — cap=1.5 (+0,33pp, CI include zero), cap=2.0
+    originale (+0,57pp, CI include zero), cap=3.0 (**+1,04pp, CI 90%
+    [+0,17; +2,01] ESCLUDE lo zero**). L'effetto non e' un artefatto di un
+    singolo valore di parametro — cresce in modo coerente con la
+    "convinzione" massima permessa al segnale.
+  - **MA train/test rivela un problema serio**: lo Sharpe di TUTTE le
+    configurazioni crolla dalla prima meta' del campione (~1,4-1,5) alla
+    seconda (~0,5-0,7) — un effetto di regime generale, non specifico a
+    nessuna variante. Nella seconda meta' (il periodo piu' recente e
+    difficile), la Teoria #1 NON tiene: baseline 0,59, cap=2.0 0,56,
+    cap=3.0 0,58 — leggermente PEGGIORE del baseline, nonostante la
+    significativita' sull'intero campione. **L'apparente edge della
+    Teoria #1 e' concentrato nella prima meta' (regime piu' favorevole),
+    non un vantaggio che si replica in modo consistente nel tempo —
+    significativita' full-sample non equivale a robustezza out-of-sample.**
+  - **Teoria #5 (basket low-beta, sensibilita' al lookback)**: pattern
+    NON monotono — lookback=13 sett. quasi nullo (-0,01pp), lookback=26
+    (originale) il migliore (+1,07pp, CI include zero per un pelo),
+    lookback=52 leggermente negativo (-0,55pp). Il risultato e' piu'
+    sensibile alla scelta esatta del parametro di quanto sarebbe
+    rassicurante — non generalizza in modo pulito a finestre vicine.
+  - **MA il train/test e' piu' incoraggiante qui**: nella seconda meta'
+    (regime difficile), lookback=26 ottiene Sharpe 0,67 — MEGLIO del
+    baseline (0,59), a differenza della Teoria #1. Il meccanismo catturato
+    dalla selezione low-beta sembra continuare a funzionare anche nel
+    periodo piu' recente, anche se il valore esatto ottimale del lookback
+    resta incerto.
+  - **Stacking (Teoria1 cap=2.0 + Teoria5 lookback=26 insieme)**:
+    **+1,77pp/anno, CI 90% [+0,23; +3,21] ESCLUDE lo zero** — il risultato
+    piu' forte di tutta l'indagine. Ma l'effetto combinato (+1,77pp) e'
+    vicino alla SOMMA dei due effetti individuali (0,57+1,07=1,64pp),
+    quindi sembra additivo/indipendente, non sinergico — e il train/test
+    del combinato (Sharpe 0,67 nella seconda meta', identico a Teoria #5
+    da sola) suggerisce che il miglioramento nel periodo recente venga
+    soprattutto dalla componente basket low-beta, non dal segnale continuo.
+    PBO-CSCV su 8 configurazioni: 21,4% (basso, incoraggiante ma con solo
+    8 config potenza limitata).
+  - **Verdetto onesto**: **nessuna delle due teorie e' ora confermata in
+    modo pulito.** Teoria #1 ha un profilo di sensibilita' migliore
+    (monotono) ma FALLISCE il test out-of-sample piu' importante (train/
+    test). Teoria #5 ha un profilo di sensibilita' peggiore (non
+    monotono) ma REGGE meglio il test out-of-sample. Lo stacking e'
+    statisticamente il piu' forte ma e' trainato principalmente dalla
+    Teoria #5. **Se dovessi scegliere UNA sola direzione da approfondire
+    ulteriormente, sarebbe la Teoria #5 (basket low-beta) per la sua
+    tenuta out-of-sample — con un terzo giro dedicato a restringere la
+    finestra di lookback ottimale (es. 20/30/39 settimane) prima di
+    qualunque considerazione per produzione.**
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
