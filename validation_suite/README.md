@@ -54,6 +54,7 @@ validation_suite/
 │   ├── sector_cap_grid_test.py            <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
 │   ├── apex_basket_size_grid_test.py      <- grid search su V2_EQUITY_TOP_N (10/12/15/18/20/25 titoli)
 │   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
+│   ├── apex_profit_trailing_stop_test.py  <- trailing stop attivato dal profitto su BTC/Oro (risultato: peggiora, non adottare)
 │   ├── convex_weights_grid_test.py        <- grid search sui pesi target di Convex Stack (9 combinazioni vs 45/15/25/7.5/7.5)
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
@@ -275,6 +276,27 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   un punto Sharpe-ottimo nascosto — e nessun punto della griglia (tetto
   rimosso incluso) lo batte su Sharpe in modo che regga a un controllo di
   overfitting.
+- **Trailing stop attivato dal profitto su BTC e Oro** — domanda diretta
+  dell'utente ("una volta andati un po' in profitto, ha senso uno stop?"),
+  mai testato prima (`apex_profit_trailing_stop_test.py`, nuovo overlay
+  `apply_profit_activated_trailing_stop`: lo stop resta disarmato finché il
+  guadagno dall'ingresso non supera una soglia, poi traccia il picco e
+  esce se il prezzo scende oltre una distanza dal picco — verificato prima
+  su un caso sintetico per il timing corretto, nessun lookahead). Risultato
+  **negativo e netto, non marginale**: OGNI configurazione testata (arma
+  10-20% / trail 10-15%) PEGGIORA sensibilmente rispetto a nessuno stop —
+  Sharpe crolla da 1,08 a 0,61-0,75, Calmar da 0,76 a 0,34-0,53. PBO-CSCV
+  17,1% (basso: il risultato "nessuno stop vince" è consistente tra i
+  sotto-periodi, non un caso isolato). Causa identificata: le settimane
+  BTC attive crollano da 332 a 132-188 — lo stop scatta spesso e tiene BTC
+  FUORI dal portafoglio proprio durante le sue tipiche correzioni-dentro-
+  il-trend (BTC può correggere 15-20%+ senza che il rialzo di fondo sia
+  finito), tagliando fuori il resto del rally. L'Oro non ne risente quasi
+  (329-330 settimane attive contro 330 di base — troppo poco volatile
+  perché uno stop 10-15% scatti spesso). **Verdetto: no, non ha senso** —
+  almeno con questa formulazione (trailing dal picco post-attivazione);
+  il costo di uscire da un trend BTC ancora valido supera ampiamente il
+  beneficio di protezione dal drawdown.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
