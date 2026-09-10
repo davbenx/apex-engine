@@ -1453,18 +1453,21 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   Sharpe del baseline, non una bocciatura netta del meccanismo. **Nessuna
   modifica in produzione ora**, ma tra tutte le idee di questo giro e'
   quella con l'esito meno negativo — non chiusa, solo non abbastanza forte
-  da giustificare un cambio subito.
+  da giustificare un cambio subito. **AGGIORNAMENTO — capovolto
+  dall'approfondimento su storico piu' lungo qui sotto: il miglioramento
+  MaxDD era un artefatto della finestra 2014-2026, non regge su un
+  campione piu' lungo. Vedi voce successiva.**
 - **Verdetto complessivo del giro di approfondimento (idee #4-8 della
   lista, richiesto dall'utente)**: su 5 idee testate con piena disciplina
   walk-forward/PBO/bootstrap, 3 falsificate in modo netto (dual momentum,
   skip-month, entrambe con lo stesso pattern "leva su Crypto il vincitore
   storico" o danno diretto), 1 confermata come gia' ben calibrata (leva
-  Kelly), 2 con risultato sfumato ne' validato ne' falsificato (regime
-  filter curva dei rendimenti, diversificazione geografica) — quest'ultima
-  l'unica a mostrare un miglioramento REALE su una metrica (MaxDD),
-  seppure non abbastanza forte da giustificare l'adozione su questo
-  campione. Restano bloccate per dati insufficienti: campione BAB non-US
-  (idea #1) e quality overlay (idea #2) — da riprovare con altre fonti.
+  Kelly), 2 con risultato inizialmente sfumato (regime filter curva dei
+  rendimenti, diversificazione geografica) — **entrambe poi falsificate
+  con approfondimenti successivi** (lag sulla curva, storico piu' lungo
+  su IntlEquities — vedi voci sotto). Restano bloccate per dati
+  insufficienti: campione BAB non-US (idea #1) e quality overlay (idea
+  #2) — da riprovare con altre fonti.
 - **Kelly tra Apex e Convex (mix a 2 asset) — domanda diretta dell'utente
   dopo il controllo di calibrazione della leva di Convex**
   (`apex_convex_kelly_mix_test.py`): NON una riproposta di Kelly Stack
@@ -1539,6 +1542,31 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   modifica in produzione**: il filtro sulla curva dei rendimenti, in
   nessuna forma testata (contemporaneo o con lag), supera la produzione
   attuale (nessun filtro) in modo robusto — linea di indagine chiusa.
+- **Approfondimento diversificazione geografica su storico più lungo —
+  richiesto dall'utente dopo il risultato "meno negativo" del test
+  precedente (limitato al 2014-2026)** (`apex_international_equities_long_history_test.py`):
+  stessa tecnica di raccordo proxy gia' validata per l'estensione storica
+  dashboard (splice per rendimento) — Equities=VFINX→SPY, Bonds=VUSTX→IEF,
+  Gold=GC=F→GLD, IntlEquities=VGTSX (Vanguard Total International Stock
+  Index, fondo ampio non growth-tilted, dal 1996-05)→EFA dal 2001-08.
+  Campione quasi raddoppiato: 1355 settimane (2000-2026) contro 626
+  (2014-2026) del test precedente. **Il risultato SI RIBALTA — ora e' una
+  falsificazione netta, non piu' sfumata.** Sia Sharpe (0,92 contro 0,97)
+  sia MaxDD (-23,15% contro -20,96%) PEGGIORANO con IntlEquities — l'esatto
+  opposto del miglioramento MaxDD che sembrava il punto di forza del test
+  precedente. Isolando SOLO il periodo 2001-2014 (escluso dal test
+  precedente, teoricamente favorevole a un beneficio di diversificazione:
+  dot-com bust, crisi 2008) il risultato resta negativo su entrambe le
+  metriche (Sharpe 0,63 contro 0,72, MaxDD -23,15% contro -20,96%) — non
+  e' un effetto specifico del periodo recente che si stava correggendo,
+  il meccanismo non regge in nessuna sotto-finestra testata. CI 90%
+  [-1,82;+0,39] include lo zero, solo 44% delle settimane migliori,
+  PBO-CSCV 0,0% (baseline vince in modo stabile). **Correzione esplicita
+  della lettura precedente**: il miglioramento MaxDD osservato nel primo
+  test non era un beneficio strutturale di diversificazione geografica,
+  era un artefatto della finestra 2014-2026 usata li'. Nessuna modifica in
+  produzione — linea di indagine chiusa, a differenza della valutazione
+  precedente ("non chiuderei la porta").
 
 ## Cosa NON è (ancora) qui, e perché
 
