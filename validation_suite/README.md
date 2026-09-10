@@ -59,6 +59,9 @@ validation_suite/
 │   ├── apex_add_commodities_test.py       <- aggiungere Commodities (DBC beta vs PDBC carry) ad Apex: correlazione + backtest (nessun miglioramento robusto)
 │   ├── apex_diversifier_candidates_test.py <- Currency (UUP) / TIPS (TIP) / Managed Futures (DBMF) / Trend (KMLM) / Commodity Carry (UEQC) / FX Carry (DBV) come 5a classe (negativi significativi: TIP, DBV)
 │   ├── apex_risk_parity_signal_test.py    <- peso inversamente proporzionale alla volatilita' invece di nozionale uguale (risultato: peggiora nettamente, non adottare)
+│   ├── apex_bond_value_signal_test.py     <- value tilt su Bonds via percentile rendimento Treasury 10Y (nessun miglioramento robusto)
+│   ├── apex_beta_basket_selection_test.py <- basket azionario selezionato per basso BETA (Betting Against Beta) invece che bassa volatilita' (candidato piu' promettente della sessione, non ancora significativo)
+│   ├── apex_momentum_crash_stress_test.py <- diagnostico: le uscite dell'isteresi sono seguite da rimbalzi anomali? (risultato: no, isteresi robusta)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -559,6 +562,59 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     quello di Apex, dove Crypto ha sovraperformato risk-adjusted rispetto
     a Bonds/Gold), forzare un contributo al rischio uguale combatte contro
     l'edge esistente della strategia invece di proteggerlo.
+- **Teoria #4: VALUE su Bonds** (Asness-Moskowitz-Pedersen 2013, "Value
+  and Momentum Everywhere"), `apex_bond_value_signal_test.py`. Limite di
+  dati dichiarato: un value equity vero richiederebbe CAPE/P-E storico non
+  disponibile in modo pulito da Yahoo Finance — testata SOLO la gamba
+  Bonds, con un proxy di value reale e nativo nei dati: il rendimento del
+  Treasury 10Y (^TNX) — percentile trailing a 3 anni del rendimento attuale
+  scala il peso Bonds da 0.5x (rendimento basso, bond costoso) a 1.5x
+  (rendimento alto, bond a sconto). Risultato: overperformance +0,34pp/anno,
+  CI 90% [-0,29; +0,80] — include lo zero ma spostata verso il positivo,
+  il campione utile e' piu' corto (470 settimane, vincolato dallo storico
+  ^TNX+warmup). Nessun miglioramento robusto, ma nessun segnale negativo.
+- **Teoria #5: QUALITY/Betting-Against-Beta sul basket azionario**
+  (Frazzini-Pedersen 2014; Asness-Frazzini-Pedersen 2019),
+  `apex_beta_basket_selection_test.py`. Limite di dati dichiarato: una vera
+  Quality richiede fondamentali (ROE, leva) non disponibili da Yahoo
+  Finance — testato il pezzo effettivamente disponibile coi soli dati di
+  prezzo: selezione per BETA (regressione contro SPY, 26 settimane) invece
+  di volatilita' realizzata assoluta, stesso buffer di rank e vincolo
+  settoriale del basket di produzione. Risultato: CAGR 17,71% (contro
+  16,50%), Sharpe 1,14 (contro 1,08), MaxDD sostanzialmente invariato.
+  Confronto accoppiato: **+1,07pp/anno, CI 90% [-0,10; +2,09]** — include
+  lo zero per il margine PIU' STRETTO di TUTTA questa indagine (limite
+  inferiore -0,10, il piu' vicino a zero tra ogni candidato testato in
+  questa intera sessione, incluso il segnale continuo della Teoria #1).
+  **Il candidato singolo piu' promettente trovato finora** — non ancora
+  sufficiente per produzione, ma il primo a meritare un secondo giro di
+  verifica dedicato (campione piu' lungo, o combinato con la Teoria #1).
+- **Teoria #6: stress test "Momentum Crash"** (Daniel & Moskowitz 2016),
+  `apex_momentum_crash_stress_test.py`. Non un confronto baseline-vs-
+  candidato come gli altri — un DIAGNOSTICO sul segnale di produzione
+  INVARIATO: per ciascuna classe, isola tutte le uscite (attivo->Cash) e
+  misura il rendimento dell'asset nelle K settimane successive contro il
+  rendimento K-settimane medio incondizionato sull'intero campione. Se le
+  uscite sono seguite sistematicamente da rimbalzi sopra media, l'isteresi
+  e' vulnerabile al pattern "esce prima del rimbalzo". **Risultato:
+  NON CONFERMATO — anzi l'opposto.** Per OGNI classe e OGNI finestra (K=4/
+  8/12 settimane) il rendimento post-uscita e' PIU' BASSO della media
+  incondizionata, mai piu' alto. Particolarmente netto per Crypto (-4,64pp/
+  -8,65pp/-4,37pp alle tre finestre) — le uscite Crypto sono seguite da
+  prezzi sistematicamente PIU' deboli della norma, non da rimbalzi persi.
+  **Verdetto: l'isteresi attuale non mostra vulnerabilita' al pattern
+  momentum-crash su questo campione — un risultato rassicurante sulla
+  robustezza strutturale del segnale, non solo un'assenza di miglioramento.**
+- **Sintesi delle 6 teorie accademiche sondate**: nessuna giustifica ancora
+  un cambio di produzione da sola, ma il quadro e' informativo — **Teoria
+  #5 (basket low-beta)** e **Teoria #1 (segnale continuo)** sono i due
+  candidati piu' vicini alla significativita' statistica e meritano
+  approfondimento dedicato; **Teoria #3 (risk parity)** e' chiaramente
+  falsificata (non riprovare senza un ripensamento del design); **Teoria
+  #6 (momentum crash)** e' un risultato rassicurante sulla robustezza
+  esistente, non un'opportunita' di miglioramento; **Teoria #2 (carry
+  cross-asset)** e **Teoria #4 (value bonds)** sono nella zona neutra,
+  nessun danno ma nessuna evidenza sufficiente.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
