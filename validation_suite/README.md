@@ -55,6 +55,7 @@ validation_suite/
 │   ├── apex_basket_size_grid_test.py      <- grid search su V2_EQUITY_TOP_N (10/12/15/18/20/25 titoli)
 │   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
 │   ├── apex_profit_trailing_stop_test.py  <- trailing stop attivato dal profitto su BTC/Oro (risultato: peggiora, non adottare)
+│   ├── apex_crypto_execution_venue_test.py <- perp vs spot vs ETP (proxy IBIT) per la gamba Crypto: costi reali + effetto ore/giorni di mercato chiuso
 │   ├── convex_weights_grid_test.py        <- grid search sui pesi target di Convex Stack (9 combinazioni vs 45/15/25/7.5/7.5)
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
@@ -297,6 +298,48 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   almeno con questa formulazione (trailing dal picco post-attivazione);
   il costo di uscire da un trend BTC ancora valido supera ampiamente il
   beneficio di protezione dal drawdown.
+- **Veicolo di esecuzione della gamba Crypto: perp vs spot vs ETP (WBTC)**
+  — due domande dirette dell'utente ("perp è la scelta peggiore secondo le
+  mie analisi, WBTC/ETP sarebbe la migliore per costi, ma non tratta 24/7:
+  rischio di rompere la strategia?"), `apex_crypto_execution_venue_test.py`.
+  Segnale invariato (BTC-USD continuo, come in produzione) in tutti e tre
+  gli scenari — cambia solo come si realizza il rendimento della classe
+  Crypto una volta che il segnale dice di essere dentro. WBTC-ETFP.MI su
+  Yahoo non ha storico utilizzabile (un solo punto dati) — usato IBIT
+  (iShares Bitcoin Trust) come proxy strutturale onesto (stessa meccanica:
+  NAV tracking, arbitraggio creation/redemption, chiuso weekend/festivi),
+  storico reale dal 2024-01 (~2,7 anni).
+  - **Sulle ore/giorni di mercato chiuso**: MaxDD IDENTICO tra perp/spot/ETP
+    (-10,74% nella finestra comune) — il wrapper ETP non introduce drawdown
+    aggiuntivo dal fatto di non tradare 24/7 (conferma, dentro il backtest
+    vero di Apex, quanto già trovato in astratto con IBIT vs BTC: il
+    wrapper insegue il prezzo senza deriva sistematica). La differenza di
+    CAGR ETP vs perp è -0,96pp (14,39% contro 15,35%) sulla finestra IBIT —
+    piccola e dentro il rumore campionario (CI 90% Sharpe ETP [0,29; 2,19]
+    contro perp [0,35; 2,27], ampiamente sovrapposte su un campione corto).
+    **Risposta: no, non rompe la strategia** — un costo reale ma modesto
+    (~1pp/anno, in gran parte il TER 0,15%), non distinguibile dal rumore
+    su questo campione.
+  - **Sui costi, risultato che CONTRADDICE l'ipotesi di partenza
+    dell'utente**: il perpetual su Kraken NON è la scelta peggiore in
+    questo backtest — è la MIGLIORE o alla pari. Sample completo (586
+    settimane): perp CAGR netto 17,02%/Sharpe 1,11 > spot 26% 16,57%/1,09 >
+    spot 33% 13,83%/0,96. La fee taker perp (0,05%) è molto più bassa di
+    quella spot (0,26%), e il funding REALE osservato su Kraken Futures
+    (~1 anno di dati, non stimato) è stato leggermente NEGATIVO
+    (-3,30%/anno, cioè i long sono stati PAGATI, non hanno pagato) in
+    questo periodo — un vantaggio aggiuntivo per il perp, non un costo.
+    **Limite dichiarato**: il funding è stimato su un solo anno di storico
+    reale disponibile (limite dell'API Kraken, vedi anche
+    `altcoin_carry_funding_rate_test.py`) — se in periodi diversi il
+    funding fosse stato tipicamente positivo (i long pagano, comune nei
+    bull market con eccesso di posizioni long), il vantaggio del perp
+    sarebbe minore o potrebbe invertirsi. La componente fee (0,05% vs
+    0,26%) resta invece un vantaggio strutturale del perp indipendente dal
+    regime di funding. Lo spot al 33% (nota dell'utente, non l'aliquota
+    26% "redditi diversi" standard già usata ovunque in questo progetto
+    per crypto — mostrato come scenario alternativo, non validato in modo
+    indipendente) è in ogni caso il peggiore delle tre vie.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
