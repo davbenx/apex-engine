@@ -69,6 +69,7 @@ validation_suite/
 │   ├── apex_theory5_band_ensemble_test.py <- quinto giro Teoria #5: ensemble di 6 basket indipendenti scoped sulla banda 22-33 sett. (risultato: effetto reale e consistente ma al limite della risoluzione statistica di ~11 anni di dati, valore marginale decrescente per ulteriori giri sullo stesso parametro)
 │   ├── apex_theory5_walkforward_selection_test.py <- checklist produzione Teoria #5, gap #1: selezione del lookback walk-forward (mai guardando dati futuri) — banda confermata stabile, ma la selezione adattiva non batte un lookback fisso
 │   ├── apex_theory5_composition_turnover_test.py <- checklist produzione Teoria #5, gap #3/#4: turnover e composizione settoriale quasi identici tra low-vol e low-beta, ma sovrapposizione titoli effettivi solo 6.9%
+│   ├── apex_theory5_crash_and_signal_test.py <- checklist produzione Teoria #5, gap #5/#6: low-beta meno correlato a SPY (-0.067) e protegge nei bear market lenti (2022, +6.46pp) ma non nei panici acuti (COVID 2020, leggermente peggio)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -818,10 +819,33 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     titoli COMPLETAMENTE DIVERSI. L'edge, se reale, viene da una
     meccanica di selezione sostanzialmente diversa, non da un
     aggiustamento marginale dello stesso basket.
+  - **Gap #5/#6 — CHIUSI, con una scoperta sostanziale**,
+    `apex_theory5_crash_and_signal_test.py`.
+    - **Gap #6 (interazione col segnale)**: il basket low-beta e' REALMENTE
+      meno correlato a SPY del basket low-vol (0,708 contro 0,775,
+      differenza -0,067) — un disallineamento reale col segnale di timing
+      (che usa SPY), ma modesto, non drammatico (0,708 resta comunque
+      un'alta correlazione).
+    - **Gap #5 (crash specifici) — la scoperta piu' importante di questo
+      giro**: il comportamento e' OPPOSTO tra un panico rapido e un bear
+      market lento. Nel crollo COVID 2020 (7 settimane, panico acuto),
+      low-beta e' STATO LEGGERMENTE PEGGIORE di low-vol (-30,16% contro
+      -29,21%, entrambi peggio di SPY -23,27% — in un panico le
+      correlazioni vanno tutte a 1, il beta storico non protegge). Nel
+      bear market 2022 (41 settimane, ribasso lento da rialzo tassi),
+      low-beta ha fatto MOLTO MEGLIO (-7,10% contro -13,56% di low-vol,
+      entrambi molto meglio di SPY -23,83%) — **+6,46pp di differenza**.
+      **Implicazione**: l'edge del basket low-beta NON e' "protezione dai
+      crash" in generale — e' specificamente protezione nei ribassi
+      lenti e strutturali (come 2022), non nei panici improvvisi (come
+      COVID). Questo spiega in modo coerente perche' la Teoria #5 ha
+      sempre retto meglio del baseline nella seconda meta' del campione
+      nei test precedenti (train/test, walk-forward) — quella finestra e'
+      dominata dal 2022, esattamente il tipo di regime in cui low-beta
+      funziona meglio.
   - **Gap rimanenti**: #2 (campione indipendente, non fattibile senza
-    dati point-in-time di un altro mercato), #5 (comportamento nei crash
-    specifici), #6 (interazione col segnale di timing), #7 (criterio di
-    uscita — decisione di policy, non un test).
+    dati point-in-time di un altro mercato), #7 (criterio di uscita —
+    decisione di policy per l'utente, non un test empirico).
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
