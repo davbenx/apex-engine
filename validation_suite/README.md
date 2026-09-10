@@ -1409,6 +1409,29 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   questa forma contemporanea, un filtro con lag potrebbe comportarsi
   diversamente ma introdurrebbe un altro parametro da walk-forward-are,
   non testato qui.
+- **Ricalibrazione Kelly della leva di Convex Stack — idea #8 della lista
+  di approfondimento**: domanda di calibrazione (la leva 1,225x embedded
+  di NTSG e' vicina all'ottimo?), non una riproposta di Kelly Stack come
+  pilastro (gia' esplorato e scartato) — calcolo diretto, nessun backtest
+  necessario. Sulla serie reale di produzione (312 mesi, 2000-2026):
+  Sharpe 0,879, volatilita' annualizzata 11,36%. **Kelly ottimale
+  (f*=μ/σ², log-utility): 7,74x — la leva attuale rappresenta solo il
+  15,8% del Kelly pieno.** Non e' un errore di calibrazione: il Kelly
+  pieno assume rendimenti log-normali IID senza errore di stima su μ (in
+  pratica lo Sharpe stimato su un campione storico ha un errore standard
+  enorme rispetto a quanto servirebbe per fidarsi di f* alla lettera),
+  ignora code grasse/vol clustering, e massimizza la crescita geometrica
+  assumendo infinite scommesse ripetibili — un singolo percorso storico
+  reale non ha questa proprieta' (un episodio di leva estrema puo'
+  azzerare il capitale, dopo di che "il lungo periodo" non esiste piu').
+  I praticanti professionali usano tipicamente il 5-25% del Kelly pieno
+  proprio per questi motivi — il 15,8% attuale cade esattamente in
+  questo intervallo standard. **Nessuna modifica**: la leva 1,225x e'
+  coerente con la pratica prudente standard ed e' strutturalmente sicura
+  (leva istituzionale via NTSG, non a margine personale — nessun rischio
+  di richiamo margine); muoversi verso il Kelly implicito comprometterebbe
+  deliberatamente quella garanzia per un guadagno teorico che il calcolo
+  stesso avverte di non prendere alla lettera.
 
 ## Cosa NON è (ancora) qui, e perché
 
