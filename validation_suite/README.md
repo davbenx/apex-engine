@@ -1610,6 +1610,46 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     stress su finestra mu/Sigma, robustezza della frazione) prima di
     scartarlo o adottarlo — trattato come "promettente ma non ancora
     validato", non come chiuso.
+- **Secondo giro di verifica — Kelly sulle classi macro di Apex**
+  (`apex_kelly_class_weight_second_round_test.py`): stress-test su griglia
+  finestra mu/Sigma [104, 156, 208] settimane (2/3/4 anni) x frazione Kelly
+  [0,0; 0,25; 0,5; 1,0] (12 combinazioni), walk-forward esteso da 3 a 5 ere
+  (335 settimane OOS contro 314).
+  - **Il beneficio NON e' uniforme su tutte le finestre**: a 104 settimane
+    (2 anni) Kelly non batte il controllo (Sharpe 0,91-0,95 contro
+    baseline 0,95, MaxDD invariato -21,3% contro -21,53%) — nessun
+    beneficio reale. A 156 e 208 settimane il beneficio del primo giro si
+    conferma pienamente (Sharpe 1,02-1,15, MaxDD -13,6/15,1% contro
+    -21,53%). Spiegazione plausibile e coerente con la letteratura: a
+    finestra corta l'errore di stima di mu (il termine a cui Kelly e' piu'
+    sensibile) e' troppo alto — non e' un'obiezione ad hoc, e' un
+    limite noto del criterio di Kelly con campioni piccoli. Implicazione
+    pratica: la finestra di stima non e' arbitraria, va fissata a priori
+    (156 o 208 settimane), non scelta a posteriori sul risultato migliore.
+  - **Walk-forward su tutte le 12 combinazioni congiuntamente**: seleziona
+    quasi sempre finestra=208/frac=0,25 (3 ere su 4), mai frac=0,0. OOS (5
+    ere, 335 settimane): Sharpe 1,14 contro baseline 1,00, MaxDD -15,10%
+    contro -21,53%, CAGR 16,36% contro 13,95% — risultato piu' forte del
+    primo giro (che era 1,05 contro 0,98).
+  - **PBO-CSCV sceso da 48,6% (rumore) a 7,1%** sulle 12 combinazioni —
+    cambio di categoria statistica, non piu' indistinguibile dal rumore.
+  - **Ma il CI 90% sulla differenza accoppiata OOS include ancora lo
+    zero**: [-4,10;+7,84] pp/anno (overperformance media +2,12pp/anno),
+    settimane migliori 50% (166/335) — a livello settimanale il
+    vantaggio non e' visibile testa a testa, emerge solo nella coda
+    sinistra (drawdown) accumulata nel tempo.
+  - **Verdetto aggiornato: sostanzialmente rafforzato, ancora non provato
+    in modo definitivo.** Il PBO basso e la coerenza su 2 finestre su 3
+    (con una spiegazione di principio, non post-hoc, per la terza)
+    spostano la confidenza da "al livello del rumore" a "moderata,
+    meccanismo credibile" — ma il CI largo sulla differenza pareggiata
+    impedisce ancora di dichiararlo statisticamente provato. Raccomandazione:
+    se si decide di adottarlo in produzione, fissare la finestra a 208
+    settimane (la piu' robusta nei due test) e una frazione moderata
+    (0,25-0,5) come scelta pre-registrata, non ottimizzata sul risultato;
+    in alternativa, continuare a monitorarlo come promettente senza
+    ancora implementarlo. Nessuna modifica in produzione applicata da
+    questo secondo giro — decisione lasciata all'utente.
 
 ## Cosa NON è (ancora) qui, e perché
 
