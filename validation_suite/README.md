@@ -1567,6 +1567,49 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   era un artefatto della finestra 2014-2026 usata li'. Nessuna modifica in
   produzione — linea di indagine chiusa, a differenza della valutazione
   precedente ("non chiuderei la porta").
+- **Kelly sulle classi macro di Apex — testato nonostante la bassa
+  priorita' dichiarata e la prior fortemente negativa (stesso meccanismo
+  di risk parity/class-weight beta-pesato, entrambi gia' falliti)**
+  (`apex_kelly_class_weight_test.py`). **La prior si e' rivelata
+  sbagliata — correzione esplicita.** Risk parity e class-weight
+  beta-pesato pesano PURAMENTE inversamente al rischio (1/vol, 1/beta):
+  qualunque asset con rischio vicino a zero ottiene un peso enorme a
+  prescindere dal rendimento atteso — per questo Bonds dominava in
+  entrambi. Kelly (f*=Sigma^-1 mu, effettivamente mu/sigma^2 su una
+  Sigma quasi diagonale) pesa per RENDIMENTO diviso rischio al quadrato —
+  un asset a basso rischio ottiene un peso grande solo se il rendimento
+  atteso lo giustifica. Qui non ha sovrappesato Bonds in modo patologico:
+  ha invece RIDOTTO Crypto (peso medio 12,4%→~5%, la sua volatilita'
+  enorme pesa piu' del suo mu elevato), Bonds sostanzialmente stabile —
+  meccanismo diverso, non lo stesso fallimento.
+  - **Design**: mu/Sigma annualizzati stimati su finestra trailing di 156
+    settimane (3 anni, stessa convenzione Kelly Stack/bond-value theory di
+    questa sessione), f* clippato a >=0 (long-only), frazione di Kelly
+    testata su griglia [0,0=controllo, 0,25, 0,5, 1,0] — sostituisce il
+    50% nominale SOLO per le classi gia' attive per trend (invariato).
+  - **Risultato full-sample**: tutte le frazioni non-zero migliorano
+    Sharpe (1,09-1,10 contro 1,01) E dimezzano quasi il MaxDD (-13,6/13,8%
+    contro -21,53%) mantenendo CAGR sostanzialmente invariato o
+    leggermente migliore (14,59% a frac=1,0 contro 14,55%).
+  - **Walk-forward — per la prima volta in questa sessione su questo
+    asse, il meccanismo si discosta davvero dal controllo**: Era 2
+    seleziona frac=0,50, Era 3 frac=1,00 (mai 0,0) — a differenza di
+    OGNI altro test di class-weighting/asymmetric-weight/dual-momentum di
+    questa sessione, dove il walk-forward tornava sempre al controllo.
+    OOS (314 settimane): Sharpe 1,05 contro 0,98, MaxDD quasi dimezzato
+    (-13,77% contro -21,53%), CAGR sostanzialmente invariato.
+  - **Ma non ancora statisticamente provato**: CI 90% sulla differenza
+    [-6,97;+7,26] — enorme, include ampiamente lo zero; PBO-CSCV 48,6%,
+    praticamente al livello del rumore. Il miglioramento di MaxDD e'
+    economicamente grande e il meccanismo ha una spiegazione sensata, ma
+    il campione OOS (314 settimane) non basta per escludere la fortuna.
+  - **Verdetto: NON falsificato — il risultato piu' promettente di questo
+    intero giro di approfondimento Kelly, capovolge la prior iniziale.**
+    Non pronto per produzione (CI troppo ampia), ma merita un secondo
+    giro di verifica indipendente (campione piu' lungo se possibile,
+    stress su finestra mu/Sigma, robustezza della frazione) prima di
+    scartarlo o adottarlo — trattato come "promettente ma non ancora
+    validato", non come chiuso.
 
 ## Cosa NON è (ancora) qui, e perché
 
