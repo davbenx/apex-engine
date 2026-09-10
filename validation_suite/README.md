@@ -1364,6 +1364,26 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   delle settimane migliori — letteralmente la stessa serie). PBO-CSCV
   2,9%, coerente: alpha=0,0 vince in modo robusto su ogni split. Nessuna
   modifica in produzione.
+- **Skip-month sul segnale di trend (Jegadeesh-Titman 1993, "12-1
+  momentum") — idea #5 della lista di approfondimento**
+  (`apex_skip_month_signal_test.py`): la distanza dalla MA lunga e il
+  confronto con la MA corta usano il prezzo di `skip_weeks` settimane fa
+  invece dell'ultima disponibile, escludendo il mese piu' recente dalla
+  formazione del segnale — adattamento dichiarato non letterale (12-1 e'
+  nato per il ranking cross-sectional di momentum, non per un incrocio di
+  medie mobili su un singolo asset). Ipotesi nulla dichiarata in anticipo:
+  "nessun effetto" (la banda di isteresi adattiva gia' assorbe parte del
+  rumore). **Falsificato in modo piu' netto del previsto — non solo
+  nessun effetto, un danno diretto e monotono**: CAGR 20,08%/Sharpe 1,32
+  (skip=0, attuale) → 14,49%/0,96 (skip=4) → 8,35%/0,69 (skip=8).
+  Ritardare il prezzo di riferimento di un mese significa entrare piu'
+  tardi nei trend e assorbire piu' reversal — l'opposto di cosa fa il
+  skip-month accademico per il momentum cross-sectional (li' evita di
+  pesare titoli per un mese-fluke; qui ritarda la reazione al trend
+  dell'asset stesso, meccanismo diverso, l'analogia non regge). Walk-
+  forward sceglie sempre skip_weeks=0 in ogni era, risultato OOS identico
+  al baseline. **PBO-CSCV 0,0%** — il segnale piu' forte di stabilita' del
+  ranking visto in questa sessione. Nessuna modifica in produzione.
 
 ## Cosa NON è (ancora) qui, e perché
 
