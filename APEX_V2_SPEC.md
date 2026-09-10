@@ -1777,7 +1777,102 @@ di ranking.
 **Non ancora testato** (gap dichiarato, vedi `validation_suite/README.md`):
 un campione azionario indipendente (es. un altro mercato) per confermare
 che l'effetto non sia specifico allo storico S&P 500 2015-2026 usato per
-tutta questa indagine.
+tutta questa indagine. **Aggiornamento**: testato con un campione
+indipendente non-US (15 ETF Paese sviluppati, §8.30 non applicabile
+direttamente — vedi `validation_suite/README.md`, "Campione indipendente
+non-US per BAB") — a livello di PAESE l'anomalia non si replica (anzi si
+inverte), ma questo non invalida il risultato qui sopra: il meccanismo
+BAB è specificamente sul rischio idiosincratico di singoli TITOLI
+(investitori vincolati dalla leva), non un principio universale
+applicabile a qualunque unità di analisi. Nessuna modifica a questa
+sezione.
+
+### 8.30 Pesatura Kelly frazionaria delle classi macro attive — adottato in produzione dopo 2 giri di verifica + valutazione della configurazione fissa
+
+**Decisione esplicita dell'utente**, dopo un'indagine dedicata in
+`validation_suite/` (dettaglio completo in `validation_suite/README.md`,
+sezioni "Kelly sulle classi macro di Apex" e successive): il peso
+nominale di ciascuna classe macro GIA' attiva per trend (§2-3) non è più
+`base_weight_per_class` fisso e UGUALE per tutte (50%, §8.25), ma
+`max(0, f*_classe) * kelly_fraction`, con `f* = Σ⁻¹ μ` (Kelly
+frazionario, problema di Merton a utilità logaritmica) stimato su
+rendimenti settimanali trailing delle 4 classi.
+
+**Perché non è la stessa cosa di risk-parity/beta-weighting (entrambi già
+falliti in questa indagine)**: risk-parity e class-weight beta-pesato
+pesano PURAMENTE per l'inverso del rischio (1/vol, 1/beta) — qualunque
+asset a rischio quasi nullo (Bonds) ottiene un peso enorme a prescindere
+dal rendimento atteso. Kelly pesa per RENDIMENTO diviso RISCHIO AL
+QUADRATO (`μ/σ²` nel caso diagonale) — un asset a basso rischio ottiene
+un peso grande solo se il rendimento atteso lo giustifica. Empiricamente
+non sovrappesa Bonds in modo patologico: riduce invece il peso medio di
+Crypto (la sua volatilità enorme pesa più del suo μ elevato), un
+meccanismo diverso, non lo stesso fallimento con un altro nome.
+
+**Percorso di verifica (2 giri + valutazione diretta della configurazione
+fissa, non un singolo backtest):**
+1. Primo giro (`apex_kelly_class_weight_test.py`): finestra μ/Σ fissa a
+   156 settimane, griglia di frazione [0, 0.25, 0.5, 1.0]. Full-sample:
+   Sharpe 1,09-1,10 contro 1,01, MaxDD quasi dimezzato (-13,6/13,8%
+   contro -21,53%). Walk-forward (3 ere): per la prima volta in questa
+   indagine il meccanismo si discosta davvero dal controllo (mai
+   frazione=0 selezionata dopo l'era 1). OOS Sharpe 1,05 contro 0,98,
+   MaxDD -13,77% contro -21,53%. **Ma** CI 90% sulla differenza
+   [-6,97;+7,26] enorme, PBO-CSCV 48,6% — al livello del rumore.
+   Verdetto: non falsificato, non ancora provato.
+2. Secondo giro (`apex_kelly_class_weight_second_round_test.py`): stress
+   su griglia finestra [104,156,208] settimane × frazione, walk-forward
+   esteso a 5 ere. Il beneficio NON è uniforme: a 104 settimane (2 anni)
+   sparisce del tutto (errore di stima su μ troppo alto — limite noto di
+   Kelly con campioni corti, non un artefatto ad hoc); a 156 e 208
+   settimane si conferma pienamente. PBO-CSCV crolla da 48,6% a **7,1%**
+   sulle 12 combinazioni — cambio di categoria statistica. OOS (5 ere,
+   335 settimane): Sharpe 1,14 contro 1,00, MaxDD -15,10% contro
+   -21,53%. CI 90% [-4,10;+7,84] include ancora lo zero.
+3. Valutazione diretta della configurazione FISSA pre-registrata
+   (`apex_kelly_class_weight_preregistered_eval.py`, finestra=208,
+   frazione=0,25 — scelte PRIMA di guardare questo risultato specifico,
+   non ottimizzate a posteriori): isolata la singola regola fissa (non il
+   walk-forward a combinazione variabile) e valutata SOLO sul periodo
+   mai usato per sceglierla (335 settimane, 2020-04-17 -> 2026-09-11).
+   Risultato leggermente più forte del walk-forward: OOS Sharpe **1,19**
+   contro 1,00, MaxDD **-15,10%** contro -21,53%, Calmar 1,11 contro
+   0,65. CI 90% sulla differenza pareggiata [-3,60;+8,18]pp/anno include
+   ancora lo zero, settimane migliori solo 49% — il beneficio viene dalla
+   riduzione del drawdown nelle code, non da un vantaggio settimana per
+   settimana.
+
+**Verdetto onesto, non trionfalistico**: a differenza di §8.29 (dove
+nessuna singola configurazione ha mai invertito segno su 5+ disegni), qui
+il CI sulla differenza pareggiata **non esclude mai lo zero** in nessuno
+dei 3 controlli. Il PBO basso (7,1%) e il meccanismo economicamente
+sensato (non un pattern casuale nei dati) spostano la confidenza da "al
+livello del rumore" a "moderata" — ma questo resta un cambio adottato
+come **scommessa a favore di probabilità con margine di sicurezza**
+(Apex resta comunque long-only, mai a leva — il downside è contenuto
+anche se l'edge si rivelasse rumore), non un edge statisticamente provato
+in senso stretto.
+
+**Implementazione**: `apex_v2_engine._kelly_class_weights` (nuovo helper,
+f*=Σ⁻¹μ su rendimenti trailing delle 4 classi) e due nuovi parametri di
+`compute_v2_macro_signal` — `kelly_fraction` (default
+`V2_KELLY_FRACTION=0.25`) e `kelly_window` (default
+`V2_KELLY_MU_SIGMA_WINDOW=208` settimane). **Fallback silenzioso e
+completo** al peso nominale fisso (`base_weight_per_class`, comportamento
+pre-Kelly, invariato) se `kelly_fraction=0.0`, o se lo storico disponibile
+è insufficiente per una qualunque classe (es. Crypto nei primi ~4 anni
+dopo il lancio), o se Σ è singolare — mai un risultato instabile o
+parziale. `backend.py` estende il fetch storico dei 4 ticker macro (+
+EUR/USD) da 2 a 5 anni (`period='5y'`, margine oltre le 208 settimane
+richieste) per supportare la finestra di stima; nessun'altra chiamata di
+fetch tocca questo cambio (basket azionario/sector-map restano a 2 anni,
+non serve loro più storico).
+
+**Non ancora testato** (gap dichiarato): un campione con vera
+significatività statistica richiederebbe più decenni di storico
+indipendente per le 4 classi (in particolare Crypto, che limita
+strutturalmente ogni finestra comune a dal 2014 in poi) — non disponibile
+oggi. Da monitorare in produzione, non trattare come chiuso.
 
 ---
 

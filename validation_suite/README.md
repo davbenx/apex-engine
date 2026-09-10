@@ -1665,6 +1665,17 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     beneficio viene dalla protezione nei drawdown). Conferma la
     raccomandazione: procedere con cautela e consapevolezza del limite
     statistico, non come edge provato.
+  - **IMPLEMENTATO IN PRODUZIONE** (decisione esplicita dell'utente dopo
+    i 3 controlli sopra): `apex_v2_engine.compute_v2_macro_signal` ha
+    ora `kelly_fraction`/`kelly_window` (default 0,25/208 settimane,
+    fallback silenzioso e completo al peso fisso se lo storico e'
+    insufficiente o Sigma e' singolare), `backend.py` estende il fetch
+    storico dei 4 ticker macro da 2 a 5 anni per supportarla. Dettaglio
+    completo, rationale e limiti dichiarati in `APEX_V2_SPEC.md` §8.30.
+    **Non ancora rigenerate** le cifre di riferimento hardcoded di
+    `portfolio_manager.get_apex_metrics()` (richiede ri-eseguire
+    `apex_dashboard_stat_regeneration.py` sull'intero storico esteso
+    1987-2026 con la nuova logica — compito separato, non fatto qui).
 - **Campione indipendente non-US per BAB — idea #1 della lista originale,
   finora bloccata** (`apex_international_bab_country_etf_test.py`).
   Blocco dichiarato: replicare la Teoria #5 (beta-selection titolo-per-

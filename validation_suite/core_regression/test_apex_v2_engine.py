@@ -171,6 +171,108 @@ def test_vol_target_parameter_changes_scale_factor():
     assert debug_low_target["_vol_target"]["fattore_scala"] < debug_high_target["_vol_target"]["fattore_scala"]
 
 
+def make_multivariate_weekly_df(n_weeks, mu_annual, vol_annual, seed=42):
+    """4 serie di prezzo settimanali INDIPENDENTI (Sigma diagonale nota) con mu/vol
+    annualizzati noti, ordine [SPY, IEF, GLD, BTC-USD] — per testare
+    _kelly_class_weights su dati con struttura nota (Sigma diagonale rende
+    f*=mu/vol^2 elemento per elemento, facile da verificare a mano)."""
+    rng = np.random.default_rng(seed)
+    dates = pd.date_range("2015-01-02", periods=n_weeks, freq="W-FRI")
+    dfs = {}
+    weekly_mu = np.array(mu_annual) / 52.0
+    weekly_vol = np.array(vol_annual) / np.sqrt(52.0)
+    for i, cls in enumerate(["SPY", "IEF", "GLD", "BTC-USD"]):
+        rets = rng.normal(weekly_mu[i], weekly_vol[i], size=n_weeks)
+        prices = 100.0 * np.cumprod(1 + rets)
+        dfs[cls] = pd.DataFrame({"Open": prices, "High": prices, "Low": prices, "Close": prices}, index=dates)
+    return dfs
+
+
+def test_kelly_class_weights_matches_hand_computed_f_star_on_known_data():
+    import apex_v2_engine as engine
+    n_weeks = engine.V2_KELLY_MU_SIGMA_WINDOW + 20
+    mu_annual = [0.15, 0.05, 0.03, 0.40]   # SPY, IEF, GLD, BTC-USD (ordine di V2_CLASS_TICKER)
+    vol_annual = [0.15, 0.06, 0.15, 0.60]
+    b_data = make_multivariate_weekly_df(n_weeks, mu_annual, vol_annual, seed=3)
+
+    f_star = engine._kelly_class_weights(b_data, engine.V2_KELLY_MU_SIGMA_WINDOW)
+    assert f_star is not None
+
+    # Ricalcolo indipendente con lo STESSO metodo (mean/cov empirici sulla finestra,
+    # non i parametri "veri" della generazione, che un campione finito non replica
+    # esattamente) — verifica che _kelly_class_weights faccia davvero questo calcolo,
+    # non un'approssimazione o un bug di indicizzazione tra classi.
+    closes = {cls: b_data[ticker]["Close"].resample("W-FRI").last().dropna()
+              for cls, ticker in engine.V2_CLASS_TICKER.items()}
+    rets = pd.DataFrame({cls: c.pct_change() for cls, c in closes.items()}).dropna()
+    window_rets = rets.iloc[-engine.V2_KELLY_MU_SIGMA_WINDOW:]
+    mu = window_rets.mean().to_numpy() * 52.0
+    Sigma = window_rets.cov().to_numpy() * 52.0
+    expected = dict(zip(rets.columns, np.linalg.solve(Sigma, mu)))
+    for cls in engine.V2_CLASS_TICKER:
+        assert abs(f_star[cls] - expected[cls]) < 1e-9
+
+    # Proprieta' qualitativa attesa (non un numero esatto, dipende dal campione): BTC
+    # ha mu annuo molto piu' alto di SPY (40% contro 15%, ~2.7x) ma vol molto piu'
+    # alta (60% contro 15%, quindi vol^2 ~16x) — Kelly deve dargli un peso f*
+    # PROPORZIONALMENTE minore rispetto a SPY di quanto farebbe un ranking puro per
+    # rendimento atteso, la proprieta' chiave che distingue Kelly da un ranking
+    # ingenuo per mu (vedi validation_suite/README.md, sezione Kelly sulle classi).
+    assert f_star["Crypto"] / f_star["Equities"] < mu_annual[3] / mu_annual[0]
+
+
+def test_kelly_class_weights_none_with_insufficient_history():
+    import apex_v2_engine as engine
+    short = make_trend_df(n_days=200, seed=1)  # troppo corto per V2_KELLY_MU_SIGMA_WINDOW settimane
+    b_data = {"SPY": short, "IEF": short, "GLD": short, "BTC-USD": short}
+    assert engine._kelly_class_weights(b_data, engine.V2_KELLY_MU_SIGMA_WINDOW) is None
+
+
+def test_kelly_class_weights_none_with_singular_sigma():
+    import apex_v2_engine as engine
+    n_weeks = engine.V2_KELLY_MU_SIGMA_WINDOW + 10
+    dates = pd.date_range("2015-01-02", periods=n_weeks, freq="W-FRI")
+    rng = np.random.default_rng(1)
+    rets = rng.normal(0.001, 0.01, size=n_weeks)
+    prices = 100.0 * np.cumprod(1 + rets)
+    df = pd.DataFrame({"Open": prices, "High": prices, "Low": prices, "Close": prices}, index=dates)
+    b_data = {"SPY": df, "IEF": df, "GLD": df, "BTC-USD": df}  # stessa identica serie -> covarianza singolare
+    assert engine._kelly_class_weights(b_data, engine.V2_KELLY_MU_SIGMA_WINDOW) is None
+
+
+def test_compute_v2_macro_signal_kelly_disabled_matches_flat_weight():
+    """kelly_fraction=0.0 deve riprodurre ESATTAMENTE il comportamento pre-Kelly,
+    anche con storico lungo a sufficienza per calcolarlo — prova che il parametro
+    disattiva davvero il meccanismo, non solo quando i dati sono insufficienti."""
+    import apex_v2_engine as engine
+    n_weeks = engine.V2_KELLY_MU_SIGMA_WINDOW + 60
+    b_data = make_multivariate_weekly_df(n_weeks, [0.15, 0.05, 0.03, 0.40], [0.15, 0.06, 0.15, 0.60], seed=3)
+    alloc_kelly_off, _, debug_off = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, kelly_fraction=0.0)
+    alloc_flat, _, _ = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, kelly_fraction=0.0, base_weight_per_class=0.50)
+    for cls in alloc_kelly_off:
+        assert abs(alloc_kelly_off[cls] - alloc_flat[cls]) < 1e-9
+    assert "kelly_f_star" not in debug_off["Equities"]
+
+
+def test_compute_v2_macro_signal_kelly_enabled_diverges_from_flat_weight_with_long_history():
+    """Con storico sufficiente (kelly_fraction di default > 0, comportamento di
+    produzione) l'allocazione deve differire da quella a peso fisso uguale — prova
+    che il meccanismo Kelly viene davvero applicato quando i dati lo consentono,
+    non solo accettato e ignorato (stesso principio di
+    test_base_weight_per_class_scales_allocation_proportionally per il parametro
+    precedente)."""
+    import apex_v2_engine as engine
+    n_weeks = engine.V2_KELLY_MU_SIGMA_WINDOW + 60
+    b_data = make_multivariate_weekly_df(n_weeks, [0.15, 0.05, 0.03, 0.40], [0.15, 0.06, 0.15, 0.60], seed=3)
+    alloc_kelly, _, debug_kelly = compute_v2_macro_signal(b_data, prev_hysteresis_state=None)  # default: Kelly abilitato
+    alloc_flat, _, _ = compute_v2_macro_signal(b_data, prev_hysteresis_state=None, kelly_fraction=0.0)
+
+    active = [cls for cls in engine.V2_CLASS_TICKER if debug_kelly[cls].get("attivo")]
+    assert active, "il test presuppone almeno una classe attiva per trend con questo seed"
+    assert any(abs(alloc_kelly[cls] - alloc_flat[cls]) > 1e-6 for cls in engine.V2_CLASS_TICKER)
+    assert all("kelly_f_star" in debug_kelly[cls] for cls in active)
+
+
 def test_select_low_vol_basket_ranks_correctly():
     eq_data = {
         "LOWVOL": make_trend_df(daily_drift=0.0005, daily_vol=0.002, seed=10),

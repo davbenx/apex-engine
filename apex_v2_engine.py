@@ -44,6 +44,26 @@ V2_EQUITY_BETA_LOOKBACK = 26  # vedi APEX_V2_SPEC.md §8.29/§4: criterio di pro
                               # volatilita' assoluta) sono concettualmente distinte.
 V2_EQUITY_BUFFER_RANK = 20  # vedi APEX_V2_SPEC.md §8.3: valore corretto dopo bug nel calendario del backtest (era 100)
 
+V2_KELLY_MU_SIGMA_WINDOW = 208  # settimane (4 anni) — finestra trailing per mu/Sigma
+V2_KELLY_FRACTION = 0.25        # frazione di Kelly applicata al peso nominale delle classi attive
+# Pesatura delle 4 classi macro per f*=Sigma^-1 mu (Kelly frazionario) al posto del
+# peso nominale UGUALE (50% base) per ciascuna classe gia' attiva per trend — vedi
+# validation_suite/comparative_studies/apex_kelly_class_weight_test.py (primo giro),
+# apex_kelly_class_weight_second_round_test.py (secondo giro: stress su finestra
+# [104,156,208] e walk-forward a 5 ere) e apex_kelly_class_weight_preregistered_eval.py
+# (valutazione diretta della configurazione fissa, non del walk-forward). Finestra e
+# frazione scelte QUI (208 sett./0.25) PRIMA di guardare i risultati OOS specifici di
+# questa combinazione — non ottimizzate a posteriori: 208 sett. e' risultata la piu'
+# robusta tra le tre testate (a 104 sett. il beneficio sparisce, errore di stima su mu
+# troppo alto — limite noto del criterio di Kelly con campioni corti, non un artefatto),
+# 0.25 e' la frazione piu' conservativa del range raccomandato ed e' risultata anche la
+# migliore delle due sul campione pieno. Risultato OOS (335 settimane mai usate per
+# scegliere questi parametri): Sharpe 1.19 contro 1.00, MaxDD -15.10% contro -21.53%,
+# ma CI 90% sulla differenza pareggiata [-3.60;+8.18]pp/anno include ancora lo zero —
+# NON provato in senso statistico stretto, adottato come scommessa a favore di
+# probabilita' con margine di sicurezza (Apex resta comunque long-only, mai a leva).
+# PBO-CSCV sceso da 48.6% (primo giro) a 7.1% (secondo giro, 12 combinazioni).
+
 
 def _weekly_close(df: pd.DataFrame) -> pd.Series:
     """Chiusura settimanale (venerdi'), coerente con la convenzione usata altrove nel progetto."""
@@ -60,11 +80,45 @@ def _realized_vol(weekly_close: pd.Series, window: int) -> Optional[float]:
     return v if v > 1e-6 else None
 
 
+def _kelly_class_weights(b_data: Dict[str, pd.DataFrame], window: int) -> Optional[Dict[str, float]]:
+    """f* = Sigma^-1 mu sulle 4 classi macro (V2_CLASS_TICKER), mu/Sigma annualizzati
+    (x52) su una finestra trailing di `window` settimane — nessun lookahead, solo
+    rendimenti fino alla settimana corrente inclusa (stessa convenzione usata e
+    validata in validation_suite/comparative_studies/apex_kelly_class_weight_*.py).
+
+    Ritorna None (fallback a peso nominale uguale nel chiamante) se una qualunque
+    classe ha meno di `window`+1 chiusure settimanali disponibili (es. Crypto nei
+    primi anni dopo il lancio di produzione, o dati di fetch temporaneamente corti)
+    o se Sigma e' singolare — mai silenziosamente un risultato parziale o instabile.
+    """
+    closes = {}
+    for cls, ticker in V2_CLASS_TICKER.items():
+        wc = _weekly_close(b_data.get(ticker))
+        if len(wc) < window + 1:
+            return None
+        closes[cls] = wc
+
+    rets = pd.DataFrame({cls: wc.pct_change() for cls, wc in closes.items()}).dropna()
+    if len(rets) < window:
+        return None
+    window_rets = rets.iloc[-window:]
+
+    mu = window_rets.mean().to_numpy() * 52.0
+    Sigma = window_rets.cov().to_numpy() * 52.0
+    try:
+        f_star = np.linalg.solve(Sigma, mu)
+    except np.linalg.LinAlgError:
+        return None
+    return dict(zip(rets.columns, f_star))
+
+
 def compute_v2_macro_signal(
     b_data: Dict[str, pd.DataFrame],
     prev_hysteresis_state: Optional[Dict[str, bool]] = None,
     base_weight_per_class: float = 0.50,
     vol_target: float = V2_VOL_TARGET,
+    kelly_fraction: float = V2_KELLY_FRACTION,
+    kelly_window: int = V2_KELLY_MU_SIGMA_WINDOW,
 ) -> Tuple[Dict[str, float], Dict[str, bool], Dict[str, dict]]:
     """
     Calcola i pesi target per le 4 classi + cash (§2-3 di APEX_V2_SPEC.md).
@@ -90,10 +144,25 @@ def compute_v2_macro_signal(
     return (vedi commento inline), che rende "mai a leva" un vincolo
     strutturale per qualunque valore di base_weight/vol-target.
 
+    kelly_fraction/kelly_window (default = V2_KELLY_FRACTION/V2_KELLY_MU_SIGMA_WINDOW,
+    vedi commenti li' per la validazione completa): quando kelly_fraction>0 il peso
+    nominale di ciascuna classe GIA' attiva per trend non e' piu' base_weight_per_class
+    fisso uguale per tutte, ma max(0, f*_classe) * kelly_fraction, con f*=Sigma^-1 mu
+    stimato su rendimenti trailing (_kelly_class_weights). Kelly pesa per RENDIMENTO
+    diviso RISCHIO AL QUADRATO (non solo per rischio come risk-parity/beta-weighting,
+    entrambi gia' falliti — vedi validation_suite/README.md): un asset a basso rischio
+    ottiene peso grande solo se il rendimento atteso lo giustifica. Fallback SILENZIOSO
+    e completo a base_weight_per_class fisso (comportamento pre-Kelly, invariato) se
+    kelly_fraction=0.0, o se lo storico disponibile e' insufficiente per una qualunque
+    classe, o se la matrice di covarianza e' singolare — mai un risultato instabile o
+    parziale. base_weight_per_class resta quindi sempre il valore di riferimento/
+    fallback, anche quando Kelly e' abilitato.
+
     Ritorna: (allocations_pct 0-100 per classe + Cash, nuovo stato isteresi, debug per classe)
     """
     state = dict(prev_hysteresis_state) if prev_hysteresis_state else {}
     base_weight = {}
+    is_active_map = {}
     debug = {}
     vols = {}
 
@@ -108,6 +177,7 @@ def compute_v2_macro_signal(
         wc = _weekly_close(df)
         if len(wc) < V2_MA_WEEKS:
             base_weight[cls] = 0.0
+            is_active_map[cls] = False
             debug[cls] = {"note": "dati insufficienti"}
             continue
 
@@ -128,10 +198,18 @@ def compute_v2_macro_signal(
         state[cls] = trend_long_on  # lo stato di isteresi segue solo il trend lungo; il breve e' un filtro extra
 
         base_weight[cls] = base_weight_per_class if is_active else 0.0  # default 0.50, alzato da 0.25 — vedi §8.25/§10.13 (Percorso B)
+        is_active_map[cls] = is_active
         debug[cls] = {
             "price": price, "ma40w": ma_long_val, "ma20w": ma_short_val,
             "distanza_pct": round(dist * 100, 2), "banda_isteresi_pct": round(band * 100, 2), "attivo": is_active,
         }
+
+    kelly_f_star = _kelly_class_weights(b_data, kelly_window) if kelly_fraction > 0 else None
+    if kelly_f_star is not None:
+        for cls in V2_CLASS_TICKER:
+            if is_active_map.get(cls, False):
+                base_weight[cls] = max(0.0, kelly_f_star.get(cls, 0.0)) * kelly_fraction
+            debug.setdefault(cls, {})["kelly_f_star"] = round(kelly_f_star.get(cls, 0.0), 3)
 
     for cls in V2_CLASS_TICKER:
         debug.setdefault(cls, {})["vol_12w_ann_pct"] = round(vols[cls] * 100, 2) if cls in vols else None

@@ -173,12 +173,18 @@ def fetch_yahoo_history(ticker, period='2y', interval='1d'):
     return ticker, pd.DataFrame()
 
 
-def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asset"):
-    """Downloads historical data concurrently using ThreadPoolExecutor."""
+def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asset", period='2y'):
+    """Downloads historical data concurrently using ThreadPoolExecutor.
+
+    `period` esposto (default invariato '2y', comportamento identico per chi non lo
+    passa) perche' il segnale macro Kelly (V2_KELLY_MU_SIGMA_WINDOW=208 settimane,
+    vedi apex_v2_engine.py) richiede piu' storico settimanale di quanto serva al
+    basket azionario/sector-map — vedi la chiamata dedicata in main() per SPY/IEF/
+    GLD/BTC-USD/EURUSD=X, che passa period='5y'."""
     results = {}
     print(f"[*] Inizio download {desc} ({len(tickers)} strumenti)...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(fetch_yahoo_history, sym): sym for sym in tickers}
+        futures = {executor.submit(fetch_yahoo_history, sym, period): sym for sym in tickers}
         for future in as_completed(futures):
             sym, df = future.result()
             if not df.empty and len(df) >= 30:
@@ -835,7 +841,10 @@ def main():
     # solo quando deciding_new.
     print("[1/4] Ingestione Segnale Macro (SPY/IEF/GLD/BTC-USD)...")
     signal_tickers = list(dict.fromkeys(list(V2_CLASS_TICKER.values()) + DISPLAY_TICKERS))
-    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO)
+    # period='5y': serve piu' storico dei 2 anni di default per il calcolo Kelly delle
+    # classi (finestra trailing 208 settimane, vedi V2_KELLY_MU_SIGMA_WINDOW in
+    # apex_v2_engine.py) — 5 anni da margine oltre le 208 settimane richieste.
+    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO, period='5y')
 
     output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4) if b_data.get('EURUSD=X') is not None and not b_data['EURUSD=X'].empty else 1.0850
     output["macro"] = {t: {"price": float(b_data[t]['Close'].iloc[-1])} for t in V2_CLASS_TICKER.values() if t in b_data and not b_data[t].empty}
