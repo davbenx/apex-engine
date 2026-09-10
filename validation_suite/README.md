@@ -1650,6 +1650,21 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     in alternativa, continuare a monitorarlo come promettente senza
     ancora implementarlo. Nessuna modifica in produzione applicata da
     questo secondo giro — decisione lasciata all'utente.
+  - **Valutazione diretta della configurazione fissa pre-registrata**
+    (`apex_kelly_class_weight_preregistered_eval.py`, finestra=208,
+    frazione=0,25): a differenza del walk-forward (che cambia
+    combinazione ogni era), qui si isola la SINGOLA regola fissa che si
+    deployerebbe davvero, valutata SOLO sul periodo successivo all'era 1
+    (335 settimane, 2020-04-17 -> 2026-09-11 — mai usato per scegliere
+    questi parametri). Risultato leggermente piu' forte del walk-forward
+    a combinazione variabile: OOS Sharpe 1,19 contro 1,00, MaxDD -15,10%
+    contro -21,53%, Calmar 1,11 contro 0,65. Overperformance +2,45pp/anno,
+    **CI 90% [-3,60;+8,18] include ancora lo zero** (stesso limite
+    statistico del giro precedente), settimane migliori 49% (stesso
+    profilo asimmetrico: nessun vantaggio settimana-per-settimana, il
+    beneficio viene dalla protezione nei drawdown). Conferma la
+    raccomandazione: procedere con cautela e consapevolezza del limite
+    statistico, non come edge provato.
 - **Campione indipendente non-US per BAB — idea #1 della lista originale,
   finora bloccata** (`apex_international_bab_country_etf_test.py`).
   Blocco dichiarato: replicare la Teoria #5 (beta-selection titolo-per-
