@@ -53,3 +53,6 @@ carry_funding_data/
 *.swo
 .DS_Store
 apex_macro_extended_data/
+apex_country_etf_data/
+roe_cache/
+sec_ticker_cik_map.json

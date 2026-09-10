@@ -1650,6 +1650,47 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     in alternativa, continuare a monitorarlo come promettente senza
     ancora implementarlo. Nessuna modifica in produzione applicata da
     questo secondo giro — decisione lasciata all'utente.
+- **Campione indipendente non-US per BAB — idea #1 della lista originale,
+  finora bloccata** (`apex_international_bab_country_etf_test.py`).
+  Blocco dichiarato: replicare la Teoria #5 (beta-selection titolo-per-
+  titolo, gia' in produzione sul basket USA) su FTSE100/STOXX600
+  richiederebbe uno storico datato delle variazioni di composizione
+  dell'indice, non disponibile in forma pulita per gli indici europei
+  (a differenza di Wikipedia per l'S&P 500). **Altra strada**: testare
+  BAB a livello di PAESE invece che di singolo titolo — 15 ETF Paese
+  sviluppato di iShares MSCI con storico dal 1996 (Giappone, Germania,
+  UK, Francia, Australia, Canada, Svizzera, Svezia, Spagna, Italia,
+  Paesi Bassi, Austria, Belgio, Singapore, Hong Kong), beta trailing 26
+  settimane (stessa finestra di produzione) vs un benchmark equal-weight
+  auto-costruito sugli stessi 15, ribilanciamento trimestrale. Nessun
+  problema di point-in-time membership: l'ETF-paese e' l'unita'
+  investibile stessa dal lancio, non un proxy di un indice che cambia
+  composizione.
+  - **Risultato: l'anomalia BAB NON si replica a livello di paese — anzi
+    si inverte.** Low-beta (7/15) Sharpe 0,25 contro High-beta (7/15)
+    Sharpe 0,33 contro Equal-weight Sharpe 0,29, su 1530 settimane
+    (1996-2026). Spread classico BAB (low-beta meno high-beta):
+    **-2,88pp/anno, CI 90% [-5,35;-0,14] ESCLUDE lo zero** — nella
+    direzione OPPOSTA a quella prevista. Nei 4 sotto-periodi testati
+    (1997-2004, 2004-2012, 2012-2019, 2019-2026) l'high-beta ha Sharpe
+    uguale o superiore al low-beta in OGNI singolo sotto-periodo, mai
+    un'eccezione. PBO-CSCV 18,6% (sotto la soglia di rumore, ma piu' alto
+    delle falsificazioni piu' nette di questa sessione).
+  - **Interpretazione**: questo NON invalida la Teoria #5 sul basket
+    azionario USA (Frazzini-Pedersen 2014 e' specificamente una storia di
+    investitori vincolati dalla leva che comprano AZIONI SINGOLE ad alto
+    beta per ottenere leva sintetica — un meccanismo idiosincratico a
+    livello di titolo, non necessariamente un principio universale "il
+    rischio sistematico piu' basso vince sempre" applicabile a qualunque
+    unita' di analisi). A livello di PAESE, 30 anni di dati mostrano
+    l'esatto contrario: i mercati piu' "beta" (piu' legati al ciclo
+    growth/tech globale) hanno sovraperformato in modo consistente. La
+    validazione indipendente NON CORROBORA una generalizzazione
+    geografica del meccanismo — la Teoria #5 resta valida (e in
+    produzione) come fenomeno specifico del basket azionario USA
+    titolo-per-titolo, non come legge universale. Nessuna modifica in
+    produzione (Apex non investe per paese). Linea di indagine chiusa
+    con esito onesto: negativo/invertito, non solo "non significativo".
 
 ## Cosa NON è (ancora) qui, e perché
 
