@@ -1,16 +1,16 @@
 {
     "macro": {
         "SPY": {
-            "price": 770.1900024414062
+            "price": 765.9600219726562
         },
         "IEF": {
-            "price": 92.25
+            "price": 92.16000366210938
         },
         "GLD": {
-            "price": 406.7699890136719
+            "price": 399.7200012207031
         },
         "BTC-USD": {
-            "price": 78775.3125
+            "price": 78146.3203125
         }
     },
     "allocations": {
@@ -117,7 +117,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 78775.31,
+            "Prezzo ($)": 78146.32,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -225,6 +225,6 @@
         "last_decision_month": "2026-08",
         "pending_decision": null
     },
-    "timestamp": "09 Sep 2026, 00:57 (UTC)",
-    "eur_usd": 1.1633
+    "timestamp": "10 Sep 2026, 00:44 (UTC)",
+    "eur_usd": 1.1635
 }
