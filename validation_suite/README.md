@@ -1691,6 +1691,41 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     titolo-per-titolo, non come legge universale. Nessuna modifica in
     produzione (Apex non investe per paese). Linea di indagine chiusa
     con esito onesto: negativo/invertito, non solo "non significativo".
+  - **Approfondimento richiesto dall'utente: e' colpa della BETA
+    specificamente, o low-VOLATILITA' (assoluta, non contro benchmark)
+    sarebbe piu' robusta a livello di paese?**
+    (`apex_international_lowvol_vs_beta_country_test.py`, stesso
+    universo/finestra/cache, nessun nuovo download). Risposta: **low-vol
+    e' leggermente MEGLIO di low-beta ma non e' robusta in senso
+    assoluto**. Sharpe: High-beta 0,33 > Equal-weight 0,29 ~ Low-vol
+    0,28 ~ High-vol 0,28 > Low-beta 0,25. Low-vol batte low-beta di
+    +0,61pp/anno (CI 90% [-0,37;+1,52], include lo zero) ma NON vince mai
+    in nessuno dei 4 sotto-periodi testati (sempre sotto high-beta o
+    equal-weight) e perde leggermente contro l'equal-weight sull'intero
+    campione (-0,71pp/anno). **Causa della somiglianza tra le due
+    classifiche**: sovrapposizione media 5,9/7 paesi tra i basket
+    low-beta e low-vol per ribilanciamento — a livello di paese, a
+    differenza del singolo titolo USA (dove il rischio idiosincratico
+    crea vera separazione tra beta e volatilita' assoluta), le due
+    misure sono quasi ridondanti perche' gran parte della varianza di un
+    indice-paese e' comunque covarianza col resto del mondo sviluppato.
+    PBO-CSCV sale a 25,7% su 5 varianti (piu' alto del test a 3 varianti,
+    riflette l'ambiguita' reale tra le 3 opzioni centrali quasi
+    equivalenti). **High-beta risulta il piu' forte in modo consistente**
+    (vince o pareggia in 3 sotto-periodi su 4), ma la lettura piu'
+    plausibile non e' "l'anomalia si inverte davvero": su un campione di
+    30 anni in cui i mercati sviluppati sono saliti per la gran parte del
+    tempo, un basket a beta piu' alto verso il fattore azionario globale
+    comune ottiene semplicemente PIU' esposizione a un fattore con drift
+    storicamente positivo — coerente con differenze di Sharpe modeste
+    (0,25-0,33) a fronte di differenze di CAGR piu' vistose (2,92% contro
+    4,96%), non con una vera "leva a sconto" stile BAB. Nessuna modifica
+    in produzione (nessuna delle due metriche giustifica un cambio; Apex
+    non investe per paese comunque). Estensione a un universo di paesi
+    piu' ampio (es. mercati emergenti, storico piu' corto dal 2000) resta
+    disponibile come ulteriore verifica ma valutata a bassa priorita': data
+    l'alta sovrapposizione gia' osservata e la consistenza across-era del
+    risultato attuale, e' improbabile che cambi la conclusione qualitativa.
 - **Quality overlay sul basket low-beta — idea #4 della lista originale,
   finora bloccata** (`apex_quality_tilt_low_beta_basket_test.py`).
   Blocco dichiarato: una vera Quality richiede fondamentali storici
