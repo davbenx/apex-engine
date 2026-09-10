@@ -108,19 +108,29 @@ def eligible_alts_asof(pointintime_top_alts: dict, day: pd.Timestamp) -> list:
     return pointintime_top_alts[key]
 
 
-def build_candidate_weights(rets: pd.DataFrame, pointintime_top_alts: dict, mode: str) -> pd.DataFrame:
+def build_candidate_weights(
+    rets: pd.DataFrame, pointintime_top_alts: dict, mode: str,
+    short_window: int = 20, long_window: int = 60, trail_window: int = 30, vol_window: int = 30,
+) -> pd.DataFrame:
     """Ritorna un DataFrame di pesi TARGET (uno per colonna in rets.columns),
-    un peso per ogni giorno, calcolato SENZA lookahead (decisione di giorno t
-    valutata sui dati fino a t, applicata al rendimento di t+1 tramite lo
-    shift a valle in backtest_strategy). Le decisioni discrete vengono
-    "bloccate" (locked_weights) finche' non cambiano, per un turnover
-    realistico anche con un segnale controllato ogni giorno."""
+    un peso per ogni periodo, calcolato SENZA lookahead (decisione del
+    periodo t valutata sui dati fino a t, applicata al rendimento di t+1
+    tramite lo shift a valle in backtest_strategy). Le decisioni discrete
+    vengono "bloccate" (locked_weights) finche' non cambiano, per un
+    turnover realistico anche con un segnale controllato ogni periodo.
+
+    *_window sono in NUMERO DI PERIODI della serie `rets` (giorni per la
+    versione daily, settimane per la versione weekly costruita riusando
+    questa stessa funzione con `rets` settimanale e finestre equivalenti in
+    settimane, non lo stesso numero — vedi altcoin_vs_btc_weekly_pointintime_backtest.py)."""
     idx = rets.index
     cols = list(rets.columns)
-    btc_trail_short = (1 + rets["BTC-USD"]).rolling(20).apply(lambda x: x.prod() - 1, raw=False)
-    btc_trail_long = (1 + rets["BTC-USD"]).rolling(60).apply(lambda x: x.prod() - 1, raw=False)
-    trail_30 = {c: (1 + rets[c]).rolling(30).apply(lambda x: x.prod() - 1, raw=False) for c in cols}
-    vol_30 = {c: rets[c].rolling(30).std() for c in cols}
+    btc_trail_short = (1 + rets["BTC-USD"]).rolling(short_window).apply(lambda x: x.prod() - 1, raw=False)
+    btc_trail_long = (1 + rets["BTC-USD"]).rolling(long_window).apply(lambda x: x.prod() - 1, raw=False)
+    trail_alt = {c: (1 + rets[c]).rolling(trail_window).apply(lambda x: x.prod() - 1, raw=False) for c in cols}
+    vol_alt = {c: rets[c].rolling(vol_window).std() for c in cols}
+    warmup_short = max(short_window, trail_window)
+    warmup_long = max(long_window, trail_window)
 
     weights_rows = []
     locked = {c: 0.0 for c in cols}
@@ -135,38 +145,38 @@ def build_candidate_weights(rets: pd.DataFrame, pointintime_top_alts: dict, mode
             decision = ("BTC",)
 
         elif mode == "regime_altseason":
-            if i < 30:
+            if i < warmup_short:
                 decision = ("BTC",)
             else:
                 btc_r = btc_trail_short.iloc[i]
-                alt_r = np.mean([trail_30[a].iloc[i] for a in alts_today]) if alts_today else -np.inf
+                alt_r = np.mean([trail_alt[a].iloc[i] for a in alts_today]) if alts_today else -np.inf
                 decision = ("ALTS_EQUAL", tuple(alts_today)) if (alt_r > btc_r) else ("BTC",)
 
         elif mode == "btc_slowdown_switch":
-            if i < 60:
+            if i < warmup_long:
                 decision = ("BTC",)
             else:
                 slowing = btc_trail_short.iloc[i] < btc_trail_long.iloc[i] * 0.5  # ritmo recente sotto meta' del ritmo di fondo
                 if slowing and alts_today:
-                    best_alt = max(alts_today, key=lambda a: trail_30[a].iloc[i] if not pd.isna(trail_30[a].iloc[i]) else -np.inf)
+                    best_alt = max(alts_today, key=lambda a: trail_alt[a].iloc[i] if not pd.isna(trail_alt[a].iloc[i]) else -np.inf)
                     decision = ("SINGLE", best_alt)
                 else:
                     decision = ("BTC",)
 
         elif mode == "momentum_rotation":
-            if i < 30:
+            if i < warmup_short:
                 decision = ("BTC",)
             else:
                 pool = ["BTC-USD"] + alts_today
-                best = max(pool, key=lambda a: trail_30[a].iloc[i] if not pd.isna(trail_30[a].iloc[i]) else -np.inf)
+                best = max(pool, key=lambda a: trail_alt[a].iloc[i] if not pd.isna(trail_alt[a].iloc[i]) else -np.inf)
                 decision = ("SINGLE", best)
 
         elif mode == "inverse_vol":
-            if i < 30 or not alts_today:
+            if i < warmup_short or not alts_today:
                 decision = ("BTC",)
             else:
                 pool = ["BTC-USD"] + alts_today
-                vols = {a: vol_30[a].iloc[i] for a in pool}
+                vols = {a: vol_alt[a].iloc[i] for a in pool}
                 if any(pd.isna(v) or v <= 1e-9 for v in vols.values()):
                     decision = ("BTC",)
                 else:
@@ -199,16 +209,16 @@ def build_candidate_weights(rets: pd.DataFrame, pointintime_top_alts: dict, mode
     return pd.DataFrame(weights_rows, index=idx)
 
 
-def backtest_strategy(weights_df: pd.DataFrame, returns_df: pd.DataFrame, label: str, verbose: bool = True):
+def backtest_strategy(weights_df: pd.DataFrame, returns_df: pd.DataFrame, label: str, verbose: bool = True, periods_per_year: int = PERIODS_PER_YEAR):
     """weights_df.iloc[i] e' la decisione presa usando dati fino alla CHIUSURA
-    del giorno i (incluso il rendimento di quel giorno stesso, gia' noto a
-    chiusura) — va applicata al rendimento del giorno i+1, non di i stesso,
+    del periodo i (incluso il rendimento di quel periodo stesso, gia' noto a
+    chiusura) — va applicata al rendimento del periodo i+1, non di i stesso,
     altrimenti la decisione "conosce" in parte l'esito che sta per tradare
     (look-ahead). shift(1) qui, un solo punto per tutti i candidati, invece
     di richiederlo a ogni chiamante di build_candidate_weights."""
     weights_df = weights_df.shift(1)
     weights_df.iloc[0] = 0.0
-    weights_df.iloc[0, weights_df.columns.get_loc("BTC-USD")] = 1.0  # primo giorno: nessuna decisione ancora presa, default BTC
+    weights_df.iloc[0, weights_df.columns.get_loc("BTC-USD")] = 1.0  # primo periodo: nessuna decisione ancora presa, default BTC
     tax_types = {c: "REDDITO_DIVERSO" for c in weights_df.columns}
 
     port_gross = (weights_df * returns_df).sum(axis=1)
@@ -222,14 +232,14 @@ def backtest_strategy(weights_df: pd.DataFrame, returns_df: pd.DataFrame, label:
     if verbose:
         n_trades = int((weight_change > 1e-9).sum())
         print(f"\n=== {label} ===")
-        print(f"CAGR lordo (con costi Kraken): {cagr(port_gross_after_costs, PERIODS_PER_YEAR)*100:.2f}%  |  "
-              f"CAGR netto (con tasse): {cagr(port_net_after_costs, PERIODS_PER_YEAR)*100:.2f}%")
-        print(f"Sharpe lordo: {sharpe(port_gross_after_costs, periods_per_year=PERIODS_PER_YEAR):.2f}  |  "
-              f"Sharpe netto: {sharpe(port_net_after_costs, periods_per_year=PERIODS_PER_YEAR):.2f}")
-        print(f"Vol annualizzata: {port_gross_after_costs.std()*np.sqrt(PERIODS_PER_YEAR)*100:.1f}%")
+        print(f"CAGR lordo (con costi Kraken): {cagr(port_gross_after_costs, periods_per_year)*100:.2f}%  |  "
+              f"CAGR netto (con tasse): {cagr(port_net_after_costs, periods_per_year)*100:.2f}%")
+        print(f"Sharpe lordo: {sharpe(port_gross_after_costs, periods_per_year=periods_per_year):.2f}  |  "
+              f"Sharpe netto: {sharpe(port_net_after_costs, periods_per_year=periods_per_year):.2f}")
+        print(f"Vol annualizzata: {port_gross_after_costs.std()*np.sqrt(periods_per_year)*100:.1f}%")
         print(f"MaxDD lordo: {max_drawdown(port_gross_after_costs)*100:.2f}%  |  "
               f"MaxDD netto: {max_drawdown(port_net_after_costs)*100:.2f}%")
-        print(f"Calmar netto: {calmar(port_net_after_costs, PERIODS_PER_YEAR):.2f}  |  Giorni di trade: {n_trades}/{len(weights_df)}")
+        print(f"Calmar netto: {calmar(port_net_after_costs, periods_per_year):.2f}  |  Periodi di trade: {n_trades}/{len(weights_df)}")
     return port_gross_after_costs, port_net_after_costs
 
 

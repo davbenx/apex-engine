@@ -48,6 +48,7 @@ validation_suite/
 │   ├── apex_stocks_vs_etf_backtest.py     <- basket azionario Apex vs ETF, netto tasse, point-in-time
 │   ├── altcoin_vs_btc_backtest.py         <- altcoin vs BTC, SETTIMANALE/universo fisso ETH+SOL — superata dalla successiva
 │   ├── altcoin_vs_btc_daily_backtest.py   <- altcoin vs BTC, DAILY + universo point-in-time reale (5 candidati, PBO/DSR/bootstrap)
+│   ├── altcoin_vs_btc_weekly_pointintime_backtest.py  <- stesso universo point-in-time, ma WEEKLY — isola granularità da universo
 │   ├── sector_cap_grid_test.py            <- grid search reale su V2_MAX_PER_SECTOR (2 vs 3 vs 4 vs 5 vs nessuno)
 │   ├── apex_basket_size_grid_test.py      <- grid search su V2_EQUITY_TOP_N (10/12/15/18/20/25 titoli)
 │   ├── apex_class_size_grid_test.py       <- grid search su base_weight_per_class/vol_target (dimensione posizioni per classe macro)
@@ -350,6 +351,29 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   ogni risultato numerico va sanity-checked per plausibilità, non solo
   fatto girare. Vedi `altcoin_vs_btc_daily_backtest.py` per il codice e
   l'output completo.
+- **Altcoin vs BTC (weekly, universo point-in-time reale) — isola la vera
+  causa del ribaltamento sopra**: il confronto settimanale-fisso vs
+  daily-point-in-time cambiava DUE variabili insieme (granularità E
+  universo), quindi non diceva quale delle due spiegasse il ribaltamento.
+  `altcoin_vs_btc_weekly_pointintime_backtest.py` tiene fisso l'universo
+  reale point-in-time e cambia SOLO la granularità (settimanale invece di
+  daily, finestre di lookback riscalate a parità di arco di calendario).
+  Risultato: **torna a essere BTC il migliore** (Sharpe 0,82, esattamente
+  come il candidato migliore in assoluto su 5, PBO-CSCV 10-21% — un segnale
+  di edge robusto, ma il "vincitore" è BTC stesso, non un'alternativa).
+  Conferma in modo pulito che **la causa del ribaltamento nel test
+  settimanale originale era l'universo fisso ETH/SOL (survivorship bias),
+  non la granularità del segnale** — a parità di universo corretto,
+  settimanale e daily concordano. L'edge del candidato "regime altseason"
+  resta concentrato in 2 episodi anche qui (CAGR netto 10,36%→0,65% (top-3)
+  e 12,41%→1,03% (top-5) escludendoli) — la fragilità è quindi una
+  proprietà del candidato, non della granularità o dell'universo.
+  **Verdetto finale del progetto su altseason/picking altcoin**: nessuna
+  granularità, nessun universo (fisso o point-in-time) produce un'
+  alternativa a BTC buy&hold che sia contemporaneamente migliore E meno
+  rischiosa in modo robusto — l'unico modo in cui un'alternativa "vince" è
+  scegliere a memoria un universo che include, col senno di poi, i
+  vincitori (ETH/SOL).
 
 ## Cosa NON è (ancora) qui, e perché
 
