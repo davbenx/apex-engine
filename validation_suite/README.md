@@ -308,15 +308,27 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   versione daily di altcoin-vs-BTC e i backtest mensili (Kelly Stack,
   Convex, Apex institutional validation) non erano affetti (già passavano
   o non necessitavano `periods_per_year` esplicito).
-- **Altcoin vs BTC (settimanale, universo fisso ETH/SOL)**: nessun candidato
-  testato (equal-weight, inverse-vol, rotazione momentum, rotazione di
-  regime "altseason") batte BTC buy&hold a parità o minor rischio; la
-  strategia di regime più promettente concentra il 100% del suo apparente
-  edge in 2 soli episodi su un campione di 6 anni (2021 e 2023-24) — non è
-  un edge robusto.
+- **Altcoin vs BTC (settimanale, universo fisso ETH/SOL)**: numeri corretti
+  dopo il fix `periods_per_year` (era erroneamente riportato "nessun
+  candidato batte BTC" — FALSO, era un artefatto del bug). Numeri veri
+  (2020-04→2026-09, 336 settimane): BTC CAGR netto 45,95%/Sharpe 0,93;
+  equal-weight BTC/ETH/SOL 72,89%/**1,11**; inverse-vol 58,12%/**1,02**;
+  rotazione di regime 67,32%/**1,05** — TUTTI con Sharpe netto SUPERIORE a
+  BTC (anche se con MaxDD peggiore su ognuno, quindi non "rischio pari o
+  minore"). **Perché questo risultato non è affidabile quanto quello
+  daily/point-in-time sotto**: l'universo qui è FISSO a ETH+SOL, scelti a
+  memoria — esattamente il tipo di bias che il dataset point-in-time
+  altcoin è stato costruito per eliminare (SOL è oggi un vincitore
+  evidente, ma non esisteva prima di aprile 2020 ed era irrilevante come
+  "alt principale" fino al 2021 Q4 — vedi la tabella dei top-5 per
+  trimestre più sopra). L'edge del candidato di regime resta comunque
+  concentrato in 2 soli episodi (CAGR netto 67,32%→14,35% escludendoli,
+  16% delle settimane) — la fragilità è confermata anche coi numeri giusti.
 - **Altcoin vs BTC (daily, universo point-in-time reale, top-3/top-5 alt per
-  trimestre)**: confermato e rafforzato il risultato settimanale con un
-  design molto più esigente (5 candidati, incl. uno switch "BTC rallenta ->
+  trimestre) — LA VERSIONE AFFIDABILE**: non conferma il risultato
+  settimanale (v. sopra) — con l'universo REALE point-in-time invece di
+  ETH/SOL fissi, il quadro si ribalta di nuovo. Design molto più esigente
+  (5 candidati, incl. uno switch "BTC rallenta ->
   singola alt migliore" mai testato prima, PBO-CSCV + DSR + bootstrap CI).
   BTC buy&hold resta il migliore su ogni metrica netta (CAGR 38,0%, Sharpe
   0,84, MaxDD -76,6%, 2019-2026). Il candidato più vicino (inverse-vol
