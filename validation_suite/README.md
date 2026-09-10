@@ -346,6 +346,24 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     26% "redditi diversi" standard già usata ovunque in questo progetto
     per crypto — mostrato come scenario alternativo, non validato in modo
     indipendente) è in ogni caso il peggiore delle tre vie.
+  - **Durata delle posizioni Crypto (funding vs TER)**, in risposta alla
+    domanda diretta dell'utente "hai calcolato anche quanto stanno aperte
+    le posizioni?": il modello di costo non usa un conteggio esplicito di
+    giorni aperti — moltiplica il drag (funding continuo o TER annuale)
+    per il peso Crypto vol-target-scalato prima di sommare, cosa che
+    proporziona automaticamente entrambi i costi all'esposizione reale
+    (zero quando la classe è chiusa, ~27% quando attiva) invece che a un
+    conteggio forfettario giorni-aperti × costo/giorno — più corretto
+    perché due episodi di pari durata calendariale ma vol-target diverso
+    pagano costi diversi, come nella realtà. Numeri effettivi (storico
+    Apex completo, 586 settimane): **56,7%** delle settimane con Crypto
+    attiva, **12 episodi continui** di durata media **27,7 settimane**
+    (mediana 20, range 2-121), esposizione media quando attiva **26,7%**.
+    Sulla finestra IBIT (139 settimane): 54,0% attiva, 5 episodi, durata
+    media 15,0 settimane (mediana 22). Con episodi mediani di ~20
+    settimane, il funding Kraken (che matura ora per ora) si accumula per
+    mesi consecutivi di esposizione continua — l'orizzonte corretto per
+    confrontarlo con il TER annuale, non giorni isolati.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.

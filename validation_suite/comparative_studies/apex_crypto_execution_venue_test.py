@@ -185,6 +185,30 @@ def main():
     btc_series = btc_ret.reindex(idx).fillna(0.0)
     ibit_series = ibit_ret.reindex(idx)  # NaN fuori dalla finestra IBIT (2024-01 in poi) — gestito a valle
 
+    def print_holding_period_stats(weight_series, label):
+        """Quanto restano aperte le posizioni Crypto — rilevante per capire se il
+        modello di costo (drag continuo moltiplicato per il peso vol-target-scalato,
+        vedi run_scenario) sta pesando funding/TER sull'orizzonte giusto. Un episodio
+        e' una sequenza di settimane consecutive con peso > 0 (un "ingresso" nella
+        classe Crypto secondo compute_v2_macro_signal + isteresi)."""
+        active = weight_series > 1e-9
+        episode_id = (active & ~active.shift(1, fill_value=False)).cumsum().where(active)
+        episode_lengths = episode_id.dropna().groupby(episode_id.dropna()).size()
+        print(f"--- Durata posizioni Crypto — {label} ---")
+        print(f"  Settimane totali: {len(weight_series)} | attive: {int(active.sum())} "
+              f"({active.mean()*100:.1f}%)")
+        if len(episode_lengths) > 0:
+            print(f"  Episodi continui (ingressi): {len(episode_lengths)}  |  "
+                  f"durata media: {episode_lengths.mean():.1f} sett.  |  "
+                  f"mediana: {episode_lengths.median():.1f}  |  "
+                  f"min/max: {episode_lengths.min():.0f}/{episode_lengths.max():.0f}")
+            print(f"  Esposizione media quando attiva (peso vol-target-scalato): "
+                  f"{weight_series[active].mean()*100:.1f}%")
+        print()
+
+    print_holding_period_stats(w_crypto, "storico Apex completo")
+    print_holding_period_stats(w_crypto[ibit_series.notna()], "finestra IBIT, 2024-01 in poi")
+
     def run_scenario(crypto_series, crypto_tax_rate, crypto_extra_annual_drag, label, restrict_to_ibit_window):
         weights_df = pd.DataFrame({"Equity": w_equity, "Bonds": w_bonds, "Gold": w_gold, "Crypto": w_crypto})
         returns_df = pd.DataFrame({
