@@ -1691,6 +1691,45 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     titolo-per-titolo, non come legge universale. Nessuna modifica in
     produzione (Apex non investe per paese). Linea di indagine chiusa
     con esito onesto: negativo/invertito, non solo "non significativo".
+- **Quality overlay sul basket low-beta — idea #4 della lista originale,
+  finora bloccata** (`apex_quality_tilt_low_beta_basket_test.py`).
+  Blocco dichiarato: una vera Quality richiede fondamentali storici
+  (ROE, leva) che Yahoo Finance non offre, e senza un dato genuinamente
+  point-in-time il test sarebbe viziato da look-ahead. **Altra strada**:
+  SEC EDGAR XBRL Company Facts API (gratuita) riporta per ogni dato il
+  campo `filed` — la data REALE di deposito, non la fine del periodo
+  contabile — quindi e' autenticamente point-in-time. Costruita una
+  cache locale di ROE annuale (NetIncomeLoss/StockholdersEquity, solo
+  10-K/10-K/A, tag XBRL tra i piu' universali) per 477/503 ticker
+  dell'universo S&P 500 usato dal basket (`apex_quality_data/`). La
+  SELEZIONE del basket resta identica a produzione (beta vs SPY, cap
+  settoriale) — la qualita' inclina solo il PESO tra i 15 titoli gia'
+  selezionati, equal-weight con alpha=0 (controllo esatto).
+  - **Risultato full-sample**: miglioramento piccolo ma monotono con
+    alpha — Sharpe 1,14→1,16, CAGR 17,71%→18,05%, MaxDD sostanzialmente
+    invariato (-21,53% a -21,12/21,63% a seconda di alpha, nessun
+    beneficio di coda paragonabile alla Teoria #5 o al Kelly di classe).
+  - **Walk-forward (3 ere)**: Era 2 seleziona alpha=0,0 (controllo), Era
+    3 seleziona alpha=1,0. OOS (391 settimane): Sharpe 1,00 contro 0,98,
+    CAGR 14,56% contro 14,24% — miglioramento reale ma piccolo.
+  - **CI 90% sulla differenza pareggiata [-0,14;+0,78]pp/anno — include
+    lo zero per un margine molto stretto** (il limite inferiore e' quasi
+    a zero). PBO-CSCV 12,9%, sotto la soglia di rumore.
+  - **Dettaglio interessante**: solo il 26% delle settimane il tilt fa
+    meglio del controllo, nonostante la differenza media sia positiva —
+    profilo di rendimento asimmetrico coerente con la letteratura
+    quality/safety (piccolo costo nella maggioranza delle settimane
+    "normali", guadagni rari ma piu' ampi nelle settimane di stress),
+    non un errore di calcolo: la distribuzione della differenza e'
+    spostata a destra da poche settimane di forte protezione.
+  - **Verdetto: NON falsificato, ma marginale** — direzione giusta,
+    PBO accettabile, ma magnitudine economica piccola e nessun
+    beneficio di drawdown paragonabile agli altri candidati promettenti
+    di questa sessione (Teoria #5, Kelly di classe). Non giustifica un
+    cambio in produzione ora ne' un secondo giro dedicato con la stessa
+    priorita' del Kelly di classe — resta un candidato disponibile ma
+    a bassa priorita' per un eventuale approfondimento futuro (es. doppio
+    ordinamento beta+quality, o fattore quality alternativo).
 
 ## Cosa NON è (ancora) qui, e perché
 
