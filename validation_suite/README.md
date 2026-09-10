@@ -63,6 +63,8 @@ validation_suite/
 │   ├── apex_beta_basket_selection_test.py <- basket azionario selezionato per basso BETA (Betting Against Beta) invece che bassa volatilita' (candidato piu' promettente della sessione, non ancora significativo)
 │   ├── apex_momentum_crash_stress_test.py <- diagnostico: le uscite dell'isteresi sono seguite da rimbalzi anomali? (risultato: no, isteresi robusta)
 │   ├── apex_theory1_theory5_second_round_test.py <- secondo giro di verifica per Teoria #1/#5: sensibilita' parametro, stacking, train/test split (nessuna delle due confermata in modo pulito)
+│   ├── apex_theory1_rolling_attribution_test.py <- terzo giro Teoria #1: Sharpe rolling + attribuzione per classe (risultato: falsificata, edge quasi interamente da BTC 2017-2022, non riproporre)
+│   ├── apex_theory5_lookback_finegrid_test.py <- terzo giro Teoria #5: griglia fine di 9 lookback (risultato: rafforzata, vantaggio consistente su banda 16-33 settimane, non un punto isolato)
 │   ├── apex_equity_qqq_swap_test.py       <- sostituire SPY con QQQ (segnale/basket/tasse isolati) per la gamba Equity
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
@@ -667,11 +669,51 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     test). Teoria #5 ha un profilo di sensibilita' peggiore (non
     monotono) ma REGGE meglio il test out-of-sample. Lo stacking e'
     statisticamente il piu' forte ma e' trainato principalmente dalla
-    Teoria #5. **Se dovessi scegliere UNA sola direzione da approfondire
-    ulteriormente, sarebbe la Teoria #5 (basket low-beta) per la sua
-    tenuta out-of-sample — con un terzo giro dedicato a restringere la
-    finestra di lookback ottimale (es. 20/30/39 settimane) prima di
-    qualunque considerazione per produzione.**
+    Teoria #5.
+- **Terzo giro di verifica — richiesto direttamente dall'utente ("dobbiamo
+  vederci chiaro")**: un solo split train/test e una griglia di 3 punti
+  non bastavano a chiudere la domanda. Due diagnostici mirati, uno per
+  teoria, hanno risolto l'ambiguita' in direzioni OPPOSTE.
+  - **Teoria #1 — RISOLTA, NON ADOTTARE**,
+    `apex_theory1_rolling_attribution_test.py`. Sharpe ROLLING a 104
+    settimane (2 anni), ricalcolato ogni 26 settimane lungo tutto il
+    campione (non un solo prima/dopo): la differenza (continuo meno
+    binario) e' positiva e consistente da metà 2017 a meta' 2023 (+0,01 a
+    +0,15), poi si INVERTE in modo netto e SOSTENUTO da fine 2023 in poi
+    (-0,11, -0,06, -0,10, -0,05, -0,03 su 5 finestre consecutive, ~2,5
+    anni) — non rumore, una vera rottura strutturale. **Attribuzione per
+    classe spiega il perche'**: il vantaggio cumulato della Teoria #1
+    (+18,26% sull'intero campione) viene per **il 63% da Crypto da sola**
+    (+11,46% nella prima meta', appena +0,13% nella seconda) — i trend
+    pluriennali eccezionali di BTC nel 2017-2022 hanno reso il meccanismo
+    "scala il peso con la forza del trend" straordinariamente redditizio
+    in quel periodo specifico, un evento storico non ripetibile, non un
+    meccanismo generale. **Verdetto: la significativita' full-sample della
+    Teoria #1 era quasi interamente un artefatto della storia di BTC, non
+    un edge strutturale — non adottare.**
+  - **Teoria #5 — RAFFORZATA**, `apex_theory5_lookback_finegrid_test.py`.
+    Griglia fine a 9 lookback (16/20/22/24/26/28/30/33/39 settimane)
+    invece dei soli 3 punti del secondo giro: il vantaggio low-beta su
+    low-vol (a parita' di lookback) e' **positivo su OGNI punto da 16 a
+    33 settimane** (+0,80 a +1,58pp/anno, tre di questi — 22/30/33 —
+    ESCLUDONO lo zero), crollando solo agli estremi (39 sett. quasi
+    nullo). **Non e' un singolo punto fortunato come temuto dal secondo
+    giro** — e' un vantaggio consistente su tutta una banda ragionevole
+    di specificazione, che insieme alla tenuta out-of-sample gia' trovata
+    nel secondo giro rende la Teoria #5 il candidato di gran lunga piu'
+    credibile delle due. Confrontato pero' SEMPRE contro il preciso
+    baseline di produzione (low-vol, lookback=26), nessun lookback
+    raggiunge la significativita' individualmente (il confronto piu'
+    rilevante per una decisione di produzione) — quindi ancora non
+    sufficiente da solo per un cambio, ma la base per proseguire e'
+    solida, non fragile.
+  - **Sintesi aggiornata**: la Teoria #1 e' ora chiusa (falsificata con
+    causa identificata, non riprovare in questa forma). La Teoria #5
+    resta l'unica direzione viva di questa indagine — il prossimo passo
+    naturale, se si vuole insistere, sarebbe testare la selezione low-beta
+    con un vincolo di stabilita' temporale piu' esplicito (es. media
+    mobile del beta su piu' finestre) invece di continuare a cercare un
+    singolo lookback ottimale.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
