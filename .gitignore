@@ -52,3 +52,4 @@ carry_funding_data/
 *.swp
 *.swo
 .DS_Store
+apex_macro_extended_data/

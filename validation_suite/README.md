@@ -183,14 +183,16 @@ leggendo la vera serie di rendimenti mensili di Apex V2
 (`apex_monthly_returns_extended.csv`/`_gross.csv` in root, la stessa dietro
 le cifre di dashboard):
 
-- **DSR sul campione pieno (142 mesi)**: >0.999 anche assumendo 100 varianti
-  testate prima di questa (il numero esatto di trial non è ricostruibile con
-  precisione dalla storia documentata in `APEX_V2_SPEC.md` §8 — riportiamo
-  una griglia 20/50/100 invece di un numero taroccato di precisione).
+- **DSR sul campione pieno (471 mesi, esteso a 1987-06 con proxy
+  VFINX/VUSTX/GC=F dopo il passaggio a select_low_beta_basket — vedi Storia
+  sotto)**: >0.999 anche assumendo 100 varianti testate prima di questa (il
+  numero esatto di trial non è ricostruibile con precisione dalla storia
+  documentata in `APEX_V2_SPEC.md` §8 — riportiamo una griglia 20/50/100
+  invece di un numero taroccato di precisione).
 - **DSR sul periodo TEST fuori campione (72 mesi, 2020-09-30 in poi, mai
-  usato per scegliere i parametri)**: Sharpe osservato 0.80, DSR >0.999
-  anche a 100 trial.
-- **CI 90% (block bootstrap) sullo Sharpe TEST**: [0.15, 1.41] — esclude
+  usato per scegliere i parametri, INVARIATO dall'estensione storica)**:
+  Sharpe netto osservato 0.96, DSR >0.999 anche a 100 trial.
+- **CI 90% (block bootstrap) sullo Sharpe TEST**: [0.23, 1.58] — esclude
   comodamente lo zero.
 
 Verdetto: l'alpha di Apex V2 fuori campione **resiste** a questi strumenti —
@@ -1212,6 +1214,77 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     o granularità testata. Questo NON dimostra che sia impossibile in
     assoluto, ma il campo di ricerca esplorato è ormai ampio e coerente
     con un solo esito.
+- **Dashboard rimasta su dati/testi della vecchia strategia low-vol dopo il
+  passaggio a low-beta (§8.29) — domanda diretta dell'utente ("i grafici
+  mi sembrano identici")**:
+  - **Diagnosi**: `apex_data.json`/`portfolio.json` (stato live) erano
+    fermi all'ultimo run di produzione reale, precedente allo switch — non
+    un bug, si autocorreggono al prossimo giro schedulato (nessuna azione
+    possibile da questa sandbox: quel giro fa fetch live e muove stato di
+    portafoglio/ordini reali, fuori scope). Le CARD STATISTICHE
+    (`get_apex_metrics`/`get_combined_dual_engine_metrics` in
+    `portfolio_manager.py`) erano invece numeri STATICI, fermi al 3
+    settembre (verificato via `git log`), sourced da
+    `apex_monthly_returns_extended*.csv` prodotti da una pipeline esterna
+    (`research/`) — **verificata irraggiungibile da questa sessione**: mai
+    committata su nessun branch (storia completa cercata, vuota) ed
+    esclusa da `.gitignore`, quindi ne' su GitHub ne' su questo sandbox.
+    Testo "philosophy" ancora letteralmente "Low-Vol" — prova diretta
+    della staleness. Trovati e corretti anche 4 testi hardcoded in
+    `home_app.py`/`page_apex.py` (badge/sottotitoli "Low-Vol") che non
+    si sarebbero MAI autocorretti, indipendentemente dal refresh dei dati.
+  - **Rigenerazione in-repo** (`apex_dashboard_stat_regeneration.py`,
+    scelta esplicita dell'utente rispetto a rifare la pipeline esterna),
+    **estesa il piu' indietro possibile con i migliori proxy** (richiesta
+    esplicita successiva): Equities = VFINX (total return dal 1986-09)
+    raccordato con SPY reale dal 1993-01; Bonds = VUSTX (Treasury lungo
+    termine, dal 1986-09) raccordato con IEF dal 2002-08 (duration diversa,
+    approssimazione dichiarata); Gold = GC=F (futures oro COMEX, dal
+    2000-08) raccordato con GLD dal 2004-11 — scartati proxy piu' vecchi
+    (indici/fondi di azioni minerarie aurifere, disponibili dagli anni '80)
+    perche' espongono a rischio azionario, contaminando proprio la classe
+    pensata per esserne indipendente; Crypto = solo BTC-USD reale dal
+    2014-09, nessun proxy prima (nessun mercato liquido affidabile).
+    Raccordo per RENDIMENTO (non prezzo grezzo), nessuna discontinuita'.
+    **Vincolo di onesta' point-in-time mantenuto**: la selezione per
+    singolo titolo resta 2012+ (limite dati costituenti S&P 500); prima
+    del 2012 lo slot Equity rende come l'indice proxy stesso, non come un
+    basket selezionato (userlo prima sarebbe look-ahead — comporrebbe un
+    basket con dati di composizione non noti all'epoca).
+  - **Risultato**: serie estesa da 142 a **471 mesi (1987-06 → 2026-08)**.
+    Le cifre del periodo TEST mostrate in dashboard (2020-09-30 → 2026-08,
+    72 mesi, INVARIATO) sono risultate numericamente identiche prima/dopo
+    l'estensione storica (split a valle, nessun effetto) — cambiano SOLO
+    per effetto del criterio low-beta: CAGR lordo 20,34% (era 14,16%
+    low-vol), Sharpe 1,25 (era 1,08), MaxDD -14,52% (era -10,12%), Sortino
+    2,58, Ulcer Index 6,19; combinato Apex(nuovo)/Convex 50/50: CAGR lordo
+    18,85% (correttamente tra 16,88% Convex e 20,34% Apex), MaxDD -7,88%
+    (inferiore a entrambe le componenti — il beneficio di diversificazione
+    resta nel rischio, non nel rendimento, coerente con quanto gia'
+    documentato). DSR pieno-campione (471 mesi) e periodo TEST restano
+    entrambi >0,999 anche a 100 trial ipotetici; CI 90% bootstrap sullo
+    Sharpe TEST [0,23; 1,58], esclude lo zero — l'estensione storica non
+    ha indebolito la robustezza statistica gia' verificata.
+  - **Convenzione lordo-primario confermata** (richiesta esplicita
+    dell'utente "voglio... al lordo di tasse"): gia' lo standard esistente
+    del resto della dashboard ("Crescita Annua Lorda" e' gia' la cifra
+    primaria mostrata, netto stimato secondario) — nessun cambiamento di
+    logica UI necessario, solo numeri aggiornati.
+  - **Benchmark SPY esteso per coerenza** (`spy_monthly_history.csv`,
+    usato per la linea di confronto sul grafico NAV combinato): stessa
+    tecnica di raccordo VFINX/SPY, da 1993 a 1986-09, altrimenti la linea
+    di benchmark sarebbe apparsa solo a meta' del grafico ora piu' lungo.
+  - **Bug trovato in `home_app.py`**: la didascalia del grafico NAV
+    combinato ("Serie mensile dal backtest comune...") aveva l'intervallo
+    di date e il conteggio mesi HARDCODED nel testo — sarebbe rimasta
+    sbagliata ad ogni futuro aggiornamento dati. Resa dinamica (calcolata
+    da `df_comb`), non solo corretta una volta.
+  - Aggiunte `sortino_ratio`/`ulcer_index` a `framework/metrics.py` (con
+    test), mancanti e necessarie per rigenerare quei due campi.
+  - Nuove asserzioni strutturali aggiornate (142→471 mesi) in
+    `test_apex_v2_institutional_validation.py` e `test_apex_convex.py` —
+    tutte le verifiche statistiche sostanziali (DSR, bootstrap CI,
+    drawdown impossibile, netto≤lordo) restano invariate e verdi.
 
 ## Cosa NON è (ancora) qui, e perché
 

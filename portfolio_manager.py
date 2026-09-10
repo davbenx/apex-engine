@@ -290,11 +290,15 @@ def save_convex_portfolio(data: Dict[str, Any]) -> bool:
 # Ora restituiscono SOLO il periodo TEST, lo stesso standard walk-forward gia'
 # usato in tutta la ricerca di questo progetto (vedi APEX_V2_SPEC.md §8.25 e
 # research/convex/convex_optimize_v2.py):
-#   - Apex: split a meta' campione per numero di decisioni mensili (72+72).
-#     TRAIN 2014-11-30 -> 2020-08-31, TEST 2020-09-30 -> 2026-08-31 (72 mesi).
-#     Ricalcolato da research/convex/apex_monthly_returns_extended.csv (netto)
-#     e _gross.csv, stessa metodologia che produce esattamente i numeri prima
-#     deployati per la finestra piena (verificato a 4 decimali) — non stimato.
+#   - Apex: TRAIN 1987-06-30 -> 2020-08-31 (399 mesi), TEST 2020-09-30 ->
+#     2026-08-31 (72 mesi). Storia TRAIN estesa da 2014-11 a 1987-06 (vedi
+#     apex_dashboard_stat_regeneration.py, richiesto dall'utente "vai il piu'
+#     indietro possibile usando i migliori proxy" — VFINX/VUSTX/GC=F raccordati
+#     con SPY/IEF/GLD reali; selezione azionaria per singolo titolo resta
+#     vincolata al 2012+ per onesta' point-in-time, prima usa il rendimento
+#     dell'indice proxy stesso). Le cifre TEST period sotto sono IDENTICHE a
+#     prima dell'estensione (verificato) — lo split 2020-09-30 e' a valle di
+#     tutta la storia estesa, nessun effetto sulla finestra mostrata.
 #   - Convex: la validazione dei pesi 45/15/25/7.5/7.5 in convex_optimize_v2.py
 #     usa TRAIN 2000-09-30 -> 2013-09-30, TEST 2013-10-31 -> 2026-08-31 (155
 #     mesi, tutti fuori campione). La cifra MOSTRATA in dashboard pero' usa un
@@ -317,26 +321,31 @@ def get_apex_metrics() -> Dict[str, Any]:
     Le metriche di rischio (sharpe/sortino/max_drawdown/calmar/volatility)
     sono calcolate sulla serie LORDA (apex_monthly_returns_extended_gross.csv,
     stesso TEST period) -- coerenti con equity.json/il grafico, che non
-    modella alcuna tassa. I campi *_netto_stimato usano invece la serie netta
-    (apex_monthly_returns_extended.csv, tasse italiane reali modellate anno
-    per anno) -- una stima più rigorosa dell'haircut fisso usato per Convex,
-    ma pur sempre calcolata su un backtest di ricerca separato dalla curva
-    live, non identica ad essa."""
+    modella alcuna tassa, ed E' la cifra primaria mostrata in dashboard
+    (convenzione lordo-primario/netto-stimato-secondario). I campi
+    *_netto_stimato usano invece la serie netta (apex_monthly_returns_extended.csv,
+    tasse italiane reali modellate anno per anno) -- una stima più rigorosa
+    dell'haircut fisso usato per Convex, ma pur sempre calcolata su un
+    backtest di ricerca separato dalla curva live, non identica ad essa.
+    Rigenerate con select_low_beta_basket e storia estesa a 1987-06 (proxy
+    VFINX/VUSTX/GC=F) — vedi apex_dashboard_stat_regeneration.py e
+    validation_suite/README.md. Le cifre del periodo TEST sono identiche a
+    prima dell'estensione storica (split 2020-09-30 a valle, non impattato)."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1230,
-        "cagr_gross": 0.1416,
-        "volatility": 0.1303,
-        "sharpe": 1.084,
-        "sortino": 2.456,
-        "max_drawdown": -0.1012,
-        "calmar": 1.399,
-        "ulcer_index": 5.61,
-        "volatility_netto_stimato": 0.1617,
-        "sharpe_netto_stimato": 0.799,
-        "sortino_netto_stimato": 1.409,
-        "max_drawdown_netto_stimato": -0.1598,
-        "calmar_netto_stimato": 0.770,
+        "cagr_net": 0.1428,
+        "cagr_gross": 0.2034,
+        "volatility": 0.1596,
+        "sharpe": 1.245,
+        "sortino": 2.58,
+        "max_drawdown": -0.1452,
+        "calmar": 1.401,
+        "ulcer_index": 6.19,
+        "volatility_netto_stimato": 0.1506,
+        "sharpe_netto_stimato": 0.964,
+        "sortino_netto_stimato": 1.86,
+        "max_drawdown_netto_stimato": -0.1538,
+        "calmar_netto_stimato": 0.928,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "cash_drag_protection": "100% Cash nei bear market macro",
         "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
@@ -390,36 +399,36 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     72 mesi) -- fuori campione per ENTRAMBE le strategie, la stessa identica
     finestra della casella Apex, cosi' le tre cifre sono confrontabili.
     Su questa finestra il CAGR combinato torna correttamente IN MEZZO ai due
-    componenti (15.91% tra 14.16% Apex e 16.88% Convex, tutti lordi) -- il
-    beneficio di diversificazione reale si vede nel MaxDD (-7.80%, inferiore
+    componenti (18.85% tra 16.88% Convex e 20.34% Apex, tutti lordi) -- il
+    beneficio di diversificazione reale si vede nel MaxDD (-7.88%, inferiore
     a entrambe le componenti), non nel CAGR. Sharpe/Sortino/MaxDD/Calmar
     calcolati sulle due serie LORDE (apex_monthly_returns_extended_gross.csv
     + convex_monthly_returns.csv); cagr_net e' la media pesata delle stime
     nette dei due componenti sulla stessa finestra, non una combinazione
     fiscale rigorosa posizione-per-posizione.
-    Correzione ulteriore (verifica incrociata successiva): volatility e
-    sortino erano rimasti stale da una versione precedente del calcolo (0.1149
-    e 2.267, incoerenti con lo sharpe=1.384 gia' corretto, che implicava una
-    volatility di 0.1100 -- ricalcolato a mano dai CSV, confermato: volatility
-    0.1100, sortino 3.306)."""
+    Rigenerato dopo select_low_beta_basket + estensione storica di Apex a
+    1987-06 (vedi get_apex_metrics()) — la finestra TEST (2020-09/2026-08)
+    condivisa da Apex/Convex/combinato non cambia, quindi il ricalcolo qui
+    riflette SOLO il nuovo criterio di selezione azionario di Apex, non
+    l'estensione storica in se'."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1303,
-        "cagr_gross": 0.1591,
-        "volatility": 0.1100,
-        "sharpe": 1.384,
-        "sortino": 3.306,
-        "max_drawdown": -0.0780,
-        "calmar": 2.040,
-        "ulcer_index": 2.62,
-        "correlation": 0.424,
+        "cagr_net": 0.1329,
+        "cagr_gross": 0.1885,
+        "volatility": 0.1217,
+        "sharpe": 1.487,
+        "sortino": 3.435,
+        "max_drawdown": -0.0788,
+        "calmar": 2.392,
+        "ulcer_index": 2.45,
+        "correlation": 0.403,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "synergy_summary": (
             "Mix 50% Apex / 50% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 15.91% (netto stimato 13.03%), correttamente tra il 14.16% di Apex e il 16.88% di Convex "
-            "isolatamente. Il beneficio di diversificazione si vede nel MaxDD -7.80% — inferiore a entrambe "
-            "le componenti singole (-10.12% Apex, -15.76% Convex) — non nel CAGR: una miscela pesata non può "
-            "mai battere entrambi i componenti sul rendimento, solo sul rischio. Correlazione reale: 0.424."
+            "CAGR 18.85% (netto stimato 13.29%), correttamente tra il 16.88% di Convex e il 20.34% di Apex "
+            "isolatamente. Il beneficio di diversificazione si vede nel MaxDD -7.88% — inferiore a entrambe "
+            "le componenti singole (-14.52% Apex, -15.76% Convex) — non nel CAGR: una miscela pesata non può "
+            "mai battere entrambi i componenti sul rendimento, solo sul rischio. Correlazione reale: 0.403."
         )
     }
 
@@ -538,7 +547,8 @@ def compute_unified_portfolio(
 
 def load_combined_monthly_history(target_apex: float = 0.50, target_convex: float = 0.50) -> pd.DataFrame:
     """
-    Carica le serie mensili storiche di Apex Engine (142 mesi dal 2014-11 al 2026-08)
+    Carica le serie mensili storiche di Apex Engine (471 mesi dal 1987-06 al 2026-08,
+    proxy VFINX/VUSTX/GC=F prima delle inception reali SPY/IEF/GLD)
     e di Convex Stack, e genera la serie di rendimenti e NAV Base 100 del portafoglio combinato.
     """
     base_dir = os.path.dirname(__file__)

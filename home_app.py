@@ -320,13 +320,15 @@ with tab_perf:
     </div>
     """)
 
-    # Carica serie combinata 142 mesi (2014-11 al 2026-08)
+    # Carica serie combinata (finestra comune Apex/Convex — dipende dalla piu' corta delle due,
+    # oggi Convex: 2000-09+; Apex da solo arriva al 1987-06, vedi get_apex_metrics())
     df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
 
 
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark", top="8px", bottom="8px"))
-        st.caption(f"Serie mensile dal backtest comune (2014–2026, 142 mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
+        _comb_start, _comb_end = df_comb.index.min(), df_comb.index.max()
+        st.caption(f"Serie mensile dal backtest comune ({_comb_start.year}–{_comb_end.year}, {len(df_comb)} mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
 
 
         selected_range = st.segmented_control(

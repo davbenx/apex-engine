@@ -53,12 +53,13 @@ def apex_gross_full():
 
 
 def test_track_record_files_match_documented_split():
-    """Verifica che il file abbia davvero 142 mesi con lo split TRAIN/TEST
-    72+72 documentato in portfolio_manager.py — se questo file cambia forma
-    (es. viene rigenerato con una finestra diversa) gli altri test qui dentro
-    vanno riletti, non solo rieseguiti."""
+    """Verifica che il file abbia davvero 471 mesi (1987-06 -> 2026-08, esteso
+    con proxy VFINX/VUSTX/GC=F — vedi apex_dashboard_stat_regeneration.py) con
+    72 mesi di TEST dal 2020-09-30 documentati in portfolio_manager.py — se
+    questo file cambia forma (es. viene rigenerato con una finestra diversa)
+    gli altri test qui dentro vanno riletti, non solo rieseguiti."""
     net = _load_series("apex_monthly_returns_extended.csv")
-    assert len(net) == 142
+    assert len(net) == 471
     test_period = net.loc[TEST_PERIOD_START:]
     assert len(test_period) == 72, (
         "lo split TEST documentato (72 mesi, dal 2020-09-30) non corrisponde piu' al file reale — "
@@ -69,7 +70,7 @@ def test_track_record_files_match_documented_split():
 def test_dsr_full_sample_stays_meaningfully_positive_across_plausible_trial_counts(apex_net_full):
     """Il DSR (probabilita' che lo Sharpe osservato sia genuinamente positivo,
     corretto per il numero di varianti effettivamente provate) sul campione
-    pieno (142 mesi) deve restare sostanzialmente sopra 0.5 anche assumendo un
+    pieno (471 mesi) deve restare sostanzialmente sopra 0.5 anche assumendo un
     numero di tentativi alto (100) — altrimenti l'alpha di Apex V2 sarebbe
     difendibile solo per un numero di trial implausibilmente basso, un segnale
     di overfitting che varrebbe la pena approfondire."""
