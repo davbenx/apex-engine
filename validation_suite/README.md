@@ -1432,6 +1432,39 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   di richiamo margine); muoversi verso il Kelly implicito comprometterebbe
   deliberatamente quella garanzia per un guadagno teorico che il calcolo
   stesso avverte di non prendere alla lettera.
+- **Diversificazione geografica reale (home bias, Ilmanen/Asness) — idea
+  #7 della lista di approfondimento, l'ultima del giro**
+  (`apex_international_equities_class_test.py`): Apex e' oggi 100%
+  azionario USA. Testata una QUINTA classe macro indipendente,
+  "IntlEquities" su EFA (MSCI EAFE — Europa + Giappone + Australasia +
+  Estremo Oriente), stesso meccanismo di trend/isteresi delle altre 4,
+  nessuna selezione titolo-per-titolo (esposizione ampia via ETF, aggira
+  deliberatamente il limite point-in-time che blocca l'idea #1 non-US
+  ancora in coda). **Risultato sfumato, non una falsificazione netta**:
+  CAGR 17,77% (5 classi) contro 18,98% (baseline) ma CI 90%
+  [-2,64;+0,32] include lo zero — non significativo; Sharpe praticamente
+  identico (1,24 contro 1,25); **il MaxDD MIGLIORA davvero** (-17,23%
+  contro -18,49%) — un genuino beneficio di diversificazione nella coda
+  del rischio, coerente con la letteratura home-bias. Campione limitato
+  (626 settimane, 2014-2026, dominato dalla sovraperformance USA post-2014
+  — "US exceptionalism" — che probabilmente penalizza International nel
+  breve/medio termine rispetto al caso strutturale di lungo periodo che la
+  letteratura sostiene). PBO-CSCV 0,0% riflette il piccolo vantaggio
+  Sharpe del baseline, non una bocciatura netta del meccanismo. **Nessuna
+  modifica in produzione ora**, ma tra tutte le idee di questo giro e'
+  quella con l'esito meno negativo — non chiusa, solo non abbastanza forte
+  da giustificare un cambio subito.
+- **Verdetto complessivo del giro di approfondimento (idee #4-8 della
+  lista, richiesto dall'utente)**: su 5 idee testate con piena disciplina
+  walk-forward/PBO/bootstrap, 3 falsificate in modo netto (dual momentum,
+  skip-month, entrambe con lo stesso pattern "leva su Crypto il vincitore
+  storico" o danno diretto), 1 confermata come gia' ben calibrata (leva
+  Kelly), 2 con risultato sfumato ne' validato ne' falsificato (regime
+  filter curva dei rendimenti, diversificazione geografica) — quest'ultima
+  l'unica a mostrare un miglioramento REALE su una metrica (MaxDD),
+  seppure non abbastanza forte da giustificare l'adozione su questo
+  campione. Restano bloccate per dati insufficienti: campione BAB non-US
+  (idea #1) e quality overlay (idea #2) — da riprovare con altre fonti.
 
 ## Cosa NON è (ancora) qui, e perché
 
