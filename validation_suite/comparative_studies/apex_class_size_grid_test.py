@@ -52,6 +52,13 @@ GRID = [
     ("Piu' grande (50%/28%)", 0.50, 0.28),
     ("Molto piu' grande (75%/22%)", 0.75, 0.22),
     ("Molto piu' grande (50%/35%)", 0.50, 0.35),
+    # "Nessun tetto": base_weight_per_class=1.0 rende INNOCUA la rinormalizzazione
+    # esplicita (apex_v2_engine.py righe ~132-140, "mai a leva" strutturale per
+    # qualunque valore) l'UNICO limite alla dimensione per classe, invece del
+    # letterale 0.50/0.60/0.75 testato sopra — mai provato prima (richiesta diretta
+    # dell'utente: "hai provato senza tetto?").
+    ("Nessun tetto per classe (100%/22%)", 1.0, 0.22),
+    ("Nessun tetto per classe (100%/13%)", 1.0, 0.13),
 ]
 
 

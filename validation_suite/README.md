@@ -245,23 +245,36 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   bootstrap [0,61; 1,58] che include comodamente lo Sharpe dell'attuale
   (1,08) — nessun cambiamento consigliato.
 - **Dimensione delle posizioni per classe macro (`base_weight_per_class`/
-  `vol_target`)**: griglia di 7 combinazioni attorno all'attuale 50%/22%
-  ("Percorso B", §8.25/§8.28), incl. il valore precedente 25%/13%
-  (`apex_class_size_grid_test.py`) — richiesto esporre questi due valori
-  come parametri di `apex_v2_engine.compute_v2_macro_signal` (prima
-  letterali hardcoded, default invariati, 3 nuovi test di regressione).
+  `vol_target`)**: griglia di 9 combinazioni attorno all'attuale 50%/22%
+  ("Percorso B", §8.25/§8.28), incl. il valore precedente 25%/13% e —
+  richiesto esplicitamente dall'utente ("hai provato senza tetto?") — 2
+  configurazioni "nessun tetto" (`base_weight_per_class=1.0`, l'unico
+  limite resta la rinormalizzazione strutturale "mai a leva" sempre attiva
+  in `compute_v2_macro_signal`, non un tetto nominale per classe)
+  (`apex_class_size_grid_test.py`) — richiesto esporre `base_weight_per_class`/
+  `vol_target` come parametri della funzione (prima letterali hardcoded,
+  default invariati, 3 nuovi test di regressione).
   Risultato: Sharpe netto sostanzialmente PIATTO su tutta la griglia
-  (1,07-1,11) — PBO-CSCV 52,9% (nessuna combinazione batte le altre in modo
-  robusto), CI 90% sul "migliore" nominale (25%/13%, Sharpe 1,11) [0,65;
-  1,59] include comodamente l'attuale. CAGR e MaxDD invece SALGONO insieme
-  in modo monotono con l'esposizione (25%/13%: CAGR 10,2%/MaxDD -12,5%  →
-  50%/35%: CAGR 20,7%/MaxDD -28,0%) — un vero trade-off rischio/rendimento
-  lungo una frontiera, non un pasto gratis. **Conferma indipendente**, con
-  strumenti mai usati nella ricerca originale (PBO/DSR/bootstrap), di
+  (1,00-1,11), **incluso "nessun tetto" (100%/22%): Sharpe 1,07, CAGR
+  16,71%, MaxDD -22,46% — praticamente indistinguibile dall'attuale 50%**
+  (Sharpe 1,08, CAGR 16,50%, MaxDD -21,60%). PBO-CSCV 52,9% su tutte e 9
+  (nessuna combinazione batte le altre in modo robusto), CI 90% sul
+  "migliore" nominale (25%/13%, Sharpe 1,11) [0,65; 1,59] include
+  comodamente l'attuale. CAGR e MaxDD invece SALGONO insieme in modo
+  monotono con l'esposizione (25%/13%: CAGR 10,2%/MaxDD -12,5% → 50%/35%:
+  CAGR 20,7%/MaxDD -28,0%) — un vero trade-off rischio/rendimento lungo
+  una frontiera, non un pasto gratis. **Perché "nessun tetto" non cambia
+  nulla**: con 4 classi e volatilità realizzata tipica, la rinormalizzazione
+  strutturale (mai superare 100% aggregato) interviene comunque quasi
+  sempre — il tetto nominale per classe (35%, 50%, 75%, o assente) conta
+  molto meno di quanto ci si aspetterebbe, perché il vincolo aggregato fa
+  già il lavoro reale di controllo del rischio. **Conferma indipendente**,
+  con strumenti mai usati nella ricerca originale (PBO/DSR/bootstrap), di
   quanto §8.19/§8.21/§8.25 avevano già trovato con la ricerca originale:
   "Percorso B" è una scelta di rischio esplicita su un plateau reale, non
-  un punto Sharpe-ottimo nascosto — e nessun punto della griglia lo batte
-  su Sharpe in modo che regga a un controllo di overfitting.
+  un punto Sharpe-ottimo nascosto — e nessun punto della griglia (tetto
+  rimosso incluso) lo batte su Sharpe in modo che regga a un controllo di
+  overfitting.
 - **Pesi target di Convex Stack**: 9 combinazioni alternative contro
   l'attuale 45/15/25/7.5/7.5 (`convex_weights_grid_test.py`), su proxy a
   storico lungo (SPY/IEF/VBR/DBMF/GLD/BTC-USD) con TER e tassazione reali.
