@@ -1465,6 +1465,43 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   seppure non abbastanza forte da giustificare l'adozione su questo
   campione. Restano bloccate per dati insufficienti: campione BAB non-US
   (idea #1) e quality overlay (idea #2) — da riprovare con altre fonti.
+- **Kelly tra Apex e Convex (mix a 2 asset) — domanda diretta dell'utente
+  dopo il controllo di calibrazione della leva di Convex**
+  (`apex_convex_kelly_mix_test.py`): NON una riproposta di Kelly Stack
+  (che ha gia' applicato Kelly alle sleeve INTERNE di Convex in modo
+  esaustivo, 8 round di risultati — vedi `KELLY_STACK_SPEC.md`) — qui il
+  MIX tra i due motori interi (oggi 50/50 di default), mai testato prima.
+  Calcolo diretto, nessun backtest, sulle serie reali di produzione (312
+  mesi comuni, 2000-2026): Apex mu=15,39%/sigma=12,94%/Sharpe 1,19,
+  Convex mu=9,98%/sigma=11,36%/Sharpe 0,88, correlazione 0,270 (CI 90%
+  [0,155;0,357], stima ragionevolmente stabile).
+  - **Due ottimizzazioni diverse danno risposte diverse — la divergenza
+    stessa e' l'informazione utile.** Massimizzare lo SHARPE del mix
+    (nessuna leva extra) da' un punto teorico ~60% Apex/40% Convex,
+    confermato dal confronto empirico diretto sulle serie reali (Sharpe
+    picca 1,31 a 50/50-70/30, contro 1,19 di Apex puro). Massimizzare
+    invece la CRESCITA GEOMETRICA attesa (la vera metrica Kelly, non lo
+    Sharpe) vincolata al simplesso (100% investito, niente leva
+    aggiuntiva) da' una soluzione d'angolo: **100% Apex, 0% Convex** —
+    non un errore, ma la conseguenza matematica di essere vincolati a
+    stare tutti investiti: oltre il punto Sharpe-ottimale conviene ancora
+    spostarsi verso l'asset col mu assoluto piu' alto, dato che non si
+    puo' scalare la leva per sfruttare il rapporto ottimale.
+  - **Perche' NON prendere la soluzione d'angolo alla lettera**: il
+    vantaggio di Apex su Convex in questo campione e' +5,41pp/anno ma con
+    **CI 90% [+0,37;+10,65]** — esclude lo zero per un soffio, intervallo
+    enorme. La spinta verso "100% Apex" dipende quasi interamente da
+    quanto quel vantaggio storico e' reale e persistente; al bordo
+    inferiore della CI sparirebbe quasi del tutto. Stessa fragilita' gia'
+    vista nel controllo sulla leva di Convex, qui amplificata dal fatto
+    di confrontare solo 2 asset invece di distribuire l'incertezza su un
+    portafoglio diversificato.
+  - **Verdetto**: il segnale piu' solido e' quello Sharpe-based (50/50 a
+    70/30 Apex, coerente sia in teoria sia sui dati reali) — il 50/50
+    attuale sta gia' dentro la zona ragionevole, con margine plausibile
+    per uno spostamento leggero verso Apex (60/40) se si volesse
+    ottimizzare, ma nessuna base solida per un cambio drastico. **Nessuna
+    modifica al mix di default** sulla base di questo calcolo da solo.
 
 ## Cosa NON è (ancora) qui, e perché
 
