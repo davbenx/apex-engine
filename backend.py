@@ -1,7 +1,7 @@
 """
 Apex Multi-Asset Quantitative Engine v2
 Timing multi-asset (isteresi + vol-targeting) su SPY/IEF/GLD/BTC-USD + basket
-azionario a bassa volatilita', tracking di portafoglio e notifiche Telegram.
+azionario a basso beta (vs SPY), tracking di portafoglio e notifiche Telegram.
 Specifica completa: APEX_V2_SPEC.md.
 """
 
@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
 from apex_v2_engine import (
-    compute_v2_macro_signal, select_low_vol_basket, is_quarter_end_month,
+    compute_v2_macro_signal, select_low_beta_basket, is_quarter_end_month,
     V2_CLASS_TICKER, V2_EQUITY_TOP_N,
 )
 
@@ -237,8 +237,10 @@ def fetch_sector(ticker):
 
 def fetch_sector_map(tickers, max_workers=MAX_WORKERS_DEFAULT):
     """Recupera il settore per una lista di ticker, in parallelo. Fail-open per singolo
-    titolo: select_low_vol_basket tratta un settore mancante come non vincolato, non
-    come motivo per bloccare la selezione (vedi APEX_V2_SPEC.md §8.7)."""
+    titolo: select_low_beta_basket (come select_low_vol_basket prima) tratta un settore
+    mancante come non vincolato, non come motivo per bloccare la selezione (vedi
+    APEX_V2_SPEC.md §8.7 — la logica e' condivisa tra i due criteri, indipendente dalla
+    metrica di ranking)."""
     sector_of = {}
     print(f"[*] Recupero settori ({len(tickers)} titoli)...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -861,11 +863,11 @@ def main():
         if allocations_new.get("Equities", 0) > 0:
             need_full_universe = is_quarter_end_month(now_dt) or not prev_basket
             if need_full_universe:
-                print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500 (decisione)...")
+                print("[2/4] Riselezione basket azionario a basso beta (vs SPY) su tutto l'S&P 500 (decisione)...")
                 eq_ticks = list(set(get_sp500_tickers() + held_eq))
                 eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
                 sector_of = fetch_sector_map(list(eq_data.keys()), max_workers=MAX_WORKERS_DEFAULT)
-                new_basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
+                new_basket = select_low_beta_basket(eq_data, spy_df, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
             else:
                 print("[2/4] Nessuna rotazione trimestrale in questa decisione: mantengo il basket azionario attuale.")
                 new_basket = prev_basket

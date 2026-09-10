@@ -31,7 +31,17 @@ V2_VOL_TARGET = 0.22  # alzato da 0.13 — vedi APEX_V2_SPEC.md §8.25/§10.13 (
                       # nuova evidenza che confutasse la validazione walk-forward originale.
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
-V2_EQUITY_VOL_LOOKBACK = 26
+V2_EQUITY_VOL_LOOKBACK = 26   # usato da select_low_vol_basket, non piu' chiamata da backend.py — vedi V2_EQUITY_BETA_LOOKBACK
+V2_EQUITY_BETA_LOOKBACK = 26  # vedi APEX_V2_SPEC.md §8.29/§4: criterio di produzione dal
+                              # passaggio a select_low_beta_basket, deciso dopo 5+ giri di
+                              # verifica indipendenti (validation_suite/README.md — griglia
+                              # fine di lookback su banda 16-33 sett., ensemble scoped,
+                              # walk-forward senza look-ahead nella selezione del parametro,
+                              # turnover/composizione, crash specifici, interazione col
+                              # segnale di timing, criterio di uscita). Valore coincide
+                              # numericamente con V2_EQUITY_VOL_LOOKBACK ma e' una costante
+                              # indipendente apposta — le due metriche (beta vs SPY, non
+                              # volatilita' assoluta) sono concettualmente distinte.
 V2_EQUITY_BUFFER_RANK = 20  # vedi APEX_V2_SPEC.md §8.3: valore corretto dopo bug nel calendario del backtest (era 100)
 
 
@@ -154,50 +164,25 @@ def compute_v2_macro_signal(
 V2_MAX_PER_SECTOR = 2  # vedi APEX_V2_SPEC.md §8.7: protegge l'alpha nei regimi sfavorevoli al settore concentrato
 
 
-def select_low_vol_basket(
-    eq_data: Dict[str, pd.DataFrame],
-    top_n: int = V2_EQUITY_TOP_N,
-    lookback_weeks: int = V2_EQUITY_VOL_LOOKBACK,
-    prev_tickers: Optional[set] = None,
-    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
-    sector_of: Optional[Dict[str, str]] = None,
-    max_per_sector: int = V2_MAX_PER_SECTOR,
+def _select_basket_by_metric(
+    ranked_syms: List[str],
+    info_by_sym: Dict[str, tuple],
+    metric_key: str,
+    top_n: int,
+    prev_tickers: Optional[set],
+    buffer_rank: int,
+    sector_of: Optional[Dict[str, str]],
+    max_per_sector: int,
 ) -> List[dict]:
+    """Buffer di isteresi sulla rank (§8.3) + vincolo di concentrazione settoriale (§8.7),
+    condivisi da select_low_vol_basket e select_low_beta_basket — questa logica di
+    permanenza/composizione e' indipendente dalla metrica di ranking scelta (volatilita'
+    o beta), solo `ranked_syms`/`info_by_sym` cambiano tra le due.
+
+    `info_by_sym[sym]` = (valore_metrica_gia'_arrotondato, prezzo_gia'_arrotondato).
     """
-    Seleziona i `top_n` titoli a volatilita' realizzata piu' bassa (§4 di APEX_V2_SPEC.md).
-    NON e' selezione per generare alpha (l'audit ha dimostrato che il momentum non ne ha
-    su questo universo) — e' solo un modo pratico e liquido di ottenere beta azionario
-    con carattere fiscale "redditi diversi".
-
-    Buffer di isteresi sulla rank (§8.3): un titolo gia' detenuto (`prev_tickers`) resta
-    in basket se la sua posizione in classifica resta entro `buffer_rank`, anche se e'
-    scesa fuori dal top-`top_n` esatto — senza buffer il rinnovo trimestrale era
-    comunque sostanzioso (~60% dei nomi sostituiti ogni trimestre, rumore di stima
-    della volatilita' vicino alla soglia).
-
-    Vincolo di concentrazione settoriale (§8.7): la selezione per bassa volatilita', da
-    sola, concentra sistematicamente in 1-2 settori difensivi (Utilities/Real Estate) —
-    fino all'80% del basket in un solo settore in alcuni trimestri storici, un rischio
-    confermato con dati reali (yfinance) e non solo teorico. `max_per_sector` limita
-    quanti titoli dello stesso settore possono coesistere nel basket; se `sector_of` non
-    e' disponibile per un titolo, non viene vincolato (fail-open, non blocca la
-    selezione per un problema di dati sui settori). I NUOVI ingressi restano comunque
-    scelti solo tra i migliori in assoluto — buffer e vincolo settoriale allentano solo
-    la permanenza/composizione, mai l'ammissione di un titolo scarso.
-    """
-    scored = []
-    for sym, df in eq_data.items():
-        wc = _weekly_close(df)
-        v = _realized_vol(wc, lookback_weeks)
-        if v is not None and len(wc) > 0:
-            scored.append((sym, v, float(wc.iloc[-1])))
-
-    scored.sort(key=lambda t: t[1])  # bassa volatilita' prima
-    info_by_sym = {sym: (vol, price) for sym, vol, price in scored}
-    ranked_syms = [sym for sym, _, _ in scored]
     rank_of = {sym: i for i, sym in enumerate(ranked_syms)}
     sector_of = sector_of or {}
-
     sector_count: Dict[str, int] = {}
     result: List[str] = []
 
@@ -233,10 +218,138 @@ def select_low_vol_basket(
             add(sym)
 
     return [
-        {"Ticker": sym, "Prezzo ($)": round(info_by_sym[sym][1], 2),
-         "Volatilita' Ann. (%)": round(info_by_sym[sym][0] * 100, 2), "Stop Loss ($)": 0.0}
+        {"Ticker": sym, "Prezzo ($)": info_by_sym[sym][1], metric_key: info_by_sym[sym][0], "Stop Loss ($)": 0.0}
         for sym in result[:top_n]
     ]
+
+
+def select_low_vol_basket(
+    eq_data: Dict[str, pd.DataFrame],
+    top_n: int = V2_EQUITY_TOP_N,
+    lookback_weeks: int = V2_EQUITY_VOL_LOOKBACK,
+    prev_tickers: Optional[set] = None,
+    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
+    sector_of: Optional[Dict[str, str]] = None,
+    max_per_sector: int = V2_MAX_PER_SECTOR,
+) -> List[dict]:
+    """
+    Seleziona i `top_n` titoli a volatilita' realizzata piu' bassa (§4 di APEX_V2_SPEC.md,
+    criterio storico — SOSTITUITO in produzione da select_low_beta_basket, vedi §8.29 e
+    validation_suite/README.md; questa funzione resta nel modulo per compatibilita' di
+    test/riferimento, non piu' chiamata da backend.py).
+    NON e' selezione per generare alpha (l'audit ha dimostrato che il momentum non ne ha
+    su questo universo) — e' solo un modo pratico e liquido di ottenere beta azionario
+    con carattere fiscale "redditi diversi".
+
+    Buffer di isteresi sulla rank (§8.3): un titolo gia' detenuto (`prev_tickers`) resta
+    in basket se la sua posizione in classifica resta entro `buffer_rank`, anche se e'
+    scesa fuori dal top-`top_n` esatto — senza buffer il rinnovo trimestrale era
+    comunque sostanzioso (~60% dei nomi sostituiti ogni trimestre, rumore di stima
+    della volatilita' vicino alla soglia).
+
+    Vincolo di concentrazione settoriale (§8.7): la selezione per bassa volatilita', da
+    sola, concentra sistematicamente in 1-2 settori difensivi (Utilities/Real Estate) —
+    fino all'80% del basket in un solo settore in alcuni trimestri storici, un rischio
+    confermato con dati reali (yfinance) e non solo teorico. `max_per_sector` limita
+    quanti titoli dello stesso settore possono coesistere nel basket; se `sector_of` non
+    e' disponibile per un titolo, non viene vincolato (fail-open, non blocca la
+    selezione per un problema di dati sui settori). I NUOVI ingressi restano comunque
+    scelti solo tra i migliori in assoluto — buffer e vincolo settoriale allentano solo
+    la permanenza/composizione, mai l'ammissione di un titolo scarso.
+    """
+    scored = []
+    for sym, df in eq_data.items():
+        wc = _weekly_close(df)
+        v = _realized_vol(wc, lookback_weeks)
+        if v is not None and len(wc) > 0:
+            scored.append((sym, v, float(wc.iloc[-1])))
+
+    scored.sort(key=lambda t: t[1])  # bassa volatilita' prima
+    info_by_sym = {sym: (round(vol * 100, 2), round(price, 2)) for sym, vol, price in scored}
+    ranked_syms = [sym for sym, _, _ in scored]
+
+    return _select_basket_by_metric(
+        ranked_syms, info_by_sym, "Volatilita' Ann. (%)", top_n, prev_tickers, buffer_rank, sector_of, max_per_sector,
+    )
+
+
+def _realized_beta(weekly_close: pd.Series, spy_weekly_close: pd.Series, window: int) -> Optional[float]:
+    """Beta (sensibilita' sistematica) rispetto a SPY su rendimenti settimanali,
+    finestra trailing `window`: cov(rendimento asset, rendimento SPY) / var(rendimento
+    SPY). None se dati insufficienti o se SPY ha varianza numericamente nulla nella
+    finestra (mai accaduto in pratica, guardia difensiva)."""
+    ret = weekly_close.pct_change().dropna()
+    spy_ret = spy_weekly_close.pct_change().dropna()
+    common = ret.index.intersection(spy_ret.index)
+    if len(common) < window + 1:
+        return None
+    r = ret.reindex(common).iloc[-window:]
+    m = spy_ret.reindex(common).iloc[-window:]
+    var_m = float(m.var())
+    if var_m <= 1e-12:
+        return None
+    return float(r.cov(m) / var_m)
+
+
+def select_low_beta_basket(
+    eq_data: Dict[str, pd.DataFrame],
+    spy_data: pd.DataFrame,
+    top_n: int = V2_EQUITY_TOP_N,
+    lookback_weeks: int = V2_EQUITY_BETA_LOOKBACK,
+    prev_tickers: Optional[set] = None,
+    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
+    sector_of: Optional[Dict[str, str]] = None,
+    max_per_sector: int = V2_MAX_PER_SECTOR,
+) -> List[dict]:
+    """
+    Seleziona i `top_n` titoli a BETA (sensibilita' sistematica rispetto a SPY, non
+    volatilita' assoluta) piu' basso — CRITERIO DI PRODUZIONE dal passaggio da
+    select_low_vol_basket, §4/§8.29 di APEX_V2_SPEC.md. Deciso dopo 5+ giri di
+    verifica indipendenti in validation_suite/ (vedi README.md per il dettaglio
+    completo: griglia fine di lookback su banda 16-33 settimane, ensemble scoped su
+    22-33 settimane, walk-forward SENZA look-ahead nella selezione del lookback,
+    confronto turnover/composizione/sovrapposizione titoli con low-vol, comportamento
+    nei crash specifici, interazione col segnale di timing, criterio di uscita —
+    conclusione: switching adattivo peggiora, il lookback va tenuto fisso).
+
+    Differenza concettuale da select_low_vol_basket: un titolo puo' essere molto
+    volatile in ASSOLUTO ma muoversi poco IN SINTONIA col mercato (beta basso), o
+    viceversa — principio "Betting Against Beta" (Frazzini-Pedersen 2014), premia la
+    bassa sensibilita' sistematica, non la bassa dispersione assoluta. Ordinamento per
+    beta CRESCENTE (non per valore assoluto): un beta molto negativo e' preferito a un
+    beta leggermente positivo, coerente con la letteratura BAB (un buon diversificatore
+    vale piu' di uno neutro). Stesso buffer di isteresi sulla rank e stesso vincolo di
+    concentrazione settoriale di select_low_vol_basket (vedi _select_basket_by_metric)
+    — solo il criterio di ranking e i dati richiesti in input cambiano (serve anche
+    `spy_data`, il riferimento di mercato, non necessario per la volatilita' assoluta).
+
+    Limiti noti, misurati empiricamente (vedi README.md, checklist di produzione):
+    turnover quasi identico a low-vol (60% contro 57% dei titoli sostituiti a
+    trimestre), ma sovrapposizione titoli effettivi tra i due criteri solo ~6.9% (la
+    meccanica di selezione e' sostanzialmente diversa, non un aggiustamento marginale).
+    Il basket risultante e' meno correlato a SPY (0.708 contro 0.775 misurato su 11
+    anni) — protegge nei ribassi lenti/strutturali (es. 2022: +6.46pp vs low-vol) ma
+    NON nei panici acuti a correlazione-1 (es. COVID 2020: leggermente peggio).
+    L'effetto e' positivo e consistente su 5+ disegni di verifica indipendenti ma non
+    sempre statisticamente significativo al 90% contro il preciso lookback di
+    produzione (dipende dalla configurazione esatta testata) — trattarlo come un
+    miglioramento di convinzione moderata, non a piena confidenza statistica.
+    """
+    spy_wc = _weekly_close(spy_data)
+    ranked = []
+    for sym, df in eq_data.items():
+        wc = _weekly_close(df)
+        beta = _realized_beta(wc, spy_wc, lookback_weeks)
+        if beta is not None and len(wc) > 0:
+            ranked.append((sym, beta, float(wc.iloc[-1])))
+
+    ranked.sort(key=lambda t: t[1])  # beta basso (incl. negativo) prima, non valore assoluto
+    info_by_sym = {sym: (round(beta, 3), round(price, 2)) for sym, beta, price in ranked}
+    ranked_syms = [sym for sym, _, _ in ranked]
+
+    return _select_basket_by_metric(
+        ranked_syms, info_by_sym, "Beta (vs SPY)", top_n, prev_tickers, buffer_rank, sector_of, max_per_sector,
+    )
 
 
 def is_quarter_end_month(dt: Optional[datetime.datetime] = None) -> bool:

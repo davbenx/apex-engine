@@ -6,7 +6,7 @@ import datetime
 import numpy as np
 import pandas as pd
 
-from apex_v2_engine import compute_v2_macro_signal, select_low_vol_basket, is_quarter_end_month
+from apex_v2_engine import compute_v2_macro_signal, select_low_vol_basket, select_low_beta_basket, is_quarter_end_month
 
 
 def make_trend_df(n_days=400, daily_drift=0.002, daily_vol=0.01, start=100.0, seed=1):
@@ -261,6 +261,123 @@ def test_select_low_vol_basket_buffer_never_relaxes_new_entrants():
         prev_tickers=set(), buffer_rank=100,
     )
     assert [b["Ticker"] for b in buffered] == ["LOWVOL"]
+
+
+def _spy_ref_df(n_weeks=60, seed=99, vol=0.02, base=100.0):
+    """Serie SPY di riferimento a rendimenti settimanali casuali ma riproducibili
+    (seed fisso) — usata come base per costruire titoli a BETA controllato."""
+    rng = np.random.default_rng(seed)
+    dates = pd.date_range("2024-01-05", periods=n_weeks, freq="W-FRI")
+    rets = rng.normal(0.001, vol, n_weeks)
+    close = base * np.cumprod(1 + rets)
+    return pd.DataFrame({"Open": close, "High": close, "Low": close, "Close": close}, index=dates)
+
+
+def _beta_controlled_df(spy_df, beta, noise_std=0.0005, seed=0, base=100.0):
+    """Costruisce una serie prezzi con BETA CONTROLLATO rispetto a spy_df: rendimento
+    settimanale = beta * rendimento_SPY + rumore idiosincratico indipendente (piccolo,
+    cosi' il beta stimato dal test resta vicino al beta vero usato per costruirla)."""
+    spy_ret = spy_df["Close"].pct_change().fillna(0.0).values
+    rng = np.random.default_rng(seed)
+    noise = rng.normal(0, noise_std, len(spy_ret))
+    stock_ret = beta * spy_ret + noise
+    close = base * np.cumprod(1 + stock_ret)
+    return pd.DataFrame({"Open": close, "High": close, "Low": close, "Close": close}, index=spy_df.index)
+
+
+def test_select_low_beta_basket_ranks_correctly():
+    """Ordinamento per beta CRESCENTE (non valore assoluto): un beta molto negativo
+    e' preferito a uno leggermente positivo, coerente con la letteratura BAB — vedi
+    APEX_V2_SPEC.md §8.29."""
+    spy = _spy_ref_df()
+    eq_data = {
+        "NEGBETA": _beta_controlled_df(spy, beta=-0.3, seed=1),
+        "LOWBETA": _beta_controlled_df(spy, beta=0.1, seed=2),
+        "HIGHBETA": _beta_controlled_df(spy, beta=1.5, seed=3),
+    }
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26)
+    tickers = [b["Ticker"] for b in basket]
+    assert tickers == ["NEGBETA", "LOWBETA"], "beta negativo preferito a beta positivo basso, entrambi preferiti al beta alto"
+    assert "HIGHBETA" not in tickers
+    assert len(basket) == 2
+
+
+def test_select_low_beta_basket_reports_beta_not_volatility():
+    """Il dict risultante deve esporre il beta (chiave 'Beta (vs SPY)'), non piu' la
+    volatilita' assoluta — un titolo ad alta volatilita' ma basso beta (poco in
+    sintonia col mercato) deve poter essere selezionato, a differenza di
+    select_low_vol_basket."""
+    spy = _spy_ref_df()
+    eq_data = {
+        "LOWBETA_HIGHVOL": _beta_controlled_df(spy, beta=0.05, noise_std=0.05, seed=1),
+        "HIGHBETA_LOWVOL": _beta_controlled_df(spy, beta=1.2, noise_std=0.0002, seed=2),
+    }
+    basket = select_low_beta_basket(eq_data, spy, top_n=1, lookback_weeks=26)
+    assert basket[0]["Ticker"] == "LOWBETA_HIGHVOL", "basso beta vince anche se la volatilita' assoluta e' piu' alta"
+    assert "Beta (vs SPY)" in basket[0]
+    assert "Volatilita' Ann. (%)" not in basket[0]
+
+
+def test_select_low_beta_basket_buffer_retains_incumbent_within_rank_window():
+    spy = _spy_ref_df()
+    eq_data = {
+        "LOWBETA": _beta_controlled_df(spy, beta=-0.2, seed=1),
+        "MIDBETA2": _beta_controlled_df(spy, beta=0.3, seed=2),
+        "MIDBETA": _beta_controlled_df(spy, beta=0.6, seed=3),
+        "HIGHBETA": _beta_controlled_df(spy, beta=1.8, seed=4),
+    }
+    no_buffer = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26)
+    assert [b["Ticker"] for b in no_buffer] == ["LOWBETA", "MIDBETA2"], "senza buffer, MIDBETA (rank 3) deve uscire"
+
+    buffered = select_low_beta_basket(
+        eq_data, spy, top_n=2, lookback_weeks=26,
+        prev_tickers={"LOWBETA", "MIDBETA"}, buffer_rank=3,
+    )
+    tickers = [b["Ticker"] for b in buffered]
+    assert "MIDBETA" in tickers, "MIDBETA (rank 3, 0-indexed 2 < buffer_rank 3) deve restare grazie al buffer"
+    assert "MIDBETA2" not in tickers
+
+
+def test_select_low_beta_basket_respects_sector_cap():
+    spy = _spy_ref_df()
+    eq_data = {
+        "A1": _beta_controlled_df(spy, beta=-0.2, seed=1),   # settore A, rank 1
+        "A2": _beta_controlled_df(spy, beta=0.1, seed=2),    # settore A, rank 2
+        "B1": _beta_controlled_df(spy, beta=0.5, seed=3),    # settore B, rank 3
+        "C1": _beta_controlled_df(spy, beta=1.0, seed=4),    # settore C, rank 4
+    }
+    sector_of = {"A1": "A", "A2": "A", "B1": "B", "C1": "C"}
+
+    no_cap = select_low_beta_basket(eq_data, spy, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=99)
+    assert [b["Ticker"] for b in no_cap] == ["A1", "A2", "B1"]
+
+    capped = select_low_beta_basket(eq_data, spy, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=1)
+    assert [b["Ticker"] for b in capped] == ["A1", "B1", "C1"]
+
+
+def test_select_low_beta_basket_sector_cap_fails_open_on_missing_data():
+    spy = _spy_ref_df()
+    eq_data = {
+        "KNOWN": _beta_controlled_df(spy, beta=-0.2, seed=1),
+        "UNKNOWN": _beta_controlled_df(spy, beta=0.1, seed=2),
+    }
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, sector_of={"KNOWN": "A"}, max_per_sector=1)
+    assert {b["Ticker"] for b in basket} == {"KNOWN", "UNKNOWN"}
+
+
+def test_select_low_beta_basket_insufficient_history_excluded():
+    """Un titolo con meno di lookback_weeks+1 settimane di storico comune con SPY
+    non deve poter essere scelto (beta non stimabile in modo affidabile)."""
+    spy = _spy_ref_df(n_weeks=60)
+    short_df = _beta_controlled_df(spy, beta=-0.5, seed=1).iloc[-10:]  # solo 10 settimane
+    eq_data = {
+        "TOOSHORT": short_df,
+        "ENOUGH": _beta_controlled_df(spy, beta=0.8, seed=2),
+    }
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26)
+    tickers = [b["Ticker"] for b in basket]
+    assert "TOOSHORT" not in tickers
+    assert tickers == ["ENOUGH"]
 
 
 def test_quarter_end_month():

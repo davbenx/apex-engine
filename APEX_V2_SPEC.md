@@ -1,9 +1,20 @@
-# Apex v2 — Specifica Operativa
+# Apex v2.5 — Specifica Operativa
 
-Documento di riferimento non ambiguo per il motore Apex v2, sostituto del waterfall
+Documento di riferimento non ambiguo per il motore Apex, sostituto del waterfall
 macro + selezione momentum Top-20 descritto in `README.md` (v1). Sostituisce quella
 logica sulla base dei risultati in `research/` e dell'audit indipendente del
 2026-08-27 (vedi report "Apex Audit" e "Apex Allocation").
+
+**Versioning — v2 → v2.5:** questo stesso documento copre sia v2 (timing multi-asset
++ basket azionario a bassa volatilità, in produzione dal deploy iniziale) sia v2.5
+(stessa architettura, criterio di selezione del basket passato a **basso beta vs
+SPY** — §8.29, deciso dopo 5+ giri di verifica indipendenti). Non è stato creato un
+documento separato per evitare di duplicare le sezioni 1-3/5-7 identiche tra le due
+versioni — §4 e §8.29 riflettono lo stato attuale (v2.5, in produzione); §8.1-8.28
+restano il registro storico delle decisioni che hanno portato a v2, incluse quelle poi
+superate da v2.5 dove esplicitamente indicato. Nomi di file/modulo (`apex_v2_engine.py`,
+`APEX_V2_SPEC.md`) restano invariati per non rompere i riferimenti incrociati nel
+codice — il numero di versione è un'etichetta, non un namespace.
 
 **Perché questa versione esiste:** un audit statistico rigoroso (test a ingresso
 casuale, Deflated Sharpe Ratio, Probability of Backtest Overfitting via CSCV) ha
@@ -11,7 +22,9 @@ dimostrato che la selezione di singoli titoli per momentum del motore v1 ha
 **expectancy negativa e statisticamente significativa** su universo point-in-time
 corretto (E(R) = -0.063R, IC 95% [-0.081,-0.044]). Il motore v2 descritto qui **non
 seleziona titoli per generare alpha di selezione** — usa titoli individuali solo come
-veicolo fiscalmente efficiente per un'esposizione azionaria a bassa volatilità.
+veicolo fiscalmente efficiente per un'esposizione azionaria (a bassa volatilità in
+v2, a basso beta vs SPY in v2.5 — §8.29; in entrambi i casi non per generare alpha
+di stock-picking, solo per il carattere fiscale "redditi diversi").
 L'alpha reale del sistema viene dal *timing* tra classi di attivo (trend-following
 multi-asset), verificato con regressione CAPM: alpha annualizzato 10.6-11.1%,
 p<0.001, confermato anche su split temporale in-sample/out-of-sample.
@@ -23,7 +36,7 @@ p<0.001, confermato anche su split temporale in-sample/out-of-sample.
 | Ruolo | Strumento/i | Note |
 |---|---|---|
 | Segnale di timing azionario | SPY | Solo per il segnale — non è la posizione detenuta |
-| Posizione azionaria reale | Basket di 15 titoli individuali | Selezionati per bassa volatilità tra i membri storici (point-in-time) dell'S&P 500 |
+| Posizione azionaria reale | Basket di 15 titoli individuali | Selezionati per basso beta (vs SPY, §8.29) tra i membri storici (point-in-time) dell'S&P 500 |
 | Obbligazionario | IEF (ETF Treasury 7-10y) | Sia segnale sia posizione |
 | Oro | GLD (ETF oro fisico) | Sia segnale sia posizione |
 | Crypto | BTC-USD | Sia segnale sia posizione. **Nessuna rotazione verso altcoin** — testata e respinta (peggiora Sharpe/Calmar senza guadagno di rendimento) |
@@ -97,23 +110,34 @@ contenere, sarebbe stato un segnale di overfitting, non di robustezza.
 **Universo ammissibile:** titoli storicamente membri dell'S&P 500 alla data (non la
 composizione odierna applicata retroattivamente — vedi audit, finding critico #1).
 
-**Criterio di selezione:** volatilità realizzata a 26 settimane, **crescente**
-(si preferiscono i titoli a bassa volatilità, non quelli a momentum più alto — il
-momentum come criterio di selezione è stato falsificato dall'audit).
+**Criterio di selezione:** beta a 26 settimane rispetto a SPY, **crescente**
+(si preferiscono i titoli a bassa sensibilità sistematica al mercato — inclusi beta
+negativi, ordinamento per valore crescente non per valore assoluto — non i titoli a
+bassa volatilità ASSOLUTA né quelli a momentum più alto; il momentum come criterio di
+selezione è stato falsificato dall'audit). **Criterio adottato in produzione al posto
+della volatilità realizzata assoluta — vedi §8.29** per la giustificazione completa e
+i 5+ giri di verifica indipendenti che hanno portato alla decisione (dettaglio esteso
+in `validation_suite/README.md`). Implementato in
+`apex_v2_engine.select_low_beta_basket` (la vecchia `select_low_vol_basket` resta nel
+modulo per compatibilità storica/di test, non più chiamata da `backend.py`).
 
-**Numero di posizioni:** 15, equal-weight all'interno dello slot azionario.
+**Numero di posizioni:** 15, equal-weight all'interno dello slot azionario — valore
+confermato ottimo anche per il criterio low-beta (griglia {10,12,15,18,20,25}, PBO-CSCV
+18,6%, nessun segnale di overfitting — vedi §8.29).
 
 **Frequenza di rotazione della composizione:** trimestrale (fine marzo, giugno,
 settembre, dicembre). Nei mesi intermedi il paniere resta invariato nella
 composizione — solo la taglia complessiva dello slot si aggiorna mensilmente (§3).
 
-**Buffer di isteresi sulla permanenza (rank < 100, aggiunto dopo il finding di
-turnover del backtest storico — vedi §8.3):** un titolo già in basket resta se la
-sua posizione in classifica di volatilità resta entro il rank 100 (su ~600 titoli
-tracciati storicamente), anche se è scesa fuori dal top-15 esatto. I nuovi ingressi
-restano sempre selezionati solo tra i migliori in assoluto — il buffer allenta solo
-l'uscita, mai l'entrata. Implementato in `apex_v2_engine.select_low_vol_basket`
-(parametro `buffer_rank`, default `V2_EQUITY_BUFFER_RANK = 100`).
+**Buffer di isteresi sulla permanenza (rank < `buffer_rank`, aggiunto dopo il finding
+di turnover del backtest storico — vedi §8.3):** un titolo già in basket resta se la
+sua posizione in classifica (di beta, dal passaggio §8.29) resta entro il rank
+`V2_EQUITY_BUFFER_RANK = 20` (valore corretto dopo il bug di calendario del backtest
+descritto in §8.3, non più 100), anche se è scesa fuori dal top-15 esatto. I nuovi
+ingressi restano sempre selezionati solo tra i migliori in assoluto — il buffer
+allenta solo l'uscita, mai l'entrata. Implementato in `_select_basket_by_metric`
+(helper condiviso tra `select_low_beta_basket` e `select_low_vol_basket`, la logica di
+permanenza/settore è indipendente dalla metrica di ranking).
 
 **Nessuno stop-loss per singola posizione — ora testato, non solo assunto.**
 L'uscita da una posizione avviene solo (a) quando esce dal paniere alla rotazione
@@ -1674,13 +1698,96 @@ totali passano.
 
 ---
 
+### 8.29 Basket azionario: da bassa volatilità a basso beta (vs SPY) — adottato in produzione dopo 5+ giri di verifica indipendenti
+
+**Decisione esplicita dell'utente**, dopo un'indagine estesa in
+`validation_suite/` (dettaglio completo, inclusi tutti i numeri, in
+`validation_suite/README.md`): il criterio di selezione del basket
+azionario passa da **volatilità realizzata assoluta minima**
+(`select_low_vol_basket`) a **beta minimo rispetto a SPY**
+(`select_low_beta_basket`, principio "Betting Against Beta",
+Frazzini-Pedersen 2014) — un titolo può essere molto volatile in
+assoluto ma muoversi poco IN SINTONIA col mercato (beta basso), o
+viceversa; sono criteri concettualmente distinti, non la stessa cosa
+misurata due volte.
+
+**Percorso di verifica (non un singolo backtest — 5+ giri indipendenti
+prima dell'adozione):**
+1. Test iniziale: basket low-beta vs low-vol a parità di lookback (26
+   settimane, lo stesso valore già in uso per la volatilità) — CAGR
+   17,71% contro 16,50%, Sharpe 1,14 contro 1,08, MaxDD sostanzialmente
+   invariato.
+2. Sensibilità al lookback (griglia fine 16-39 settimane): vantaggio
+   positivo e consistente su tutta la banda 22-33 settimane (non un
+   singolo punto fortunato), tre punti della griglia escludono lo zero
+   al 90% di confidenza.
+3. **Walk-forward SENZA look-ahead nella selezione del lookback**: la
+   selezione adattiva del lookback (usando solo dati passati) converge
+   stabilmente su 22-24 settimane, confermando che la banda non è un
+   artefatto del guardare tutto il campione insieme — ma un lookback
+   FISSO a 26 settimane batte leggermente la selezione adattiva.
+   **Implicazione diretta per l'implementazione: `V2_EQUITY_BETA_LOOKBACK`
+   deve restare un valore fisso, mai ri-selezionato dinamicamente.**
+4. Turnover/composizione: quasi identico a low-vol (60% contro 57% dei
+   titoli sostituiti a trimestre), stessa concentrazione settoriale, ma
+   sovrapposizione titoli effettivi tra i due criteri solo ~6,9% — la
+   meccanica di selezione è sostanzialmente diversa, non un
+   aggiustamento marginale dello stesso basket.
+5. Comportamento nei crash specifici: **non è "protezione dai crash" in
+   generale.** Nel crollo COVID 2020 (panico acuto, le correlazioni
+   vanno tutte a 1) low-beta è stato leggermente PEGGIORE di low-vol
+   (-30,16% contro -29,21%). Nel bear market 2022 (ribasso lento e
+   strutturale da rialzo tassi) low-beta ha fatto MOLTO meglio (-7,10%
+   contro -13,56%, +6,46pp) — l'edge è specifico ai ribassi lenti, non
+   ai panici improvvisi.
+6. Interazione col segnale di timing: il basket low-beta è realmente
+   meno correlato a SPY (0,708 contro 0,775) — un disallineamento reale
+   ma modesto col segnale di timing macro, che usa SPY come riferimento.
+7. Criterio di uscita: uno switching automatico low-vol/low-beta basato
+   su Sharpe rolling **peggiora** rispetto a una scelta fissa (MaxDD
+   peggiore di entrambe le alternative statiche) — se si adotta
+   low-beta, va tenuto permanente, senza interruttore automatico
+   reattivo.
+8. Numero di titoli: la griglia {10,12,15,18,20,25} conferma **15**
+   (il valore attuale) già ottimo per il criterio low-beta, PBO-CSCV
+   18,6% (nessun segnale di overfitting sulla taglia).
+
+**Verdetto onesto, non trionfalistico:** l'effetto (~+1pp/anno di CAGR,
+Sharpe migliore) non ha mai invertito segno in nessuno dei 5+ disegni di
+verifica — un pattern più informativo di un singolo p-value — ma la sua
+magnitudine si colloca al limite di risoluzione statistica di un
+campione di ~11 anni: non tutte le configurazioni escludono lo zero al
+90% di confidenza contro il preciso baseline di produzione. Trattarlo
+come un miglioramento di **convinzione moderata**, confermato da
+robustezza incrociata più che da significatività statistica netta, non
+come un cambio a piena confidenza.
+
+**Implementazione**: `apex_v2_engine.select_low_beta_basket` (nuova
+funzione, richiede anche la serie prezzi di SPY come riferimento di
+mercato, non necessaria per la volatilità assoluta) sostituisce
+`select_low_vol_basket` come chiamata di produzione in `backend.py`.
+`select_low_vol_basket` resta nel modulo, non rimossa, per compatibilità
+storica e per i test di regressione esistenti. Nuova costante
+`V2_EQUITY_BETA_LOOKBACK = 26` (indipendente da `V2_EQUITY_VOL_LOOKBACK`,
+stesso valore numerico ma concettualmente distinta). Logica di buffer
+di rank e vincolo settoriale condivisa tra i due criteri tramite un
+helper comune (`_select_basket_by_metric`), indipendente dalla metrica
+di ranking.
+
+**Non ancora testato** (gap dichiarato, vedi `validation_suite/README.md`):
+un campione azionario indipendente (es. un altro mercato) per confermare
+che l'effetto non sia specifico allo storico S&P 500 2015-2026 usato per
+tutta questa indagine.
+
+---
+
 ## 9. Differenze dal motore v1 (cosa cambia per l'utente)
 
 | Aspetto | v1 (attuale) | v2 (questo documento) |
 |---|---|---|
 | Segnale macro | RSP/SPY/BTC/GC=F/IEF vs MA40w, cascata fissa | SPY/IEF/GLD/BTC-USD vs MA40w, isteresi ±2%, indipendenti per classe |
 | Scala esposizione | Nessuna — 100% del peso allocato se il segnale è positivo | Vol-targeting di portafoglio al 13% — riduce l'esposizione quando il rischio realizzato sale |
-| Selezione azionaria | Top-20 per momentum (ROC/ATR), Darvas-style | Top-15 per **bassa volatilità**, tra titoli point-in-time eligible |
+| Selezione azionaria | Top-20 per momentum (ROC/ATR), Darvas-style | Top-15 per **basso beta (vs SPY)**, tra titoli point-in-time eligible — §8.29 |
 | Rotazione azionaria | Mensile, intera composizione | Trimestrale la composizione, mensile solo la taglia |
 | Stop-loss per posizione | Trailing ATR × 3, aggiornato ogni venerdì | Nessuno — uscita solo per rotazione o disattivazione classe |
 | Crypto | BTC + fino a 2 altcoin (Top-3 per momentum) | Solo BTC-USD, nessuna rotazione |
