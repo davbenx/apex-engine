@@ -572,8 +572,14 @@ def compute_unified_portfolio(
 def load_combined_monthly_history(target_apex: float = 0.50, target_convex: float = 0.50) -> pd.DataFrame:
     """
     Carica le serie mensili storiche di Apex Engine (471 mesi dal 1987-06 al 2026-08,
-    proxy VFINX/VUSTX/GC=F prima delle inception reali SPY/IEF/GLD)
-    e di Convex Stack, e genera la serie di rendimenti e NAV Base 100 del portafoglio combinato.
+    proxy VFINX/VUSTX/GC=F prima delle inception reali SPY/IEF/GLD) e di Convex Stack
+    (465 mesi dal 1987-12 al 2026-08, proxy sintetici NTSG/AVWS/DBMFE prima del
+    2000-09 -- vedi convex_extended_history_reconstruction.py), e genera la serie
+    di rendimenti e NAV Base 100 del portafoglio combinato sull'intersezione delle
+    due (oggi vincolata da Convex: 1987-12, 6 mesi dopo l'inizio di Apex, per il
+    warmup del segnale TSMOM sintetico di DBMFE_proxy). Lettura da disco ad ogni
+    chiamata, nessuna cache -- riflette immediatamente qualunque aggiornamento dei
+    due file sorgente.
     """
     base_dir = os.path.dirname(__file__)
     # BUG corretto: prima combinava la serie NETTA di Apex con quella LORDA di
