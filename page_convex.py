@@ -513,10 +513,13 @@ with tab_metriche:
         # ----------------------------------------------------------------------
         st_html(section_title("Crescita Patrimoniale nel Tempo", top="8px", bottom="8px"))
         st.caption(
-            "Serie mensile dal backtest corretto 2000–2026 — non lo storico del tuo conto: "
+            f"Serie mensile dal backtest corretto {_cx_ret.index[0].year}–{_cx_ret.index[-1].year} — non lo storico del tuo conto: "
             "Convex non tiene un registro di versamenti/trim passati. Prima del 2019-09 la "
             "serie è ricostruita da proxy (non gli strumenti UCITS reali, non ancora quotati "
-            "all'epoca); da lì in poi sono dati reali degli strumenti — marcato nel grafico."
+            "all'epoca); da lì in poi sono dati reali degli strumenti — marcato nel grafico. "
+            "Prima del 2000-09 il blend usa solo 2-3 delle 5 sleeve (NTSG/AVWS/DBMFE — WBTC e "
+            "PPFB non hanno ancora un proxy in quel periodo), pesi rinormalizzati tra quelle "
+            "disponibili — copertura meno completa, non un errore di calcolo."
         )
 
         selected_range = st.segmented_control(
@@ -617,7 +620,7 @@ with tab_metriche:
         _cx_pos_pct = (_cx_pos_months / _cx_tot_months * 100.0) if _cx_tot_months > 0 else 0.0
         st_html(f"""
         <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
-            {sub_hero_metric("Mesi Positivi (Storico)", f"{_cx_pos_months}/{_cx_tot_months}", f"{_cx_pos_pct:.0f}% mesi in profitto (2000–2026)", POS)}
+            {sub_hero_metric("Mesi Positivi (Storico)", f"{_cx_pos_months}/{_cx_tot_months}", f"{_cx_pos_pct:.0f}% mesi in profitto ({_cx_ret.index[0].year}–{_cx_ret.index[-1].year})", POS)}
             {sub_hero_metric("Miglior Mese Storico", f"+{_cx_best_m:.2f}%", "Massimo rendimento mensile registrato", POS)}
             {sub_hero_metric("Peggior Mese Storico", f"{_cx_worst_m:.2f}%", "Minimo rendimento mensile registrato", NEG)}
         </div>
