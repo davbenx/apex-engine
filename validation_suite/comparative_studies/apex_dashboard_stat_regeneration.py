@@ -123,7 +123,13 @@ def spliced_price_index(proxy_file, real_file, real_start) -> pd.Series:
     return 100.0 * (1 + ret).cumprod()
 
 
-def run_full_backtest(sector_of: dict):
+def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None):
+    """kelly_fraction=None (default) usa il default di produzione di
+    compute_v2_macro_signal (V2_KELLY_FRACTION=0.25, il sistema ATTUALE).
+    kelly_fraction=0.0 riproduce esattamente il sistema PRECEDENTE (§8.28:
+    base_weight_per_class=0.50 fisso + vol_target=0.22, senza Kelly — vedi
+    apex_kelly_vs_flat_v2_comparison.py, che usa questo parametro per il
+    confronto diretto richiesto dall'utente)."""
     snapshots = load_pointintime_snapshots()
     with open(DATA_DIR / "sp500_tickers.json") as f:
         all_tickers = json.load(f)
@@ -168,7 +174,8 @@ def run_full_backtest(sector_of: dict):
             px = macro_prices[ticker]
             px_upto = px.loc[:wk]
             b_data[ticker] = build_ohlc_like(px_upto) if len(px_upto) > 0 else pd.DataFrame()
-        alloc, hysteresis_state, _debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=hysteresis_state)
+        kelly_kwargs = {} if kelly_fraction is None else {"kelly_fraction": kelly_fraction}
+        alloc, hysteresis_state, _debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=hysteresis_state, **kelly_kwargs)
         is_month_end = (i + 1 >= n) or (weeks[i + 1].month != wk.month)
         if locked_alloc is None:
             locked_alloc = alloc
