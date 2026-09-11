@@ -87,6 +87,10 @@ from sector_cap_grid_test import SECTOR_MAP_FILE
 EXT_DATA_DIR = Path(__file__).parent / "apex_macro_extended_data"
 SLICE_END = "2026-08-31"
 BASKET_SELECTION_FROM_YEAR = 2012  # limite dati point-in-time S&P 500 — vedi docstring
+# Stesso 10bps per titolo usato da backend.py:update_portfolio (produzione live) e da
+# cost_bps_map["Equity"] sotto — unica fonte per evitare la stessa incoerenza segnalata
+# dall'audit qualitativo tra i driver di backtest (concern #2, vedi README).
+BASKET_STOCK_COST_BPS = 0.0010
 
 # (proxy_file, real_file, real_start) per classe — raccordo per RENDIMENTO
 SPLICE_SPEC = {
@@ -164,13 +168,14 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
 
     hysteresis_state, prev_basket_tickers, current_basket = None, None, []
     locked_alloc = None
-    macro_alloc_history, equity_return_basket = [], []
+    macro_alloc_history, equity_return_basket, basket_turnover_cost = [], [], []
 
     MIN_HISTORY = 40
     for i, wk in enumerate(weeks):
         if i < MIN_HISTORY:
             macro_alloc_history.append(None)
             equity_return_basket.append(0.0)
+            basket_turnover_cost.append(0.0)
             continue
 
         b_data = {}
@@ -200,19 +205,16 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
             basket = select_low_beta_basket(eq_data, spy_data_upto, prev_tickers=prev_basket_tickers, sector_of=sector_of)
             return [b["Ticker"] for b in basket]
 
+        basket_turnover_cost.append(0.0)
         stock_selection_era = wk.year >= BASKET_SELECTION_FROM_YEAR
-        if alloc.get("Equities", 0) <= 0:
-            current_basket = []
-            prev_basket_tickers = None
-        elif not stock_selection_era:
-            current_basket = []  # sotto il 2012: nessuna composizione S&P point-in-time nota, niente selezione per-titolo (look-ahead altrimenti)
-        elif not current_basket:
-            current_basket = rebuild_basket()
-            prev_basket_tickers = set(current_basket)
-        elif is_month_end and wk.month in (3, 6, 9, 12):
-            current_basket = rebuild_basket()
-            prev_basket_tickers = set(current_basket)
 
+        # 1. Il rendimento di QUESTA settimana usa il basket cosi' com'era PRIMA di
+        #    qualunque ribasket deciso questa stessa settimana — mai il basket appena
+        #    ricostruito con beta calcolata fino a QUESTA settimana inclusa, che
+        #    sarebbe una fuga same-bar (il basket "sa" gia' il proprio rendimento
+        #    della settimana in cui entra — concern d'audit #2, vedi README). Il
+        #    nuovo basket, quando questa settimana lo aggiorna, comincia a rendere
+        #    dalla settimana SUCCESSIVA (vedi punto 2 sotto).
         if alloc.get("Equities", 0) <= 0:
             basket_ret = 0.0
         elif stock_selection_era:
@@ -222,6 +224,37 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
             # non della selezione per-titolo — vedi docstring del modulo.
             basket_ret = float(equity_index_ret.loc[wk]) if wk in equity_index_ret.index else 0.0
         equity_return_basket.append(basket_ret)
+
+        # 2. ORA si decide il basket per la settimana SUCCESSIVA (la beta usa dati
+        #    fino a wk incluso, ma il basket risultante conta solo a partire dal
+        #    prossimo rendimento, mai da quello di wk stessa appena registrato sopra).
+        if alloc.get("Equities", 0) <= 0:
+            current_basket = []
+            prev_basket_tickers = None
+        elif not stock_selection_era:
+            current_basket = []  # sotto il 2012: nessuna composizione S&P point-in-time nota, niente selezione per-titolo (look-ahead altrimenti)
+        elif not current_basket:
+            # Primo ingresso nello slot Equity (da 0% a >0%): il costo e' gia' interamente
+            # coperto dal turnover di CLASSE sotto (weight_change su "Equity" salta da 0 al
+            # peso pieno, a 10bps sull'intero nozionale — stesso totale che pagare 10bps su
+            # ciascuno dei 15 titoli separatamente, la cost e' lineare nel nozionale
+            # scambiato). Nessun costo aggiuntivo qui, altrimenti sarebbe un doppio conteggio.
+            current_basket = rebuild_basket()
+            prev_basket_tickers = set(current_basket)
+        elif is_month_end and wk.month in (3, 6, 9, 12):
+            # Ribasket trimestrale A PARITA' (circa) di peso di classe: qui il turnover di
+            # CLASSE sopra non vede nulla (il peso "Equity" aggregato non cambia), ma sotto
+            # il cofano si vendono i titoli usciti e si comprano quelli entrati — il costo
+            # mancante segnalato dall'audit qualitativo (concern #4, README). Charge one-time
+            # sui soli titoli EFFETTIVAMENTE scambiati (mai sull'intero basket per un turnover
+            # parziale), stessa convenzione "solo il delta" di backend.py:update_portfolio.
+            new_basket = rebuild_basket()
+            n_swapped = len(set(new_basket) - prev_basket_tickers)
+            if n_swapped > 0 and len(new_basket) > 0:
+                eq_frac_this_week = macro_alloc_history[i]["Equities"] / 100.0
+                basket_turnover_cost[i] = n_swapped * 2 * (eq_frac_this_week / len(new_basket)) * BASKET_STOCK_COST_BPS
+            current_basket = new_basket
+            prev_basket_tickers = set(current_basket)
 
     valid_from = MIN_HISTORY
     idx = weeks[valid_from:]
@@ -241,8 +274,13 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
 
     port_gross = (returns_df * weights_df).sum(axis=1)
     weight_change = weights_df.diff().abs().sum(axis=1).fillna(0.0)
-    cost_bps_map = {"Equity": 0.0010, "Bonds": 0.0008, "Gold": 0.0010, "Crypto": 0.0010}
-    cost_drag = weight_change * np.mean(list(cost_bps_map.values()))
+    cost_bps_map = {"Equity": BASKET_STOCK_COST_BPS, "Bonds": 0.0008, "Gold": 0.0010, "Crypto": 0.0010}
+    basket_turnover_series = pd.Series(basket_turnover_cost[valid_from:], index=idx)
+    # weight_change*media_bps copre il turnover di CLASSE (quanto cambia il peso aggregato
+    # Equity/Bonds/Gold/Crypto); basket_turnover_series copre SEPARATAMENTE il turnover
+    # interno del basket di 15 titoli (rotazione trimestrale a parita' di peso di classe —
+    # concern #4 dell'audit, invisibile al turnover di classe per costruzione).
+    cost_drag = weight_change * np.mean(list(cost_bps_map.values())) + basket_turnover_series
     port_gross_after_costs = port_gross - cost_drag
     port_net = _apply_italian_tax(returns_df, weights_df, tax_types=tax_types)
     port_net_after_costs = port_net - cost_drag
@@ -256,7 +294,7 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
         return port_gross_after_costs, port_net_after_costs, {
             "weights_df": weights_df, "returns_df": returns_df, "weight_change": weight_change,
             "port_gross": port_gross, "port_net": port_net, "tax_types": tax_types,
-            "cost_bps_map": cost_bps_map,
+            "cost_bps_map": cost_bps_map, "basket_turnover_series": basket_turnover_series,
         }
     return port_gross_after_costs, port_net_after_costs
 

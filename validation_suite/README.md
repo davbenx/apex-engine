@@ -2307,37 +2307,74 @@ soglia di Convex. Verdetto per punto, poi la sintesi finale.
 - **Audit qualitativo del codice** (look-ahead bias, survivorship bias,
   timing di esecuzione, integrità fiscale, data snooping — sub-agente
   dedicato, poi verificato a mano dove più critico). Oltre al
-  survivorship bias (sopra, il solo corretto in questa sessione), **4
-  concern aperti, non corretti, lasciati come lavoro futuro**:
-  1. `kelly_backtest.py` (Kelly Stack, già scartato/non in produzione):
-     `compute_trend_gate`/`apply_per_sleeve_stop_loss` hanno una fuga
-     same-bar reale (il gate del mese T usa il rendimento del mese T
-     stesso) — i confronti storici §7.1 Kelly-vs-Apex potrebbero essere
-     stati fatti con numeri Kelly leggermente gonfiati. Basso impatto
-     pratico (Kelly Stack non è in produzione) ma da correggere se si
-     riapre quel filone.
-  2. Rotazione trimestrale del basket (`apex_production_confirmation_backtest.py`):
-     il ribasket del trimestre T usa la beta calcolata fino alla
-     settimana wk, poi guadagna il rendimento della stessa settimana wk
-     — una fuga same-bar minore (~1 settimana su 13). Inoltre i due
-     driver di backtest (`apex_production_confirmation_backtest.py` e
+  survivorship bias (sopra, corretto in questa sessione), **4 concern
+  aperti — 2 CORRETTI in un giro successivo (richiesto dall'utente:
+  "parti con i 4 concern"), 2 lasciati aperti**:
+  1. **[APERTO]** `kelly_backtest.py` (Kelly Stack, già scartato/non in
+     produzione): `compute_trend_gate`/`apply_per_sleeve_stop_loss`
+     hanno una fuga same-bar reale (il gate del mese T usa il rendimento
+     del mese T stesso) — i confronti storici §7.1 Kelly-vs-Apex
+     potrebbero essere stati fatti con numeri Kelly leggermente
+     gonfiati. Basso impatto pratico (Kelly Stack non è in produzione)
+     ma da correggere se si riapre quel filone.
+  2. **[APERTO]** Rotazione trimestrale del basket
+     (`apex_production_confirmation_backtest.py`): il ribasket del
+     trimestre T usa la beta calcolata fino alla settimana wk, poi
+     guadagna il rendimento della stessa settimana wk — una fuga
+     same-bar minore (~1 settimana su 13). Inoltre i due driver di
+     backtest (`apex_production_confirmation_backtest.py` e
      `apex_stocks_vs_etf_backtest.py`) usano ordini diversi tra
      rendimento e ribasket — un'incongruenza interna mai notata prima
      che è di per sé un segnale di verifica incrociata insufficiente.
-  3. Convex "mai vendere" (`convex_never_sell_cost_test.py`): con
-     `rebalance_every=None` la tassa non viene MAI applicata, nemmeno
-     alla liquidazione finale — il confronto contro il ribilanciamento
-     mensile (che paga le tasse regolarmente) usa quindi una passività
-     fiscale permanentemente differita e mai realizzata sul lato
-     "mai vendere", non solo posticipata.
-  4. Costo di transazione del basket azionario: il backtest di
-     produzione carica il costo solo sul turnover di CLASSE macro, non
-     sul turnover interno del basket di 15 titoli (~60%/trimestre) — il
-     sistema live invece lo carica (`backend.update_portfolio`, 10bps).
-     Il backtest è quindi piu' generoso del live su questo fronte
-     specifico (parzialmente mitigato dallo stress test costi sopra, che
-     pero' scala il coefficiente sbagliato, non introduce quello
-     mancante).
+  3. **[CORRETTO]** Convex "mai vendere" non tassa mai, nemmeno a fine
+     serie — vedi "Passività fiscale latente su Convex 'mai vendere'"
+     più sotto per la correzione e il risultato quantificato (un
+     rovesciamento genuino della lettura precedente, non solo un
+     dettaglio tecnico).
+  4. **[CORRETTO]** Costo di transazione del basket azionario mancante
+     nel backtest di produzione — vedi "Costo di turnover interno del
+     basket introdotto nella serie canonica" più sotto per la
+     correzione e l'impatto quantificato sulle metriche dashboard.
+
+- **Passività fiscale latente su Convex "mai vendere"** (concern #3
+  sopra, richiesto dall'utente: "parti con i 4 concern"). Estende
+  `tax_engine.apply_italian_tax` con `return_final_state=True` (espone
+  value/cost_basis/loss_pool a fine simulazione, nessuna regressione sui
+  chiamanti esistenti) e una nuova `liquidation_tax_adjusted_nav()` che
+  calcola il NAV **se si liquidasse tutto oggi** — la tassa che
+  `rebalance_every=None` non applica mai non è zero, è solo posticipata
+  oltre l'orizzonte simulato. **Risultato, quantificato per la prima
+  volta**: sul campione Convex (81 mesi, 2019-06→2026-09), il NAV "drift"
+  mai tassato di "MAI" (2,8382x) sembrava battere quello di "Mensile"
+  (2,6012x) del ~9% — ma la tassa latente su "MAI" è **16,84% del NAV**
+  (contro 9,42% già pagato lungo il percorso da "Mensile", che ne ha
+  quindi meno da pagare in futuro). **Una volta liquidati entrambi oggi,
+  il vantaggio quasi sparisce**: 2,3603x ("MAI") contro 2,3562x
+  ("Mensile") — una differenza dello 0,17%, non del 9%. **Lettura
+  corretta**: il confronto sul solo CAGR netto (che resta la cifra
+  giusta per un investitore che NON prevede di liquidare — differire ha
+  un vero valore temporale) sovrastimava il vantaggio economico reale di
+  "mai vendere" nascondendo questa passività. Non è un'invalidazione
+  della policy (differire la tassa resta corretto se l'orizzonte è
+  davvero indefinito), ma la cifra "+9% di NAV" non era mai stata onesta
+  senza questa correzione. `convex_never_sell_cost_test.py` aggiornato
+  con la tabella completa; 4 nuovi unit test in `test_tax_engine.py`
+  (13/13 verdi).
+
+- **Costo di turnover interno del basket introdotto nella serie
+  canonica** (concern #4 sopra). `apex_dashboard_stat_regeneration.py`
+  caricava il costo di transazione SOLO sul turnover della classe
+  macro "Equity" aggregata — invisibile per costruzione al fatto che, a
+  parità di peso di classe, il basket di 15 titoli ruota comunque
+  trimestralmente (titoli sostituiti dalla selezione low-beta point-in-
+  time). Corretto: ad ogni ribasket trimestrale, un costo one-time di
+  10bps (stessa convenzione di `backend.update_portfolio`, unica fonte
+  ora — `BASKET_STOCK_COST_BPS`) sui soli titoli EFFETTIVAMENTE
+  scambiati (mai sull'intero basket), nessun doppio conteggio al primo
+  ingresso nello slot Equity (già coperto dal turnover di classe, che è
+  lineare nel nozionale scambiato indipendentemente da quanti titoli lo
+  compongono). Vedi la sezione dati aggiornata sopra per l'impatto
+  quantificato sulle metriche dashboard dopo questa correzione.
 
 ### Verdetto complessivo
 

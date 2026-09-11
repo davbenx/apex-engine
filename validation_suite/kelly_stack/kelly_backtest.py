@@ -217,7 +217,7 @@ def compute_trend_gate(
     start_idx = len(calib_returns)
 
     state = {k: True for k in keys}  # fail-open: attivo finche' non emerge un segnale contrario
-    gate_rows = []
+    full_gate_rows = []
     for pos in range(len(all_returns)):
         row_gate = {}
         for k in keys:
@@ -232,10 +232,16 @@ def compute_trend_gate(
             is_active = (dist > -hysteresis_band) if was_active else (dist > hysteresis_band)
             state[k] = is_active
             row_gate[k] = 1.0 if is_active else 0.0
-        if pos >= start_idx:
-            gate_rows.append(row_gate)
+        full_gate_rows.append(row_gate)
 
-    return pd.DataFrame(gate_rows, index=oos_returns.index)
+    # Il gate calcolato "a fine periodo pos" (usa il rendimento di pos stesso) si
+    # applica al rendimento del periodo SUCCESSIVO pos+1, mai a se stesso — altrimenti
+    # la sleeve "saprebbe" gia' il proprio rendimento del mese in cui il gate scatta,
+    # una fuga same-bar (concern d'audit #1, vedi README). Shift di una posizione: il
+    # primo mese OOS usa il gate deciso all'ultimo mese di calibrazione (dato gia'
+    # disponibile, nessun lookahead), non un default arbitrario.
+    oos_gate_rows = full_gate_rows[start_idx - 1: start_idx - 1 + len(oos_returns)]
+    return pd.DataFrame(oos_gate_rows, index=oos_returns.index)
 
 
 def compute_trend_gated_weights(
@@ -318,9 +324,9 @@ def apply_per_sleeve_stop_loss(
     trough = {k: None for k in keys}
     stopped_out = {k: False for k in keys}
 
-    rows = []
+    decisions = []  # decisions[i] = stato stop-out calcolato USANDO il rendimento del mese i
     for i in range(len(oos_returns)):
-        row_weight = {}
+        row_decision = {}
         for k in keys:
             price = float(price_index[k].iloc[i])
             peak[k] = max(peak[k], price)
@@ -336,8 +342,19 @@ def apply_per_sleeve_stop_loss(
                 stopped_out[k] = True
                 trough[k] = price
 
-            row_weight[k] = 0.0 if stopped_out[k] else weights[k].iloc[i]
-        rows.append(row_weight)
+            row_decision[k] = stopped_out[k]
+        decisions.append(dict(row_decision))
+
+    # Lo stop calcolato usando il rendimento del mese i si applica al peso del mese
+    # SUCCESSIVO i+1, mai a se stesso — stessa fuga same-bar di compute_trend_gate
+    # sopra (concern d'audit #1, vedi README). Il primo mese OOS non ha uno stato
+    # precedente: nessuno stop ancora attivo (fail-open, coerente con lo stato
+    # iniziale di stopped_out sopra).
+    rows = []
+    prev_decision = {k: False for k in keys}
+    for i in range(len(oos_returns)):
+        rows.append({k: (0.0 if prev_decision[k] else weights[k].iloc[i]) for k in keys})
+        prev_decision = decisions[i]
 
     return pd.DataFrame(rows, index=oos_returns.index)
 

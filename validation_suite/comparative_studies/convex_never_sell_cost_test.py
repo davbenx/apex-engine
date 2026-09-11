@@ -47,7 +47,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "framework"))
 sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "kelly_stack"))
 from metrics import cagr, sharpe, max_drawdown, calmar
-from tax_engine import apply_italian_tax
+from tax_engine import apply_italian_tax, liquidation_tax_adjusted_nav
 from statistical_validation import pbo_cscv, block_bootstrap_ci
 from kelly_backtest import fetch_universe, load_monthly_series, build_sleeve_returns, BACKTEST_TICKERS
 
@@ -73,7 +73,8 @@ def run_one(returns_df: pd.DataFrame, rebalance_every, sub_returns: pd.DataFrame
     for k, ter in TER.items():
         weights_with_ter[k] = returns_df[k] - ter / 12
 
-    net_full = apply_italian_tax(weights_with_ter, CURRENT_WEIGHTS, tax_types=TAX_TYPE, rebalance_every=rebalance_every)
+    net_full, final_state = apply_italian_tax(weights_with_ter, CURRENT_WEIGHTS, tax_types=TAX_TYPE,
+                                               rebalance_every=rebalance_every, return_final_state=True)
     gross_full = (weights_with_ter * pd.Series(CURRENT_WEIGHTS)).sum(axis=1)
 
     if sub_returns is not None:
@@ -82,10 +83,19 @@ def run_one(returns_df: pd.DataFrame, rebalance_every, sub_returns: pd.DataFrame
     else:
         net, gross = net_full, gross_full
 
+    # NAV "come se si liquidasse tutto oggi" (fine campione, 2026-09) — mai zero anche con
+    # rebalance_every=None, che non tassa mai lungo il percorso: la tassa e' solo posticipata,
+    # non azzerata (concern d'audit #3, vedi README). Confronto onesto contro varianti che
+    # pagano le tasse lungo il percorso, che il solo CAGR "drift" qui sopra non rende.
+    liquidated_nav = liquidation_tax_adjusted_nav(final_state, TAX_TYPE)
+    drift_nav = float((1 + net_full).prod())
+    latent_tax_drag_pct = (drift_nav - liquidated_nav) / drift_nav * 100 if drift_nav > 0 else 0.0
+
     return {
         "net": net, "gross": gross,
         "cagr_net": cagr(net), "sharpe_net": sharpe(net), "maxdd_net": max_drawdown(net), "calmar_net": calmar(net),
-        "cagr_gross": cagr(gross),
+        "cagr_gross": cagr(gross), "liquidated_nav": liquidated_nav, "drift_nav": drift_nav,
+        "latent_tax_drag_pct": latent_tax_drag_pct,
     }
 
 
@@ -128,6 +138,18 @@ def main():
     print_table(results_test, "TEST (fuori campione, meta' piu' recente)")
 
     never_label, monthly_label = FREQUENCIES[3][0], FREQUENCIES[0][0]
+
+    print(f"\n--- Passivita' fiscale LATENTE se si liquidasse tutto oggi ({sleeve_returns.index[-1].date()}) ---")
+    print(f"{'Frequenza':<48}{'NAV drift (mai tassato)':>24}{'NAV liquidato oggi':>20}{'Tassa latente':>15}")
+    for label, freq in FREQUENCIES:
+        r = results_full[label]
+        print(f"{label:<48}{r['drift_nav']:>23.4f}x{r['liquidated_nav']:>19.4f}x{r['latent_tax_drag_pct']:>14.2f}%")
+    never_drag = results_full[never_label]["latent_tax_drag_pct"]
+    monthly_drag = results_full[monthly_label]["latent_tax_drag_pct"]
+    print(f"\n'{never_label}' ha una tassa latente ({never_drag:.2f}% del NAV drift) che '{monthly_label}' "
+          f"non ha ({monthly_drag:.2f}%, gia' pagata lungo il percorso) — il confronto sopra sul CAGR "
+          "netto NON la include: e' un vantaggio reale (differire ha valore temporale) ma non gratuito, "
+          "e questa e' la sua dimensione quantificata, non zero.")
     diff_full = (results_full[never_label]["net"] - results_full[monthly_label]["net"]).dropna()
     mean_diff_full = diff_full.mean() * 12 * 100
     lo_f, hi_f = block_bootstrap_ci(diff_full.values, lambda r: pd.Series(r).mean() * 12 * 100, block_size=6, ci=0.90, seed=42)
