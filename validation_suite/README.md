@@ -2118,15 +2118,64 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       (2020+) è interamente nella fase "Kelly attivo", motivo per cui
       isola correttamente il beneficio pieno del meccanismo — è la
       lettura corretta, non quella ottimisticamente selezionata.
-    - **Verdetto**: conferma, con evidenza statistica più solida di prima
-      (CI aggiunto, mai calcolato al momento dell'adozione), la decisione
-      già presa di adottare Kelly in produzione. Nessuna azione
-      ulteriore — la cifra mostrata in dashboard (`get_apex_metrics()`)
-      era già corretta.
+    - **Verdetto (SUPERATO dal fix del survivorship bias sotto — vedi
+      "Confronto Kelly vs precedente ripetuto sull'universo corretto"
+      più in basso per il numero valido)**: questo confronto era stato
+      calcolato sull'universo azionario ancora affetto dal survivorship
+      bias — le cifre sopra (CAGR, CI90 che escludeva lo zero) sono
+      quindi gonfiate e NON il numero da citare. Lasciate qui solo come
+      cronologia, non come conclusione attuale.
+  - **Confronto Kelly vs precedente ripetuto sull'universo corretto**
+    (richiesto dall'utente dopo il fix del survivorship bias, per
+    verificare se la conclusione di cui sopra reggesse sui dati puliti —
+    `apex_kelly_vs_flat_v2_comparison.py` rilanciato identico, poi
+    `apex_kelly_vs_flat_bootstrap_robustness.py` per verificare la
+    robustezza metodologica del CI stesso):
+    - **Periodo TEST walk-forward (72 mesi)**: CAGR lordo 17,08%→20,18%
+      (+3,10pp), Sharpe 1,055→1,380 (+0,324), Sortino 2,235→2,397, MaxDD
+      -16,90%→-10,59% (+6,31pp), Calmar 1,011→1,905, Ulcer Index
+      8,15→3,89. Differenza appaiata mensile sul CAGR: +2,36pp/anno,
+      CI90 [-0,78; +8,51] — **include lo zero** (a differenza del
+      confronto pre-fix sopra, che lo escludeva).
+    - **Intero storico (471 mesi)**: CAGR quasi identico (13,68%→13,86%,
+      +0,18pp) ma Sharpe (1,216→1,327), MaxDD (-16,90%→-13,62%) e Ulcer
+      (4,25→3,15) restano meglio nell'attuale — stesso pattern
+      "warmup Kelly diluisce il CAGR sull'intero storico" già osservato
+      pre-fix.
+    - **Verifica di robustezza del CI** (`apex_kelly_vs_flat_bootstrap_robustness.py`):
+      il CI90 sopra usa un solo `block_size=12` (una scelta arbitraria)
+      — per escludere che la perdita di significatività fosse un
+      artefatto di quella scelta, bootstrap APPAIATO (stessi indici
+      temporali ricampionati per entrambi i sistemi, preserva la
+      correlazione incrociata) ripetuto su `block_size` 3/6/12/24 mesi,
+      su CAGR e Sharpe, su entrambe le finestre:
+      - **CAGR**: il CI90 include lo zero su TUTTI i 4 block_size, su
+        ENTRAMBE le finestre (TEST: lower bound -4,64/-0,07pp secondo il
+        block_size; storico: -1,31/-1,10pp) — la non-significatività è
+        stabile, non fragile.
+      - **Sharpe**: il CI90 ESCLUDE lo zero su TUTTI i 4 block_size, su
+        ENTRAMBE le finestre (TEST: lower bound +0,00/+0,16; storico:
+        +0,02/+0,03) — il miglioramento di efficienza risk-adjusted è
+        robusto, non un artefatto del block_size originale.
+    - **Verdetto aggiornato**: dopo il fix del survivorship bias, il
+      vantaggio in rendimento puro (CAGR) del sistema attuale non è più
+      dimostrabile statisticamente su questo campione — e questa
+      conclusione è essa stessa robusta (stabile su 4 scelte di
+      block_size, non un artefatto metodologico). Il vantaggio in
+      efficienza risk-adjusted (Sharpe) resta invece statisticamente
+      solido su ogni scelta testata. La decisione di produzione (Kelly
+      attivo) resta giustificata sul piano del rischio, non più su
+      quello del rendimento puro — una lettura più onesta e più
+      difendibile di quella originale, non un'invalidazione.
 
 ## Test di robustezza e invalidazione istituzionale completo (richiesto dall'utente)
 
-**In corso — questa sezione viene aggiornata man mano che arrivano i risultati; il verdetto finale arriverà a batteria completa.**
+**Completato.** Batteria in 8 parti su Apex+Convex+Combinato: audit
+qualitativo del codice, griglia di sensibilità sui parametri macro di
+Apex, PBO-CSCV sulla griglia, stress test su costi/TER, Deflated Sharpe
+Ratio (multiple-testing), performance per regime storico nominato,
+correlazione Apex/Convex condizionata allo stress, sensibilità pesi/
+soglia di Convex. Verdetto per punto, poi la sintesi finale.
 
 - **Scoperta più grave: survivorship bias nell'universo azionario di Apex**
   (audit di robustezza qualitativo, poi verificato con dati reali).
@@ -2170,19 +2219,202 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     2,363→1,905, MaxDD quasi invariato (-10,44%→-10,59%)**. Conferma con
     un numero preciso, non solo una direzione attesa, che il
     survivorship bias stava gonfiando le cifre mostrate in dashboard.
-    `portfolio_manager.get_apex_metrics()` non ancora aggiornata a
-    queste nuove cifre — in corso, arriva a batteria di robustezza
-    completa (griglia sensibilità + PBO-CSCV sull'universo corretto,
-    tuttora in esecuzione).
-  - Il resto della batteria (stress costi/TER, DSR, regime storico,
-    correlazione condizionata allo stress) è stata ri-eseguita sulla
-    serie corretta: **tutte le conclusioni qualitative restano invariate**
-    (l'edge resta robusto a costi 10x, DSR resta ~1,000 su tutti gli N
-    plausibili, la correlazione Apex/Convex resta bassa incondizionatamente
-    e scende ulteriormente quando Convex sta peggio) — solo i livelli
-    assoluti scendono coerentemente con il CAGR/Sharpe corretti.
+    `portfolio_manager.get_apex_metrics()`/`get_combined_dual_engine_metrics()`
+    aggiornate alle nuove cifre (Convex invariato, non affetto).
 
-## Idee in coda per approfondimenti futuri
+- **Griglia di sensibilità sui parametri macro di Apex** (`apex_v2_sensitivity_grid.py`,
+  9 varianti sull'universo corretto: kelly_fraction 0,15/0,25/0,40,
+  vol_target 16/19/22/25/28%, base_weight 0,35/0,50/0,65 — periodo TEST,
+  72 mesi): **nessun collasso vicino ai parametri di produzione**. Range
+  di Sharpe 1,334-1,415 (produzione 1,380), range di CAGR 18,12%-21,26%
+  — variazioni graduali, non una scogliera. Curiosità strutturale:
+  base_weight 0,35 e 0,65 danno risultati IDENTICI alla produzione
+  (0,50) — il vol-targeting satura sempre a monte, rendendo
+  base_weight_per_class un parametro di fatto non vincolante in questo
+  intervallo (non un difetto, solo un'osservazione: quel dial ha meno
+  potere reale di quanto il nome suggerisca). **PASS.**
+
+- **PBO-CSCV sulla griglia** (9 varianti, 8 split, periodo TEST):
+  **37,1%, sotto la soglia di rumore del 50%** — il ranking tra varianti
+  (produzione vicina alla cima) è riproducibile fuori campione, non un
+  artefatto della scelta in-sample. **PASS.**
+
+- **Stress test su costi/slippage** (`apex_convex_cost_stress_test.py`,
+  moltiplicatori 1x-10x sugli ~9,5bps di costo attuale sul turnover
+  macro): a 10x (scenario quasi implausibile per un basket di 15 titoli
+  large/mid-cap) CAGR scende di solo -4,45pp (20,18%→15,73%), Sharpe
+  1,380→1,114 — degradazione proporzionale, nessun collasso. **Limite
+  dichiarato**: questo stress test scala solo il costo sul turnover di
+  CLASSE macro — non introduce un costo separato per il turnover interno
+  del basket di 15 titoli (~60%/trimestre secondo APEX_V2_SPEC.md,
+  modellato nel vero sistema live ma non in questo backtest), un gap di
+  realismo residuo non risolto in questa sessione. **PASS con caveat.**
+
+- **Stress test sul TER di Convex** (1x-3x sui TER attuali): CAGR scende
+  di solo -0,88pp a 3x (12,38%→11,50%). **PASS.**
+
+- **Deflated Sharpe Ratio** (`deflated_sharpe_ratio_test.py`, estende a
+  Convex/Combinato il test già esistente solo su Apex in
+  `test_apex_v2_institutional_validation.py`; N=20/50/100/200/315 prove
+  plausibili): **DSR ~1,000 per Apex e Combinato su tutti gli N, anche
+  dopo la correzione del survivorship bias** (Sharpe realizzato ancora
+  molto sopra il massimo atteso per puro caso). Convex TEST period
+  scende a 0,984 a N=315 — ancora ben sopra 0,5, ma l'unica cifra ad
+  avvicinarsi visibilmente alla soglia. **PASS.**
+
+- **Performance per regime storico nominato** (`apex_convex_regime_and_correlation_stress.py`,
+  16 finestre 1987-2026): Apex resta positivo o quasi-flat nella maggior
+  parte dei regimi, incluse due vere crisi (GFC: +3,89% CAGR, Sharpe
+  0,44; bust dot-com: +3,81% CAGR) — coerente con il ruolo dichiarato di
+  motore reattivo con protezione cash. Unico regime debole: crisi
+  obbligazionaria 1994 (-2,09% CAGR, Sharpe -0,40). **Convex è
+  NEGATIVO in entrambe le crisi maggiori** (dot-com -3,05% CAGR, Sharpe
+  -0,19; GFC -9,16% CAGR, Sharpe -1,08) e nel crollo COVID (-15,66%
+  cumulato in 2 mesi) — coerente con la sua natura dichiarata di
+  accumulo passivo a leva, NON un hedge di crisi: chi legge "protezione
+  attiva nelle crisi" nella philosophy di Convex (riferito alla sola
+  sleeve DBMFE, 25% del capitale) non deve leggerlo come "Convex nel suo
+  complesso è protetto in crisi" — non lo è. **Il Combinato 70/30
+  smorza entrambe le crisi rispetto alle componenti isolate** (GFC quasi
+  flat, +0,01% CAGR; dot-com positivo, +1,92% CAGR) — la diversificazione
+  funziona a livello di portafoglio anche quando Convex da solo non
+  regge. **PASS per Apex e Combinato, CONCERN dichiarato per Convex
+  isolato (limite di design noto, non un bug).**
+
+- **Correlazione Apex/Convex condizionata allo stress**: incondizionata
+  +0,297 (coerente con la cifra mostrata in dashboard). Condizionata al
+  10%/20% peggiore di Apex: sale leggermente (+0,280/+0,122) — la
+  diversificazione si riduce un po' ma non sparisce quando Apex soffre.
+  Condizionata al 10%/20% peggiore di Convex: **scende fino a NEGATIVA**
+  (-0,101/-0,073) — quando Convex ha i suoi mesi peggiori, Apex tende ad
+  essere leggermente positivo in media, non solo scorrelato: la
+  diversificazione tiene, anzi si rafforza, esattamente quando Convex ne
+  ha più bisogno. **Unico caveat**: i mesi con ENTRAMBI negativi sono
+  il 17,0% del campione contro l'11,6% atteso sotto indipendenza pura —
+  più frequente del caso, un segnale di vera (seppur modesta) dipendenza
+  di coda che la sola correlazione media non racconta. **PASS con
+  caveat sulla coda.**
+
+- **Sensibilità pesi/soglia di Convex** (`convex_weights_threshold_sensitivity.py`,
+  5 varianti di peso + 6 soglie di trim, intero storico): variazioni
+  gradute (CAGR 11,27%-13,28% sui pesi, 9,21%-9,30% sulla soglia di
+  trim) — nessun parametro fragile. **PASS.**
+
+- **Audit qualitativo del codice** (look-ahead bias, survivorship bias,
+  timing di esecuzione, integrità fiscale, data snooping — sub-agente
+  dedicato, poi verificato a mano dove più critico). Oltre al
+  survivorship bias (sopra, il solo corretto in questa sessione), **4
+  concern aperti, non corretti, lasciati come lavoro futuro**:
+  1. `kelly_backtest.py` (Kelly Stack, già scartato/non in produzione):
+     `compute_trend_gate`/`apply_per_sleeve_stop_loss` hanno una fuga
+     same-bar reale (il gate del mese T usa il rendimento del mese T
+     stesso) — i confronti storici §7.1 Kelly-vs-Apex potrebbero essere
+     stati fatti con numeri Kelly leggermente gonfiati. Basso impatto
+     pratico (Kelly Stack non è in produzione) ma da correggere se si
+     riapre quel filone.
+  2. Rotazione trimestrale del basket (`apex_production_confirmation_backtest.py`):
+     il ribasket del trimestre T usa la beta calcolata fino alla
+     settimana wk, poi guadagna il rendimento della stessa settimana wk
+     — una fuga same-bar minore (~1 settimana su 13). Inoltre i due
+     driver di backtest (`apex_production_confirmation_backtest.py` e
+     `apex_stocks_vs_etf_backtest.py`) usano ordini diversi tra
+     rendimento e ribasket — un'incongruenza interna mai notata prima
+     che è di per sé un segnale di verifica incrociata insufficiente.
+  3. Convex "mai vendere" (`convex_never_sell_cost_test.py`): con
+     `rebalance_every=None` la tassa non viene MAI applicata, nemmeno
+     alla liquidazione finale — il confronto contro il ribilanciamento
+     mensile (che paga le tasse regolarmente) usa quindi una passività
+     fiscale permanentemente differita e mai realizzata sul lato
+     "mai vendere", non solo posticipata.
+  4. Costo di transazione del basket azionario: il backtest di
+     produzione carica il costo solo sul turnover di CLASSE macro, non
+     sul turnover interno del basket di 15 titoli (~60%/trimestre) — il
+     sistema live invece lo carica (`backend.update_portfolio`, 10bps).
+     Il backtest è quindi piu' generoso del live su questo fronte
+     specifico (parzialmente mitigato dallo stress test costi sopra, che
+     pero' scala il coefficiente sbagliato, non introduce quello
+     mancante).
+
+### Verdetto complessivo
+
+**Apex e il Combinato 70/30 restano solidi dopo la batteria completa —
+ma con un margine più piccolo e più onesto di quanto le cifre pre-audit
+suggerissero.** Il survivorship bias era reale e materiale (~4,5pp/anno
+di CAGR, ~0,3 di Sharpe sul periodo TEST) — trovato, quantificato, e
+corretto per il 77,8% del buco con fonti gratuite verificate (il 22,2%
+residuo richiede un fornitore a pagamento, non risolvibile qui). Dopo la
+correzione, OGNI altro test della batteria (parametri, costi, DSR,
+regime, correlazione) continua a dare esito positivo — l'edge non è un
+artefatto di un solo parametro fragile, di costi irrealistici, di
+selezione multipla, o di un singolo regime fortunato. **Convex isolato
+non è un hedge di crisi** (perde in entrambe le crisi maggiori del suo
+backtest) — è esattamente quello che dichiara di essere, un veicolo di
+accumulo passivo a leva, e la sua funzione nel sistema è la
+diversificazione DEL MIX con Apex, non la protezione autonoma. Restano
+4 concern aperti dall'audit qualitativo (sopra), nessuno correttivo
+sui numeri già mostrati in dashboard, tutti candidati per una prossima
+sessione se si vuole spingere il rigore ulteriormente.
+
+**Addendum — Kelly frazionario vs sistema precedente, dopo il fix**:
+il fix del survivorship bias ha eroso anche la significatività
+statistica del confronto Kelly-vs-precedente (§8.30 vs §8.28) sul
+CAGR — non solo le cifre assolute di Apex. Il vantaggio di Kelly resta
+robusto sul piano risk-adjusted (Sharpe, verificato su 4 block_size di
+bootstrap) ma non più dimostrabile sul rendimento puro. Nessuna
+modifica alla configurazione di produzione — Kelly resta attivo perché
+la giustificazione originale (riduzione di drawdown/volatilità) tiene,
+solo la giustificazione "anche più CAGR" va ritirata.
+
+## Strategie accademiche non ancora testate (richiesto dall'utente dopo il report di robustezza)
+
+Richiesta esplicita dell'utente: testare su altcoin e su Convex le famiglie
+di strategia accademicamente documentate non ancora provate in questa
+sessione (distinte da quelle già esaustivamente testate e falsificate sopra
+per l'universo altcoin — momentum, mean reversion, low-vol, trend
+following, stop-loss, low-beta pick/basket/satellite, carry direzionale:
+tutte perdenti contro BTC buy&hold).
+
+- **Convex — ribilanciamento a soglia di tolleranza vs a calendario**
+  (Daryanani 2008, Masters 2003 — "rebalancing premium/tolerance band"),
+  `convex_threshold_vs_calendar_rebalance_test.py`. Estende
+  `tax_engine.apply_italian_tax` con un nuovo parametro
+  `rebalance_threshold` (ribilancia quando una sleeve diverge dal target di
+  più di N punti di peso, invece che a data fissa — con precedenza su
+  `rebalance_every` quando entrambi sono passati; default `None`,
+  nessuna regressione sui chiamanti esistenti, 9/9 unit test verdi incluso
+  i 3 nuovi su questo comportamento). Stesso universo/pesi/TER/tassazione
+  di `convex_never_sell_cost_test.py` (81 mesi, 2019-06→2026-09).
+  - **Contro il ribilanciamento MENSILE** (il confronto standard in
+    letteratura): la soglia migliore (5 punti di peso) vince in modo
+    statisticamente solido — **+1,00pp/anno campione pieno (CI90
+    [+0,50;+1,65], ESCLUDE lo zero), +1,26pp/anno su TEST (CI90
+    [+0,84;+1,90], ESCLUDE lo zero)** — con **6 eventi di ribilanciamento
+    invece di 81** su 81 mesi (meno tasse pagate inutilmente su
+    oscillazioni che rientrano da sole nella banda). PBO-CSCV 35,0% su 9
+    varianti (sotto la soglia di rumore).
+  - **Contro la policy REALE di Convex (MAI ribilanciare) — il confronto
+    che conta per una decisione di produzione**: qui il quadro cambia.
+    Su ogni soglia testata (3/5/10/15/20 punti) il CAGR netto è
+    PEGGIORE del "mai" di 2,4-3,9pp/anno, ma **il CI90 include sempre lo
+    zero** (range enormi, es. [-10,58;+7,30] per la soglia 5 punti) — non
+    statisticamente distinguibile, campione di soli 81 mesi (storico
+    Convex breve, a differenza dei 471 mesi disponibili per Apex). Su
+    Sharpe e MaxDD invece la soglia batte "mai" in modo consistente su
+    OGNI livello testato (Sharpe 0,94-1,04 contro 0,92; MaxDD -15,6/-16,5%
+    contro -18,67%).
+  - **Verdetto**: risultato onestamente misto, non un caso per cambiare la
+    produzione ora. Il vantaggio è chiaro e significativo solo contro lo
+    strawman "mensile" (che nessuno propone di usare); contro la policy
+    reale ("mai") il trade-off è "meno CAGR (non provato) per più Sharpe/
+    meno drawdown (consistente ma non testato su un campione grande a
+    sufficienza per un CI stretto)" — un compromesso di rischio legittimo,
+    non un miglioramento gratuito. **Non adottato in produzione**: il
+    campione è troppo corto per decidere con confidenza, e la policy
+    "mai vendere" ha un razionale dichiarato (differire la tassa il più
+    possibile) che una soglia stretta vanifica in parte. Candidato per
+    un secondo giro se lo storico Convex si allunga.
+
+
 
 Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.
 (Le due idee originarie di questa lista — Kelly "al contrario" su Convex e

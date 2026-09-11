@@ -27,6 +27,7 @@ def apply_italian_tax(
     target_weights,  # Dict[str, float] (fisso) oppure pd.DataFrame (un peso per mese, stesso indice di sleeve_returns)
     tax_types: Dict[str, str],
     rebalance_every: Optional[int] = 1,
+    rebalance_threshold: Optional[float] = None,
 ) -> pd.Series:
     """
     target_weights puo' essere un dict a pesi FISSI oppure un pd.DataFrame con
@@ -50,6 +51,16 @@ def apply_italian_tax(
     solo se rebalance_every=1 lo raggiunge; con rebalance_every>1 o None il
     target intermedio viene ignorato fino al prossimo evento programmato —
     va usato con target dinamico solo se questo comportamento e' voluto.
+
+    rebalance_threshold: alternativa a rebalance_every, per il ribilanciamento
+    "a soglia di tolleranza" (Daryanani 2008, Masters 2003) — invece di
+    ribilanciare a calendario, si ribilancia SOLO quando almeno una sleeve si
+    e' allontanata dal proprio peso target (in punti di peso assoluti, dopo la
+    rivalutazione di mercato del periodo, prima del ribilanciamento) di piu' di
+    questa soglia (es. 0.05 = 5 punti percentuali). Se impostato, ha la
+    PRECEDENZA su rebalance_every (che viene ignorato) — i due meccanismi non
+    si combinano, sono due policy alternative. None (default) mantiene il
+    comportamento a calendario invariato per tutti i chiamanti esistenti.
 
     tax_types[asset] deve essere "REDDITO_CAPITALE" (minusvalenze perse, non
     compensabili — ETF/fondi) o "REDDITO_DIVERSO" (minusvalenze compensabili
@@ -100,7 +111,12 @@ def apply_italian_tax(
         #    Convex Stack quando rebalance_every=None). Quando si ribilancia,
         #    la tassa colpisce solo il delta effettivamente venduto (mai
         #    l'intera posizione per un aggiustamento parziale di peso).
-        should_rebalance = rebalance_every is not None and (i + 1) % rebalance_every == 0
+        if rebalance_threshold is not None:
+            weights_after_market = {k: value[k] / nav_after_market for k in keys} if nav_after_market > 1e-12 else {k: 0.0 for k in keys}
+            max_drift = max(abs(weights_after_market[k] - target_weights_t.get(k, 0.0)) for k in keys)
+            should_rebalance = max_drift > rebalance_threshold
+        else:
+            should_rebalance = rebalance_every is not None and (i + 1) % rebalance_every == 0
         tax_due = 0.0
         if should_rebalance:
             for k in keys:

@@ -129,6 +129,44 @@ def test_rebalance_every_n_only_taxes_on_scheduled_periods():
     )
 
 
+def test_rebalance_threshold_never_triggers_when_drift_stays_inside_band():
+    """Soglia molto larga (50 punti di peso): il drift realistico di un
+    portafoglio A/B non la raggiunge mai -> nessun ribilanciamento, stesso
+    risultato di rebalance_every=None (mai ribilanciare)."""
+    returns = pd.DataFrame({"A": [0.10, 0.10, 0.10], "B": [0.0, 0.0, 0.0]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"}
+    net_threshold = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_threshold=0.50)
+    net_never = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=None)
+    pd.testing.assert_series_equal(net_threshold, net_never)
+
+
+def test_rebalance_threshold_triggers_as_soon_as_drift_exceeds_band():
+    """Soglia stretta (2 punti di peso): A si allontana dal 50% target gia'
+    al primo periodo (cresce del 10%, B resta fermo) -> deve scattare un
+    ribilanciamento (quindi una tassa) al primo periodo stesso, non dopo."""
+    returns = pd.DataFrame({"A": [0.10, 0.0], "B": [0.0, 0.0]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"}
+    net = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_threshold=0.02)
+    true_bh_growth_1p_notax = 0.5 * 1.10 + 0.5 * 1.0
+    assert float(1 + net.iloc[0]) < true_bh_growth_1p_notax, (
+        "con una soglia stretta gia' superata al primo periodo, la tassa sul ribilanciamento "
+        "deve far scendere il netto sotto il drift puro senza tassa"
+    )
+
+
+def test_rebalance_threshold_takes_precedence_over_rebalance_every():
+    """Se entrambi sono passati, rebalance_threshold vince — rebalance_every
+    deve essere ignorato, non combinato."""
+    returns = pd.DataFrame({"A": [0.10, 0.0, 0.0], "B": [0.0, 0.0, 0.0]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"}
+    net_both = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=1, rebalance_threshold=0.50)
+    net_threshold_only = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_threshold=0.50)
+    pd.testing.assert_series_equal(net_both, net_threshold_only)
+
+
 def test_rebalance_every_default_matches_historical_every_period_behavior():
     """Il default (rebalance_every=1) deve produrre ESATTAMENTE lo stesso
     risultato di prima di questo fix (la funzione ribilanciava ogni periodo
