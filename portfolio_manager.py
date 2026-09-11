@@ -378,7 +378,17 @@ def get_convex_metrics() -> Dict[str, Any]:
     curva (Convex non vende se non per rari trim: le tasse sono dovute solo
     alla realizzazione, non sul non realizzato). cagr_net è un'approssimazione
     (haircut 26% sulla plusvalenza cumulata del periodo), non una simulazione
-    fiscale posizione-per-posizione."""
+    fiscale posizione-per-posizione.
+
+    convex_monthly_returns.csv esteso a 1987-12 (da 2000-09) con
+    convex_extended_history_reconstruction.py, richiesto dall'utente per
+    mostrare piu' storico nel grafico di dashboard. Le cifre QUI SOPRA restano
+    invariate: il TEST period (2020-09/2026-08) e' interamente contenuto nel
+    segmento 2000-09+ dell'estensione, lasciato byte-per-byte identico
+    all'originale (verificato) — solo il segmento 1987-12/2000-08 e' nuovo,
+    innestato in coda. Il TER/tassazione restano quelli dei 5 strumenti UCITS
+    reali; il segmento esteso usa solo 2-3 sleeve su 5 (WBTC e PPFB non hanno
+    proxy prima del 2000-09 — vedi validation_suite/README.md)."""
     return {
         "name": "Convex Stack (Strategico PAC)",
         "cagr_net": 0.1356,

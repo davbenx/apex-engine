@@ -136,7 +136,9 @@ class TestApexConvexEcosystem(unittest.TestCase):
         """Verifica che la serie storica statica di SPY (estesa con proxy VFINX
         dal 1986-09, raccordata con SPY reale dal 1993 -- vedi
         apex_dashboard_stat_regeneration.py) copra interamente sia Convex
-        (312 mesi) sia Apex (471 mesi, esteso a 1987-06)."""
+        (465 mesi, esteso a 1987-12 -- vedi
+        convex_extended_history_reconstruction.py) sia Apex (471 mesi, esteso
+        a 1987-06)."""
         import pandas as pd
         spy = portfolio_manager.load_monthly_benchmark_spy()
         self.assertGreaterEqual(len(spy), 400, "Lo storico SPY deve contenere oltre 400 mesi dal 1986-09 (proxy VFINX)")
@@ -148,7 +150,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
         if os.path.exists(cx_path):
             cx = pd.read_csv(cx_path, index_col=0, parse_dates=True)
             common_cx = cx.index.intersection(spy.index)
-            self.assertEqual(len(common_cx), len(cx), "Tutti i 312 mesi di Convex devono avere il corrispondente mese in SPY")
+            self.assertEqual(len(common_cx), len(cx), "Tutti i mesi di Convex devono avere il corrispondente mese in SPY")
 
         if os.path.exists(apex_path):
             apex = pd.read_csv(apex_path, index_col=0, parse_dates=True)

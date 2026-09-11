@@ -1920,6 +1920,173 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     approfondire, la strada piu' promettente e' abbandonare il
     winner-take-all a favore di una ripartizione proporzionale al
     deficit, SENZA il livello aggiuntivo di Kelly contrarian.
+- **Ricostruzione storica estesa di Convex fino al 1987, richiesta diretta
+  dell'utente** (`convex_extended_history_reconstruction.py`). Il collo di
+  bottiglia dichiarato era DBMFE_proxy (solo `DBMF`, storico dal 2019-05 —
+  il limite che ha vincolato TUTTI i test Kelly-su-Convex di questa sessione
+  a 81 mesi). Nessun singolo ticker fetchabile replica un CTA sistematico
+  con storico dagli anni '80 (i managed futures fund storici non sono mai
+  stati quotati pubblicamente con prezzo giornaliero disponibile) — risolto
+  costruendo un indice SINTETICO di trend-following (metodologia Moskowitz-
+  Ooi-Pedersen 2012 "Time Series Momentum", la stessa dei CTA sistematici
+  reali — Winton, Dunn Capital, AHL), riusando `kelly_backtest.compute_tsmom_
+  sleeve_returns` (gia' in repo, mai invocata prima in un file tracciato) su
+  universo CRESCENTE: Equity+Bonds dal 1987 (VFINX/VUSTX, stessi proxy gia'
+  estesi per Apex), +Gold dal 2000-09 quando GC=F diventa disponibile,
+  raccordato con `DBMF` reale dal 2019-06 (il cutover usa l'inizio REALE di
+  ciascun segnale, non la data nominale — il segnale TSMOM richiede il
+  proprio warmup di 12 mesi, usare la data nominale apriva un buco di 14
+  mesi, bug trovato e corretto durante la costruzione).
+  - **Validazione del proxy**: la stessa formula a 3 mercati, calcolata sul
+    periodo in cui DBMF reale esiste (88 mesi di sovrapposizione, usando
+    SPY/IEF/GLD reali non proxy), ha **correlazione 0,521** con DBMF reale —
+    coerente con l'aspettativa (un CTA reale tratta ~20-35 mercati, quindi
+    una correlazione moderata non alta e' il risultato corretto, non un
+    fallimento del proxy) e in linea con un risultato analogo gia' trovato
+    in Kelly Stack per una costruzione simile ("correlazione 0.55").
+  - **Estensione di AVWS** (secondo collo di bottiglia, non richiesto
+    esplicitamente ma necessario per raggiungere il 1987 sull'intero
+    portafoglio): NAESX (Vanguard Small-Cap, non value-tilted, dal 1985-01,
+    unico proxy disponibile 1987-1993) -> DFSVX (DFA US Small Cap Value,
+    genuinamente value-tilted come AVWS, dal 1993-03) -> VBR (dal 2004-02,
+    gia' in uso). Limite dichiarato: 1987-1993 usa un proxy senza tilt
+    value, piu' grezzo delle altre gambe.
+  - **Oro e Crypto**: nessuna estensione ulteriore, stesso limite gia'
+    deliberato di Apex (GC=F dal 2000-09, BTC-USD dal 2014-09 — niente
+    proxy azionari auriferi, contaminerebbero la classe con beta equity).
+    Pesi Convex RINORMALIZZATI tra le sole sleeve disponibili prima di
+    quelle date (stessa logica gia' usata da Apex per la gamba Equity
+    pre-2012) — mai un rendimento inventato.
+  - **Risultato**: portafoglio esteso continuo (nessun buco), 499 mesi,
+    1985-03 -> 2026-09 (3 sleeve disponibili, il target dichiarato di
+    1987-06, dal 1987-12 — 6 mesi dopo per il warmup del segnale TSMOM di
+    DBMFE_proxy, un ritardo intrinseco al tipo di segnale, non un difetto
+    della costruzione). CAGR lordo 12,82%, Sharpe 1,06, **MaxDD -26,85%**
+    sull'intero campione — sensibilmente PEGGIORE del -15/-21% visto nei
+    test di questa sessione sul campione corto (2019-2026), perche' quel
+    campione non ha mai attraversato una vera crisi (1987, 2000-2002,
+    2008) mentre questo si'. **Implicazione importante**: la fiducia nei
+    risultati Kelly-su-Convex di questa sessione (target Kelly, trim
+    selettivo, PAC contrarian) era gia' segnalata come bassa per il
+    campione corto — ora c'e' un campione molto piu' lungo per un secondo
+    giro, se si vuole approfondire ulteriormente. Nessuna modifica in
+    produzione da questa ricostruzione in se' (e' infrastruttura/dati, non
+    un test di una strategia).
+  - **Secondo giro sul campione esteso, richiesto subito dopo dall'utente**
+    (`convex_kelly_extended_history_retest.py`): ri-eseguiti sia il test
+    target-Kelly-più-trim-gated sia quello PAC-contrarian, questa volta su
+    313 mesi (2000-09 → 2026-09, contro gli 81 originali) — un sotto-
+    insieme a 4 sleeve (NTSG/AVWS/DBMFE/PPFB, pesi rinormalizzati a somma
+    1; WBTC escluso, dati insufficienti dal 2000), TRAIN (156 mesi,
+    2000-2013) che include davvero il crollo dot-com E il 2008, TEST OOS
+    (157 mesi, 2013-2026) che include 2020 e 2022.
+    - **Target Kelly + trim: ORA RESPINTO CON SIGNIFICATIVITÀ
+      STATISTICA — ribaltamento importante rispetto al primo giro.** Il
+      TRAIN 2000-2013 spinge il target Kelly verso un'allocazione ancora
+      più estrema di prima (NTSG 48,6%→1,6%, DBMFE 27,0%→80,3% — i CTA
+      hanno avuto il loro decennio migliore di sempre proprio in quegli
+      anni). Sull'OOS 2013-2026 (un periodo storicamente difficile per il
+      trend-following/CTA, la "CTA winter" post-2010) questa scommessa
+      **non regge**: Kelly puro -4,74pp/anno contro il fisso (**CI 90%
+      [-8,19;-0,98], ESCLUDE lo zero**), il blend 50/50 -2,20pp/anno
+      (**CI [-3,57;-0,66], ESCLUDE lo zero pure lui**). PBO-CSCV 40,0%
+      (sotto la soglia di rumore — il ranking è riproducibile, non
+      casuale). **Lezione esplicita**: il primo giro (campione corto,
+      "promettente ma fragile") aveva probabilmente scambiato la
+      sovraperformance storica di DBMFE/CTA 2000-2013 per un edge
+      strutturale — esattamente il tipo di errore che un campione più
+      lungo e con vere crisi in entrambe le metà serve a scoprire. Bene
+      non aver mai implementato nulla.
+    - **PAC contrarian: risultato più debole ma ora opposto in segno**
+      rispetto al primo giro. Kelly contrarian +0,33pp/anno contro
+      winner-take-all (CI 90% [+0,02;+0,68], esclude lo zero per un
+      margine stretto) — ma Sharpe IDENTICO (0,99 contro 0,99) e MaxDD
+      PEGGIORE (-19,20% contro -17,12%): il guadagno è solo di
+      rendimento medio, non aggiustato per rischio. PBO-CSCV **64,3%,
+      SOPRA la soglia di rumore** — segnale statistico misto (CI dice
+      "significativo", PBO dice "poco riproducibile"), non una
+      validazione pulita.
+    - **Verdetto complessivo del secondo giro**: la ricostruzione estesa
+      ha fatto esattamente il suo lavoro — ha smascherato un risultato
+      fragile (target Kelly) che sembrava promettente su un campione
+      corto, e ha lasciato l'altro (PAC contrarian) nella stessa zona
+      grigia di prima con numeri diversi. Nessuna modifica in produzione
+      per nessuno dei due meccanismi — entrambi restano linee di ricerca
+      chiuse, ora con una base statistica molto più solida dietro la
+      chiusura.
+  - **"Kelly al contrario" — definizione esplicita di due meccanismi
+    concreti, richiesta dall'utente prima di testare oltre**
+    (`convex_kelly_contrario_v2_test.py`). Il tentativo originale (PAC
+    contrarian a 12 mesi) era un'unica interpretazione fra tre possibili
+    di "Kelly al contrario"; qui si formalizzano e testano le altre due,
+    su richiesta esplicita dell'utente ("Testa opzioni A e B"):
+    - **Meccanismo A raffinata**: lo stesso PAC contrarian, ma con la
+      finestra dello z-score rivista — 12 mesi è un orizzonte di
+      MOMENTUM in letteratura (Jegadeesh-Titman 1993), non di reversal;
+      il reversal di lungo periodo (De Bondt-Thaler 1985) opera su
+      orizzonti di 3-5 anni. Testate finestre 12/24/36/60 mesi, incrociate
+      con uno shrinkage extra della correlazione (30% verso l'identità).
+    - **Meccanismo B (nuovo)**: "Kelly sul lato vendita" — la soglia di
+      trim fissa di PPFB (+50% sul target) diventa funzione di un edge
+      stimato in stile Kelly (mu/sigma²) su finestra trailing (12 o 24
+      mesi), mappato attraverso un percentile ESPANSIVO (nessun
+      lookahead) della sua stessa storia: edge forte → soglia si allarga
+      fino a 1,85x (lascia correre); edge debole/negativo → soglia si
+      restringe fino a 1,15x (vende prima). Resta standalone — usa solo
+      dati di Convex, nessun accoppiamento con Apex (rispetta il
+      principio "ogni motore robusto da solo").
+    - **Meccanismo C (accoppiamento inverso con Apex) esplicitamente
+      scartato** prima di scrivere codice: è la lettura più letterale di
+      "al contrario" ma violerebbe il principio di design dichiarato
+      dall'utente (Convex dipenderebbe dal segnale di Apex).
+    - **Bug numerico reale scoperto e corretto durante l'implementazione**:
+      la logica "Kelly contrarian" originale (presente identica in
+      `convex_contrarian_kelly_pac_test.py` e in
+      `convex_kelly_extended_history_retest.py` Parte 2, copiata pari
+      pari qui inizialmente) riempiva le sleeve non sottopesate con un
+      valore sentinella -1e6 prima di risolvere il sistema Kelly 4x4
+      completo. L'inversione di matrice mescola quel sentinella in
+      OGNI coordinata trattenuta tramite i termini di covarianza fuori
+      diagonale, producendo pesi dell'ordine dei milioni dominati dal
+      sentinella e non dal segnale reale — prova diretta: con il bug,
+      cambiare la finestra da 12 a 60 mesi non cambiava il CAGR nemmeno
+      alla seconda cifra decimale, impossibile se il segnale contasse
+      davvero. **Corretto** risolvendo il sistema Kelly solo nel
+      sotto-spazio delle sleeve effettivamente sottopesate quel mese
+      (sotto-matrice di Sigma, non il sistema 4x4 con sentinella). Questo
+      bug era presente anche nei DUE script precedenti (campione corto e
+      campione esteso) che avevano concluso "PAC contrarian falsificato,
+      non aggiunge nulla" — quella conclusione va quindi considerata
+      **non affidabile per come è stata calcolata**, anche se, come si
+      vede sotto, il risultato corretto la conferma comunque nella
+      sostanza.
+    - **Risultati (numerica corretta, campione esteso 313 mesi, stesso
+      split TRAIN/TEST 156/157 mesi)**:
+      - **Meccanismo A raffinata**: NESSUNA finestra (12/24/36/60m) né
+        livello di shrinkage produce un CI che esclude lo zero contro
+        winner-take-all — tutti i 90% CI includono lo zero, differenze
+        di pochi bp/anno (range -0,01/+0,08 pp/anno). PBO-CSCV 30,0%
+        (sotto la soglia di rumore — il "nessun effetto" è un risultato
+        reale, non rumore statistico). **Falsificato con numerica
+        corretta**, in modo più pulito e più conclusivo del test
+        originale (che, corrotto dal bug, mostrava per errore un CI che
+        escludeva lo zero).
+      - **Meccanismo B**: tutte le combinazioni soglia-dinamica × gate
+        mostrano differenze trascurabili (-0,01/+0,02 pp/anno) contro il
+        fisso 1,5x, tutti i CI includono lo zero, PBO-CSCV 14,3% (sotto
+        la soglia di rumore). La soglia dinamica oscilla in un range
+        stretto (media ~1,46-1,48x, min 1,15x, max 1,85x) — l'effetto è
+        economicamente trascurabile perché PPFB pesa solo ~8% del
+        portafoglio e i trim sono rari. **Falsificato, nessun beneficio
+        misurabile.**
+      - **Verdetto finale su "Kelly al contrario su Convex"**: dopo tre
+        interpretazioni testate (PAC contrarian originale, A raffinata,
+        B lato-vendita) nessuna produce un miglioramento statisticamente
+        o economicamente significativo. Nessuna modifica in produzione.
+        Argomento chiuso con confidenza alta — non per mancanza di
+        rigore ma perché, corretto un bug reale di implementazione, il
+        segnale resta assente su un campione di 313 mesi che include
+        due vere crisi in entrambe le metà TRAIN/TEST.
 
 ## Idee in coda per approfondimenti futuri
 
