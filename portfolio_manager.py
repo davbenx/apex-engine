@@ -349,27 +349,45 @@ def get_apex_metrics() -> Dict[str, Any]:
     frazionaria tra le classi macro attive (APEX_V2_SPEC.md §8.30,
     kelly_fraction=0.25/kelly_window=208 settimane, default di
     compute_v2_macro_signal — vedi apex_v2_engine.py): il miglioramento e'
-    netto su tutto il periodo TEST (Sharpe 1.245->1.675, MaxDD -14.52%-
-    >-10.44%, Ulcer Index 6.19->2.92, CAGR netto 14.28%->18.32%) — piu'
-    forte del beneficio visto nei backtest settimanali usati per validare
-    Kelly (limitati dal 2018 dal vincolo BTC comune), qui su un campione
-    con storico esteso e il vero basket di produzione."""
+    netto su tutto il periodo TEST (Sharpe 1.245->1.675 con l'universo
+    dell'epoca, vedi sotto per il numero corretto).
+
+    **Rigenerate una TERZA volta dopo la scoperta e correzione (parziale)
+    del survivorship bias nell'universo azionario** (audit di robustezza
+    istituzionale — vedi validation_suite/README.md, sezione "Test di
+    robustezza e invalidazione istituzionale completo"):
+    `select_low_beta_basket` pescava da un universo prezzi costruito dai
+    membri ATTUALI dell'S&P 500, non dall'unione dei membri storici — un
+    titolo delistato/acquisito/rimosso dall'indice era invisibile al
+    backtest anche se eleggibile quell'anno (45% dei membri eleggibili
+    2012 senza alcun file prezzo). Corretto con
+    fetch_delisted_sp500_prices.py (copertura storica dal 60.9% al 77.8%
+    — non al 100%: Yahoo Finance non serve piu' storico per titoli
+    delistati troppo vecchi o con simbolo purgato; altre 3 fonti gratuite
+    testate e scartate, vedi README). Effetto sul periodo TEST: **Sharpe
+    1.675->1.380, MaxDD -10.44%->-10.59%, CAGR lordo 24.66%->20.18%** —
+    la correzione ha ridotto le cifre mostrate, confermando che il bias
+    le gonfiava. Griglia di sensibilita' e PBO-CSCV (9 varianti,
+    apex_v2_sensitivity_grid.py) ripetuti sull'universo corretto: PBO-CSCV
+    37.1% (sotto la soglia di rumore — il ranking resta riproducibile),
+    range di Sharpe 1.334-1.415 (nessun collasso vicino ai parametri di
+    produzione)."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1832,
-        "cagr_gross": 0.2466,
-        "volatility": 0.1383,
-        "sharpe": 1.675,
-        "sortino": 2.549,
-        "max_drawdown": -0.1044,
-        "max_drawdown_storico": -0.1476,
-        "calmar": 2.363,
-        "ulcer_index": 2.92,
-        "volatility_netto_stimato": 0.1337,
-        "sharpe_netto_stimato": 1.332,
-        "sortino_netto_stimato": 2.078,
-        "max_drawdown_netto_stimato": -0.1424,
-        "calmar_netto_stimato": 1.286,
+        "cagr_net": 0.1490,
+        "cagr_gross": 0.2018,
+        "volatility": 0.1413,
+        "sharpe": 1.380,
+        "sortino": 2.397,
+        "max_drawdown": -0.1059,
+        "max_drawdown_storico": -0.1362,
+        "calmar": 1.905,
+        "ulcer_index": 3.89,
+        "volatility_netto_stimato": 0.1362,
+        "sharpe_netto_stimato": 1.092,
+        "sortino_netto_stimato": 1.923,
+        "max_drawdown_netto_stimato": -0.1365,
+        "calmar_netto_stimato": 1.092,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "storico_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest)",
         "cash_drag_protection": "100% Cash nei bear market macro",
@@ -452,28 +470,35 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     (apex_monthly_returns_extended_gross.csv + convex_monthly_returns.csv);
     cagr_net e' la media pesata delle stime nette dei due componenti sulla
     stessa finestra, non una combinazione fiscale rigorosa posizione-per-
-    posizione."""
+    posizione.
+
+    **Rigenerate dopo la correzione del survivorship bias in Apex** (vedi
+    get_apex_metrics() e validation_suite/README.md) — Convex non e'
+    affetto (nessuna selezione di titoli singoli), quindi solo la gamba
+    Apex del combinato cambia: Sharpe 1.834->1.585, MaxDD -7.78%->-7.78%
+    (quasi invariato — il beneficio di diversificazione assorbe gran parte
+    dell'impatto), CAGR lordo 22.51%->19.42%."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1651,
-        "cagr_gross": 0.2251,
-        "volatility": 0.1151,
-        "sharpe": 1.834,
-        "sortino": 3.418,
+        "cagr_net": 0.1412,
+        "cagr_gross": 0.1942,
+        "volatility": 0.1169,
+        "sharpe": 1.585,
+        "sortino": 3.260,
         "max_drawdown": -0.0778,
-        "max_drawdown_storico": -0.1180,
-        "calmar": 2.895,
-        "ulcer_index": 1.90,
-        "correlation": 0.31,
+        "max_drawdown_storico": -0.1098,
+        "calmar": 2.497,
+        "ulcer_index": 2.19,
+        "correlation": 0.306,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest)",
         "synergy_summary": (
             "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 22.51% (netto stimato 16.51%), tra il 16.88% di Convex e il 24.66% di Apex isolatamente. "
+            "CAGR 19.42% (netto stimato 14.12%), tra il 16.88% di Convex e il 20.18% di Apex isolatamente. "
             "Il beneficio di diversificazione si vede nel MaxDD -7.78% (finestra di validazione) — inferiore "
-            "a entrambe le componenti singole nella stessa finestra (-10.44% Apex, -15.76% Convex). "
-            "Sull'intero backtest (1987-12/2026-08) il MaxDD combinato sale a -11.80% — sempre inferiore alle "
-            "componenti isolate sullo stesso storico (-14.76% Apex, -21.16% Convex). Correlazione reale: 0.31."
+            "a entrambe le componenti singole nella stessa finestra (-10.59% Apex, -15.76% Convex). "
+            "Sull'intero backtest (1987-12/2026-08) il MaxDD combinato sale a -10.98% — sempre inferiore alle "
+            "componenti isolate sullo stesso storico (-13.62% Apex, -21.16% Convex). Correlazione reale: 0.31."
         )
     }
 
