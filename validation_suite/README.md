@@ -1791,6 +1791,50 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     priorita' del Kelly di classe — resta un candidato disponibile ma
     a bassa priorita' per un eventuale approfondimento futuro (es. doppio
     ordinamento beta+quality, o fattore quality alternativo).
+- **Kelly sui pesi target delle 5 sleeve di Convex, con trim selettivo
+  gated su Oro/WBTC — proposta diretta dell'utente**
+  (`convex_kelly_selective_trim_test.py`). Idea distinta da Kelly Stack
+  (gia' scartato): li' il ribilanciamento attivo toccava TUTTE le sleeve
+  incluse le 3 a Reddito di Capitale (causa diagnosticata del crollo
+  netto per turnover fiscalmente svantaggioso) — qui Kelly cambia SOLO il
+  target verso cui NTSG/AVWS/DBMFE driftano liberamente (mai tradate), il
+  trim attivo resta identico a oggi nella portata (solo PPFB/WBTC, Reddito
+  Diverso, soglia +50% sopra target — la stessa gia' in produzione), si
+  aggiunge solo un "cancello temporale" testato in 3 varianti (cooldown
+  12 mesi, persistenza 12 mesi, tetto 1/anno per calendario) piu' un
+  controllo "nessun cancello" (comportamento attuale).
+  - **Risultato OOS (calibrazione su prima meta' del campione, 40 mesi,
+    applicato senza ri-ottimizzare sui 41 mesi successivi)**: Kelly puro
+    migliora Sharpe (1,03-1,07 contro 0,96-0,99) e **MaxDD in modo
+    marcato** (-9,4/10,1% contro -15,7/16,0%) — ma con una riallocazione
+    ESTREMA (NTSG target crolla dal 45% all'1,8%, Oro sale al 30,9%).
+  - **Motivo di cautela dichiarato**: il campione comune alle 5 sleeve e'
+    solo 81 mesi (limitato da DBMFE_proxy, storico dal 2019), la
+    calibrazione usa solo 40 mesi che includono lo shock tassi 2022 (il
+    peggior periodo storico per NTSG — equity+bond a leva — e uno dei
+    migliori per trend-following/oro) — la riallocazione estrema e'
+    probabilmente specifica a quel regime, non un edge strutturale
+    verificabile con questo campione. **Aggiunta una variante prudente
+    non richiesta esplicitamente**: blend 50/50 tra target fisso e target
+    Kelly, che modera la riallocazione (NTSG 23,4% invece di 1,8%)
+    mantenendo un miglioramento OOS piu' contenuto ma dello stesso segno
+    (Sharpe 1,01-1,06, MaxDD -12,7/13,1%).
+  - **Nessun cancello temporale emerge come vincitore statisticamente
+    chiaro**: tutti i confronti accoppiati contro il controllo includono
+    lo zero, PBO-CSCV sale a **60% (sopra la soglia di rumore)** con le
+    12 varianti totali — un campione di 41 mesi OOS non basta a
+    distinguere in modo affidabile cosi' tante configurazioni simili.
+    Direzionalmente (non statisticamente) cooldown e calendario sembrano
+    leggermente migliori di persistence e "nessun cancello", ma con bassa
+    fiducia.
+  - **Verdetto: meccanismo ben disegnato (evita per costruzione il
+    problema fiscale che ha affossato Kelly Stack), ma il campione qui e'
+    troppo corto per fidarsi dei pesi Kelly specifici o del tipo di
+    cancello scelto — confidenza NETTAMENTE piu' bassa del Kelly sulle
+    classi di Apex.** Nessuna modifica in produzione. Se in futuro si
+    volesse procedere comunque, il blend 50/50 + cooldown 12 mesi e' la
+    scelta piu' prudente tra quelle testate, non quella con il numero
+    migliore in assoluto.
 
 ## Cosa NON è (ancora) qui, e perché
 
