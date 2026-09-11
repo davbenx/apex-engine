@@ -2014,6 +2014,79 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       per nessuno dei due meccanismi — entrambi restano linee di ricerca
       chiuse, ora con una base statistica molto più solida dietro la
       chiusura.
+  - **"Kelly al contrario" — definizione esplicita di due meccanismi
+    concreti, richiesta dall'utente prima di testare oltre**
+    (`convex_kelly_contrario_v2_test.py`). Il tentativo originale (PAC
+    contrarian a 12 mesi) era un'unica interpretazione fra tre possibili
+    di "Kelly al contrario"; qui si formalizzano e testano le altre due,
+    su richiesta esplicita dell'utente ("Testa opzioni A e B"):
+    - **Meccanismo A raffinata**: lo stesso PAC contrarian, ma con la
+      finestra dello z-score rivista — 12 mesi è un orizzonte di
+      MOMENTUM in letteratura (Jegadeesh-Titman 1993), non di reversal;
+      il reversal di lungo periodo (De Bondt-Thaler 1985) opera su
+      orizzonti di 3-5 anni. Testate finestre 12/24/36/60 mesi, incrociate
+      con uno shrinkage extra della correlazione (30% verso l'identità).
+    - **Meccanismo B (nuovo)**: "Kelly sul lato vendita" — la soglia di
+      trim fissa di PPFB (+50% sul target) diventa funzione di un edge
+      stimato in stile Kelly (mu/sigma²) su finestra trailing (12 o 24
+      mesi), mappato attraverso un percentile ESPANSIVO (nessun
+      lookahead) della sua stessa storia: edge forte → soglia si allarga
+      fino a 1,85x (lascia correre); edge debole/negativo → soglia si
+      restringe fino a 1,15x (vende prima). Resta standalone — usa solo
+      dati di Convex, nessun accoppiamento con Apex (rispetta il
+      principio "ogni motore robusto da solo").
+    - **Meccanismo C (accoppiamento inverso con Apex) esplicitamente
+      scartato** prima di scrivere codice: è la lettura più letterale di
+      "al contrario" ma violerebbe il principio di design dichiarato
+      dall'utente (Convex dipenderebbe dal segnale di Apex).
+    - **Bug numerico reale scoperto e corretto durante l'implementazione**:
+      la logica "Kelly contrarian" originale (presente identica in
+      `convex_contrarian_kelly_pac_test.py` e in
+      `convex_kelly_extended_history_retest.py` Parte 2, copiata pari
+      pari qui inizialmente) riempiva le sleeve non sottopesate con un
+      valore sentinella -1e6 prima di risolvere il sistema Kelly 4x4
+      completo. L'inversione di matrice mescola quel sentinella in
+      OGNI coordinata trattenuta tramite i termini di covarianza fuori
+      diagonale, producendo pesi dell'ordine dei milioni dominati dal
+      sentinella e non dal segnale reale — prova diretta: con il bug,
+      cambiare la finestra da 12 a 60 mesi non cambiava il CAGR nemmeno
+      alla seconda cifra decimale, impossibile se il segnale contasse
+      davvero. **Corretto** risolvendo il sistema Kelly solo nel
+      sotto-spazio delle sleeve effettivamente sottopesate quel mese
+      (sotto-matrice di Sigma, non il sistema 4x4 con sentinella). Questo
+      bug era presente anche nei DUE script precedenti (campione corto e
+      campione esteso) che avevano concluso "PAC contrarian falsificato,
+      non aggiunge nulla" — quella conclusione va quindi considerata
+      **non affidabile per come è stata calcolata**, anche se, come si
+      vede sotto, il risultato corretto la conferma comunque nella
+      sostanza.
+    - **Risultati (numerica corretta, campione esteso 313 mesi, stesso
+      split TRAIN/TEST 156/157 mesi)**:
+      - **Meccanismo A raffinata**: NESSUNA finestra (12/24/36/60m) né
+        livello di shrinkage produce un CI che esclude lo zero contro
+        winner-take-all — tutti i 90% CI includono lo zero, differenze
+        di pochi bp/anno (range -0,01/+0,08 pp/anno). PBO-CSCV 30,0%
+        (sotto la soglia di rumore — il "nessun effetto" è un risultato
+        reale, non rumore statistico). **Falsificato con numerica
+        corretta**, in modo più pulito e più conclusivo del test
+        originale (che, corrotto dal bug, mostrava per errore un CI che
+        escludeva lo zero).
+      - **Meccanismo B**: tutte le combinazioni soglia-dinamica × gate
+        mostrano differenze trascurabili (-0,01/+0,02 pp/anno) contro il
+        fisso 1,5x, tutti i CI includono lo zero, PBO-CSCV 14,3% (sotto
+        la soglia di rumore). La soglia dinamica oscilla in un range
+        stretto (media ~1,46-1,48x, min 1,15x, max 1,85x) — l'effetto è
+        economicamente trascurabile perché PPFB pesa solo ~8% del
+        portafoglio e i trim sono rari. **Falsificato, nessun beneficio
+        misurabile.**
+      - **Verdetto finale su "Kelly al contrario su Convex"**: dopo tre
+        interpretazioni testate (PAC contrarian originale, A raffinata,
+        B lato-vendita) nessuna produce un miglioramento statisticamente
+        o economicamente significativo. Nessuna modifica in produzione.
+        Argomento chiuso con confidenza alta — non per mancanza di
+        rigore ma perché, corretto un bug reale di implementazione, il
+        segnale resta assente su un campione di 313 mesi che include
+        due vere crisi in entrambe le metà TRAIN/TEST.
 
 ## Idee in coda per approfondimenti futuri
 
