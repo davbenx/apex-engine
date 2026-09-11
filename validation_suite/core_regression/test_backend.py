@@ -299,13 +299,35 @@ def test_executing_pending_waits_for_a_real_new_market_bar():
     assert backend.compute_executing_pending(pending, "2026-08-31") is True
 
 
-def test_weekly_due_tolerates_scheduling_delay_past_a_weekday_boundary():
-    # Stesso bug lato notifica Telegram: l'heartbeat settimanale non deve dipendere da
-    # "e' venerdi' adesso" (falso se l'esecuzione slitta di sabato), ma dai giorni
-    # trascorsi dall'ultimo invio riuscito.
-    assert backend.compute_weekly_due("2026-08-29", "2026-08-22") is True  # 7gg, dovuto
-    assert backend.compute_weekly_due("2026-08-25", "2026-08-22") is False  # 3gg, non ancora
-    assert backend.compute_weekly_due("2026-08-29", None) is True  # mai inviato prima
+def test_weekly_due_anchored_to_friday_not_drifting_with_rolling_day_count():
+    # BUG reale segnalato dall'utente (alert Telegram arrivato alle 2:45 di venerdi'
+    # con dati di chiusura di GIOVEDI', invece che dopo la chiusura di venerdi'):
+    # la versione precedente ("almeno 6 giorni dall'ultimo alert") non restava
+    # ancorata a un giorno fisso — con lo schedule feriale-soltanto di GitHub
+    # Actions (lun-ven, niente run nel weekend) l'alert scattava un giorno prima
+    # nella settimana ad ogni ciclo (Ven->Gio->Mer->Mar->Lun).
+    import datetime as _dt
+    last_friday = _dt.datetime(2026, 8, 21)     # ultimo alert: venerdi'
+    thursday_6gg_dopo = _dt.datetime(2026, 8, 27)  # esattamente 6 giorni dopo, ma e' GIOVEDI' (settimana ISO successiva)
+    this_friday = _dt.datetime(2026, 8, 28)     # il venerdi' successivo (giorno corretto)
+    monday = _dt.datetime(2026, 8, 24)
+    saturday_next_week = _dt.datetime(2026, 9, 5)
+
+    # Col vecchio bug, 6 giorni dopo l'ultimo alert (giovedi') avrebbe fatto
+    # scattare l'alert un giorno TROPPO PRESTO — ora non scatta piu' qui
+    assert backend.compute_weekly_due(thursday_6gg_dopo, "2026-08-21") is False
+    # Il venerdi' successivo (giorno giusto) -> dovuto
+    assert backend.compute_weekly_due(this_friday, "2026-08-21") is True
+    # Lunedi' (weekday 0, fuori dalla finestra Ven-Dom) -> mai dovuto
+    assert backend.compute_weekly_due(monday, "2026-08-21") is False
+    # Sabato della settimana ISO successiva al venerdi' sopra, ultimo alert quel
+    # venerdi' -> dovuto (tollera uno slittamento del run di venerdi' oltre
+    # mezzanotte, stesso principio di compute_should_decide)
+    assert backend.compute_weekly_due(saturday_next_week, "2026-08-28") is True
+    # Venerdi' stesso, ultimo alert quel venerdi' stesso (gia' inviato questa
+    # settimana ISO) -> non dovuto, evita doppio invio nella stessa settimana
+    assert backend.compute_weekly_due(this_friday, "2026-08-28") is False
+    assert backend.compute_weekly_due(this_friday, None) is True  # mai inviato prima
 
 
 def test_compute_rebalance_orders_structured():

@@ -105,17 +105,35 @@ def compute_should_decide(now_dt, prev_state, just_migrating):
     return just_migrating or (near_month_end and prev_state.get("last_decision_month") != current_month_str)
 
 
-def compute_weekly_due(today_str, last_alert_str):
-    """Vero se sono passati almeno 6 giorni dall'ultimo alert Telegram inviato con
-    successo. Sostituisce il controllo "e' venerdi' adesso" per l'heartbeat settimanale,
-    per lo stesso motivo di `compute_should_decide` — vedi APEX_V2_SPEC.md §8.13."""
+def compute_weekly_due(now_dt, last_alert_str):
+    """Vero se e' il momento dell'heartbeat settimanale — ancorato al venerdi'
+    (stessa chiusura settimanale usata dalle medie mobili di compute_v2_macro_signal),
+    con una finestra di tolleranza Ven-Dom (weekday>=4) per lo stesso motivo di
+    `compute_should_decide` (un run schedulato puo' slittare oltre mezzanotte UTC).
+
+    BUG CORRETTO (segnalato dall'utente: alert arrivato alle 2:45 di venerdi' invece
+    che dopo la chiusura di venerdi'): la versione precedente controllava "sono
+    passati >=6 giorni di calendario dall'ultimo alert", pensata per tollerare uno
+    slittamento del run oltre il confine del giorno — ma quella condizione NON resta
+    ancorata a un giorno fisso della settimana. Con lo schedule di GitHub Actions
+    feriale-soltanto (lun-ven, i weekend non hanno run), ">=6 giorni" fa scattare
+    l'alert sempre un giorno PRIMA nella settimana ad ogni ciclo (Ven->Gio->Mer->
+    Mar->Lun, poi si stabilizza di lunedi', dove i due giorni di weekend senza run
+    ricreano la condizione ">=6" in modo stabile) — l'alert delle 2:45 di venerdi'
+    era in realta' il run di GIOVEDI' 23:00 UTC, con dati di chiusura di giovedi',
+    non di venerdi'. Fix: invece di contare giorni trascorsi, confronta la settimana
+    ISO dell'ultimo alert con quella corrente — al massimo un alert per settimana
+    ISO, e solo nella finestra Ven-Dom, quindi sempre ancorato a venerdi' (o al
+    primo giorno disponibile dopo, se il run di venerdi' slitta), mai alla deriva."""
     if not last_alert_str:
         return True
     try:
-        days_since = (datetime.datetime.strptime(today_str, "%Y-%m-%d") - datetime.datetime.strptime(last_alert_str, "%Y-%m-%d")).days
+        last_alert_dt = datetime.datetime.strptime(last_alert_str, "%Y-%m-%d")
     except ValueError:
         return True
-    return days_since >= 6
+    current_week = now_dt.isocalendar()[:2]  # (anno ISO, settimana ISO)
+    last_alert_week = last_alert_dt.isocalendar()[:2]
+    return now_dt.weekday() >= 4 and current_week != last_alert_week
 
 
 def compute_executing_pending(prev_pending, latest_market_date_str):
@@ -983,7 +1001,7 @@ def main():
 
     pf_state = load_json_safe(PORTFOLIO_FILE, default={})
     last_alert_str = pf_state.get("last_telegram_alert_date")
-    weekly_due = compute_weekly_due(today_str, last_alert_str)
+    weekly_due = compute_weekly_due(now_dt, last_alert_str)
 
     if weekly_due or output.get("macro_events") or has_orders:
         sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct)

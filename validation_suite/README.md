@@ -1860,6 +1860,28 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     volesse procedere comunque, il blend 50/50 + cooldown 12 mesi e' la
     scelta piu' prudente tra quelle testate, non quella con il numero
     migliore in assoluto.
+- **BUG reale in produzione, segnalato dall'utente**: un alert Telegram
+  arrivato alle 2:45 di venerdi' 11 settembre 2026, quando ci si
+  aspettava un aggiornamento dopo la chiusura DI venerdi' (non prima).
+  Causa: `backend.compute_weekly_due` (l'heartbeat settimanale, distinto
+  dalla decisione mensile di ribilanciamento) controllava "sono passati
+  almeno 6 giorni dall'ultimo alert" invece di "e' venerdi'" — pensato
+  per tollerare uno slittamento del run schedulato oltre mezzanotte UTC
+  (stesso principio di `compute_should_decide`), ma quella condizione
+  NON resta ancorata a un giorno fisso della settimana. Con lo schedule
+  di GitHub Actions feriale-soltanto (`.github/workflows/update_data.yml`,
+  lun-ven alle 23:00 UTC, niente run nel weekend), ">=6 giorni" fa
+  scattare l'alert un giorno PRIMA nella settimana ad ogni ciclo
+  (Ven->Gio->Mer->Mar->Lun, poi si stabilizza di lunedi'). L'alert delle
+  2:45 di venerdi' era in realta' il run di GIOVEDI' 23:00 UTC (23:00
+  UTC = 01:00 CEST, +~1h45 di elaborazione), con dati di chiusura di
+  giovedi', non di venerdi'. **Fix**: `compute_weekly_due` ora confronta
+  la settimana ISO dell'ultimo alert con quella corrente (al massimo un
+  alert per settimana ISO) invece di contare giorni trascorsi, e resta
+  nella finestra Ven-Dom (weekday>=4) per la tolleranza allo slittamento
+  — sempre ancorato a venerdi', mai alla deriva. 6 nuovi casi di test in
+  `test_backend.py` (sostituiscono i 3 precedenti, ora insufficienti a
+  distinguere comportamento corretto da bug).
 
 ## Idee in coda per approfondimenti futuri
 
