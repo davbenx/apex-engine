@@ -1972,6 +1972,48 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     giro, se si vuole approfondire ulteriormente. Nessuna modifica in
     produzione da questa ricostruzione in se' (e' infrastruttura/dati, non
     un test di una strategia).
+  - **Secondo giro sul campione esteso, richiesto subito dopo dall'utente**
+    (`convex_kelly_extended_history_retest.py`): ri-eseguiti sia il test
+    target-Kelly-più-trim-gated sia quello PAC-contrarian, questa volta su
+    313 mesi (2000-09 → 2026-09, contro gli 81 originali) — un sotto-
+    insieme a 4 sleeve (NTSG/AVWS/DBMFE/PPFB, pesi rinormalizzati a somma
+    1; WBTC escluso, dati insufficienti dal 2000), TRAIN (156 mesi,
+    2000-2013) che include davvero il crollo dot-com E il 2008, TEST OOS
+    (157 mesi, 2013-2026) che include 2020 e 2022.
+    - **Target Kelly + trim: ORA RESPINTO CON SIGNIFICATIVITÀ
+      STATISTICA — ribaltamento importante rispetto al primo giro.** Il
+      TRAIN 2000-2013 spinge il target Kelly verso un'allocazione ancora
+      più estrema di prima (NTSG 48,6%→1,6%, DBMFE 27,0%→80,3% — i CTA
+      hanno avuto il loro decennio migliore di sempre proprio in quegli
+      anni). Sull'OOS 2013-2026 (un periodo storicamente difficile per il
+      trend-following/CTA, la "CTA winter" post-2010) questa scommessa
+      **non regge**: Kelly puro -4,74pp/anno contro il fisso (**CI 90%
+      [-8,19;-0,98], ESCLUDE lo zero**), il blend 50/50 -2,20pp/anno
+      (**CI [-3,57;-0,66], ESCLUDE lo zero pure lui**). PBO-CSCV 40,0%
+      (sotto la soglia di rumore — il ranking è riproducibile, non
+      casuale). **Lezione esplicita**: il primo giro (campione corto,
+      "promettente ma fragile") aveva probabilmente scambiato la
+      sovraperformance storica di DBMFE/CTA 2000-2013 per un edge
+      strutturale — esattamente il tipo di errore che un campione più
+      lungo e con vere crisi in entrambe le metà serve a scoprire. Bene
+      non aver mai implementato nulla.
+    - **PAC contrarian: risultato più debole ma ora opposto in segno**
+      rispetto al primo giro. Kelly contrarian +0,33pp/anno contro
+      winner-take-all (CI 90% [+0,02;+0,68], esclude lo zero per un
+      margine stretto) — ma Sharpe IDENTICO (0,99 contro 0,99) e MaxDD
+      PEGGIORE (-19,20% contro -17,12%): il guadagno è solo di
+      rendimento medio, non aggiustato per rischio. PBO-CSCV **64,3%,
+      SOPRA la soglia di rumore** — segnale statistico misto (CI dice
+      "significativo", PBO dice "poco riproducibile"), non una
+      validazione pulita.
+    - **Verdetto complessivo del secondo giro**: la ricostruzione estesa
+      ha fatto esattamente il suo lavoro — ha smascherato un risultato
+      fragile (target Kelly) che sembrava promettente su un campione
+      corto, e ha lasciato l'altro (PAC contrarian) nella stessa zona
+      grigia di prima con numeri diversi. Nessuna modifica in produzione
+      per nessuno dei due meccanismi — entrambi restano linee di ricerca
+      chiuse, ora con una base statistica molto più solida dietro la
+      chiusura.
 
 ## Idee in coda per approfondimenti futuri
 

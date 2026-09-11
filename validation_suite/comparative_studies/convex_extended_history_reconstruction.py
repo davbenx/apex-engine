@@ -257,6 +257,11 @@ def main():
     port.to_csv(out_file, header=["return"])
     print(f"\n[*] Salvato: {out_file}")
 
+    sleeve_df = pd.DataFrame(sleeves)  # NaN dove la sleeve non e' ancora disponibile — non riempito, uso esplicito a valle
+    sleeve_out = Path(__file__).parent / "convex_extended_data" / "convex_sleeve_returns_extended.csv"
+    sleeve_df.to_csv(sleeve_out)
+    print(f"[*] Salvato: {sleeve_out} (rendimenti per sleeve, NaN dove non ancora disponibile — riuso per i test Kelly)")
+
 
 if __name__ == "__main__":
     main()
