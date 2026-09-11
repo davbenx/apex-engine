@@ -469,11 +469,10 @@ with tab_metriche:
         _cx_nav["roll_max"] = _cx_nav["value"].cummax()
         _cx_nav["drawdown"] = (_cx_nav["value"] - _cx_nav["roll_max"]) / _cx_nav["roll_max"] * 100.0
 
-        # Metriche ufficiali: da portfolio_manager.get_convex_metrics(), SOLO
-        # il periodo di validazione fuori campione (vedi nota nel modulo) — non
-        # piu' ricalcolate qui da zero sull'intera serie 2000-2026, che mescolava
-        # il periodo usato per scegliere i pesi 45/15/25/7.5/7.5 (TRAIN) con
-        # quello mai visto durante quella scelta (TEST), senza distinzione.
+        # Metriche ufficiali: da portfolio_manager.get_convex_metrics(), calcolate
+        # sull'INTERO storico disponibile (dati reali + backtest, vedi nota nel
+        # modulo) — non un periodo out-of-sample: i pesi 45/15/25/7.5/7.5 sono
+        # stati validati anche su parte di questo stesso storico.
         _m_cx = portfolio_manager.get_convex_metrics()
         cagr_gross, cagr_net = _m_cx["cagr_gross"], _m_cx["cagr_net"]
         vol, sharpe, sortino, mdd = _m_cx["volatility"], _m_cx["sharpe"], _m_cx["sortino"], _m_cx["max_drawdown"]
@@ -495,11 +494,11 @@ with tab_metriche:
         </div>
         """)
         st.caption(
-            f"Periodo di validazione fuori campione: {_m_cx.get('test_period', '')} — "
-            f"mai usato per scegliere i pesi della strategia. Il netto stimato è "
-            f"un'approssimazione (26% sulla plusvalenza cumulata), non una simulazione "
-            f"fiscale posizione-per-posizione — Convex vende raramente, le tasse vere "
-            f"si pagano solo alla liquidazione effettiva."
+            f"Storico completo: {_m_cx.get('test_period', '')} — dati reali degli "
+            f"strumenti dal 2019-09, backtest/proxy ricostruito prima. Il netto "
+            f"stimato è un'approssimazione (26% sulla plusvalenza cumulata), non "
+            f"una simulazione fiscale posizione-per-posizione — Convex vende "
+            f"raramente, le tasse vere si pagano solo alla liquidazione effettiva."
         )
 
 

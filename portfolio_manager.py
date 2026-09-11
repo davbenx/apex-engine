@@ -280,126 +280,102 @@ def save_convex_portfolio(data: Dict[str, Any]) -> bool:
 # ==============================================================================
 
 # ==============================================================================
-# PERCHE' SOLO IL PERIODO TEST (fuori campione) — non piu' 2014-2026/2000-2026
+# METODOLOGIA: STORICO INTERO (dati reali + backtest) — non piu' solo TEST
 # ==============================================================================
-# Correzione importante: le metriche restituite qui erano prima calcolate sulla
-# finestra COMPLETA (Apex 2014-11/2026-08, Convex 2000-09/2026-08), che include
-# sia il periodo usato per SCEGLIERE i parametri della strategia (TRAIN) sia il
-# periodo mai visto durante quella scelta (TEST) — mescolati senza distinzione,
-# quindi ottimisticamente distorti rispetto a una vera prova fuori campione.
-# Ora restituiscono SOLO il periodo TEST, lo stesso standard walk-forward gia'
-# usato in tutta la ricerca di questo progetto (vedi APEX_V2_SPEC.md §8.25 e
-# research/convex/convex_optimize_v2.py):
-#   - Apex: TRAIN 1987-06-30 -> 2020-08-31 (399 mesi), TEST 2020-09-30 ->
-#     2026-08-31 (72 mesi). Storia TRAIN estesa da 2014-11 a 1987-06 (vedi
-#     apex_dashboard_stat_regeneration.py, richiesto dall'utente "vai il piu'
-#     indietro possibile usando i migliori proxy" — VFINX/VUSTX/GC=F raccordati
-#     con SPY/IEF/GLD reali; selezione azionaria per singolo titolo resta
-#     vincolata al 2012+ per onesta' point-in-time, prima usa il rendimento
-#     dell'indice proxy stesso). Le cifre TEST period sotto sono IDENTICHE a
-#     prima dell'estensione (verificato) — lo split 2020-09-30 e' a valle di
-#     tutta la storia estesa, nessun effetto sulla finestra mostrata.
-#   - Convex: la validazione dei pesi 45/15/25/7.5/7.5 in convex_optimize_v2.py
-#     usa TRAIN 2000-09-30 -> 2013-09-30, TEST 2013-10-31 -> 2026-08-31 (155
-#     mesi, tutti fuori campione). La cifra MOSTRATA in dashboard pero' usa un
-#     SOTTOINSIEME di quel TEST period, 2020-09-30 -> 2026-08-31 (72 mesi) —
-#     la stessa identica finestra di Apex e del combinato, non i 155 mesi
-#     interi: le tre cifre affiancate devono condividere la stessa finestra o
-#     il confronto tra loro (e il combinato che sembra "battere" una delle due
-#     componenti) diventa fuorviante, anche se ciascuna singola cifra resta
-#     onestamente fuori campione. Ricalcolato da convex_monthly_returns.csv
-#     (lorda per costruzione — Convex non vende se non per rari trim).
-#     cagr_net resta l'approssimazione dichiarata (haircut 26% sulla
-#     plusvalenza cumulata del periodo mostrato, non una simulazione fiscale
-#     posizione-per-posizione).
+# Fino a qui le tre funzioni sotto restituivano SOLO il periodo di validazione
+# TEST walk-forward (2020-09/2026-08, 72 mesi mai usati per scegliere i
+# parametri della strategia — vedi APEX_V2_SPEC.md §8.25 e
+# research/convex/convex_optimize_v2.py), per non mescolare il periodo usato
+# per SCEGLIERE i parametri (TRAIN) con quello mai visto durante quella scelta
+# (TEST). Su richiesta esplicita dell'utente ("le metriche devono essere
+# ricalcolate sui dati reali + backtest"), ora usano invece l'INTERO storico
+# disponibile per ciascuna serie (dati reali degli strumenti dove esistono +
+# backtest/proxy ricostruito prima):
+#   - Apex: 1987-06-30 -> 2026-08-31 (471 mesi).
+#   - Convex: 1987-12-31 -> 2026-08-31 (465 mesi, esteso da
+#     convex_extended_history_reconstruction.py — dati reali degli strumenti
+#     UCITS dal 2019-09, proxy/backtest prima, vedi page_convex.py).
+#   - Combinato: intersezione dei due (1987-12-31 -> 2026-08-31, 465 mesi),
+#     vincolata da Convex.
+# CAVEAT METODOLOGICO ESPLICITO (da tenere presente leggendo questi numeri):
+# questo REINTRODUCE la distorsione ottimistica che lo split TRAIN/TEST era
+# nato per evitare — i parametri di entrambe le strategie (basket Apex,
+# finestra/frazione Kelly, pesi 45/15/25/7.5/7.5 di Convex, mix 70/30) sono
+# stati scelti/validati usando (anche) dati che ora rientrano nel periodo
+# mostrato. Non sono quindi cifre "fuori campione" in senso stretto — sono la
+# miglior stima disponibile della performance storica intera, non una prova
+# di generalizzazione. Le cifre walk-forward-only restano documentate nei
+# commit precedenti e in validation_suite/README.md per chi vuole la lettura
+# piu' conservativa.
 # ==============================================================================
 
 def get_apex_metrics() -> Dict[str, Any]:
-    """Metriche reali di Apex Engine sul solo periodo di validazione fuori
-    campione (TEST 2020-09-30 -> 2026-08-31, 72 mesi mai usati per scegliere
-    i parametri della strategia) — vedi nota sopra per la metodologia.
+    """Metriche reali di Apex Engine sull'INTERO storico disponibile
+    (1987-06-30 -> 2026-08-31, 471 mesi: proxy VFINX/VUSTX/GC=F prima delle
+    inception reali SPY/IEF/GLD, poi backtest settimanale del basket/segnale
+    di produzione) — vedi nota sopra per il cambio di metodologia
+    (dati reali + backtest, non piu' solo periodo TEST) e il caveat sulla
+    distorsione in-sample che questo reintroduce.
     Le metriche di rischio (sharpe/sortino/max_drawdown/calmar/volatility)
-    sono calcolate sulla serie LORDA (apex_monthly_returns_extended_gross.csv,
-    stesso TEST period) -- coerenti con equity.json/il grafico, che non
-    modella alcuna tassa, ed E' la cifra primaria mostrata in dashboard
-    (convenzione lordo-primario/netto-stimato-secondario). I campi
-    *_netto_stimato usano invece la serie netta (apex_monthly_returns_extended.csv,
-    tasse italiane reali modellate anno per anno) -- una stima più rigorosa
-    dell'haircut fisso usato per Convex, ma pur sempre calcolata su un
-    backtest di ricerca separato dalla curva live, non identica ad essa.
-    Rigenerate con select_low_beta_basket e storia estesa a 1987-06 (proxy
-    VFINX/VUSTX/GC=F) — vedi apex_dashboard_stat_regeneration.py e
-    validation_suite/README.md. Le cifre del periodo TEST sono identiche a
-    prima dell'estensione storica (split 2020-09-30 a valle, non impattato).
+    sono calcolate sulla serie LORDA (apex_monthly_returns_extended_gross.csv)
+    -- coerenti con equity.json/il grafico, che non modella alcuna tassa, ed
+    E' la cifra primaria mostrata in dashboard (convenzione lordo-primario/
+    netto-stimato-secondario). I campi *_netto_stimato usano invece la serie
+    netta (apex_monthly_returns_extended.csv, tasse italiane reali modellate
+    anno per anno) -- una stima più rigorosa dell'haircut fisso usato per
+    Convex, ma pur sempre calcolata su un backtest di ricerca separato dalla
+    curva live, non identica ad essa.
 
-    Rigenerate una seconda volta dopo l'adozione della pesatura Kelly
-    frazionaria tra le classi macro attive (APEX_V2_SPEC.md §8.30,
-    kelly_fraction=0.25/kelly_window=208 settimane, default di
-    compute_v2_macro_signal — vedi apex_v2_engine.py): il miglioramento e'
-    netto su tutto il periodo TEST (Sharpe 1.245->1.675, MaxDD -14.52%-
-    >-10.44%, Ulcer Index 6.19->2.92, CAGR netto 14.28%->18.32%) — piu'
-    forte del beneficio visto nei backtest settimanali usati per validare
-    Kelly (limitati dal 2018 dal vincolo BTC comune), qui su un campione
-    con storico esteso e il vero basket di produzione."""
+    Include la pesatura Kelly frazionaria tra le classi macro attive
+    (APEX_V2_SPEC.md §8.30, kelly_fraction=0.25/kelly_window=208 settimane,
+    default di compute_v2_macro_signal — vedi apex_v2_engine.py)."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1832,
-        "cagr_gross": 0.2466,
-        "volatility": 0.1383,
-        "sharpe": 1.675,
-        "sortino": 2.549,
-        "max_drawdown": -0.1044,
-        "calmar": 2.363,
-        "ulcer_index": 2.92,
-        "volatility_netto_stimato": 0.1337,
-        "sharpe_netto_stimato": 1.332,
-        "sortino_netto_stimato": 2.078,
-        "max_drawdown_netto_stimato": -0.1424,
-        "calmar_netto_stimato": 1.286,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
+        "cagr_net": 0.1078,
+        "cagr_gross": 0.1455,
+        "volatility": 0.1026,
+        "sharpe": 1.380,
+        "sortino": 2.574,
+        "max_drawdown": -0.1476,
+        "calmar": 0.985,
+        "ulcer_index": 3.11,
+        "volatility_netto_stimato": 0.0992,
+        "sharpe_netto_stimato": 1.084,
+        "sortino_netto_stimato": 2.062,
+        "max_drawdown_netto_stimato": -0.1733,
+        "calmar_netto_stimato": 0.622,
+        "test_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest storico)",
         "cash_drag_protection": "100% Cash nei bear market macro",
         "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
 
 
 def get_convex_metrics() -> Dict[str, Any]:
-    """Metriche reali di Convex Stack sul periodo di validazione fuori campione.
-    BUG corretto: usava un TEST period proprio (2013-10/2026-08, 155 mesi) diverso
-    da quello di get_apex_metrics()/get_combined_dual_engine_metrics() (2020-09/
-    2026-08, 72 mesi) — tre finestre diverse per tre numeri mostrati fianco a
-    fianco, che lasciava il combinato apparentemente piu' alto di ENTRAMBE le
-    componenti anche dopo il primo fix (era stato allineato solo ad Apex, non
-    a Convex — segnalato di nuovo dall'utente). Ora usa la STESSA finestra di
-    Apex e del combinato (2020-09-30 -> 2026-08-31, 72 mesi — l'intersezione
-    dei due periodi TEST, quindi fuori campione per entrambe le strategie):
-    su questa finestra Convex fa 16.88% lordo (non piu' 15.26%), e il combinato
-    (15.91%) torna a stare correttamente in mezzo ai due componenti su OGNI
-    confronto, non solo contro Apex. cagr_gross e' la performance reale della
+    """Metriche reali di Convex Stack sull'INTERO storico disponibile
+    (1987-12-31 -> 2026-08-31, 465 mesi: proxy/backtest sintetico fino al
+    2019-09, poi dati reali dei 5 strumenti UCITS -- vedi
+    convex_extended_history_reconstruction.py e page_convex.py) — vedi nota
+    sopra per il cambio di metodologia (dati reali + backtest, non piu' solo
+    periodo TEST) e il caveat sulla distorsione in-sample che questo
+    reintroduce (i pesi 45/15/25/7.5/7.5 sono stati validati anche su parte
+    di questo stesso storico). cagr_gross e' la performance reale della
     curva (Convex non vende se non per rari trim: le tasse sono dovute solo
     alla realizzazione, non sul non realizzato). cagr_net è un'approssimazione
     (haircut 26% sulla plusvalenza cumulata del periodo), non una simulazione
-    fiscale posizione-per-posizione.
-
-    convex_monthly_returns.csv esteso a 1987-12 (da 2000-09) con
-    convex_extended_history_reconstruction.py, richiesto dall'utente per
-    mostrare piu' storico nel grafico di dashboard. Le cifre QUI SOPRA restano
-    invariate: il TEST period (2020-09/2026-08) e' interamente contenuto nel
-    segmento 2000-09+ dell'estensione, lasciato byte-per-byte identico
-    all'originale (verificato) — solo il segmento 1987-12/2000-08 e' nuovo,
-    innestato in coda. Il TER/tassazione restano quelli dei 5 strumenti UCITS
-    reali; il segmento esteso usa solo 2-3 sleeve su 5 (WBTC e PPFB non hanno
-    proxy prima del 2000-09 — vedi validation_suite/README.md)."""
+    fiscale posizione-per-posizione. Il segmento 1987-12/2000-08 usa solo
+    2-3 sleeve su 5 (WBTC e PPFB non hanno proxy prima del 2000-09 — vedi
+    validation_suite/README.md)."""
     return {
         "name": "Convex Stack (Strategico PAC)",
-        "cagr_net": 0.1356,
-        "cagr_gross": 0.1688,
-        "volatility": 0.1304,
-        "sharpe": 1.252,
-        "sortino": 1.519,
-        "max_drawdown": -0.1576,
-        "calmar": 1.071,
-        "ulcer_index": 3.79,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione — stessa finestra di Apex e del combinato)",
+        "cagr_net": 0.0906,
+        "cagr_gross": 0.1224,
+        "volatility": 0.1150,
+        "sharpe": 1.066,
+        "sortino": 1.583,
+        "max_drawdown": -0.2116,
+        "calmar": 0.579,
+        "ulcer_index": 5.98,
+        "test_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest storico)",
         "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
         "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
     }
@@ -412,47 +388,35 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     apex_convex_kelly_mix_test.py, validation_suite/README.md): lo Sharpe
     del mix a leva zero (nessuna leva extra oltre quella gia' imbottita in
     ciascun motore) picca teoricamente ed empiricamente nella zona
-    50/50-70/30 sul campione pieno (2000-2026, 312 mesi) — 70/30 e' dentro
-    quella zona, non un punto isolato.
-    **Aggiornamento dopo l'adozione del Kelly frazionario su Apex**
-    (APEX_V2_SPEC.md §8.30 — vedi anche get_apex_metrics()): la nota onesta
-    precedente ("70/30 ha Sharpe/MaxDD leggermente peggiori di 50/50 su
-    questo periodo TEST") **non regge piu'**: con l'Apex Kelly-pesato,
-    70/30 ha ora Sharpe leggermente MIGLIORE di 50/50 su questo stesso
-    periodo (1,834 contro 1,816), a fronte di un MaxDD leggermente
-    peggiore (-7,78% contro -6,06%, entrambi comunque ben sotto le
-    componenti isolate). Il retest diretto del mix Kelly Apex/Convex
-    (`apex_convex_kelly_mix_test.py`, ri-eseguito con la serie Apex
-    aggiornata) conferma 70/30 come punto vicino all'ottimo empirico di
-    Sharpe sulla griglia testata (0/30/50/70/100), non solo una scelta
-    dentro un intervallo ragionevole.
-    BUG storico gia' corretto (invariato da qui): prima usava una finestra
-    diversa da get_apex_metrics()/get_convex_metrics(), producendo un CAGR
-    combinato apparentemente piu' alto di ENTRAMBE le componenti (impossibile
-    per una media pesata) — ora usa l'intersezione dei due periodi TEST
-    (2020-09-30 -> 2026-08-31), la stessa finestra della casella Apex.
+    50/50-70/30 — 70/30 e' dentro quella zona, non un punto isolato.
+
+    Sull'INTERO storico disponibile (1987-12-31 -> 2026-08-31, 465 mesi,
+    intersezione di Apex e Convex, vincolata da Convex) — vedi nota sopra
+    per il cambio di metodologia (dati reali + backtest, non piu' solo
+    periodo TEST) e il caveat sulla distorsione in-sample: il mix 70/30 e'
+    stato scelto/validato anche su parte di questo stesso storico.
     Sharpe/Sortino/MaxDD/Calmar calcolati sulle due serie LORDE
-    (apex_monthly_returns_extended_gross.csv + convex_monthly_returns.csv);
-    cagr_net e' la media pesata delle stime nette dei due componenti sulla
-    stessa finestra, non una combinazione fiscale rigorosa posizione-per-
-    posizione."""
+    (apex_monthly_returns_extended_gross.csv + convex_monthly_returns.csv,
+    via load_combined_monthly_history()); cagr_net e' la media pesata delle
+    stime nette dei due componenti sulla stessa finestra, non una
+    combinazione fiscale rigorosa posizione-per-posizione."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1651,
-        "cagr_gross": 0.2251,
-        "volatility": 0.1151,
-        "sharpe": 1.834,
-        "sortino": 3.418,
-        "max_drawdown": -0.0778,
-        "calmar": 2.895,
-        "ulcer_index": 1.90,
-        "correlation": 0.31,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
+        "cagr_net": 0.1031,
+        "cagr_gross": 0.1411,
+        "volatility": 0.0887,
+        "sharpe": 1.539,
+        "sortino": 2.942,
+        "max_drawdown": -0.1180,
+        "calmar": 1.196,
+        "ulcer_index": 2.42,
+        "correlation": 0.294,
+        "test_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest storico per entrambe le strategie)",
         "synergy_summary": (
-            "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 22.51% (netto stimato 16.51%), tra il 16.88% di Convex e il 24.66% di Apex isolatamente. "
-            "Il beneficio di diversificazione si vede nel MaxDD -7.78% — inferiore a entrambe le componenti "
-            "singole (-10.44% Apex, -15.76% Convex). Correlazione reale: 0.31."
+            "Mix 70% Apex / 30% Convex (lordo, intero storico comune 1987-12/2026-08): "
+            "CAGR 14.11% (netto stimato 10.31%), tra il 12.24% di Convex e il 14.55% di Apex isolatamente. "
+            "Il beneficio di diversificazione si vede nel MaxDD -11.80% — inferiore a entrambe le componenti "
+            "singole (-14.76% Apex, -21.16% Convex). Correlazione reale: 0.29."
         )
     }
 
