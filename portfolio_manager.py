@@ -312,6 +312,19 @@ def save_convex_portfolio(data: Dict[str, Any]) -> bool:
 #     cagr_net resta l'approssimazione dichiarata (haircut 26% sulla
 #     plusvalenza cumulata del periodo mostrato, non una simulazione fiscale
 #     posizione-per-posizione).
+#
+# ECCEZIONE DICHIARATA: max_drawdown_storico. La tile "Calo Massimo Storico"
+# in dashboard afferma testualmente "il calo peggiore MAI vissuto/registrato"
+# — un'affermazione sull'INTERO storico, non sulla sola finestra TEST. Prima
+# della correzione qui sotto, quella tile mostrava il MaxDD della finestra
+# TEST (72 mesi) pur affermando "mai" — un numero che non supportava la
+# propria etichetta, e che non coincideva con il grafico storico esteso
+# sotto di essa (Apex 1987-06+, Convex 1987-12+, Combinato 1987-12+),
+# segnalato dall'utente come inconsistenza. Ogni funzione sotto espone quindi
+# un secondo campo, max_drawdown_storico, calcolato sull'INTERO storico
+# disponibile (stessa serie del grafico) — unico campo qui che rompe
+# deliberatamente la convenzione "solo TEST period": la propria etichetta
+# in dashboard lo richiede per essere vera.
 # ==============================================================================
 
 def get_apex_metrics() -> Dict[str, Any]:
@@ -349,6 +362,7 @@ def get_apex_metrics() -> Dict[str, Any]:
         "sharpe": 1.675,
         "sortino": 2.549,
         "max_drawdown": -0.1044,
+        "max_drawdown_storico": -0.1476,
         "calmar": 2.363,
         "ulcer_index": 2.92,
         "volatility_netto_stimato": 0.1337,
@@ -357,6 +371,7 @@ def get_apex_metrics() -> Dict[str, Any]:
         "max_drawdown_netto_stimato": -0.1424,
         "calmar_netto_stimato": 1.286,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
+        "storico_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest — solo per il Calo Massimo Storico)",
         "cash_drag_protection": "100% Cash nei bear market macro",
         "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
@@ -397,9 +412,11 @@ def get_convex_metrics() -> Dict[str, Any]:
         "sharpe": 1.252,
         "sortino": 1.519,
         "max_drawdown": -0.1576,
+        "max_drawdown_storico": -0.2116,
         "calmar": 1.071,
         "ulcer_index": 3.79,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione — stessa finestra di Apex e del combinato)",
+        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest — solo per il Calo Massimo Storico)",
         "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
         "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
     }
@@ -444,15 +461,19 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
         "sharpe": 1.834,
         "sortino": 3.418,
         "max_drawdown": -0.0778,
+        "max_drawdown_storico": -0.1180,
         "calmar": 2.895,
         "ulcer_index": 1.90,
         "correlation": 0.31,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
+        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest — solo per il Calo Massimo Storico)",
         "synergy_summary": (
             "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
             "CAGR 22.51% (netto stimato 16.51%), tra il 16.88% di Convex e il 24.66% di Apex isolatamente. "
-            "Il beneficio di diversificazione si vede nel MaxDD -7.78% — inferiore a entrambe le componenti "
-            "singole (-10.44% Apex, -15.76% Convex). Correlazione reale: 0.31."
+            "Il beneficio di diversificazione si vede nel MaxDD -7.78% (finestra di validazione) — inferiore "
+            "a entrambe le componenti singole nella stessa finestra (-10.44% Apex, -15.76% Convex). "
+            "Sull'intero backtest (1987-12/2026-08) il MaxDD combinato sale a -11.80% — sempre inferiore alle "
+            "componenti isolate sullo stesso storico (-14.76% Apex, -21.16% Convex). Correlazione reale: 0.31."
         )
     }
 

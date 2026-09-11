@@ -852,7 +852,7 @@ with tab_perf:
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
         {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}%", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
         {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
-        {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active['max_drawdown']*100:.2f}%", "Il calo peggiore mai vissuto", primary=True)}
+        {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Il calo peggiore mai vissuto, intero backtest", primary=True)}
     </div>
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
         {sub_hero_metric("Volatilità Annua", f"{_m_apex_active['volatility']*100:.1f}%", "Oscillazione realizzata")}
@@ -862,7 +862,9 @@ with tab_perf:
     """)
     st.caption(
         f"Periodo di validazione fuori campione: {_m_apex_active.get('test_period', '')} — "
-        f"mai usato per scegliere i parametri della strategia."
+        f"mai usato per scegliere i parametri della strategia. Eccezione: \"Calo Massimo "
+        f"Storico\" è calcolato sull'intero backtest {_m_apex_active.get('storico_period', '')}, "
+        f"non sulla sola finestra di validazione — coerente con il proprio nome."
     )
 
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
