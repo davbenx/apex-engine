@@ -2365,7 +2365,56 @@ modifica alla configurazione di produzione — Kelly resta attivo perché
 la giustificazione originale (riduzione di drawdown/volatilità) tiene,
 solo la giustificazione "anche più CAGR" va ritirata.
 
-## Idee in coda per approfondimenti futuri
+## Strategie accademiche non ancora testate (richiesto dall'utente dopo il report di robustezza)
+
+Richiesta esplicita dell'utente: testare su altcoin e su Convex le famiglie
+di strategia accademicamente documentate non ancora provate in questa
+sessione (distinte da quelle già esaustivamente testate e falsificate sopra
+per l'universo altcoin — momentum, mean reversion, low-vol, trend
+following, stop-loss, low-beta pick/basket/satellite, carry direzionale:
+tutte perdenti contro BTC buy&hold).
+
+- **Convex — ribilanciamento a soglia di tolleranza vs a calendario**
+  (Daryanani 2008, Masters 2003 — "rebalancing premium/tolerance band"),
+  `convex_threshold_vs_calendar_rebalance_test.py`. Estende
+  `tax_engine.apply_italian_tax` con un nuovo parametro
+  `rebalance_threshold` (ribilancia quando una sleeve diverge dal target di
+  più di N punti di peso, invece che a data fissa — con precedenza su
+  `rebalance_every` quando entrambi sono passati; default `None`,
+  nessuna regressione sui chiamanti esistenti, 9/9 unit test verdi incluso
+  i 3 nuovi su questo comportamento). Stesso universo/pesi/TER/tassazione
+  di `convex_never_sell_cost_test.py` (81 mesi, 2019-06→2026-09).
+  - **Contro il ribilanciamento MENSILE** (il confronto standard in
+    letteratura): la soglia migliore (5 punti di peso) vince in modo
+    statisticamente solido — **+1,00pp/anno campione pieno (CI90
+    [+0,50;+1,65], ESCLUDE lo zero), +1,26pp/anno su TEST (CI90
+    [+0,84;+1,90], ESCLUDE lo zero)** — con **6 eventi di ribilanciamento
+    invece di 81** su 81 mesi (meno tasse pagate inutilmente su
+    oscillazioni che rientrano da sole nella banda). PBO-CSCV 35,0% su 9
+    varianti (sotto la soglia di rumore).
+  - **Contro la policy REALE di Convex (MAI ribilanciare) — il confronto
+    che conta per una decisione di produzione**: qui il quadro cambia.
+    Su ogni soglia testata (3/5/10/15/20 punti) il CAGR netto è
+    PEGGIORE del "mai" di 2,4-3,9pp/anno, ma **il CI90 include sempre lo
+    zero** (range enormi, es. [-10,58;+7,30] per la soglia 5 punti) — non
+    statisticamente distinguibile, campione di soli 81 mesi (storico
+    Convex breve, a differenza dei 471 mesi disponibili per Apex). Su
+    Sharpe e MaxDD invece la soglia batte "mai" in modo consistente su
+    OGNI livello testato (Sharpe 0,94-1,04 contro 0,92; MaxDD -15,6/-16,5%
+    contro -18,67%).
+  - **Verdetto**: risultato onestamente misto, non un caso per cambiare la
+    produzione ora. Il vantaggio è chiaro e significativo solo contro lo
+    strawman "mensile" (che nessuno propone di usare); contro la policy
+    reale ("mai") il trade-off è "meno CAGR (non provato) per più Sharpe/
+    meno drawdown (consistente ma non testato su un campione grande a
+    sufficienza per un CI stretto)" — un compromesso di rischio legittimo,
+    non un miglioramento gratuito. **Non adottato in produzione**: il
+    campione è troppo corto per decidere con confidenza, e la policy
+    "mai vendere" ha un razionale dichiarato (differire la tassa il più
+    possibile) che una soglia stretta vanifica in parte. Candidato per
+    un secondo giro se lo storico Convex si allunga.
+
+
 
 Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.
 (Le due idee originarie di questa lista — Kelly "al contrario" su Convex e
