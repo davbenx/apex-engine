@@ -2087,6 +2087,42 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
         rigore ma perché, corretto un bug reale di implementazione, il
         segnale resta assente su un campione di 313 mesi che include
         due vere crisi in entrambe le metà TRAIN/TEST.
+  - **Confronto diretto Apex V2 precedente (target vol 22% + cap 50%, §8.28)
+    vs attuale (+ Kelly frazionario, §8.30), richiesto esplicitamente
+    dall'utente** (`apex_kelly_vs_flat_v2_comparison.py`): stesso identico
+    backtest di produzione (proxy storici, selezione low-beta dal 2012+,
+    costi/tasse), eseguito due volte con `kelly_fraction=0.0` (riproduce
+    esattamente il sistema precedente) e `kelly_fraction=0.25` (default
+    attuale). Non un nuovo giro di validazione indipendente — riconferma
+    con uno script riproducibile i numeri già citati nel docstring di
+    `get_apex_metrics()`, con l'aggiunta di un CI bootstrap a blocchi mai
+    calcolato prima su questo confronto.
+    - **Periodo TEST walk-forward (2020-09→2026-08, 72 mesi)**: Sharpe
+      1,245→1,675, Sortino 2,580→2,549 (unica metrica leggermente
+      peggiore), MaxDD -14,52%→-10,44%, Calmar 1,401→2,363, Ulcer Index
+      6,19→2,92, CAGR lordo 20,34%→24,66% (netto 14,28%→18,32%). **CI90
+      sulla differenza appaiata mensile: +3,30pp/anno [+0,50; +9,56],
+      ESCLUDE lo zero** — il miglioramento non è solo direzionalmente
+      coerente su tutte le metriche di rischio/rendimento tranne una, è
+      anche statisticamente significativo sul periodo mostrato in
+      dashboard, con 41/72 mesi migliori.
+    - **Intero storico (1987-06→2026-08, 471 mesi) per contesto**:
+      miglioramento molto più piccolo (Sharpe 1,253→1,380, CAGR
+      14,18%→14,55%, +0,37pp) — **non una discrepanza, un effetto di
+      warmup atteso**: `kelly_window=208` settimane (4 anni) richiede
+      storico trailing sufficiente prima che Kelly possa attivarsi: per
+      gran parte dei primi ~25 anni del campione (fino a meta' anni 2010
+      circa, a seconda della classe) Kelly ricade nativamente sul peso
+      fisso 0,50 — i due sistemi sono quasi IDENTICI in quella porzione,
+      diluendo il beneficio medio sull'intero storico. Il periodo TEST
+      (2020+) è interamente nella fase "Kelly attivo", motivo per cui
+      isola correttamente il beneficio pieno del meccanismo — è la
+      lettura corretta, non quella ottimisticamente selezionata.
+    - **Verdetto**: conferma, con evidenza statistica più solida di prima
+      (CI aggiunto, mai calcolato al momento dell'adozione), la decisione
+      già presa di adottare Kelly in produzione. Nessuna azione
+      ulteriore — la cifra mostrata in dashboard (`get_apex_metrics()`)
+      era già corretta.
 
 ## Idee in coda per approfondimenti futuri
 
