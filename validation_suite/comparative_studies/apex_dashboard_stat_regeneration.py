@@ -123,13 +123,17 @@ def spliced_price_index(proxy_file, real_file, real_start) -> pd.Series:
     return 100.0 * (1 + ret).cumprod()
 
 
-def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None):
-    """kelly_fraction=None (default) usa il default di produzione di
-    compute_v2_macro_signal (V2_KELLY_FRACTION=0.25, il sistema ATTUALE).
-    kelly_fraction=0.0 riproduce esattamente il sistema PRECEDENTE (§8.28:
-    base_weight_per_class=0.50 fisso + vol_target=0.22, senza Kelly — vedi
-    apex_kelly_vs_flat_v2_comparison.py, che usa questo parametro per il
-    confronto diretto richiesto dall'utente)."""
+def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
+                       vol_target: float | None = None, base_weight_per_class: float | None = None,
+                       return_components: bool = False):
+    """kelly_fraction/vol_target/base_weight_per_class=None (default) usano il
+    default di produzione di compute_v2_macro_signal (rispettivamente
+    V2_KELLY_FRACTION=0.25, V2_VOL_TARGET=0.22, 0.50 — il sistema ATTUALE).
+    kelly_fraction=0.0 riproduce esattamente il sistema PRECEDENTE (§8.28,
+    senza Kelly — vedi apex_kelly_vs_flat_v2_comparison.py). vol_target e
+    base_weight_per_class esposti per la griglia di sensibilità dei
+    parametri richiesta dall'utente (vedi
+    apex_v2_sensitivity_grid.py) — non toccano nulla se lasciati a None."""
     snapshots = load_pointintime_snapshots()
     with open(DATA_DIR / "sp500_tickers.json") as f:
         all_tickers = json.load(f)
@@ -174,8 +178,14 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None):
             px = macro_prices[ticker]
             px_upto = px.loc[:wk]
             b_data[ticker] = build_ohlc_like(px_upto) if len(px_upto) > 0 else pd.DataFrame()
-        kelly_kwargs = {} if kelly_fraction is None else {"kelly_fraction": kelly_fraction}
-        alloc, hysteresis_state, _debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=hysteresis_state, **kelly_kwargs)
+        signal_kwargs = {}
+        if kelly_fraction is not None:
+            signal_kwargs["kelly_fraction"] = kelly_fraction
+        if vol_target is not None:
+            signal_kwargs["vol_target"] = vol_target
+        if base_weight_per_class is not None:
+            signal_kwargs["base_weight_per_class"] = base_weight_per_class
+        alloc, hysteresis_state, _debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=hysteresis_state, **signal_kwargs)
         is_month_end = (i + 1 >= n) or (weeks[i + 1].month != wk.month)
         if locked_alloc is None:
             locked_alloc = alloc
@@ -237,6 +247,17 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None):
     port_net = _apply_italian_tax(returns_df, weights_df, tax_types=tax_types)
     port_net_after_costs = port_net - cost_drag
 
+    if return_components:
+        # Esposto per lo stress test di costo/slippage (vedi
+        # apex_cost_stress_test.py): permette di ri-applicare un
+        # cost_multiplier diverso SENZA ripetere il loop settimanale
+        # costoso — weights_df/returns_df/weight_change non dipendono dal
+        # coefficiente di costo, solo il passo finale (cost_drag) lo usa.
+        return port_gross_after_costs, port_net_after_costs, {
+            "weights_df": weights_df, "returns_df": returns_df, "weight_change": weight_change,
+            "port_gross": port_gross, "port_net": port_net, "tax_types": tax_types,
+            "cost_bps_map": cost_bps_map,
+        }
     return port_gross_after_costs, port_net_after_costs
 
 

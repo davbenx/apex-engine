@@ -2124,6 +2124,64 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       ulteriore — la cifra mostrata in dashboard (`get_apex_metrics()`)
       era già corretta.
 
+## Test di robustezza e invalidazione istituzionale completo (richiesto dall'utente)
+
+**In corso — questa sezione viene aggiornata man mano che arrivano i risultati; il verdetto finale arriverà a batteria completa.**
+
+- **Scoperta più grave: survivorship bias nell'universo azionario di Apex**
+  (audit di robustezza qualitativo, poi verificato con dati reali).
+  `select_low_beta_basket` pescava da un universo prezzi costruito da
+  `get_sp500_tickers()` (i membri ATTUALI dell'S&P 500), non dall'unione
+  dei membri storici — il filtro di eleggibilità point-in-time era
+  genuinamente corretto (snapshot Wikipedia reali per anno), ma non aveva
+  nulla da selezionare per un titolo delistato/acquisito/rimosso
+  dall'indice, anche se eleggibile quell'anno. Misurato: **45% dei membri
+  eleggibili 2012 senza alcun file prezzo**, in calo monotono fino al
+  3,4% nel 2026 (peggiore nell'era usata per validare il cambio
+  low-vol→low-beta del §8.29, meno grave ma non nullo nel periodo TEST
+  2020-2026 mostrato in dashboard, dove il buco andava dal 23% nel 2020 a
+  poco sopra il 3% nel 2026).
+  - **Fonti alternative testate per colmare il buco** (`fetch_delisted_sp500_prices.py`,
+    richiesto esplicitamente dall'utente): Yahoo Finance serve ancora
+    storico per una parte sostanziale dei delistati/acquisiti (verificato
+    prima di scrivere lo script) — copertura salita dal 60,9% al 77,8%
+    dello storico completo (638/820 ticker unici 2012-2026, 334 tentati,
+    195 falliti con 404 genuino). Altre 3 fonti testate e scartate:
+    **Twelve Data** — la maggior parte dei ticker richiede upgrade a
+    piano a pagamento, e l'unico "successo" (BBBY) è in realtà una
+    trappola di riuso del simbolo (prezzi 2026 di una societa' diversa
+    che ha riottenuto lo stesso ticker — sarebbe stata una corruzione
+    silenziosa dei dati, scoperta solo verificando i valori restituiti
+    contro i fatti noti). **Stooq.com** — bloccato da una sfida anti-bot
+    JavaScript, non raggiungibile via richiesta HTTP semplice. **Alpha
+    Vantage** — dati genuini e verificati corretti per WBA (1347 punti,
+    ultimo prezzo coerente con la vera Walgreens pre-delisting 2025), ma
+    piano gratuito limitato a 25 richieste/giorno e già in gran parte
+    esaurito da uso precedente in sessione — non praticabile per colmare
+    195 ticker mancanti in questa sessione. 77,8% resta il tetto
+    realistico con fonti gratuite immediatamente accessibili; un fix
+    completo richiederebbe un fornitore a pagamento specializzato
+    (CRSP, Compustat, Norgate, Sharadar).
+  - **Impatto quantificato sulla serie canonica di produzione**
+    (`apex_monthly_returns_extended_gross.csv`, rigenerata
+    sull'universo corretto): sul periodo TEST walk-forward (72 mesi,
+    2020-09/2026-08, la finestra mostrata in dashboard) **CAGR lordo
+    24,66%→20,18% (-4,48pp), Sharpe 1,675→1,380 (-0,295), Calmar
+    2,363→1,905, MaxDD quasi invariato (-10,44%→-10,59%)**. Conferma con
+    un numero preciso, non solo una direzione attesa, che il
+    survivorship bias stava gonfiando le cifre mostrate in dashboard.
+    `portfolio_manager.get_apex_metrics()` non ancora aggiornata a
+    queste nuove cifre — in corso, arriva a batteria di robustezza
+    completa (griglia sensibilità + PBO-CSCV sull'universo corretto,
+    tuttora in esecuzione).
+  - Il resto della batteria (stress costi/TER, DSR, regime storico,
+    correlazione condizionata allo stress) è stata ri-eseguita sulla
+    serie corretta: **tutte le conclusioni qualitative restano invariate**
+    (l'edge resta robusto a costi 10x, DSR resta ~1,000 su tutti gli N
+    plausibili, la correlazione Apex/Convex resta bassa incondizionatamente
+    e scende ulteriormente quando Convex sta peggio) — solo i livelli
+    assoluti scendono coerentemente con il CAGR/Sharpe corretti.
+
 ## Idee in coda per approfondimenti futuri
 
 Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.

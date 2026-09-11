@@ -12,17 +12,32 @@ select_low_vol_basket) — non una riimplementazione — e la stessa logica di
 tassazione italiana gia' validata in validation_suite/framework/tax_engine.py
 (apply_italian_tax, generalizzata per pesi variabili nel tempo).
 
-Universo: i 499 titoli ATTUALI dell'S&P 500 (get_sp500_tickers() di
-backend.py, dati aggiustati per dividendi, storico daily vero via range="15y"
-— range="max" viene silenziosamente declassato da Yahoo per span lunghi,
-bug gia' trovato e corretto in questa sessione), filtrato per ELEGGIBILITA'
-POINT-IN-TIME: uno snapshot storico REALE della composizione S&P 500 per
-ogni anno 2012-2026, ricostruito dalle revisioni Wikipedia della pagina
-"List of S&P 500 companies" (non la composizione attuale applicata
-retroattivamente — l'esatto "finding critico #1" che l'audit originale di
-Apex v1 ha usato per bocciarlo, e che un documento esterno analizzato in
-APEX_V2_SPEC.md §8.23 ripete). Anni senza revisione recuperabile (rate-limit
-Wikipedia): fallback sullo snapshot dell'anno piu' vicino disponibile.
+Universo: filtrato per ELEGGIBILITA' POINT-IN-TIME (uno snapshot storico
+REALE della composizione S&P 500 per ogni anno 2012-2026, ricostruito
+dalle revisioni Wikipedia della pagina "List of S&P 500 companies" — non
+la composizione attuale applicata retroattivamente). Anni senza revisione
+recuperabile (rate-limit Wikipedia): fallback sullo snapshot dell'anno
+piu' vicino disponibile.
+
+**BUG REALE TROVATO E PARZIALMENTE CORRETTO in questa sessione (audit di
+robustezza istituzionale)**: fino a qui l'universo PREZZI veniva costruito
+da get_sp500_tickers() di backend.py — SOLO i membri ATTUALI dell'indice
+— non dall'unione dei membri storici. Il filtro di eleggibilita' sopra e'
+davvero point-in-time, ma non aveva NULLA da selezionare per un titolo
+delistato/acquisito/rimosso dall'indice, anche se eleggibile quell'anno:
+survivorship bias classico, che l'affermazione originale di questo
+docstring ("non la composizione attuale applicata retroattivamente")
+nascondeva senza volerlo — il problema non era nel filtro di eleggibilita'
+(corretto), ma nell'universo prezzi a monte (sbagliato). Misurato: 45% dei
+membri eleggibili 2012 senza alcun file prezzo prima della correzione.
+Corretto con fetch_delisted_sp500_prices.py (unione di tutti gli snapshot
+2012-2026, non solo i membri attuali) — copertura salita dal 60,9% al
+77,8% dello storico completo (334 ticker tentati, 195 falliti con 404
+genuino da Yahoo — simboli purgati per delisting/going-private troppo
+vecchi, es. WBA/TWTR/CELG/TIF, non risolvibile con questa fonte dati
+gratuita). Resta un gap residuo, dichiarato: ~28% mancante ancora nel
+2012, in calo fino a ~1% nel 2026 — vedi validation_suite/README.md per i
+numeri completi e l'impatto quantificato sulla ri-validazione.
 
 Settori: NON applicato un vincolo di concentrazione settoriale
 (select_low_vol_basket con sector_of=None). Non e' solo un limite di questo
