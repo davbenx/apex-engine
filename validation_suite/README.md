@@ -79,6 +79,10 @@ validation_suite/
 │   ├── apex_equity_long_short_overlay_test.py <- long/short su Equities con SH reale invece di long/flat (risultato: peggiora in modo significativo, non adottare)
 │   ├── apex_continuous_trend_signal_test.py <- peso continuo scalato per forza del trend invece di binario (promettente ma non ancora significativo)
 │   ├── convex_weights_grid_test.py        <- grid search sui pesi target di Convex Stack (9 combinazioni vs 45/15/25/7.5/7.5)
+│   ├── convex_threshold_vs_calendar_rebalance_test.py <- ribilanciamento a soglia di tolleranza vs a calendario su Convex (Daryanani 2008) — batte il mensile, non prova il vantaggio su "mai" (campione corto)
+│   ├── altcoin_btc_vol_targeting_test.py  <- volatility targeting sull'esposizione BTC (Moreira & Muir 2017) — falsificato, il flat 100% vince nettamente
+│   ├── altcoin_btc_cash_rebalancing_premium_test.py <- rebalancing premium/Shannon's Demon su mix BTC/cash — riduce il MaxDD in modo robusto, non il CAGR/Sharpe in modo provato
+│   ├── altcoin_carry_market_neutral_test.py <- vero carry market-neutral (long spot + short perpetual) — magnitudine economica marginale, non praticabile
 │   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
 │   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
 │   ├── altcoin_daily_data/                <- cache prezzi daily (rigenerabile, gitignored)
@@ -2413,6 +2417,69 @@ tutte perdenti contro BTC buy&hold).
     "mai vendere" ha un razionale dichiarato (differire la tassa il più
     possibile) che una soglia stretta vanifica in parte. Candidato per
     un secondo giro se lo storico Convex si allunga.
+
+- **Altcoin — volatility targeting su BTC** (Moreira & Muir 2017,
+  "Volatility Managed Portfolios"), `altcoin_btc_vol_targeting_test.py`:
+  scala l'esposizione BTC (0-100%, senza leva) inversamente alla vol
+  realizzata trailing (lookback 20/30/60 giorni × target 40/60/80%
+  annualizzato, 9 varianti, daily 2019-10→2026-09). **Fallisce
+  nettamente**: BTC buy&hold 100% flat batte OGNI variante su CAGR
+  (38,13% contro 17,26%-33,86%) e su Sharpe (0,845 contro 0,587-0,803).
+  PBO-CSCV 12,9% (basso — segnale pulito, non overfitting: il flat vince
+  in modo consistente tra i fold). Coerente con l'intero filone di
+  ricerca altcoin di questa sessione: ridurre l'esposizione nei periodi
+  di alta vol costa più di quanto protegga, perché su BTC vol alta e
+  rally forte spesso coincidono. **Falsificato.**
+- **Altcoin — rebalancing premium / volatility harvesting BTC/cash**
+  (Fernholz & Shay 1982 "Shannon's Demon", Willenbrock 2011),
+  `altcoin_btc_cash_rebalancing_premium_test.py`: mix fisso 50/50
+  BTC/cash, ribilanciato a calendario (giornaliero/settimanale/mensile)
+  o a soglia di tolleranza (3/5/10/15/20 punti peso), contro un vero
+  buy&hold 50/50 mai ribilanciato. **Risultato onestamente misto**: la
+  soglia più larga (20 punti) ha il miglior Sharpe netto (0,826 contro
+  0,748 del mai-ribilanciare) ma un CAGR più basso (22,79% contro
+  26,84%) — differenza -9,11pp/anno, **CI90 [-19,93;+2,41] include lo
+  zero**, non provata. **Ma il MaxDD migliora in modo grande e
+  consistente su OGNI variante ribilanciata** (-47/-49% contro -68,26%
+  del mai-ribilanciare) — un effetto meccanico robusto, non fragile: chi
+  ribilancia riduce l'esposizione BTC prima che possa crescere fino a un
+  picco enorme, quindi ha meno da perdere quando arriva il crollo.
+  PBO-CSCV 37,1% (sotto la soglia di rumore). **Non un edge di
+  rendimento** (il CAGR probabilmente peggiora, anche se non è provato
+  con certezza statistica) **ma una scelta di risk management legittima**
+  se l'obiettivo è ridurre il drawdown, non massimizzare il CAGR — un
+  trade-off di rischio dichiarato, non un pasto gratis.
+- **Altcoin — carry market-neutral vero** (long spot + short perpetual,
+  incassa solo il funding, nessuna esposizione direzionale),
+  `altcoin_carry_market_neutral_test.py`: estende
+  `altcoin_carry_funding_rate_test.py` (che testava solo un tilt
+  direzionale) modellando la gamba short mancante. **Limite dichiarato
+  triplo, più severo del test precedente**: storico funding reale via
+  Kraken Futures SOLO ~1 anno (2025-09→2026-09); basis risk tra spot e
+  perpetual non modellato; **costo-opportunità del capitale nella gamba
+  spot (~4-5%/anno di tasso privo di rischio) NON sottratto** — il
+  numero riportato è quindi un limite superiore ottimistico, non il vero
+  rendimento incrementale. Risultato: yield annualizzato BTC/ETH
+  3,29%/3,11% (Sharpe 11,8/10,7 — cifra sospetta, tipica di strategie di
+  "carry" a bassa vol apparente che nascondono rischio di coda non
+  visibile su un campione così corto, es. rischio di liquidazione sulla
+  gamba short in caso di dislocazione spot-perpetual, non modellato).
+  Correlazione con BTC spot bassa (-0,09/+0,24, confermando la vera
+  market-neutralità), ma **il rendimento lordo (3,3%) è già vicino o
+  sotto un tasso privo di rischio realistico prima ancora di sottrarre
+  il costo-opportunità dichiarato** — l'edge economico netto è
+  probabilmente marginale o nullo. SOL/ADA hanno addirittura yield
+  negativo. **Non un candidato praticabile**: magnitudine troppo
+  piccola, rischio di implementazione reale (margine, liquidazione,
+  controparte exchange) del tutto non modellato, campione troppo corto
+  per un verdetto istituzionale.
+- **Verdetto complessivo su questo giro**: nessuna delle 4 strategie
+  produce un miglioramento netto e statisticamente solido pronto per la
+  produzione. Il ribilanciamento a soglia (Convex e BTC/cash) mostra un
+  pattern coerente e genuino — meno drawdown/più Sharpe a costo di CAGR
+  più basso — ma richiede più campione per essere dimostrato con
+  confidenza; vol-targeting e carry market-neutral falliscono in modo
+  più netto. Nessuna modifica in produzione.
 
 
 
