@@ -2118,11 +2118,55 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       (2020+) è interamente nella fase "Kelly attivo", motivo per cui
       isola correttamente il beneficio pieno del meccanismo — è la
       lettura corretta, non quella ottimisticamente selezionata.
-    - **Verdetto**: conferma, con evidenza statistica più solida di prima
-      (CI aggiunto, mai calcolato al momento dell'adozione), la decisione
-      già presa di adottare Kelly in produzione. Nessuna azione
-      ulteriore — la cifra mostrata in dashboard (`get_apex_metrics()`)
-      era già corretta.
+    - **Verdetto (SUPERATO dal fix del survivorship bias sotto — vedi
+      "Confronto Kelly vs precedente ripetuto sull'universo corretto"
+      più in basso per il numero valido)**: questo confronto era stato
+      calcolato sull'universo azionario ancora affetto dal survivorship
+      bias — le cifre sopra (CAGR, CI90 che escludeva lo zero) sono
+      quindi gonfiate e NON il numero da citare. Lasciate qui solo come
+      cronologia, non come conclusione attuale.
+  - **Confronto Kelly vs precedente ripetuto sull'universo corretto**
+    (richiesto dall'utente dopo il fix del survivorship bias, per
+    verificare se la conclusione di cui sopra reggesse sui dati puliti —
+    `apex_kelly_vs_flat_v2_comparison.py` rilanciato identico, poi
+    `apex_kelly_vs_flat_bootstrap_robustness.py` per verificare la
+    robustezza metodologica del CI stesso):
+    - **Periodo TEST walk-forward (72 mesi)**: CAGR lordo 17,08%→20,18%
+      (+3,10pp), Sharpe 1,055→1,380 (+0,324), Sortino 2,235→2,397, MaxDD
+      -16,90%→-10,59% (+6,31pp), Calmar 1,011→1,905, Ulcer Index
+      8,15→3,89. Differenza appaiata mensile sul CAGR: +2,36pp/anno,
+      CI90 [-0,78; +8,51] — **include lo zero** (a differenza del
+      confronto pre-fix sopra, che lo escludeva).
+    - **Intero storico (471 mesi)**: CAGR quasi identico (13,68%→13,86%,
+      +0,18pp) ma Sharpe (1,216→1,327), MaxDD (-16,90%→-13,62%) e Ulcer
+      (4,25→3,15) restano meglio nell'attuale — stesso pattern
+      "warmup Kelly diluisce il CAGR sull'intero storico" già osservato
+      pre-fix.
+    - **Verifica di robustezza del CI** (`apex_kelly_vs_flat_bootstrap_robustness.py`):
+      il CI90 sopra usa un solo `block_size=12` (una scelta arbitraria)
+      — per escludere che la perdita di significatività fosse un
+      artefatto di quella scelta, bootstrap APPAIATO (stessi indici
+      temporali ricampionati per entrambi i sistemi, preserva la
+      correlazione incrociata) ripetuto su `block_size` 3/6/12/24 mesi,
+      su CAGR e Sharpe, su entrambe le finestre:
+      - **CAGR**: il CI90 include lo zero su TUTTI i 4 block_size, su
+        ENTRAMBE le finestre (TEST: lower bound -4,64/-0,07pp secondo il
+        block_size; storico: -1,31/-1,10pp) — la non-significatività è
+        stabile, non fragile.
+      - **Sharpe**: il CI90 ESCLUDE lo zero su TUTTI i 4 block_size, su
+        ENTRAMBE le finestre (TEST: lower bound +0,00/+0,16; storico:
+        +0,02/+0,03) — il miglioramento di efficienza risk-adjusted è
+        robusto, non un artefatto del block_size originale.
+    - **Verdetto aggiornato**: dopo il fix del survivorship bias, il
+      vantaggio in rendimento puro (CAGR) del sistema attuale non è più
+      dimostrabile statisticamente su questo campione — e questa
+      conclusione è essa stessa robusta (stabile su 4 scelte di
+      block_size, non un artefatto metodologico). Il vantaggio in
+      efficienza risk-adjusted (Sharpe) resta invece statisticamente
+      solido su ogni scelta testata. La decisione di produzione (Kelly
+      attivo) resta giustificata sul piano del rischio, non più su
+      quello del rendimento puro — una lettura più onesta e più
+      difendibile di quella originale, non un'invalidazione.
 
 ## Test di robustezza e invalidazione istituzionale completo (richiesto dall'utente)
 
@@ -2310,6 +2354,16 @@ diversificazione DEL MIX con Apex, non la protezione autonoma. Restano
 4 concern aperti dall'audit qualitativo (sopra), nessuno correttivo
 sui numeri già mostrati in dashboard, tutti candidati per una prossima
 sessione se si vuole spingere il rigore ulteriormente.
+
+**Addendum — Kelly frazionario vs sistema precedente, dopo il fix**:
+il fix del survivorship bias ha eroso anche la significatività
+statistica del confronto Kelly-vs-precedente (§8.30 vs §8.28) sul
+CAGR — non solo le cifre assolute di Apex. Il vantaggio di Kelly resta
+robusto sul piano risk-adjusted (Sharpe, verificato su 4 block_size di
+bootstrap) ma non più dimostrabile sul rendimento puro. Nessuna
+modifica alla configurazione di produzione — Kelly resta attivo perché
+la giustificazione originale (riduzione di drawdown/volatilità) tiene,
+solo la giustificazione "anche più CAGR" va ritirata.
 
 ## Idee in coda per approfondimenti futuri
 
