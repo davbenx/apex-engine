@@ -477,6 +477,7 @@ with tab_metriche:
         _m_cx = portfolio_manager.get_convex_metrics()
         cagr_gross, cagr_net = _m_cx["cagr_gross"], _m_cx["cagr_net"]
         vol, sharpe, sortino, mdd = _m_cx["volatility"], _m_cx["sharpe"], _m_cx["sortino"], _m_cx["max_drawdown"]
+        mdd_storico = _m_cx.get("max_drawdown_storico", mdd)
 
         _cx_ter_annual = convex_report.ter_weighted if convex_report.total_value > 0 else \
             sum(i["ter"] * i["target_weight"] for i in active_instruments.values())
@@ -486,7 +487,7 @@ with tab_metriche:
         <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
             {sub_hero_metric("Crescita Annua Lorda", f"{cagr_gross*100:.2f}%", f"Netto stimato (se liquidato): {cagr_net*100:.2f}%", POS if cagr_gross >= 0 else NEG, primary=True)}
             {sub_hero_metric("Indice di Sharpe", f"{sharpe:.2f}", "Efficienza rendimento/rischio", POS if sharpe >= 1.0 else None, primary=True)}
-            {sub_hero_metric("Calo Massimo Storico", f"{mdd*100:.2f}%", "Il calo peggiore mai registrato", primary=True)}
+            {sub_hero_metric("Calo Massimo Storico", f"{mdd_storico*100:.2f}%", "Il calo peggiore mai registrato, intero backtest", primary=True)}
         </div>
         <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
             {sub_hero_metric("Volatilità Annua", f"{vol*100:.2f}%", "Oscillazione realizzata")}
@@ -496,10 +497,12 @@ with tab_metriche:
         """)
         st.caption(
             f"Periodo di validazione fuori campione: {_m_cx.get('test_period', '')} — "
-            f"mai usato per scegliere i pesi della strategia. Il netto stimato è "
-            f"un'approssimazione (26% sulla plusvalenza cumulata), non una simulazione "
-            f"fiscale posizione-per-posizione — Convex vende raramente, le tasse vere "
-            f"si pagano solo alla liquidazione effettiva."
+            f"mai usato per scegliere i pesi della strategia. Eccezione: \"Calo Massimo "
+            f"Storico\" è calcolato sull'intero backtest {_m_cx.get('storico_period', '')}, "
+            f"non sulla sola finestra di validazione — coerente con il grafico sotto e con "
+            f"il proprio nome. Il netto stimato è un'approssimazione (26% sulla plusvalenza "
+            f"cumulata), non una simulazione fiscale posizione-per-posizione — Convex vende "
+            f"raramente, le tasse vere si pagano solo alla liquidazione effettiva."
         )
 
 

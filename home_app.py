@@ -306,12 +306,13 @@ with tab_pf:
 # ==============================================================================
 with tab_perf:
     _dual = portfolio_manager.get_combined_dual_engine_metrics()
+    _dual_mdd_storico = _dual.get("max_drawdown_storico", _dual["max_drawdown"])
 
     st_html(f"""
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
         {sub_hero_metric("Crescita Annua Lorda", f"{_dual['cagr_gross']*100:.2f}%", f"Netto stimato: {_dual['cagr_net']*100:.2f}%", POS if _dual['cagr_gross'] >= 0 else NEG, primary=True)}
         {sub_hero_metric("Indice di Sharpe", f"{_dual['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _dual['sharpe'] >= 1.0 else None, primary=True)}
-        {sub_hero_metric("Calo Massimo Storico", f"{_dual['max_drawdown']*100:.2f}%", "Abbattuto sotto il 10%", primary=True)}
+        {sub_hero_metric("Calo Massimo Storico", f"{_dual_mdd_storico*100:.2f}%", "Il calo peggiore mai vissuto, intero backtest", primary=True)}
     </div>
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
         {sub_hero_metric("Volatilità Annua", f"{_dual['volatility']*100:.1f}%", "Oscillazione realizzata del mix")}
@@ -319,6 +320,12 @@ with tab_perf:
         {sub_hero_metric("Correlazione Reale", f"{_dual['correlation']:.2f}", "Bassa correlazione cross-strategia")}
     </div>
     """)
+    st.caption(
+        f"Periodo di validazione fuori campione: {_dual.get('test_period', '')} — mai usato "
+        f"per scegliere i parametri delle due strategie. Eccezione: \"Calo Massimo Storico\" "
+        f"è calcolato sull'intero backtest comune {_dual.get('storico_period', '')}, non "
+        f"sulla sola finestra di validazione — coerente con il grafico sotto e con il proprio nome."
+    )
 
     # Carica serie combinata (finestra comune Apex/Convex — dipende dalla piu' corta delle due,
     # oggi Convex: 2000-09+; Apex da solo arriva al 1987-06, vedi get_apex_metrics())
