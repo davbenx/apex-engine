@@ -1882,28 +1882,52 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
   — sempre ancorato a venerdi', mai alla deriva. 6 nuovi casi di test in
   `test_backend.py` (sostituiscono i 3 precedenti, ora insufficienti a
   distinguere comportamento corretto da bug).
+- **Kelly "al contrario" su Convex — idea #15 della coda, richiesta diretta
+  dell'utente** (`convex_contrarian_kelly_pac_test.py`). Interpretazione
+  operativa dichiarata PRIMA di guardare i risultati (l'idea era
+  volutamente sotto-specificata): Convex alloca oggi il PAC mensile con
+  una regola WINNER-TAKE-ALL (tutto il nuovo capitale alla sleeve col
+  deficit piu' grande vs target, `convex_engine.py`) — i pesi TARGET
+  strutturali restano invariati (distinto dal test sui target Kelly gia'
+  fatto), cambia solo COME si ripartisce il nuovo capitale tra le sleeve
+  gia' sottopesate: Kelly frazionario ma su un segnale CONTRARIAN
+  (mu tanto piu' alto quanto piu' una sleeve e' scesa nei trailing 12
+  mesi, l'opposto del mu pro-trend usato su Apex), applicato solo alle
+  sleeve con deficit positivo quel mese.
+  - **Tre varianti, PAC mensile modellato esplicitamente** (novita'
+    metodologica per i test Convex di questa sessione, finora tutti a
+    puro drift senza nuovi versamenti — qui il PAC e' il meccanismo sotto
+    test): winner-take-all (oggi), deficit-proporzionale (nessun segnale,
+    isola l'effetto del solo abbandono del winner-take-all), Kelly
+    contrarian.
+  - **Risultato OOS (41 mesi)**: deficit-proporzionale +0,41pp/anno vs
+    oggi (CI 90% [-0,00;+1,10], sfiora escludere lo zero) — un piccolo
+    beneficio dal semplice SPALMARE il PAC su piu' sleeve sottopesate
+    invece di tutto-a-una. **Kelly contrarian -0,23pp/anno vs oggi** (CI
+    include lo zero) — il segnale contrarian aggiuntivo non aiuta, anzi
+    lievemente peggiora. PBO-CSCV 45,0% (al limite della soglia di
+    rumore, 3 varianti su 41 mesi).
+  - **Perche' il contrarian non aggiunge nulla, in retrospettiva**: il
+    deficit rispetto al target GIA' cattura "quanto e' scesa" una sleeve
+    (una sleeve calata e' per costruzione sottopesata) — il momentum
+    trailing 12 mesi usato come mu_contrarian e' un segnale quasi
+    ridondante con quello che il water-filling usa gia' nativamente, non
+    un'informazione nuova. Aggiunge solo rumore di stima (z-score +
+    inversione di covarianza) senza un vero edge incrementale.
+  - **Verdetto: falsificato nella forma testata.** Nessuna modifica in
+    produzione. Il piccolo beneficio del deficit-proporzionale (CI al
+    limite) non giustifica da solo un cambio — se in futuro si volesse
+    approfondire, la strada piu' promettente e' abbandonare il
+    winner-take-all a favore di una ripartizione proporzionale al
+    deficit, SENZA il livello aggiuntivo di Kelly contrarian.
 
 ## Idee in coda per approfondimenti futuri
 
 Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.
+(Le due idee originarie di questa lista — Kelly "al contrario" su Convex e
+il retest del blend Kelly Apex/Convex — sono state completate, vedi
+"Storia delle scoperte rilevanti" sopra.)
 
-- **Kelly "al contrario" su Convex (Convex come accumulo anticiclico sui
-  ribassi).** Idea dell'utente: a differenza del Kelly testato su Apex
-  (pesa a favore di rendimento/rischio², una logica pro-trend) e del Kelly
-  su target Convex appena testato (stessa logica, solo applicata ai target),
-  qui l'idea e' un criterio che pesi l'allocazione di NUOVO capitale (o il
-  ribilanciamento) in modo CONTRARIAN — favorire le sleeve piu'
-  sottoperformanti/sottopesate per catturare mean-reversion, coerente con
-  l'identita' di Convex come motore PASSIVO che accumula nei ribassi
-  (il water-filling verso il sottopeso e' gia' implicitamente cosi', ma
-  senza alcuna stima esplicita di edge di mean-reversion dietro). Definizione
-  esatta del meccanismo da chiarire quando si arriva a testarlo (task #15
-  del tracking di sessione).
-- **Ri-testare Kelly blend Apex/Convex** (`apex_convex_kelly_mix_test.py`,
-  gia' fatto una volta — esito originale ~60/40 Sharpe-ottimale, corner
-  100/0 su crescita geometrica vincolata) ora che Apex e' cambiato (Kelly
-  sulle classi macro in produzione, §8.30) — le serie di rendimento usate
-  nel test originale sono stale rispetto alla nuova logica (task #16).
 - **Principio di design esplicito da preservare in ogni futura modifica**
   (dichiarato dall'utente, non nuovo ma ora messo per iscritto): Apex e
   Convex devono restare due motori a strategie DECORRELATE — Apex reattivo
