@@ -1,7 +1,10 @@
 # Checklist Edge/Apex/Convex — materiale di riferimento fornito dall'utente
 
-**Stato: NON verificato contro il codice reale. Da usare come lista di controllo per
-approfondimenti futuri, non come descrizione di cosa Apex/Convex fanno oggi.**
+**Stato: incrociata sistematicamente voce-per-voce contro il codice reale
+(`apex_v2_engine.py`, `convex_engine.py`, `backend.py`) — vedi
+"Cross-check sistematico" in fondo al documento. Resta un elenco di
+DOMANDE/confronti, non una gap-list da colmare: nessuna modifica al codice
+di produzione è stata fatta come conseguenza di questo cross-check.**
 
 Questo documento è stato fornito dall'utente come framework generico
 accademico/practitioner per costruire sistemi "momentum/breakout" e
@@ -236,3 +239,155 @@ reale di Apex/Convex qui (vedi avvertenza in testa al documento). Da usare
 come stimolo per porsi domande mirate (es. "il nostro TSMOM su Apex cattura
 davvero l'edge #2, o solo una sua approssimazione grezza?"), non come
 gap-list da colmare automaticamente.
+
+---
+
+## Cross-check sistematico contro il codice reale (richiesto dall'utente)
+
+Letto integralmente `apex_v2_engine.py`, `convex_engine.py`, `backend.py`.
+Per ogni voce: **[CATTURATO]** (il meccanismo reale produce l'edge, anche
+se diverso nell'implementazione), **[DIVERGE]** (il meccanismo reale è
+sostanzialmente diverso da quanto descritto/atteso), **[ASSENTE]** (non
+implementato, nessun equivalente). Nessuna azione correttiva presa — sono
+osservazioni, non bug: Apex/Convex non hanno mai promesso di implementare
+questo archetipo alla lettera.
+
+### Sezione 1 — quali edge sono davvero catturati
+
+| # | Edge | Stato reale |
+|---|---|---|
+| 1 | Momentum cross-section (stock-picking) | **[ASSENTE]** — il basket azionario è selezionato per BETA basso (`select_low_beta_basket`), non per momentum/RS. Nessun ranking per rendimento relativo tra titoli. |
+| 2 | TSMOM (trend macro) | **[CATTURATO]** — isteresi su MA 40/20 settimane per classe (`compute_v2_macro_signal`), il meccanismo centrale di Apex. |
+| 3 | Value | **[ASSENTE]** — nessuno screening B/M, EV/EBIT, FCF yield in nessuno dei due motori. |
+| 4 | Quality/Profitability | **[ASSENTE]** — nessun filtro ROIC/accruals/leva nella selezione titoli. |
+| 5 | Low-Vol/BAB | **[CATTURATO a livello di singolo titolo USA]** — già annotato sopra: NON regge a livello di paese (falsificato). |
+| 6 | Carry | **[ASSENTE]** — DBMFE (Convex) è managed futures/trend-following, non un carry trade esplicito; nessun carry FX/bond/commodity modellato. |
+| 7 | 52-week high/RS | **[ASSENTE]**. |
+| 8 | PEAD | **[ASSENTE]** — nessun dato di earnings surprise usato. |
+| 9 | Roll yield | **[ASSENTE]** a livello di Apex/Convex (interno ai fondi sottostanti tipo DBMFE, non gestito da questo codice). |
+| 10 | Volatility Drag + Ribilanciamento | **[DIVERGE, il più netto]** — vedi sotto, sezione 2. |
+| 11 | Kelly/Optimal Sizing | **[CATTURATO, ma solo dentro Apex]** — Kelly frazionario (0.25) pesa le classi macro ATTIVE di Apex; il mix Apex/Convex stesso è un peso FISSO 70/30 (scelto per Sharpe su una griglia, non da un calcolo Kelly diretto sul mix — vedi Sezione 5). |
+| 12-19 | Liquidity premium, VRP, Merger Arb, Seasonality, Accrual, Reversal, Market making | **[ASSENTI]** — nessuno di questi meccanismi è implementato o testato in produzione. |
+
+### Sezione 2 — la divergenza più concreta: "Convex = ribilanciamento/mean-reversion"
+
+L'archetipo (Sezione 2, colonna "Convex") elenca **Ribilanciamento** come
+edge primario e **Correlazione bassa/negativa con equity (difensivo)**
+come proprietà attesa. Entrambe le affermazioni sono **contraddette da
+dati reali già raccolti in questa sessione**, non da una lettura teorica:
+
+- **Ribilanciamento**: la policy REALE di Convex è "mai vendere"
+  (`convex_engine.py`, PAC water-filling — versa solo sull'asset più
+  sottopesato, nessuna vendita salvo trim fiscale raro sopra +50% su
+  WBTC/PPFB). Non solo Convex non ribilancia mensilmente come prescrive
+  l'archetipo — quando questa sessione ha TESTATO se un ribilanciamento a
+  soglia catturerebbe il "rebalancing premium" atteso
+  (`convex_threshold_vs_calendar_rebalance_test.py`), il risultato è
+  stato che una soglia stretta batte il "mai" su Sharpe/MaxDD ma non è
+  stata adottata (campione troppo corto per provarlo con confidenza) — il
+  vantaggio teorico dell'edge #10 esiste probabilmente, ma Convex, per
+  design, non lo cattura.
+- **Correlazione difensiva**: l'analisi per regime storico
+  (`apex_convex_regime_and_correlation_stress.py`, già nel report di
+  robustezza) ha misurato Convex **NEGATIVO in entrambe le crisi maggiori
+  del suo backtest** (dot-com -3,05% CAGR, GFC -9,16% CAGR) — l'opposto
+  di "difensivo/bassa-negativa correlazione con equity". Convex è un
+  veicolo di accumulo passivo A LEVA: in una crisi azionaria/obbligazionaria
+  perde, non protegge. La diversificazione reale nel sistema viene dal
+  MIX con Apex (che invece va in cash nei bear market), non da Convex
+  preso da solo — questo è già scritto nel verdetto del report di
+  robustezza, ma non era mai stato messo in relazione esplicita con
+  questa specifica affermazione della checklist.
+
+### Sezione 3 — checklist "Apex": cosa manca davvero
+
+- **Nessun filtro di qualità/fondamentali** (Step 2: ROIC, accruals,
+  debt/equity) — `select_low_beta_basket` usa solo beta storico + settore,
+  zero dati di bilancio.
+- **Nessuna conferma di trend PER TITOLO** (Step 4: prezzo>MA50/200 del
+  singolo titolo) — il trend/timing di Apex è applicato SOLO al livello
+  macro (classe "Equities" tramite SPY), mai al singolo titolo nel
+  basket: un titolo individualmente in downtrend resta nel basket se il
+  suo beta è ancora tra i più bassi.
+- **Nessun entry/exit tecnico per posizione** (Step 5/7: breakout,
+  stop=2xATR, trailing stop) — coerente con quanto già annotato (nessuno
+  stop-loss), ma vale la pena essere espliciti: non c'è NESSUN segnale di
+  ingresso/uscita per singolo titolo, solo ribasket trimestrale
+  meccanico verso il nuovo ranking.
+- **Volatility targeting è a livello di PORTAFOGLIO/classe, non di
+  singola posizione** (Step 6: "peso posizione ∝ 1/σ" per titolo) — Apex
+  scala l'esposizione aggregata della classe "Equities" per la vol
+  target del portafoglio (`vol_target=0.22`); dentro il basket i 15
+  titoli restano equal-weight, nessun sizing per volatilità individuale.
+
+### Sezione 4 — checklist "Convex": la più distante dall'archetipo
+
+Quasi ogni step della Sezione 4 non ha equivalente reale: nessuno
+screening value/carry (Step 2), nessun segnale tecnico di mean-reversion
+RSI/Z-score (Step 3), nessun trigger di entry su rimbalzo confermato
+(Step 4), nessuno stop-loss (Step 5), nessun ribilanciamento mensile
+verso i pesi target (Step 5 — vedi sopra, è "mai vendere" per design),
+nessun segnale di uscita tecnico (Step 6). Convex è, per intero, un
+allocatore PASSIVO a pesi strutturali fissi con un solo meccanismo attivo
+(trim fiscale sopra soglia su 2 dei 5 strumenti) — l'intera Sezione 4
+descrive un sistema diverso, non una versione semplificata di Convex.
+
+### Sezione 5 — checklist di portafoglio
+
+- **Allocazione "50-70% Apex, 30-50% Convex in base a regime di mercato"**:
+  la produzione usa un peso **FISSO 70/30**, mai regime-dependent —
+  nessun meccanismo sposta dinamicamente il mix in base al regime.
+- **Correlazione target <0.3**: coerente — correlazione reale misurata
+  ~0.30-0.31 (`get_combined_dual_engine_metrics()`), monitorata e
+  mostrata in dashboard, anche se non con un controllo automatico che
+  agisce se la soglia viene sforata.
+- **"Max drawdown tollerato 20% → stop trading se breach"**: **[ASSENTE]**
+  — verificato con grep su `backend.py`/`app.py`, nessun meccanismo di
+  kill-switch/circuit-breaker legato al drawdown esiste nel codice. Se il
+  sistema subisse un drawdown del 30%, continuerebbe a operare
+  esattamente come prima — nessun freno automatico.
+- **Monitoraggio (Sharpe rolling/MaxDD/correlazione con soglie)**:
+  **[ASSENTE come automazione]** — le metriche sono calcolate e mostrate
+  in dashboard, ma nessun alert o azione automatica scatta se Sharpe
+  scende sotto 0.8 o la correlazione sale sopra 0.4. Puramente
+  informativo, non un controllo di rischio attivo.
+
+### Sezione 7 — red flag ("quando un edge è morto")
+
+**[ASSENTE come automazione]** per tutti e 5 i punti — nessuno di questi
+criteri (Sharpe<0.3 per 3 anni, drawdown>40% senza recovery, correlazione
+con benchmark >0.9, crowding, costi>30% del gross edge) è monitorato o
+verificato automaticamente dal codice. Sono, ad oggi, criteri per una
+revisione manuale periodica (prossima sessione o checklist annuale
+dell'utente), non un processo del sistema.
+
+### Sezione 8 — backtest e validazione: qui l'archetipo è SODDISFATTO
+
+A differenza delle sezioni precedenti, la Sezione 8 descrive esattamente
+cosa questa sessione (e le precedenti) hanno già fatto: **[CATTURATO]**
+su tutti e 5 i punti — dataset 39 anni di storico (471 mesi, proxy+reale,
+supera il minimo di 30), walk-forward OOS reale (72 mesi TEST mai
+usati per calibrare), stress test sui regimi storici nominati (dot-com,
+GFC, COVID — `apex_convex_regime_and_correlation_stress.py`), costi/tasse
+inclusi (`tax_engine.py`, stress test dedicati), sensitivity analysis
+(`apex_v2_sensitivity_grid.py`, ±3-6pp su kelly/vol-target/base-weight,
+non ±20% esatto ma lo stesso principio). L'UNICA sezione della checklist
+dove il rigore richiesto dall'archetipo è già pienamente rispettato.
+
+### Verdetto del cross-check
+
+Il principio di fondo (due motori decorrelati) regge. L'implementazione
+concreta diverge dall'archetipo quasi ovunque nei meccanismi (nessun
+value/quality/carry/momentum-di-titolo, nessuno stop-loss, nessun
+circuit-breaker di drawdown, nessuna automazione dei red-flag) — la
+maggior parte per scelta deliberata e validata (stop-loss testato e
+scartato, mix fisso preferito a dinamico dopo verifica Sharpe), non per
+omissione. **Le due divergenze più rilevanti per una decisione futura**
+sono quelle della Sezione 2: (1) Convex non cattura il rebalancing
+premium che l'archetipo gli attribuisce — testato, non adottato per
+campione insufficiente, non per assenza dell'effetto; (2) Convex non è
+difensivo in crisi come l'archetipo suggerisce — è un moltiplicatore di
+beta a leva, la protezione del sistema viene interamente da Apex e dal
+mix, non da Convex isolato. Nessuna delle due richiede un'azione
+immediata; entrambe meritano di restare esplicite per chi legge questo
+documento aspettandosi che "Convex" si comporti come l'archetipo descrive.
