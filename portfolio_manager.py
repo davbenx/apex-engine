@@ -194,8 +194,8 @@ def load_config() -> Dict[str, Any]:
         "convex_capital_eur": 100000.0,
         "monthly_pac_eur": 500.0,
         "pac_annual_growth": 0.04,
-        "target_apex_ratio": 0.50,
-        "target_convex_ratio": 0.50,
+        "target_apex_ratio": 0.70,
+        "target_convex_ratio": 0.30,
         "wbtc_trim_threshold": 0.1125,
         "ppfb_trim_threshold": 0.1125,
         "last_updated": "2026-09-01"
@@ -290,11 +290,15 @@ def save_convex_portfolio(data: Dict[str, Any]) -> bool:
 # Ora restituiscono SOLO il periodo TEST, lo stesso standard walk-forward gia'
 # usato in tutta la ricerca di questo progetto (vedi APEX_V2_SPEC.md §8.25 e
 # research/convex/convex_optimize_v2.py):
-#   - Apex: split a meta' campione per numero di decisioni mensili (72+72).
-#     TRAIN 2014-11-30 -> 2020-08-31, TEST 2020-09-30 -> 2026-08-31 (72 mesi).
-#     Ricalcolato da research/convex/apex_monthly_returns_extended.csv (netto)
-#     e _gross.csv, stessa metodologia che produce esattamente i numeri prima
-#     deployati per la finestra piena (verificato a 4 decimali) — non stimato.
+#   - Apex: TRAIN 1987-06-30 -> 2020-08-31 (399 mesi), TEST 2020-09-30 ->
+#     2026-08-31 (72 mesi). Storia TRAIN estesa da 2014-11 a 1987-06 (vedi
+#     apex_dashboard_stat_regeneration.py, richiesto dall'utente "vai il piu'
+#     indietro possibile usando i migliori proxy" — VFINX/VUSTX/GC=F raccordati
+#     con SPY/IEF/GLD reali; selezione azionaria per singolo titolo resta
+#     vincolata al 2012+ per onesta' point-in-time, prima usa il rendimento
+#     dell'indice proxy stesso). Le cifre TEST period sotto sono IDENTICHE a
+#     prima dell'estensione (verificato) — lo split 2020-09-30 e' a valle di
+#     tutta la storia estesa, nessun effetto sulla finestra mostrata.
 #   - Convex: la validazione dei pesi 45/15/25/7.5/7.5 in convex_optimize_v2.py
 #     usa TRAIN 2000-09-30 -> 2013-09-30, TEST 2013-10-31 -> 2026-08-31 (155
 #     mesi, tutti fuori campione). La cifra MOSTRATA in dashboard pero' usa un
@@ -317,29 +321,44 @@ def get_apex_metrics() -> Dict[str, Any]:
     Le metriche di rischio (sharpe/sortino/max_drawdown/calmar/volatility)
     sono calcolate sulla serie LORDA (apex_monthly_returns_extended_gross.csv,
     stesso TEST period) -- coerenti con equity.json/il grafico, che non
-    modella alcuna tassa. I campi *_netto_stimato usano invece la serie netta
-    (apex_monthly_returns_extended.csv, tasse italiane reali modellate anno
-    per anno) -- una stima più rigorosa dell'haircut fisso usato per Convex,
-    ma pur sempre calcolata su un backtest di ricerca separato dalla curva
-    live, non identica ad essa."""
+    modella alcuna tassa, ed E' la cifra primaria mostrata in dashboard
+    (convenzione lordo-primario/netto-stimato-secondario). I campi
+    *_netto_stimato usano invece la serie netta (apex_monthly_returns_extended.csv,
+    tasse italiane reali modellate anno per anno) -- una stima più rigorosa
+    dell'haircut fisso usato per Convex, ma pur sempre calcolata su un
+    backtest di ricerca separato dalla curva live, non identica ad essa.
+    Rigenerate con select_low_beta_basket e storia estesa a 1987-06 (proxy
+    VFINX/VUSTX/GC=F) — vedi apex_dashboard_stat_regeneration.py e
+    validation_suite/README.md. Le cifre del periodo TEST sono identiche a
+    prima dell'estensione storica (split 2020-09-30 a valle, non impattato).
+
+    Rigenerate una seconda volta dopo l'adozione della pesatura Kelly
+    frazionaria tra le classi macro attive (APEX_V2_SPEC.md §8.30,
+    kelly_fraction=0.25/kelly_window=208 settimane, default di
+    compute_v2_macro_signal — vedi apex_v2_engine.py): il miglioramento e'
+    netto su tutto il periodo TEST (Sharpe 1.245->1.675, MaxDD -14.52%-
+    >-10.44%, Ulcer Index 6.19->2.92, CAGR netto 14.28%->18.32%) — piu'
+    forte del beneficio visto nei backtest settimanali usati per validare
+    Kelly (limitati dal 2018 dal vincolo BTC comune), qui su un campione
+    con storico esteso e il vero basket di produzione."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1230,
-        "cagr_gross": 0.1416,
-        "volatility": 0.1303,
-        "sharpe": 1.084,
-        "sortino": 2.456,
-        "max_drawdown": -0.1012,
-        "calmar": 1.399,
-        "ulcer_index": 5.61,
-        "volatility_netto_stimato": 0.1617,
-        "sharpe_netto_stimato": 0.799,
-        "sortino_netto_stimato": 1.409,
-        "max_drawdown_netto_stimato": -0.1598,
-        "calmar_netto_stimato": 0.770,
+        "cagr_net": 0.1832,
+        "cagr_gross": 0.2466,
+        "volatility": 0.1383,
+        "sharpe": 1.675,
+        "sortino": 2.549,
+        "max_drawdown": -0.1044,
+        "calmar": 2.363,
+        "ulcer_index": 2.92,
+        "volatility_netto_stimato": 0.1337,
+        "sharpe_netto_stimato": 1.332,
+        "sortino_netto_stimato": 2.078,
+        "max_drawdown_netto_stimato": -0.1424,
+        "calmar_netto_stimato": 1.286,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "cash_drag_protection": "100% Cash nei bear market macro",
-        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Vol (Buffer Rank 20) + Trend Macro 40w/20w con isteresi. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
+        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
 
 
@@ -377,49 +396,53 @@ def get_convex_metrics() -> Dict[str, Any]:
 
 
 def get_combined_dual_engine_metrics() -> Dict[str, Any]:
-    """Metriche reali della combinazione APEX+CONVEX al mix target standard 50/50.
-    BUG corretto: prima usava la finestra 2014-11/2026-08 (142 mesi) mentre
-    get_apex_metrics()/get_convex_metrics() erano gia' state corrette al solo
-    periodo TEST di ciascuna (72 e 155 mesi) -- tre finestre diverse per tre
-    numeri mostrati fianco a fianco, che produceva un CAGR combinato
-    apparentemente piu' alto di ENTRAMBE le componenti (un'impossibilita'
-    matematica per una media pesata, segnalata dall'utente). Causa: la
-    finestra vecchia includeva 2014-2020, il periodo TRAIN di Apex con un
-    rendimento eccezionalmente forte che la casella Apex non mostra piu'.
-    Ora usa l'intersezione dei due periodi TEST (2020-09-30 -> 2026-08-31,
-    72 mesi) -- fuori campione per ENTRAMBE le strategie, la stessa identica
-    finestra della casella Apex, cosi' le tre cifre sono confrontabili.
-    Su questa finestra il CAGR combinato torna correttamente IN MEZZO ai due
-    componenti (15.91% tra 14.16% Apex e 16.88% Convex, tutti lordi) -- il
-    beneficio di diversificazione reale si vede nel MaxDD (-7.80%, inferiore
-    a entrambe le componenti), non nel CAGR. Sharpe/Sortino/MaxDD/Calmar
-    calcolati sulle due serie LORDE (apex_monthly_returns_extended_gross.csv
-    + convex_monthly_returns.csv); cagr_net e' la media pesata delle stime
-    nette dei due componenti sulla stessa finestra, non una combinazione
-    fiscale rigorosa posizione-per-posizione.
-    Correzione ulteriore (verifica incrociata successiva): volatility e
-    sortino erano rimasti stale da una versione precedente del calcolo (0.1149
-    e 2.267, incoerenti con lo sharpe=1.384 gia' corretto, che implicava una
-    volatility di 0.1100 -- ricalcolato a mano dai CSV, confermato: volatility
-    0.1100, sortino 3.306)."""
+    """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD
+    70/30 (Apex/Convex) — cambiato da 50/50 su decisione esplicita
+    dell'utente dopo il calcolo Kelly diretto sul mix (vedi
+    apex_convex_kelly_mix_test.py, validation_suite/README.md): lo Sharpe
+    del mix a leva zero (nessuna leva extra oltre quella gia' imbottita in
+    ciascun motore) picca teoricamente ed empiricamente nella zona
+    50/50-70/30 sul campione pieno (2000-2026, 312 mesi) — 70/30 e' dentro
+    quella zona, non un punto isolato.
+    **Aggiornamento dopo l'adozione del Kelly frazionario su Apex**
+    (APEX_V2_SPEC.md §8.30 — vedi anche get_apex_metrics()): la nota onesta
+    precedente ("70/30 ha Sharpe/MaxDD leggermente peggiori di 50/50 su
+    questo periodo TEST") **non regge piu'**: con l'Apex Kelly-pesato,
+    70/30 ha ora Sharpe leggermente MIGLIORE di 50/50 su questo stesso
+    periodo (1,834 contro 1,816), a fronte di un MaxDD leggermente
+    peggiore (-7,78% contro -6,06%, entrambi comunque ben sotto le
+    componenti isolate). Il retest diretto del mix Kelly Apex/Convex
+    (`apex_convex_kelly_mix_test.py`, ri-eseguito con la serie Apex
+    aggiornata) conferma 70/30 come punto vicino all'ottimo empirico di
+    Sharpe sulla griglia testata (0/30/50/70/100), non solo una scelta
+    dentro un intervallo ragionevole.
+    BUG storico gia' corretto (invariato da qui): prima usava una finestra
+    diversa da get_apex_metrics()/get_convex_metrics(), producendo un CAGR
+    combinato apparentemente piu' alto di ENTRAMBE le componenti (impossibile
+    per una media pesata) — ora usa l'intersezione dei due periodi TEST
+    (2020-09-30 -> 2026-08-31), la stessa finestra della casella Apex.
+    Sharpe/Sortino/MaxDD/Calmar calcolati sulle due serie LORDE
+    (apex_monthly_returns_extended_gross.csv + convex_monthly_returns.csv);
+    cagr_net e' la media pesata delle stime nette dei due componenti sulla
+    stessa finestra, non una combinazione fiscale rigorosa posizione-per-
+    posizione."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1303,
-        "cagr_gross": 0.1591,
-        "volatility": 0.1100,
-        "sharpe": 1.384,
-        "sortino": 3.306,
-        "max_drawdown": -0.0780,
-        "calmar": 2.040,
-        "ulcer_index": 2.62,
-        "correlation": 0.424,
+        "cagr_net": 0.1651,
+        "cagr_gross": 0.2251,
+        "volatility": 0.1151,
+        "sharpe": 1.834,
+        "sortino": 3.418,
+        "max_drawdown": -0.0778,
+        "calmar": 2.895,
+        "ulcer_index": 1.90,
+        "correlation": 0.31,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "synergy_summary": (
-            "Mix 50% Apex / 50% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 15.91% (netto stimato 13.03%), correttamente tra il 14.16% di Apex e il 16.88% di Convex "
-            "isolatamente. Il beneficio di diversificazione si vede nel MaxDD -7.80% — inferiore a entrambe "
-            "le componenti singole (-10.12% Apex, -15.76% Convex) — non nel CAGR: una miscela pesata non può "
-            "mai battere entrambi i componenti sul rendimento, solo sul rischio. Correlazione reale: 0.424."
+            "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
+            "CAGR 22.51% (netto stimato 16.51%), tra il 16.88% di Convex e il 24.66% di Apex isolatamente. "
+            "Il beneficio di diversificazione si vede nel MaxDD -7.78% — inferiore a entrambe le componenti "
+            "singole (-10.44% Apex, -15.76% Convex). Correlazione reale: 0.31."
         )
     }
 
@@ -428,7 +451,7 @@ def compute_unified_portfolio(
     apex_val: float,
     convex_report: convex_engine.ConvexPortfolioReport,
     monthly_pac: float = 500.0,
-    target_apex_ratio: float = 0.50,
+    target_apex_ratio: float = 0.70,
     apex_allocations: Dict[str, float] = None
 ) -> Dict[str, Any]:
     """
@@ -538,7 +561,8 @@ def compute_unified_portfolio(
 
 def load_combined_monthly_history(target_apex: float = 0.50, target_convex: float = 0.50) -> pd.DataFrame:
     """
-    Carica le serie mensili storiche di Apex Engine (142 mesi dal 2014-11 al 2026-08)
+    Carica le serie mensili storiche di Apex Engine (471 mesi dal 1987-06 al 2026-08,
+    proxy VFINX/VUSTX/GC=F prima delle inception reali SPY/IEF/GLD)
     e di Convex Stack, e genera la serie di rendimenti e NAV Base 100 del portafoglio combinato.
     """
     base_dir = os.path.dirname(__file__)

@@ -3,9 +3,9 @@
     "convex_capital_eur": 100000.0,
     "monthly_pac_eur": 500.0,
     "pac_annual_growth": 0.04,
-    "target_apex_ratio": 0.50,
-    "target_convex_ratio": 0.50,
+    "target_apex_ratio": 0.70,
+    "target_convex_ratio": 0.30,
     "wbtc_trim_threshold": 0.1125,
     "ppfb_trim_threshold": 0.1125,
-    "last_updated": "2026-09-01"
+    "last_updated": "2026-09-10"
 }

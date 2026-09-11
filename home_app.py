@@ -100,7 +100,7 @@ convex_val_eur = sum(cx_holdings_dict.get(k, 0.0) * _base_prices.get(k, 0.0) for
 _tot = apex_val_eur + convex_val_eur
 _real_apex_ratio = (apex_val_eur / _tot) if _tot > 0 else 0.50
 _real_convex_ratio = (convex_val_eur / _tot) if _tot > 0 else 0.50
-_target_apex = float(cfg.get("target_apex_ratio", 0.50))
+_target_apex = float(cfg.get("target_apex_ratio", 0.70))
 
 _cx_rep = convex_engine.evaluate_convex_stack(
     current_holdings=cx_holdings_dict,
@@ -195,7 +195,7 @@ with tab_pf:
                 <div style="font-size:11px; color:{MUTED};">Venerdì ore 21:00 CET</div>
             </div>
             <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
-                Tattico Alpha · Rotazione 15 S&P 500 Low-Vol + Trend multi-asset
+                Tattico Alpha · Rotazione 15 S&P 500 Low-Beta + Trend multi-asset
             </div>
             <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
                 <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
@@ -277,7 +277,7 @@ with tab_pf:
         p_c1, p_c2 = st.columns(2)
         with p_c1:
             cfg_apex_cap = st.number_input("Capitale di Riferimento Apex (€)", min_value=1000.0, value=float(cfg.get("apex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
-            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(cfg.get("target_apex_ratio", 0.50)*100), step=5) / 100.0
+            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(cfg.get("target_apex_ratio", 0.70)*100), step=5) / 100.0
         with p_c2:
             cfg_convex_cap = st.number_input("Capitale di Riferimento Convex (€)", min_value=1000.0, value=float(cfg.get("convex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
             cfg_pac = st.number_input("Rata PAC Mensile (€)", min_value=50.0, value=float(cfg.get("monthly_pac_eur", 500.0)), step=50.0, format="%.0f")
@@ -320,13 +320,15 @@ with tab_perf:
     </div>
     """)
 
-    # Carica serie combinata 142 mesi (2014-11 al 2026-08)
+    # Carica serie combinata (finestra comune Apex/Convex — dipende dalla piu' corta delle due,
+    # oggi Convex: 2000-09+; Apex da solo arriva al 1987-06, vedi get_apex_metrics())
     df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
 
 
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark", top="8px", bottom="8px"))
-        st.caption(f"Serie mensile dal backtest comune (2014–2026, 142 mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
+        _comb_start, _comb_end = df_comb.index.min(), df_comb.index.max()
+        st.caption(f"Serie mensile dal backtest comune ({_comb_start.year}–{_comb_end.year}, {len(df_comb)} mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
 
 
         selected_range = st.segmented_control(
@@ -454,7 +456,7 @@ with tab_guide:
         <div class="glass-card" style="height: 195px;">
             <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">Apex Engine (Tattico Alpha)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
-                Motore quantitativo a selezione attiva (15 titoli S&P 500 a minima volatilità con buffer rank 20) e trend following macro a doppio filtro temporale (40w/20w con isteresi).
+                Motore quantitativo a selezione attiva (15 titoli S&P 500 a beta più basso vs il mercato, con buffer rank 20) e trend following macro a doppio filtro temporale (40w/20w con isteresi).
                 Durante i mercati ribassisti disattiva l'azionario e protegge il 100% del capitale in liquidità remunerata o Treasury.
             </div>
         </div>

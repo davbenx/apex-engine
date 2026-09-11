@@ -1,0 +1,503 @@
+"""
+test_backend.py — Test su dati sintetici per il tracking del NAV in backend.py,
+introdotti dopo aver trovato un bug reale in produzione: il NAV veniva ricalcolato
+ogni notte da zero (capitale iniziale + P&L storico su base di capitale fissa),
+ignorando la crescita composta — causa di un crollo fittizio del NAV mostrato in
+dashboard il giorno della migrazione v1->v2 (vedi APEX_V2_SPEC.md §8.3-bis).
+"""
+import datetime
+import io
+import json
+import os
+import urllib.error
+import urllib.request
+
+import backend
+
+
+def _isolate_files(tmp_dir):
+    os.makedirs(tmp_dir, exist_ok=True)
+    backend.PORTFOLIO_FILE = os.path.join(tmp_dir, "portfolio.json")
+    backend.EQUITY_FILE = os.path.join(tmp_dir, "equity.json")
+
+
+def test_nav_compounds_with_weighted_daily_return():
+    pf = {
+        "nav_usd": 100000.0,
+        "open_positions": {"AAPL": {"weight": 0.5, "current_price": 100.0, "entry_price": 100.0, "is_crypto": False}},
+        "trade_history": [],
+    }
+    nav = backend.mark_to_market_and_compound_nav(pf, {"AAPL": 110.0})
+    assert abs(nav - 105000.0) < 1e-6, f"atteso 105000.0, ottenuto {nav}"
+    assert pf["open_positions"]["AAPL"]["current_price"] == 110.0
+
+
+def test_position_weight_drifts_with_price_between_rebalances():
+    """
+    "weight" non deve restare congelato al target dell'ultimo ribilanciamento — un
+    vincitore deve pesare di piu' nei giorni successivi, non essere sempre trattato
+    al suo peso originale. Verificato a mano: A e B partono al 50%, A guadagna 10%
+    per 2 giorni consecutivi, B resta piatta -> NAV vero $110,50 (non $110,25, che
+    sarebbe il risultato del vecchio bug a peso congelato).
+    """
+    pf = {
+        "nav_usd": 100.0,
+        "open_positions": {
+            "A": {"weight": 0.5, "current_price": 100.0, "entry_price": 100.0, "is_crypto": False},
+            "B": {"weight": 0.5, "current_price": 100.0, "entry_price": 100.0, "is_crypto": False},
+        },
+        "trade_history": [],
+    }
+    nav1 = backend.mark_to_market_and_compound_nav(pf, {"A": 110.0, "B": 100.0})
+    assert abs(nav1 - 105.0) < 1e-9
+    assert abs(pf["open_positions"]["A"]["weight"] - 55.0 / 105.0) < 1e-9, "il peso di A deve crescere con il suo guadagno"
+    assert abs(pf["open_positions"]["B"]["weight"] - 50.0 / 105.0) < 1e-9, "il peso di B deve scendere (stesso valore, NAV totale piu' grande)"
+
+    nav2 = backend.mark_to_market_and_compound_nav(pf, {"A": 121.0, "B": 100.0})
+    assert abs(nav2 - 110.5) < 1e-6, f"atteso 110.5 (compounding vero), ottenuto {nav2}"
+
+
+def test_nav_bootstraps_from_equity_history_when_missing(tmp_path=None):
+    _isolate_files("/tmp/apex_test_backend_bootstrap")
+    json.dump({"history": [{"date": "2026-01-01", "value": 50000.0}]}, open(backend.EQUITY_FILE, "w"))
+    pf = {"open_positions": {}, "trade_history": []}
+    nav = backend.mark_to_market_and_compound_nav(pf, {})
+    assert nav == 50000.0
+
+
+def test_rotation_deducts_turnover_cost_from_nav():
+    _isolate_files("/tmp/apex_test_backend_rotation")
+    json.dump({
+        "v2_migrated": True,
+        "nav_usd": 100000.0,
+        "open_positions": {
+            "AAPL": {"weight": 0.5, "entry_price": 100.0, "current_price": 100.0, "is_crypto": False, "stop_loss": 0.0, "entry_date": "2026-01-01"},
+        },
+        "trade_history": [],
+    }, open(backend.PORTFOLIO_FILE, "w"))
+
+    allocations = {"Equities": 0.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 100.0}
+    backend.update_portfolio(allocations, [], {"BTC-USD": 50000.0}, "2026-01-08")
+    pf_after = json.load(open(backend.PORTFOLIO_FILE))
+
+    expected_cost_frac = 0.5 * (10.0 / 10000.0) + 1.0 * (8.0 / 10000.0)  # chiude AAPL (10bps) + apre BTC (8bps)
+    expected_nav = 100000.0 * (1.0 - expected_cost_frac)
+    assert abs(pf_after["nav_usd"] - expected_nav) < 1e-6, f"atteso {expected_nav}, ottenuto {pf_after['nav_usd']}"
+
+
+def test_rotation_without_turnover_leaves_nav_unchanged():
+    _isolate_files("/tmp/apex_test_backend_no_rotation")
+    json.dump({
+        "v2_migrated": True,
+        "nav_usd": 77777.0,
+        "open_positions": {
+            "BTC": {"weight": 1.0, "entry_price": 50000.0, "current_price": 50000.0, "is_crypto": True, "stop_loss": 0.0, "entry_date": "2026-01-01"},
+        },
+        "trade_history": [],
+    }, open(backend.PORTFOLIO_FILE, "w"))
+
+    allocations = {"Equities": 0.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 100.0}
+    backend.update_portfolio(allocations, [], {"BTC-USD": 51000.0}, "2026-01-08")
+    pf_after = json.load(open(backend.PORTFOLIO_FILE))
+    assert pf_after["nav_usd"] == 77777.0  # nessuna rotazione (stesso peso target) -> nessun costo
+
+
+def test_weight_increase_blends_pmc_and_costs_only_the_delta():
+    """
+    Aumento di peso 5%->8%, entry 100 -> prezzo attuale 120: deve comprare SOLO il
+    3% aggiuntivo (non richiudere l'intera posizione all'8%), aggiornare il costo
+    medio ponderato (PMC) sulle azioni combinate, e mantenere entry_date invariata.
+    Verifica indipendente: 500 azioni a costo 100 ($50k su NAV $1M) + 250 nuove
+    azioni a $120 ($30k) = 750 azioni, costo totale $80k -> PMC $106.667/azione.
+    """
+    _isolate_files("/tmp/apex_test_backend_pmc_increase")
+    json.dump({
+        "v2_migrated": True, "nav_usd": 1000000.0,
+        "open_positions": {
+            "AAPL": {"weight": 0.05, "entry_price": 100.0, "current_price": 100.0, "is_crypto": False, "stop_loss": 0.0, "entry_date": "2026-01-01"},
+        },
+        "trade_history": [],
+    }, open(backend.PORTFOLIO_FILE, "w"))
+
+    allocations = {"Equities": 8.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}
+    backend.update_portfolio(allocations, [{"Ticker": "AAPL"}], {"AAPL": 120.0}, "2026-02-01")
+    pf_after = json.load(open(backend.PORTFOLIO_FILE))
+    pos = pf_after["open_positions"]["AAPL"]
+
+    assert abs(pos["entry_price"] - 106.6667) < 0.01, f"PMC atteso ~106.67, ottenuto {pos['entry_price']}"
+    assert pos["entry_date"] == "2026-01-01", "l'incremento non deve azzerare la data di ingresso originale"
+    assert pos["weight"] == 0.08
+    assert pf_after["trade_history"] == [], "un incremento non e' una vendita: nessun evento tassabile da registrare"
+
+    expected_cost_frac = 0.03 * (10.0 / 10000.0)  # solo il 3% aggiunto, non l'8% totale
+    expected_nav = 1000000.0 * (1.0 - expected_cost_frac)
+    assert abs(pf_after["nav_usd"] - expected_nav) < 1e-3, f"atteso {expected_nav}, ottenuto {pf_after['nav_usd']}"
+
+
+def test_weight_decrease_trims_partially_and_preserves_cost_basis():
+    """
+    Riduzione di peso 10%->6%, entry 100 -> prezzo attuale 150: deve vendere SOLO
+    il 4% in eccesso (non l'intera posizione), realizzare la plusvalenza solo su
+    quella quota, e lasciare le azioni restanti con costo/data d'ingresso originali
+    — cosi' la tassazione viene rinviata sulla parte non venduta, non anticipata.
+    """
+    _isolate_files("/tmp/apex_test_backend_pmc_decrease")
+    json.dump({
+        "v2_migrated": True, "nav_usd": 1000000.0,
+        "open_positions": {
+            "MSFT": {"weight": 0.10, "entry_price": 100.0, "current_price": 100.0, "is_crypto": False, "stop_loss": 0.0, "entry_date": "2026-01-01"},
+        },
+        "trade_history": [],
+    }, open(backend.PORTFOLIO_FILE, "w"))
+
+    allocations = {"Equities": 6.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}
+    backend.update_portfolio(allocations, [{"Ticker": "MSFT"}], {"MSFT": 150.0}, "2026-02-01")
+    pf_after = json.load(open(backend.PORTFOLIO_FILE))
+    pos = pf_after["open_positions"]["MSFT"]
+
+    assert pos["entry_price"] == 100.0, "il costo medio delle azioni RIMASTE non deve cambiare al trim"
+    assert pos["entry_date"] == "2026-01-01", "il trim parziale non deve azzerare la data di ingresso"
+    assert pos["weight"] == 0.06
+
+    assert len(pf_after["trade_history"]) == 1
+    trade = pf_after["trade_history"][0]
+    assert abs(trade["weight"] - 0.04) < 1e-9, "deve registrare solo la quota VENDUTA (4%), non l'intera posizione (10%)"
+    assert trade["profit_pct"] == 50.0
+    assert trade["reason"] == "Ribilanciamento mensile (trim parziale)"
+
+    expected_cost_frac = 0.04 * (10.0 / 10000.0)  # solo il 4% venduto, non il 10% totale
+    expected_nav = 1000000.0 * (1.0 - expected_cost_frac)
+    assert abs(pf_after["nav_usd"] - expected_nav) < 1e-3
+
+
+def test_full_exit_still_logs_the_entire_position():
+    _isolate_files("/tmp/apex_test_backend_full_exit")
+    json.dump({
+        "v2_migrated": True, "nav_usd": 100000.0,
+        "open_positions": {
+            "TSLA": {"weight": 0.05, "entry_price": 200.0, "current_price": 200.0, "is_crypto": False, "stop_loss": 0.0, "entry_date": "2026-01-01"},
+        },
+        "trade_history": [],
+    }, open(backend.PORTFOLIO_FILE, "w"))
+
+    allocations = {"Equities": 0.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}
+    backend.update_portfolio(allocations, [], {"TSLA": 250.0}, "2026-02-01")
+    pf_after = json.load(open(backend.PORTFOLIO_FILE))
+
+    assert "TSLA" not in pf_after["open_positions"]
+    assert len(pf_after["trade_history"]) == 1
+    trade = pf_after["trade_history"][0]
+    assert abs(trade["weight"] - 0.05) < 1e-9, "l'uscita totale deve registrare l'intera posizione"
+    assert trade["profit_pct"] == 25.0
+    assert trade["reason"] == "Uscito da basket/classe disattivata"
+
+
+def test_tiny_weight_change_within_eps_does_not_trade():
+    _isolate_files("/tmp/apex_test_backend_eps")
+    json.dump({
+        "v2_migrated": True, "nav_usd": 100000.0,
+        "open_positions": {
+            "NVDA": {"weight": 0.05, "entry_price": 100.0, "current_price": 100.0, "is_crypto": False, "stop_loss": 0.0, "entry_date": "2026-01-01"},
+        },
+        "trade_history": [],
+    }, open(backend.PORTFOLIO_FILE, "w"))
+
+    allocations = {"Equities": 5.0000001, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}
+    backend.update_portfolio(allocations, [{"Ticker": "NVDA"}], {"NVDA": 110.0}, "2026-02-01")
+    pf_after = json.load(open(backend.PORTFOLIO_FILE))
+    pos = pf_after["open_positions"]["NVDA"]
+
+    assert pf_after["trade_history"] == []
+    assert pos["entry_price"] == 100.0
+    assert pos["current_price"] == 110.0, "il prezzo di mercato deve comunque aggiornarsi anche senza ribilanciare"
+    assert pf_after["nav_usd"] == 100000.0, "nessun ribilanciamento -> nessun costo"
+
+
+def test_update_equity_curve_marks_new_entries_as_live(tmp_path=None):
+    """generate_v2_track_record.py (replay storico) scrive le sue voci
+    direttamente, mai tramite update_equity_curve, quindi non porta mai
+    "live" -> app.py usa questo campo per distinguere onestamente
+    simulazione da forward-tracking reale (vedi APEX_V2_SPEC.md §24)."""
+    import tempfile
+    td = None
+    if tmp_path is not None:
+        p = str(tmp_path)
+    else:
+        td = tempfile.TemporaryDirectory()
+        p = td.name
+    _isolate_files(p)
+
+    try:
+        backend.update_equity_curve(100000.0, "2026-08-25")
+        eq = json.load(open(backend.EQUITY_FILE))
+        assert eq["history"][0]["live"] is True
+
+        backend.update_equity_curve(101000.0, "2026-08-26")
+        eq = json.load(open(backend.EQUITY_FILE))
+        assert len(eq["history"]) == 2
+        assert eq["history"][1]["live"] is True
+        assert eq["history"][1]["open"] == 100000.0, "l'apertura del nuovo giorno deve partire dalla chiusura precedente"
+
+        # stesso giorno rieseguito (es. piu' run nella stessa giornata) -> aggiorna
+        # l'ultima voce e la mantiene marcata live, non ne crea una nuova.
+        backend.update_equity_curve(101500.0, "2026-08-26")
+        eq = json.load(open(backend.EQUITY_FILE))
+        assert len(eq["history"]) == 2
+        assert eq["history"][1]["live"] is True
+        assert eq["history"][1]["close"] == 101500.0
+    finally:
+        if td is not None:
+            td.cleanup()
+
+
+def test_should_decide_fires_once_in_month_end_window_even_if_execution_slips():
+    # Bug reale trovato in produzione (APEX_V2_SPEC.md §8.13): un'esecuzione schedulata
+    # pensata per l'ultimo venerdi' del mese puo' slittare oltre mezzanotte UTC e finire
+    # per partire di sabato. Con un controllo sul solo "e' venerdi' adesso" la decisione
+    # mensile verrebbe saltata per l'intero mese. La finestra deve catturarla comunque.
+    last_friday_of_aug_2026 = datetime.datetime(2026, 8, 28, 6, 27)  # slittato da venerdi' 23:00 UTC
+    saturday_after = datetime.datetime(2026, 8, 29, 3, 58)
+    prev_state = {"last_decision_month": None}
+
+    assert backend.compute_should_decide(last_friday_of_aug_2026, prev_state, just_migrating=False) is True
+    # dopo la decisione, lo stato persiste il mese gestito: la stessa finestra non
+    # ridecide una seconda volta nello stesso mese, anche se l'esecuzione successiva
+    # cade ancora dentro gli ultimi giorni del mese.
+    prev_state["last_decision_month"] = "2026-08"
+    assert backend.compute_should_decide(saturday_after, prev_state, just_migrating=False) is False
+
+
+def test_should_decide_false_mid_month():
+    mid_month = datetime.datetime(2026, 8, 15, 12, 0)
+    assert backend.compute_should_decide(mid_month, {"last_decision_month": None}, just_migrating=False) is False
+
+
+def test_should_decide_true_when_just_migrating_regardless_of_date():
+    mid_month = datetime.datetime(2026, 8, 15, 12, 0)
+    assert backend.compute_should_decide(mid_month, {"last_decision_month": "2026-08"}, just_migrating=True) is True
+
+
+def test_executing_pending_waits_for_a_real_new_market_bar():
+    # Bug reale trovato in produzione (APEX_V2_SPEC.md §8.14): il motore decideva ed
+    # eseguiva nella STESSA esecuzione, usando l'ultima chiusura disponibile — se
+    # l'esecuzione cade di venerdi' (il caso comune), decisione ed esecuzione usano lo
+    # STESSO prezzo di chiusura, un ritardo zero mai testato/validato nei backtest
+    # (che usano sempre almeno un giorno di borsa di ritardo tra segnale ed esecuzione).
+    pending = {"decided_date": "2026-08-28", "allocations": {"Equities": 20.0}}
+
+    # nessuna decisione in attesa -> mai in esecuzione
+    assert backend.compute_executing_pending(None, "2026-08-31") is False
+
+    # stessa barra del giorno della decisione (es. esecuzione ritardata nel weekend,
+    # nessun nuovo giorno di borsa e' ancora passato) -> resta in attesa
+    assert backend.compute_executing_pending(pending, "2026-08-28") is False
+
+    # nessun dato di mercato disponibile -> resta in attesa, non esegue alla cieca
+    assert backend.compute_executing_pending(pending, None) is False
+
+    # prima barra di borsa realmente successiva (il lunedi' seguente) -> esegue
+    assert backend.compute_executing_pending(pending, "2026-08-31") is True
+
+
+def test_weekly_due_anchored_to_friday_not_drifting_with_rolling_day_count():
+    # BUG reale segnalato dall'utente (alert Telegram arrivato alle 2:45 di venerdi'
+    # con dati di chiusura di GIOVEDI', invece che dopo la chiusura di venerdi'):
+    # la versione precedente ("almeno 6 giorni dall'ultimo alert") non restava
+    # ancorata a un giorno fisso — con lo schedule feriale-soltanto di GitHub
+    # Actions (lun-ven, niente run nel weekend) l'alert scattava un giorno prima
+    # nella settimana ad ogni ciclo (Ven->Gio->Mer->Mar->Lun).
+    import datetime as _dt
+    last_friday = _dt.datetime(2026, 8, 21)     # ultimo alert: venerdi'
+    thursday_6gg_dopo = _dt.datetime(2026, 8, 27)  # esattamente 6 giorni dopo, ma e' GIOVEDI' (settimana ISO successiva)
+    this_friday = _dt.datetime(2026, 8, 28)     # il venerdi' successivo (giorno corretto)
+    monday = _dt.datetime(2026, 8, 24)
+    saturday_next_week = _dt.datetime(2026, 9, 5)
+
+    # Col vecchio bug, 6 giorni dopo l'ultimo alert (giovedi') avrebbe fatto
+    # scattare l'alert un giorno TROPPO PRESTO — ora non scatta piu' qui
+    assert backend.compute_weekly_due(thursday_6gg_dopo, "2026-08-21") is False
+    # Il venerdi' successivo (giorno giusto) -> dovuto
+    assert backend.compute_weekly_due(this_friday, "2026-08-21") is True
+    # Lunedi' (weekday 0, fuori dalla finestra Ven-Dom) -> mai dovuto
+    assert backend.compute_weekly_due(monday, "2026-08-21") is False
+    # Sabato della settimana ISO successiva al venerdi' sopra, ultimo alert quel
+    # venerdi' -> dovuto (tollera uno slittamento del run di venerdi' oltre
+    # mezzanotte, stesso principio di compute_should_decide)
+    assert backend.compute_weekly_due(saturday_next_week, "2026-08-28") is True
+    # Venerdi' stesso, ultimo alert quel venerdi' stesso (gia' inviato questa
+    # settimana ISO) -> non dovuto, evita doppio invio nella stessa settimana
+    assert backend.compute_weekly_due(this_friday, "2026-08-28") is False
+    assert backend.compute_weekly_due(this_friday, None) is True  # mai inviato prima
+
+
+def test_compute_rebalance_orders_structured():
+    current_pos = {
+        "TSLA": {"weight": 0.05, "entry_price": 200.0, "current_price": 250.0, "is_crypto": False},
+        "AAPL": {"weight": 0.05, "entry_price": 150.0, "current_price": 180.0, "is_crypto": False},
+    }
+    target_alloc = {"Equities": 5.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}
+    basket = [{"Ticker": "AAPL"}, {"Ticker": "NVDA"}]
+    prices = {"TSLA": 250.0, "AAPL": 180.0, "NVDA": 100.0}
+
+    res = backend.compute_rebalance_orders_structured(current_pos, target_alloc, basket, prices)
+    assert len(res["sells"]) == 2  # TSLA closed (0.05 -> 0.0), AAPL trimmed (0.05 -> 0.025)
+    assert len(res["buys"]) == 1   # NVDA opened (0.0 -> 0.025)
+    
+    tsla_order = next(o for o in res["sells"] if o["ticker"] == "TSLA")
+    assert tsla_order["action"] == "CHIUSURA"
+    assert tsla_order["delta_w_pct"] == -5.0
+    
+    nvda_order = next(o for o in res["buys"] if o["ticker"] == "NVDA")
+    assert nvda_order["action"] == "APERTURA"
+    assert nvda_order["delta_w_pct"] == 2.5
+
+
+def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch=None):
+    """Verifica che se Telegram rifiuta il payload Markdown, il sistema effettua
+    immediatamente il fallback a testo semplice per non perdere l'allerta."""
+    calls = []
+    def fake_urlopen(req, timeout=10):
+        calls.append(req.data.decode("utf-8"))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError("https://api.telegram.org", 400, "Bad Request: can't parse entities", {}, None)
+        return io.BytesIO(b'{"ok": true}')
+
+    if monkeypatch is not None:
+        monkeypatch.setenv("TELEGRAM_TOKEN", "dummy_token")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "dummy_chat_id")
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    else:
+        orig_token = os.environ.get("TELEGRAM_TOKEN")
+        orig_chat = os.environ.get("TELEGRAM_CHAT_ID")
+        orig_urlopen = urllib.request.urlopen
+        os.environ["TELEGRAM_TOKEN"] = "dummy_token"
+        os.environ["TELEGRAM_CHAT_ID"] = "dummy_chat_id"
+        urllib.request.urlopen = fake_urlopen
+
+    try:
+        data_dict = {
+            "allocations": {"Equities": 50, "Crypto": 12, "Gold": 18, "Bonds": 0, "Cash": 20},
+            "macro_events": ["Segnale test"],
+            "timestamp": "28 Ago 2026",
+        }
+        sent = backend.send_telegram_alert(data_dict, ["Log test"])
+        assert sent is True
+        assert len(calls) == 2, "deve tentare prima Markdown poi fallback plain text"
+        assert "parse_mode=Markdown" in calls[0]
+        assert "parse_mode" not in calls[1]
+    finally:
+        if monkeypatch is None:
+            if orig_token is not None:
+                os.environ["TELEGRAM_TOKEN"] = orig_token
+            else:
+                os.environ.pop("TELEGRAM_TOKEN", None)
+            if orig_chat is not None:
+                os.environ["TELEGRAM_CHAT_ID"] = orig_chat
+            else:
+                os.environ.pop("TELEGRAM_CHAT_ID", None)
+            urllib.request.urlopen = orig_urlopen
+
+
+class _FakeYahooResponse:
+    def __init__(self, body):
+        self._body = body
+
+    def read(self):
+        return self._body
+
+
+def test_fetch_sector_uses_cookie_crumb_handshake_and_caches_it(monkeypatch=None):
+    """Yahoo richiede da fine 2024 un cookie di sessione + crumb anche su quoteSummary
+    (senza, l'endpoint risponde 401 su ogni richiesta — bug reale trovato in questa
+    sessione). Verifica che fetch_sector esegua l'handshake e che il crumb sia
+    riusato (non richiesto a ogni ticker, altrimenti fetch_sector_map raddoppierebbe
+    inutilmente le richieste sotto ThreadPoolExecutor)."""
+    backend._yahoo_crumb_cache = None
+    calls = []
+
+    class FakeOpener:
+        def open(self, req, timeout=10):
+            url = req.full_url
+            calls.append(url)
+            if "getcrumb" in url:
+                return _FakeYahooResponse(b"FAKECRUMB")
+            if "fc.yahoo.com" in url:
+                return _FakeYahooResponse(b"")
+            if "quoteSummary" in url:
+                assert "crumb=FAKECRUMB" in url, "deve passare il crumb ottenuto dall'handshake"
+                payload = json.dumps({"quoteSummary": {"result": [{"assetProfile": {"sector": "Technology"}}]}}).encode()
+                return _FakeYahooResponse(payload)
+            raise AssertionError(f"URL inatteso: {url}")
+
+    def fake_build_opener(*handlers):
+        return FakeOpener()
+
+    orig_build_opener = urllib.request.build_opener
+    if monkeypatch is not None:
+        monkeypatch.setattr(urllib.request, "build_opener", fake_build_opener)
+    else:
+        urllib.request.build_opener = fake_build_opener
+
+    try:
+        ticker, sector = backend.fetch_sector("AAPL")
+        assert (ticker, sector) == ("AAPL", "Technology")
+        assert any("getcrumb" in c for c in calls)
+
+        calls.clear()
+        ticker2, sector2 = backend.fetch_sector("MCD")
+        assert (ticker2, sector2) == ("MCD", "Technology")
+        assert not any("getcrumb" in c for c in calls), "il crumb va cachato, non richiesto a ogni ticker"
+    finally:
+        if monkeypatch is None:
+            urllib.request.build_opener = orig_build_opener
+        backend._yahoo_crumb_cache = None
+
+
+def test_fetch_sector_fails_open_and_resets_crumb_cache_on_error(monkeypatch=None):
+    """Un settore non recuperabile (crumb scaduto, ticker senza profilo, ecc.) non
+    deve propagare l'eccezione: select_low_vol_basket tratta il settore mancante
+    come non vincolato, mai come motivo per bloccare la selezione (APEX_V2_SPEC.md
+    §8.7, fail-open). L'errore deve anche invalidare il crumb cachato, per non
+    restare bloccati su una sessione scaduta al giro successivo."""
+    backend._yahoo_crumb_cache = None
+
+    class FakeOpener:
+        def open(self, req, timeout=10):
+            url = req.full_url
+            if "getcrumb" in url:
+                return _FakeYahooResponse(b"FAKECRUMB")
+            if "fc.yahoo.com" in url:
+                return _FakeYahooResponse(b"")
+            raise urllib.error.HTTPError(url, 401, "Unauthorized", {}, None)
+
+    def fake_build_opener(*handlers):
+        return FakeOpener()
+
+    orig_build_opener = urllib.request.build_opener
+    if monkeypatch is not None:
+        monkeypatch.setattr(urllib.request, "build_opener", fake_build_opener)
+    else:
+        urllib.request.build_opener = fake_build_opener
+
+    try:
+        ticker, sector = backend.fetch_sector("XYZ")
+        assert (ticker, sector) == ("XYZ", None)
+        assert backend._yahoo_crumb_cache is None, "un errore deve forzare un nuovo handshake al prossimo tentativo"
+    finally:
+        if monkeypatch is None:
+            urllib.request.build_opener = orig_build_opener
+        backend._yahoo_crumb_cache = None
+
+
+if __name__ == "__main__":
+    import inspect
+    fns = [f for name, f in list(globals().items()) if name.startswith("test_") and inspect.isfunction(f)]
+    failed = 0
+    for f in fns:
+        try:
+            f()
+            print("PASS", f.__name__)
+        except Exception as e:
+            failed += 1
+            print("FAIL", f.__name__, "->", repr(e))
+    print(f"{len(fns)} tests, failed: {failed}")

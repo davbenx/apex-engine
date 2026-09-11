@@ -1231,9 +1231,9 @@ with tab_guide:
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Azioni", 16)} Azioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 AZIONI A BASSA VOLATILITÀ</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 AZIONI A BASSO BETA</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale delle 15 azioni a minore oscillazione dell'S&P 500 (max 2 per settore). Massima efficienza fiscale (minusvalenze compensabili).</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale delle 15 azioni a beta più basso rispetto al mercato (S&P 500, max 2 per settore). Massima efficienza fiscale (minusvalenze compensabili).</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">

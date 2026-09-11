@@ -31,8 +31,38 @@ V2_VOL_TARGET = 0.22  # alzato da 0.13 — vedi APEX_V2_SPEC.md §8.25/§10.13 (
                       # nuova evidenza che confutasse la validazione walk-forward originale.
 V2_VOL_WINDOW = 12
 V2_EQUITY_TOP_N = 15
-V2_EQUITY_VOL_LOOKBACK = 26
+V2_EQUITY_VOL_LOOKBACK = 26   # usato da select_low_vol_basket, non piu' chiamata da backend.py — vedi V2_EQUITY_BETA_LOOKBACK
+V2_EQUITY_BETA_LOOKBACK = 26  # vedi APEX_V2_SPEC.md §8.29/§4: criterio di produzione dal
+                              # passaggio a select_low_beta_basket, deciso dopo 5+ giri di
+                              # verifica indipendenti (validation_suite/README.md — griglia
+                              # fine di lookback su banda 16-33 sett., ensemble scoped,
+                              # walk-forward senza look-ahead nella selezione del parametro,
+                              # turnover/composizione, crash specifici, interazione col
+                              # segnale di timing, criterio di uscita). Valore coincide
+                              # numericamente con V2_EQUITY_VOL_LOOKBACK ma e' una costante
+                              # indipendente apposta — le due metriche (beta vs SPY, non
+                              # volatilita' assoluta) sono concettualmente distinte.
 V2_EQUITY_BUFFER_RANK = 20  # vedi APEX_V2_SPEC.md §8.3: valore corretto dopo bug nel calendario del backtest (era 100)
+
+V2_KELLY_MU_SIGMA_WINDOW = 208  # settimane (4 anni) — finestra trailing per mu/Sigma
+V2_KELLY_FRACTION = 0.25        # frazione di Kelly applicata al peso nominale delle classi attive
+# Pesatura delle 4 classi macro per f*=Sigma^-1 mu (Kelly frazionario) al posto del
+# peso nominale UGUALE (50% base) per ciascuna classe gia' attiva per trend — vedi
+# validation_suite/comparative_studies/apex_kelly_class_weight_test.py (primo giro),
+# apex_kelly_class_weight_second_round_test.py (secondo giro: stress su finestra
+# [104,156,208] e walk-forward a 5 ere) e apex_kelly_class_weight_preregistered_eval.py
+# (valutazione diretta della configurazione fissa, non del walk-forward). Finestra e
+# frazione scelte QUI (208 sett./0.25) PRIMA di guardare i risultati OOS specifici di
+# questa combinazione — non ottimizzate a posteriori: 208 sett. e' risultata la piu'
+# robusta tra le tre testate (a 104 sett. il beneficio sparisce, errore di stima su mu
+# troppo alto — limite noto del criterio di Kelly con campioni corti, non un artefatto),
+# 0.25 e' la frazione piu' conservativa del range raccomandato ed e' risultata anche la
+# migliore delle due sul campione pieno. Risultato OOS (335 settimane mai usate per
+# scegliere questi parametri): Sharpe 1.19 contro 1.00, MaxDD -15.10% contro -21.53%,
+# ma CI 90% sulla differenza pareggiata [-3.60;+8.18]pp/anno include ancora lo zero —
+# NON provato in senso statistico stretto, adottato come scommessa a favore di
+# probabilita' con margine di sicurezza (Apex resta comunque long-only, mai a leva).
+# PBO-CSCV sceso da 48.6% (primo giro) a 7.1% (secondo giro, 12 combinazioni).
 
 
 def _weekly_close(df: pd.DataFrame) -> pd.Series:
@@ -50,12 +80,55 @@ def _realized_vol(weekly_close: pd.Series, window: int) -> Optional[float]:
     return v if v > 1e-6 else None
 
 
+def _kelly_class_weights(b_data: Dict[str, pd.DataFrame], window: int) -> Optional[Dict[str, float]]:
+    """f* = Sigma^-1 mu sulle 4 classi macro (V2_CLASS_TICKER), mu/Sigma annualizzati
+    (x52) su una finestra trailing di `window` settimane — nessun lookahead, solo
+    rendimenti fino alla settimana corrente inclusa (stessa convenzione usata e
+    validata in validation_suite/comparative_studies/apex_kelly_class_weight_*.py).
+
+    Ritorna None (fallback a peso nominale uguale nel chiamante) se una qualunque
+    classe ha meno di `window`+1 chiusure settimanali disponibili (es. Crypto nei
+    primi anni dopo il lancio di produzione, o dati di fetch temporaneamente corti)
+    o se Sigma e' singolare — mai silenziosamente un risultato parziale o instabile.
+    """
+    closes = {}
+    for cls, ticker in V2_CLASS_TICKER.items():
+        wc = _weekly_close(b_data.get(ticker))
+        if len(wc) < window + 1:
+            return None
+        closes[cls] = wc
+
+    rets = pd.DataFrame({cls: wc.pct_change() for cls, wc in closes.items()}).dropna()
+    if len(rets) < window:
+        return None
+    window_rets = rets.iloc[-window:]
+
+    mu = window_rets.mean().to_numpy() * 52.0
+    Sigma = window_rets.cov().to_numpy() * 52.0
+    try:
+        f_star = np.linalg.solve(Sigma, mu)
+    except np.linalg.LinAlgError:
+        return None
+    return dict(zip(rets.columns, f_star))
+
+
 def compute_v2_macro_signal(
     b_data: Dict[str, pd.DataFrame],
     prev_hysteresis_state: Optional[Dict[str, bool]] = None,
+    base_weight_per_class: float = 0.50,
+    vol_target: float = V2_VOL_TARGET,
+    kelly_fraction: float = V2_KELLY_FRACTION,
+    kelly_window: int = V2_KELLY_MU_SIGMA_WINDOW,
 ) -> Tuple[Dict[str, float], Dict[str, bool], Dict[str, dict]]:
     """
     Calcola i pesi target per le 4 classi + cash (§2-3 di APEX_V2_SPEC.md).
+
+    base_weight_per_class/vol_target esposti come parametri (default = valori
+    di produzione attuali, Percorso B/§8.25/§10.13) per permettere grid
+    search indipendenti sulla dimensione delle posizioni per classe senza
+    duplicare questa funzione — stessa idea gia' usata per top_n/max_per_sector
+    in select_low_vol_basket. Nessun cambio di comportamento per chi non
+    passa questi argomenti.
 
     Due raffinamenti aggiunti dopo test dedicati (§8.9): banda di isteresi
     adattiva alla volatilita' di ciascun asset (invece di un 2% fisso uguale
@@ -71,10 +144,25 @@ def compute_v2_macro_signal(
     return (vedi commento inline), che rende "mai a leva" un vincolo
     strutturale per qualunque valore di base_weight/vol-target.
 
+    kelly_fraction/kelly_window (default = V2_KELLY_FRACTION/V2_KELLY_MU_SIGMA_WINDOW,
+    vedi commenti li' per la validazione completa): quando kelly_fraction>0 il peso
+    nominale di ciascuna classe GIA' attiva per trend non e' piu' base_weight_per_class
+    fisso uguale per tutte, ma max(0, f*_classe) * kelly_fraction, con f*=Sigma^-1 mu
+    stimato su rendimenti trailing (_kelly_class_weights). Kelly pesa per RENDIMENTO
+    diviso RISCHIO AL QUADRATO (non solo per rischio come risk-parity/beta-weighting,
+    entrambi gia' falliti — vedi validation_suite/README.md): un asset a basso rischio
+    ottiene peso grande solo se il rendimento atteso lo giustifica. Fallback SILENZIOSO
+    e completo a base_weight_per_class fisso (comportamento pre-Kelly, invariato) se
+    kelly_fraction=0.0, o se lo storico disponibile e' insufficiente per una qualunque
+    classe, o se la matrice di covarianza e' singolare — mai un risultato instabile o
+    parziale. base_weight_per_class resta quindi sempre il valore di riferimento/
+    fallback, anche quando Kelly e' abilitato.
+
     Ritorna: (allocations_pct 0-100 per classe + Cash, nuovo stato isteresi, debug per classe)
     """
     state = dict(prev_hysteresis_state) if prev_hysteresis_state else {}
     base_weight = {}
+    is_active_map = {}
     debug = {}
     vols = {}
 
@@ -89,6 +177,7 @@ def compute_v2_macro_signal(
         wc = _weekly_close(df)
         if len(wc) < V2_MA_WEEKS:
             base_weight[cls] = 0.0
+            is_active_map[cls] = False
             debug[cls] = {"note": "dati insufficienti"}
             continue
 
@@ -108,17 +197,25 @@ def compute_v2_macro_signal(
         is_active = trend_long_on and trend_short_on
         state[cls] = trend_long_on  # lo stato di isteresi segue solo il trend lungo; il breve e' un filtro extra
 
-        base_weight[cls] = 0.50 if is_active else 0.0  # alzato da 0.25 — vedi §8.25/§10.13 (Percorso B)
+        base_weight[cls] = base_weight_per_class if is_active else 0.0  # default 0.50, alzato da 0.25 — vedi §8.25/§10.13 (Percorso B)
+        is_active_map[cls] = is_active
         debug[cls] = {
             "price": price, "ma40w": ma_long_val, "ma20w": ma_short_val,
             "distanza_pct": round(dist * 100, 2), "banda_isteresi_pct": round(band * 100, 2), "attivo": is_active,
         }
 
+    kelly_f_star = _kelly_class_weights(b_data, kelly_window) if kelly_fraction > 0 else None
+    if kelly_f_star is not None:
+        for cls in V2_CLASS_TICKER:
+            if is_active_map.get(cls, False):
+                base_weight[cls] = max(0.0, kelly_f_star.get(cls, 0.0)) * kelly_fraction
+            debug.setdefault(cls, {})["kelly_f_star"] = round(kelly_f_star.get(cls, 0.0), 3)
+
     for cls in V2_CLASS_TICKER:
         debug.setdefault(cls, {})["vol_12w_ann_pct"] = round(vols[cls] * 100, 2) if cls in vols else None
 
     port_vol = sum(base_weight.get(cls, 0.0) * vols[cls] for cls in V2_CLASS_TICKER if cls in vols)
-    scale = min(1.0, V2_VOL_TARGET / port_vol) if port_vol > 1e-6 else 1.0
+    scale = min(1.0, vol_target / port_vol) if port_vol > 1e-6 else 1.0
 
     raw_weights = {cls: base_weight.get(cls, 0.0) * scale for cls in V2_CLASS_TICKER}
     # Limite esplicito di non-leva (vedi APEX_V2_SPEC.md §8.17/§8.20): con base_weight=0.25
@@ -145,50 +242,25 @@ def compute_v2_macro_signal(
 V2_MAX_PER_SECTOR = 2  # vedi APEX_V2_SPEC.md §8.7: protegge l'alpha nei regimi sfavorevoli al settore concentrato
 
 
-def select_low_vol_basket(
-    eq_data: Dict[str, pd.DataFrame],
-    top_n: int = V2_EQUITY_TOP_N,
-    lookback_weeks: int = V2_EQUITY_VOL_LOOKBACK,
-    prev_tickers: Optional[set] = None,
-    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
-    sector_of: Optional[Dict[str, str]] = None,
-    max_per_sector: int = V2_MAX_PER_SECTOR,
+def _select_basket_by_metric(
+    ranked_syms: List[str],
+    info_by_sym: Dict[str, tuple],
+    metric_key: str,
+    top_n: int,
+    prev_tickers: Optional[set],
+    buffer_rank: int,
+    sector_of: Optional[Dict[str, str]],
+    max_per_sector: int,
 ) -> List[dict]:
+    """Buffer di isteresi sulla rank (§8.3) + vincolo di concentrazione settoriale (§8.7),
+    condivisi da select_low_vol_basket e select_low_beta_basket — questa logica di
+    permanenza/composizione e' indipendente dalla metrica di ranking scelta (volatilita'
+    o beta), solo `ranked_syms`/`info_by_sym` cambiano tra le due.
+
+    `info_by_sym[sym]` = (valore_metrica_gia'_arrotondato, prezzo_gia'_arrotondato).
     """
-    Seleziona i `top_n` titoli a volatilita' realizzata piu' bassa (§4 di APEX_V2_SPEC.md).
-    NON e' selezione per generare alpha (l'audit ha dimostrato che il momentum non ne ha
-    su questo universo) — e' solo un modo pratico e liquido di ottenere beta azionario
-    con carattere fiscale "redditi diversi".
-
-    Buffer di isteresi sulla rank (§8.3): un titolo gia' detenuto (`prev_tickers`) resta
-    in basket se la sua posizione in classifica resta entro `buffer_rank`, anche se e'
-    scesa fuori dal top-`top_n` esatto — senza buffer il rinnovo trimestrale era
-    comunque sostanzioso (~60% dei nomi sostituiti ogni trimestre, rumore di stima
-    della volatilita' vicino alla soglia).
-
-    Vincolo di concentrazione settoriale (§8.7): la selezione per bassa volatilita', da
-    sola, concentra sistematicamente in 1-2 settori difensivi (Utilities/Real Estate) —
-    fino all'80% del basket in un solo settore in alcuni trimestri storici, un rischio
-    confermato con dati reali (yfinance) e non solo teorico. `max_per_sector` limita
-    quanti titoli dello stesso settore possono coesistere nel basket; se `sector_of` non
-    e' disponibile per un titolo, non viene vincolato (fail-open, non blocca la
-    selezione per un problema di dati sui settori). I NUOVI ingressi restano comunque
-    scelti solo tra i migliori in assoluto — buffer e vincolo settoriale allentano solo
-    la permanenza/composizione, mai l'ammissione di un titolo scarso.
-    """
-    scored = []
-    for sym, df in eq_data.items():
-        wc = _weekly_close(df)
-        v = _realized_vol(wc, lookback_weeks)
-        if v is not None and len(wc) > 0:
-            scored.append((sym, v, float(wc.iloc[-1])))
-
-    scored.sort(key=lambda t: t[1])  # bassa volatilita' prima
-    info_by_sym = {sym: (vol, price) for sym, vol, price in scored}
-    ranked_syms = [sym for sym, _, _ in scored]
     rank_of = {sym: i for i, sym in enumerate(ranked_syms)}
     sector_of = sector_of or {}
-
     sector_count: Dict[str, int] = {}
     result: List[str] = []
 
@@ -224,10 +296,138 @@ def select_low_vol_basket(
             add(sym)
 
     return [
-        {"Ticker": sym, "Prezzo ($)": round(info_by_sym[sym][1], 2),
-         "Volatilita' Ann. (%)": round(info_by_sym[sym][0] * 100, 2), "Stop Loss ($)": 0.0}
+        {"Ticker": sym, "Prezzo ($)": info_by_sym[sym][1], metric_key: info_by_sym[sym][0], "Stop Loss ($)": 0.0}
         for sym in result[:top_n]
     ]
+
+
+def select_low_vol_basket(
+    eq_data: Dict[str, pd.DataFrame],
+    top_n: int = V2_EQUITY_TOP_N,
+    lookback_weeks: int = V2_EQUITY_VOL_LOOKBACK,
+    prev_tickers: Optional[set] = None,
+    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
+    sector_of: Optional[Dict[str, str]] = None,
+    max_per_sector: int = V2_MAX_PER_SECTOR,
+) -> List[dict]:
+    """
+    Seleziona i `top_n` titoli a volatilita' realizzata piu' bassa (§4 di APEX_V2_SPEC.md,
+    criterio storico — SOSTITUITO in produzione da select_low_beta_basket, vedi §8.29 e
+    validation_suite/README.md; questa funzione resta nel modulo per compatibilita' di
+    test/riferimento, non piu' chiamata da backend.py).
+    NON e' selezione per generare alpha (l'audit ha dimostrato che il momentum non ne ha
+    su questo universo) — e' solo un modo pratico e liquido di ottenere beta azionario
+    con carattere fiscale "redditi diversi".
+
+    Buffer di isteresi sulla rank (§8.3): un titolo gia' detenuto (`prev_tickers`) resta
+    in basket se la sua posizione in classifica resta entro `buffer_rank`, anche se e'
+    scesa fuori dal top-`top_n` esatto — senza buffer il rinnovo trimestrale era
+    comunque sostanzioso (~60% dei nomi sostituiti ogni trimestre, rumore di stima
+    della volatilita' vicino alla soglia).
+
+    Vincolo di concentrazione settoriale (§8.7): la selezione per bassa volatilita', da
+    sola, concentra sistematicamente in 1-2 settori difensivi (Utilities/Real Estate) —
+    fino all'80% del basket in un solo settore in alcuni trimestri storici, un rischio
+    confermato con dati reali (yfinance) e non solo teorico. `max_per_sector` limita
+    quanti titoli dello stesso settore possono coesistere nel basket; se `sector_of` non
+    e' disponibile per un titolo, non viene vincolato (fail-open, non blocca la
+    selezione per un problema di dati sui settori). I NUOVI ingressi restano comunque
+    scelti solo tra i migliori in assoluto — buffer e vincolo settoriale allentano solo
+    la permanenza/composizione, mai l'ammissione di un titolo scarso.
+    """
+    scored = []
+    for sym, df in eq_data.items():
+        wc = _weekly_close(df)
+        v = _realized_vol(wc, lookback_weeks)
+        if v is not None and len(wc) > 0:
+            scored.append((sym, v, float(wc.iloc[-1])))
+
+    scored.sort(key=lambda t: t[1])  # bassa volatilita' prima
+    info_by_sym = {sym: (round(vol * 100, 2), round(price, 2)) for sym, vol, price in scored}
+    ranked_syms = [sym for sym, _, _ in scored]
+
+    return _select_basket_by_metric(
+        ranked_syms, info_by_sym, "Volatilita' Ann. (%)", top_n, prev_tickers, buffer_rank, sector_of, max_per_sector,
+    )
+
+
+def _realized_beta(weekly_close: pd.Series, spy_weekly_close: pd.Series, window: int) -> Optional[float]:
+    """Beta (sensibilita' sistematica) rispetto a SPY su rendimenti settimanali,
+    finestra trailing `window`: cov(rendimento asset, rendimento SPY) / var(rendimento
+    SPY). None se dati insufficienti o se SPY ha varianza numericamente nulla nella
+    finestra (mai accaduto in pratica, guardia difensiva)."""
+    ret = weekly_close.pct_change().dropna()
+    spy_ret = spy_weekly_close.pct_change().dropna()
+    common = ret.index.intersection(spy_ret.index)
+    if len(common) < window + 1:
+        return None
+    r = ret.reindex(common).iloc[-window:]
+    m = spy_ret.reindex(common).iloc[-window:]
+    var_m = float(m.var())
+    if var_m <= 1e-12:
+        return None
+    return float(r.cov(m) / var_m)
+
+
+def select_low_beta_basket(
+    eq_data: Dict[str, pd.DataFrame],
+    spy_data: pd.DataFrame,
+    top_n: int = V2_EQUITY_TOP_N,
+    lookback_weeks: int = V2_EQUITY_BETA_LOOKBACK,
+    prev_tickers: Optional[set] = None,
+    buffer_rank: int = V2_EQUITY_BUFFER_RANK,
+    sector_of: Optional[Dict[str, str]] = None,
+    max_per_sector: int = V2_MAX_PER_SECTOR,
+) -> List[dict]:
+    """
+    Seleziona i `top_n` titoli a BETA (sensibilita' sistematica rispetto a SPY, non
+    volatilita' assoluta) piu' basso — CRITERIO DI PRODUZIONE dal passaggio da
+    select_low_vol_basket, §4/§8.29 di APEX_V2_SPEC.md. Deciso dopo 5+ giri di
+    verifica indipendenti in validation_suite/ (vedi README.md per il dettaglio
+    completo: griglia fine di lookback su banda 16-33 settimane, ensemble scoped su
+    22-33 settimane, walk-forward SENZA look-ahead nella selezione del lookback,
+    confronto turnover/composizione/sovrapposizione titoli con low-vol, comportamento
+    nei crash specifici, interazione col segnale di timing, criterio di uscita —
+    conclusione: switching adattivo peggiora, il lookback va tenuto fisso).
+
+    Differenza concettuale da select_low_vol_basket: un titolo puo' essere molto
+    volatile in ASSOLUTO ma muoversi poco IN SINTONIA col mercato (beta basso), o
+    viceversa — principio "Betting Against Beta" (Frazzini-Pedersen 2014), premia la
+    bassa sensibilita' sistematica, non la bassa dispersione assoluta. Ordinamento per
+    beta CRESCENTE (non per valore assoluto): un beta molto negativo e' preferito a un
+    beta leggermente positivo, coerente con la letteratura BAB (un buon diversificatore
+    vale piu' di uno neutro). Stesso buffer di isteresi sulla rank e stesso vincolo di
+    concentrazione settoriale di select_low_vol_basket (vedi _select_basket_by_metric)
+    — solo il criterio di ranking e i dati richiesti in input cambiano (serve anche
+    `spy_data`, il riferimento di mercato, non necessario per la volatilita' assoluta).
+
+    Limiti noti, misurati empiricamente (vedi README.md, checklist di produzione):
+    turnover quasi identico a low-vol (60% contro 57% dei titoli sostituiti a
+    trimestre), ma sovrapposizione titoli effettivi tra i due criteri solo ~6.9% (la
+    meccanica di selezione e' sostanzialmente diversa, non un aggiustamento marginale).
+    Il basket risultante e' meno correlato a SPY (0.708 contro 0.775 misurato su 11
+    anni) — protegge nei ribassi lenti/strutturali (es. 2022: +6.46pp vs low-vol) ma
+    NON nei panici acuti a correlazione-1 (es. COVID 2020: leggermente peggio).
+    L'effetto e' positivo e consistente su 5+ disegni di verifica indipendenti ma non
+    sempre statisticamente significativo al 90% contro il preciso lookback di
+    produzione (dipende dalla configurazione esatta testata) — trattarlo come un
+    miglioramento di convinzione moderata, non a piena confidenza statistica.
+    """
+    spy_wc = _weekly_close(spy_data)
+    ranked = []
+    for sym, df in eq_data.items():
+        wc = _weekly_close(df)
+        beta = _realized_beta(wc, spy_wc, lookback_weeks)
+        if beta is not None and len(wc) > 0:
+            ranked.append((sym, beta, float(wc.iloc[-1])))
+
+    ranked.sort(key=lambda t: t[1])  # beta basso (incl. negativo) prima, non valore assoluto
+    info_by_sym = {sym: (round(beta, 3), round(price, 2)) for sym, beta, price in ranked}
+    ranked_syms = [sym for sym, _, _ in ranked]
+
+    return _select_basket_by_metric(
+        ranked_syms, info_by_sym, "Beta (vs SPY)", top_n, prev_tickers, buffer_rank, sector_of, max_per_sector,
+    )
 
 
 def is_quarter_end_month(dt: Optional[datetime.datetime] = None) -> bool:

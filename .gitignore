@@ -41,3 +41,15 @@ research/
 *.swp
 *.swo
 .DS_Store
+
+# NOTA: le cache dati locali sotto validation_suite/comparative_studies/
+# (apex_stocks_data/, altcoin_data/, altcoin_daily_data/, convex_grid_data/,
+# carry_funding_data/, apex_macro_extended_data/, apex_country_etf_data/,
+# apex_quality_data/roe_cache/, sec_ticker_cik_map.json) sono ora TRACCIATE
+# in git su richiesta esplicita dell'utente ("salva sempre tutti i dati
+# riutilizzabili sul mio PC o su GitHub") — questa sessione gira in un
+# container remoto effimero, quindi GitHub e' l'unico posto davvero
+# durevole. Prima erano escluse perche' "rigenerabili da Yahoo", ma il
+# tempo di fetch (specialmente SEC EDGAR, rate-limited) e la comodita' di
+# non doverle ri-scaricare ad ogni sessione superano il costo di spazio
+# (~25MB totali, trascurabile).

@@ -1,11 +1,12 @@
 """
 Apex Multi-Asset Quantitative Engine v2
 Timing multi-asset (isteresi + vol-targeting) su SPY/IEF/GLD/BTC-USD + basket
-azionario a bassa volatilita', tracking di portafoglio e notifiche Telegram.
+azionario a basso beta (vs SPY), tracking di portafoglio e notifiche Telegram.
 Specifica completa: APEX_V2_SPEC.md.
 """
 
 import datetime
+import http.cookiejar
 import io
 import json
 import os
@@ -18,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
 from apex_v2_engine import (
-    compute_v2_macro_signal, select_low_vol_basket, is_quarter_end_month,
+    compute_v2_macro_signal, select_low_beta_basket, is_quarter_end_month,
     V2_CLASS_TICKER, V2_EQUITY_TOP_N,
 )
 
@@ -104,17 +105,35 @@ def compute_should_decide(now_dt, prev_state, just_migrating):
     return just_migrating or (near_month_end and prev_state.get("last_decision_month") != current_month_str)
 
 
-def compute_weekly_due(today_str, last_alert_str):
-    """Vero se sono passati almeno 6 giorni dall'ultimo alert Telegram inviato con
-    successo. Sostituisce il controllo "e' venerdi' adesso" per l'heartbeat settimanale,
-    per lo stesso motivo di `compute_should_decide` — vedi APEX_V2_SPEC.md §8.13."""
+def compute_weekly_due(now_dt, last_alert_str):
+    """Vero se e' il momento dell'heartbeat settimanale — ancorato al venerdi'
+    (stessa chiusura settimanale usata dalle medie mobili di compute_v2_macro_signal),
+    con una finestra di tolleranza Ven-Dom (weekday>=4) per lo stesso motivo di
+    `compute_should_decide` (un run schedulato puo' slittare oltre mezzanotte UTC).
+
+    BUG CORRETTO (segnalato dall'utente: alert arrivato alle 2:45 di venerdi' invece
+    che dopo la chiusura di venerdi'): la versione precedente controllava "sono
+    passati >=6 giorni di calendario dall'ultimo alert", pensata per tollerare uno
+    slittamento del run oltre il confine del giorno — ma quella condizione NON resta
+    ancorata a un giorno fisso della settimana. Con lo schedule di GitHub Actions
+    feriale-soltanto (lun-ven, i weekend non hanno run), ">=6 giorni" fa scattare
+    l'alert sempre un giorno PRIMA nella settimana ad ogni ciclo (Ven->Gio->Mer->
+    Mar->Lun, poi si stabilizza di lunedi', dove i due giorni di weekend senza run
+    ricreano la condizione ">=6" in modo stabile) — l'alert delle 2:45 di venerdi'
+    era in realta' il run di GIOVEDI' 23:00 UTC, con dati di chiusura di giovedi',
+    non di venerdi'. Fix: invece di contare giorni trascorsi, confronta la settimana
+    ISO dell'ultimo alert con quella corrente — al massimo un alert per settimana
+    ISO, e solo nella finestra Ven-Dom, quindi sempre ancorato a venerdi' (o al
+    primo giorno disponibile dopo, se il run di venerdi' slitta), mai alla deriva."""
     if not last_alert_str:
         return True
     try:
-        days_since = (datetime.datetime.strptime(today_str, "%Y-%m-%d") - datetime.datetime.strptime(last_alert_str, "%Y-%m-%d")).days
+        last_alert_dt = datetime.datetime.strptime(last_alert_str, "%Y-%m-%d")
     except ValueError:
         return True
-    return days_since >= 6
+    current_week = now_dt.isocalendar()[:2]  # (anno ISO, settimana ISO)
+    last_alert_week = last_alert_dt.isocalendar()[:2]
+    return now_dt.weekday() >= 4 and current_week != last_alert_week
 
 
 def compute_executing_pending(prev_pending, latest_market_date_str):
@@ -172,12 +191,18 @@ def fetch_yahoo_history(ticker, period='2y', interval='1d'):
     return ticker, pd.DataFrame()
 
 
-def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asset"):
-    """Downloads historical data concurrently using ThreadPoolExecutor."""
+def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asset", period='2y'):
+    """Downloads historical data concurrently using ThreadPoolExecutor.
+
+    `period` esposto (default invariato '2y', comportamento identico per chi non lo
+    passa) perche' il segnale macro Kelly (V2_KELLY_MU_SIGMA_WINDOW=208 settimane,
+    vedi apex_v2_engine.py) richiede piu' storico settimanale di quanto serva al
+    basket azionario/sector-map — vedi la chiamata dedicata in main() per SPY/IEF/
+    GLD/BTC-USD/EURUSD=X, che passa period='5y'."""
     results = {}
     print(f"[*] Inizio download {desc} ({len(tickers)} strumenti)...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(fetch_yahoo_history, sym): sym for sym in tickers}
+        futures = {executor.submit(fetch_yahoo_history, sym, period): sym for sym in tickers}
         for future in as_completed(futures):
             sym, df = future.result()
             if not df.empty and len(df) >= 30:
@@ -190,17 +215,45 @@ def download_universe_batch(tickers, max_workers=MAX_WORKERS_DEFAULT, desc="Asse
 fetch_bulk_parallel = download_universe_batch
 
 
+_yahoo_crumb_cache = None  # (cookiejar, crumb) — quoteSummary richiede auth da fine 2024, vedi _get_yahoo_crumb
+
+
+def _get_yahoo_crumb():
+    """Yahoo richiede da fine 2024 un cookie di sessione + crumb anche per quoteSummary
+    (prima bastava lo user-agent, come per fetch_yahoo_history: senza crumb l'endpoint
+    risponde 401 Unauthorized su ogni richiesta). Cache in-process: un solo cookie/crumb
+    per processo, riusato da tutte le chiamate di fetch_sector (altrimenti ogni ticker in
+    fetch_sector_map rifarebbe l'intero handshake, inutile e piu' lento sotto ThreadPoolExecutor)."""
+    global _yahoo_crumb_cache
+    if _yahoo_crumb_cache is not None:
+        return _yahoo_crumb_cache
+    cj = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+    try:
+        opener.open(urllib.request.Request('https://fc.yahoo.com', headers={'User-Agent': USER_AGENT}), timeout=HTTP_TIMEOUT)
+    except Exception:
+        pass  # risponde 404 ma imposta comunque il cookie di sessione necessario al passo successivo
+    req = urllib.request.Request('https://query1.finance.yahoo.com/v1/test/getcrumb', headers={'User-Agent': USER_AGENT})
+    crumb = opener.open(req, timeout=HTTP_TIMEOUT).read().decode()
+    _yahoo_crumb_cache = (opener, crumb)
+    return _yahoo_crumb_cache
+
+
 def fetch_sector(ticker):
     """Recupera il settore GICS (endpoint Yahoo quoteSummary/assetProfile) con retry, stesso stile
-    di fetch_yahoo_history — nessuna dipendenza da yfinance."""
+    di fetch_yahoo_history — nessuna dipendenza da yfinance. Richiede cookie+crumb (_get_yahoo_crumb),
+    a differenza di fetch_yahoo_history che resta pubblico senza auth."""
     for attempt in range(2):
         try:
-            url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile"
+            opener, crumb = _get_yahoo_crumb()
+            url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=assetProfile&crumb={urllib.parse.quote(crumb)}"
             req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-            res = json.loads(urllib.request.urlopen(req, timeout=HTTP_TIMEOUT).read().decode())
+            res = json.loads(opener.open(req, timeout=HTTP_TIMEOUT).read().decode())
             profile = res['quoteSummary']['result'][0]['assetProfile']
             return ticker, profile.get('sector')
         except Exception:
+            global _yahoo_crumb_cache
+            _yahoo_crumb_cache = None  # crumb/cookie forse scaduto: forza un nuovo handshake al prossimo tentativo
             if attempt == 0:
                 time.sleep(0.3)
     return ticker, None
@@ -208,8 +261,10 @@ def fetch_sector(ticker):
 
 def fetch_sector_map(tickers, max_workers=MAX_WORKERS_DEFAULT):
     """Recupera il settore per una lista di ticker, in parallelo. Fail-open per singolo
-    titolo: select_low_vol_basket tratta un settore mancante come non vincolato, non
-    come motivo per bloccare la selezione (vedi APEX_V2_SPEC.md §8.7)."""
+    titolo: select_low_beta_basket (come select_low_vol_basket prima) tratta un settore
+    mancante come non vincolato, non come motivo per bloccare la selezione (vedi
+    APEX_V2_SPEC.md §8.7 — la logica e' condivisa tra i due criteri, indipendente dalla
+    metrica di ranking)."""
     sector_of = {}
     print(f"[*] Recupero settori ({len(tickers)} titoli)...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -804,7 +859,10 @@ def main():
     # solo quando deciding_new.
     print("[1/4] Ingestione Segnale Macro (SPY/IEF/GLD/BTC-USD)...")
     signal_tickers = list(dict.fromkeys(list(V2_CLASS_TICKER.values()) + DISPLAY_TICKERS))
-    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO)
+    # period='5y': serve piu' storico dei 2 anni di default per il calcolo Kelly delle
+    # classi (finestra trailing 208 settimane, vedi V2_KELLY_MU_SIGMA_WINDOW in
+    # apex_v2_engine.py) — 5 anni da margine oltre le 208 settimane richieste.
+    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO, period='5y')
 
     output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4) if b_data.get('EURUSD=X') is not None and not b_data['EURUSD=X'].empty else 1.0850
     output["macro"] = {t: {"price": float(b_data[t]['Close'].iloc[-1])} for t in V2_CLASS_TICKER.values() if t in b_data and not b_data[t].empty}
@@ -832,11 +890,11 @@ def main():
         if allocations_new.get("Equities", 0) > 0:
             need_full_universe = is_quarter_end_month(now_dt) or not prev_basket
             if need_full_universe:
-                print("[2/4] Riselezione basket azionario a bassa volatilita' su tutto l'S&P 500 (decisione)...")
+                print("[2/4] Riselezione basket azionario a basso beta (vs SPY) su tutto l'S&P 500 (decisione)...")
                 eq_ticks = list(set(get_sp500_tickers() + held_eq))
                 eq_data = fetch_bulk_parallel(eq_ticks, max_workers=MAX_WORKERS_DEFAULT)
                 sector_of = fetch_sector_map(list(eq_data.keys()), max_workers=MAX_WORKERS_DEFAULT)
-                new_basket = select_low_vol_basket(eq_data, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
+                new_basket = select_low_beta_basket(eq_data, spy_df, top_n=V2_EQUITY_TOP_N, prev_tickers=set(held_eq), sector_of=sector_of)
             else:
                 print("[2/4] Nessuna rotazione trimestrale in questa decisione: mantengo il basket azionario attuale.")
                 new_basket = prev_basket
@@ -943,7 +1001,7 @@ def main():
 
     pf_state = load_json_safe(PORTFOLIO_FILE, default={})
     last_alert_str = pf_state.get("last_telegram_alert_date")
-    weekly_due = compute_weekly_due(today_str, last_alert_str)
+    weekly_due = compute_weekly_due(now_dt, last_alert_str)
 
     if weekly_due or output.get("macro_events") or has_orders:
         sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct)
