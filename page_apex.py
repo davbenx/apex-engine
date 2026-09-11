@@ -852,7 +852,7 @@ with tab_perf:
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
         {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}%", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
         {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
-        {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Il calo peggiore mai vissuto, intero backtest", primary=True)}
+        {sub_hero_metric("Calo Massimo Backtest", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Intero backtest 1987-2026 — non la simulazione live sotto", primary=True)}
     </div>
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
         {sub_hero_metric("Volatilità Annua", f"{_m_apex_active['volatility']*100:.1f}%", "Oscillazione realizzata")}
@@ -863,8 +863,9 @@ with tab_perf:
     st.caption(
         f"Periodo di validazione fuori campione: {_m_apex_active.get('test_period', '')} — "
         f"mai usato per scegliere i parametri della strategia. Eccezione: \"Calo Massimo "
-        f"Storico\" è calcolato sull'intero backtest {_m_apex_active.get('storico_period', '')}, "
-        f"non sulla sola finestra di validazione — coerente con il proprio nome."
+        f"Backtest\" è calcolato sull'intero backtest {_m_apex_active.get('storico_period', '')}, "
+        f"non sulla sola finestra di validazione — e non coincide con la simulazione live più "
+        f"sotto (dal 2024-03, troppo giovane per aver attraversato un vero mercato ribassista)."
     )
 
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
@@ -1040,7 +1041,7 @@ with tab_perf:
             if _spy_fresh_note:
                 st.caption(_spy_fresh_note)
 
-        st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
+        st_html(section_title("Calo dal Massimo (simulazione live)", top="14px", bottom="6px"))
         df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
         dd_it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_underwater.index]
         fig_dd = go.Figure()
@@ -1065,7 +1066,11 @@ with tab_perf:
             f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale, "
             f"al lordo delle tasse — nessun conto broker reale ancora collegato. "
             f"{len(df_eq)} punti disponibili "
-            f"({df_eq.index[0].date()} → {df_eq.index[-1].date()})."
+            f"({df_eq.index[0].date()} → {df_eq.index[-1].date()}). "
+            f"Calo massimo di questa simulazione: {df_eq['drawdown'].min():.2f}% — inferiore al "
+            f"\"Calo Massimo Backtest\" mostrato sopra perché questa finestra è troppo recente "
+            f"per aver attraversato una vera crisi di mercato, non perché le due cifre siano in "
+            f"contraddizione."
         )
 
         st_html(section_title("Matrice dei Rendimenti"))

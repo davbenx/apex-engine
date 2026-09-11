@@ -371,7 +371,7 @@ def get_apex_metrics() -> Dict[str, Any]:
         "max_drawdown_netto_stimato": -0.1424,
         "calmar_netto_stimato": 1.286,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
-        "storico_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest — solo per il Calo Massimo Storico)",
+        "storico_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest)",
         "cash_drag_protection": "100% Cash nei bear market macro",
         "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
@@ -416,7 +416,7 @@ def get_convex_metrics() -> Dict[str, Any]:
         "calmar": 1.071,
         "ulcer_index": 3.79,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione — stessa finestra di Apex e del combinato)",
-        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest — solo per il Calo Massimo Storico)",
+        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest)",
         "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
         "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
     }
@@ -466,7 +466,7 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
         "ulcer_index": 1.90,
         "correlation": 0.31,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
-        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest — solo per il Calo Massimo Storico)",
+        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest)",
         "synergy_summary": (
             "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
             "CAGR 22.51% (netto stimato 16.51%), tra il 16.88% di Convex e il 24.66% di Apex isolatamente. "
