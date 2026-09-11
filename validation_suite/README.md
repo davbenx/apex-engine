@@ -1920,6 +1920,58 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     approfondire, la strada piu' promettente e' abbandonare il
     winner-take-all a favore di una ripartizione proporzionale al
     deficit, SENZA il livello aggiuntivo di Kelly contrarian.
+- **Ricostruzione storica estesa di Convex fino al 1987, richiesta diretta
+  dell'utente** (`convex_extended_history_reconstruction.py`). Il collo di
+  bottiglia dichiarato era DBMFE_proxy (solo `DBMF`, storico dal 2019-05 —
+  il limite che ha vincolato TUTTI i test Kelly-su-Convex di questa sessione
+  a 81 mesi). Nessun singolo ticker fetchabile replica un CTA sistematico
+  con storico dagli anni '80 (i managed futures fund storici non sono mai
+  stati quotati pubblicamente con prezzo giornaliero disponibile) — risolto
+  costruendo un indice SINTETICO di trend-following (metodologia Moskowitz-
+  Ooi-Pedersen 2012 "Time Series Momentum", la stessa dei CTA sistematici
+  reali — Winton, Dunn Capital, AHL), riusando `kelly_backtest.compute_tsmom_
+  sleeve_returns` (gia' in repo, mai invocata prima in un file tracciato) su
+  universo CRESCENTE: Equity+Bonds dal 1987 (VFINX/VUSTX, stessi proxy gia'
+  estesi per Apex), +Gold dal 2000-09 quando GC=F diventa disponibile,
+  raccordato con `DBMF` reale dal 2019-06 (il cutover usa l'inizio REALE di
+  ciascun segnale, non la data nominale — il segnale TSMOM richiede il
+  proprio warmup di 12 mesi, usare la data nominale apriva un buco di 14
+  mesi, bug trovato e corretto durante la costruzione).
+  - **Validazione del proxy**: la stessa formula a 3 mercati, calcolata sul
+    periodo in cui DBMF reale esiste (88 mesi di sovrapposizione, usando
+    SPY/IEF/GLD reali non proxy), ha **correlazione 0,521** con DBMF reale —
+    coerente con l'aspettativa (un CTA reale tratta ~20-35 mercati, quindi
+    una correlazione moderata non alta e' il risultato corretto, non un
+    fallimento del proxy) e in linea con un risultato analogo gia' trovato
+    in Kelly Stack per una costruzione simile ("correlazione 0.55").
+  - **Estensione di AVWS** (secondo collo di bottiglia, non richiesto
+    esplicitamente ma necessario per raggiungere il 1987 sull'intero
+    portafoglio): NAESX (Vanguard Small-Cap, non value-tilted, dal 1985-01,
+    unico proxy disponibile 1987-1993) -> DFSVX (DFA US Small Cap Value,
+    genuinamente value-tilted come AVWS, dal 1993-03) -> VBR (dal 2004-02,
+    gia' in uso). Limite dichiarato: 1987-1993 usa un proxy senza tilt
+    value, piu' grezzo delle altre gambe.
+  - **Oro e Crypto**: nessuna estensione ulteriore, stesso limite gia'
+    deliberato di Apex (GC=F dal 2000-09, BTC-USD dal 2014-09 — niente
+    proxy azionari auriferi, contaminerebbero la classe con beta equity).
+    Pesi Convex RINORMALIZZATI tra le sole sleeve disponibili prima di
+    quelle date (stessa logica gia' usata da Apex per la gamba Equity
+    pre-2012) — mai un rendimento inventato.
+  - **Risultato**: portafoglio esteso continuo (nessun buco), 499 mesi,
+    1985-03 -> 2026-09 (3 sleeve disponibili, il target dichiarato di
+    1987-06, dal 1987-12 — 6 mesi dopo per il warmup del segnale TSMOM di
+    DBMFE_proxy, un ritardo intrinseco al tipo di segnale, non un difetto
+    della costruzione). CAGR lordo 12,82%, Sharpe 1,06, **MaxDD -26,85%**
+    sull'intero campione — sensibilmente PEGGIORE del -15/-21% visto nei
+    test di questa sessione sul campione corto (2019-2026), perche' quel
+    campione non ha mai attraversato una vera crisi (1987, 2000-2002,
+    2008) mentre questo si'. **Implicazione importante**: la fiducia nei
+    risultati Kelly-su-Convex di questa sessione (target Kelly, trim
+    selettivo, PAC contrarian) era gia' segnalata come bassa per il
+    campione corto — ora c'e' un campione molto piu' lungo per un secondo
+    giro, se si vuole approfondire ulteriormente. Nessuna modifica in
+    produzione da questa ricostruzione in se' (e' infrastruttura/dati, non
+    un test di una strategia).
 
 ## Idee in coda per approfondimenti futuri
 
