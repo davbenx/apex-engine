@@ -330,25 +330,35 @@ def get_apex_metrics() -> Dict[str, Any]:
     Rigenerate con select_low_beta_basket e storia estesa a 1987-06 (proxy
     VFINX/VUSTX/GC=F) — vedi apex_dashboard_stat_regeneration.py e
     validation_suite/README.md. Le cifre del periodo TEST sono identiche a
-    prima dell'estensione storica (split 2020-09-30 a valle, non impattato)."""
+    prima dell'estensione storica (split 2020-09-30 a valle, non impattato).
+
+    Rigenerate una seconda volta dopo l'adozione della pesatura Kelly
+    frazionaria tra le classi macro attive (APEX_V2_SPEC.md §8.30,
+    kelly_fraction=0.25/kelly_window=208 settimane, default di
+    compute_v2_macro_signal — vedi apex_v2_engine.py): il miglioramento e'
+    netto su tutto il periodo TEST (Sharpe 1.245->1.675, MaxDD -14.52%-
+    >-10.44%, Ulcer Index 6.19->2.92, CAGR netto 14.28%->18.32%) — piu'
+    forte del beneficio visto nei backtest settimanali usati per validare
+    Kelly (limitati dal 2018 dal vincolo BTC comune), qui su un campione
+    con storico esteso e il vero basket di produzione."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1428,
-        "cagr_gross": 0.2034,
-        "volatility": 0.1596,
-        "sharpe": 1.245,
-        "sortino": 2.58,
-        "max_drawdown": -0.1452,
-        "calmar": 1.401,
-        "ulcer_index": 6.19,
-        "volatility_netto_stimato": 0.1506,
-        "sharpe_netto_stimato": 0.964,
-        "sortino_netto_stimato": 1.86,
-        "max_drawdown_netto_stimato": -0.1538,
-        "calmar_netto_stimato": 0.928,
+        "cagr_net": 0.1832,
+        "cagr_gross": 0.2466,
+        "volatility": 0.1383,
+        "sharpe": 1.675,
+        "sortino": 2.549,
+        "max_drawdown": -0.1044,
+        "calmar": 2.363,
+        "ulcer_index": 2.92,
+        "volatility_netto_stimato": 0.1337,
+        "sharpe_netto_stimato": 1.332,
+        "sortino_netto_stimato": 2.078,
+        "max_drawdown_netto_stimato": -0.1424,
+        "calmar_netto_stimato": 1.286,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "cash_drag_protection": "100% Cash nei bear market macro",
-        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
+        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
     }
 
 
@@ -394,14 +404,18 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     ciascun motore) picca teoricamente ed empiricamente nella zona
     50/50-70/30 sul campione pieno (2000-2026, 312 mesi) — 70/30 e' dentro
     quella zona, non un punto isolato.
-    **Nota onesta non ignorabile**: sul periodo TEST specifico qui sotto
-    (72 mesi, 2020-2026 — piu' corto e piu' recente del campione usato per
-    il calcolo Kelly) 70/30 ha CAGR piu' alto di 50/50 ma Sharpe (1,42
-    contro 1,49) e MaxDD (-8,90% contro -7,88%) leggermente PEGGIORI — il
-    tradeoff rendimento/rischio del mix dipende dalla finestra osservata,
-    non e' univoco. Il beneficio di diversificazione resta comunque intatto
-    rispetto a ciascuna componente isolata (MaxDD -8,90% e' ancora
-    nettamente inferiore a -14,52% Apex e -15,76% Convex).
+    **Aggiornamento dopo l'adozione del Kelly frazionario su Apex**
+    (APEX_V2_SPEC.md §8.30 — vedi anche get_apex_metrics()): la nota onesta
+    precedente ("70/30 ha Sharpe/MaxDD leggermente peggiori di 50/50 su
+    questo periodo TEST") **non regge piu'**: con l'Apex Kelly-pesato,
+    70/30 ha ora Sharpe leggermente MIGLIORE di 50/50 su questo stesso
+    periodo (1,834 contro 1,816), a fronte di un MaxDD leggermente
+    peggiore (-7,78% contro -6,06%, entrambi comunque ben sotto le
+    componenti isolate). Il retest diretto del mix Kelly Apex/Convex
+    (`apex_convex_kelly_mix_test.py`, ri-eseguito con la serie Apex
+    aggiornata) conferma 70/30 come punto vicino all'ottimo empirico di
+    Sharpe sulla griglia testata (0/30/50/70/100), non solo una scelta
+    dentro un intervallo ragionevole.
     BUG storico gia' corretto (invariato da qui): prima usava una finestra
     diversa da get_apex_metrics()/get_convex_metrics(), producendo un CAGR
     combinato apparentemente piu' alto di ENTRAMBE le componenti (impossibile
@@ -414,23 +428,21 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     posizione."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1369,
-        "cagr_gross": 0.1953,
-        "volatility": 0.1324,
-        "sharpe": 1.420,
-        "sortino": 3.538,
-        "max_drawdown": -0.0890,
-        "calmar": 2.195,
-        "ulcer_index": 3.23,
-        "correlation": 0.403,
+        "cagr_net": 0.1651,
+        "cagr_gross": 0.2251,
+        "volatility": 0.1151,
+        "sharpe": 1.834,
+        "sortino": 3.418,
+        "max_drawdown": -0.0778,
+        "calmar": 2.895,
+        "ulcer_index": 1.90,
+        "correlation": 0.31,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "synergy_summary": (
             "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 19.53% (netto stimato 13.69%), tra il 16.88% di Convex e il 20.34% di Apex isolatamente. "
-            "Il beneficio di diversificazione si vede nel MaxDD -8.90% — inferiore a entrambe le componenti "
-            "singole (-14.52% Apex, -15.76% Convex) anche se leggermente meno marcato del mix 50/50 (-7.88%) "
-            "— una miscela pesata non può mai battere entrambi i componenti sul rendimento, solo sul rischio. "
-            "Correlazione reale: 0.403."
+            "CAGR 22.51% (netto stimato 16.51%), tra il 16.88% di Convex e il 24.66% di Apex isolatamente. "
+            "Il beneficio di diversificazione si vede nel MaxDD -7.78% — inferiore a entrambe le componenti "
+            "singole (-10.44% Apex, -15.76% Convex). Correlazione reale: 0.31."
         )
     }
 

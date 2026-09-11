@@ -1522,6 +1522,30 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     beneficio di diversificazione resta comunque intatto rispetto a
     ciascuna componente isolata. Segnalato esplicitamente all'utente prima
     di confermare l'implementazione.
+  - **Ri-eseguito dopo l'adozione del Kelly frazionario su Apex (§8.30)**,
+    su richiesta esplicita dell'utente — le serie di produzione usate nel
+    calcolo originale erano stale rispetto alla nuova logica.
+    Rigenerata prima la serie estesa di Apex
+    (`apex_dashboard_stat_regeneration.py`, che chiama
+    `compute_v2_macro_signal` senza override quindi eredita Kelly
+    automaticamente), poi ri-eseguito `apex_convex_kelly_mix_test.py`.
+    **Risultato: la nota onesta precedente non regge piu'.** Apex Kelly-
+    pesato ha ora mu=15,75%/sigma=11,82%/Sharpe 1,332 (era 1,19) sull'intero
+    campione 2000-2026, correlazione con Convex scesa a 0,228 (era 0,270).
+    La soluzione d'angolo vincolata al simplesso resta 100% Apex (invariata
+    nella direzione, ora con un edge stimato ancora piu' forte). Sulla
+    griglia empirica testata (0/30/50/70/100), **70/30 e' ora il punto a
+    Sharpe piu' alto (1,454), sopra sia 50/50 (1,417) sia 100/0 (1,332)**
+    — non e' piu' "dentro una zona ragionevole", e' vicino all'ottimo
+    empirico. Sul periodo TEST dashboard (72 mesi, 2020-2026): 70/30 ha
+    ora Sharpe leggermente MIGLIORE di 50/50 (1,834 contro 1,816, era il
+    contrario) a fronte di un MaxDD leggermente peggiore (-7,78% contro
+    -6,06%). **Rigenerate anche le cifre di `get_apex_metrics()` e
+    `get_combined_dual_engine_metrics()`** in `portfolio_manager.py` per
+    coerenza con la dashboard (Apex: Sharpe 1,245→1,675, MaxDD -14,52%→
+    -10,44%; combinato 70/30: Sharpe 1,420→1,834, MaxDD -8,90%→-7,78%).
+    Nessun cambio al mix di default (resta 70/30, ora meglio supportato di
+    prima, non necessita revisione).
 - **Approfondimento regime filter curva rendimenti CON RITARDO — richiesto
   dall'utente dopo il risultato sfumato del filtro contemporaneo**
   (`apex_yield_curve_lagged_filter_test.py`): Equities forzata a 0% se la
