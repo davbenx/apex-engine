@@ -2563,13 +2563,25 @@ il retest del blend Kelly Apex/Convex — sono state completate, vedi
   reagire Convex agli stessi segnali di trend di Apex) va valutato con
   sospetto anche se migliora le metriche aggregate del mix.
 - **Checklist Edge/Apex/Convex fornita dall'utente**: riprodotta
-  integralmente in `validation_suite/EDGE_CHECKLIST.md`, con annotazioni
-  esplicite su dove l'archetipo generico descritto li' diverge
-  dall'implementazione reale di questo repository (es. Apex non ha
-  stop-loss individuali, Convex non e' un sistema mean-reversion attivo
-  con segnali RSI/Z-score). **Non ancora incrociata sistematicamente**
-  contro il codice — da usare come lista di domande da porsi, non come
-  gap-list da colmare automaticamente (vedi avvertenza nel file stesso).
+  integralmente in `validation_suite/EDGE_CHECKLIST.md`. **Incrociata
+  sistematicamente voce-per-voce contro il codice reale** (richiesto
+  dall'utente), leggendo per intero `apex_v2_engine.py`/`convex_engine.py`/
+  `backend.py` — vedi la sezione "Cross-check sistematico" in fondo a
+  quel file per il dettaglio completo. Le due divergenze piu' rilevanti,
+  entrambe gia' backate da dati raccolti in questa sessione, non solo da
+  lettura teorica: (1) **Convex non cattura il "rebalancing premium"**
+  (edge #10) che l'archetipo gli attribuisce — la sua policy reale e'
+  "mai vendere", e quando questa sessione ha testato un ribilanciamento a
+  soglia (`convex_threshold_vs_calendar_rebalance_test.py`) il vantaggio
+  su Sharpe/MaxDD esisteva ma non e' stato adottato per campione
+  insufficiente, non per assenza dell'effetto; (2) **Convex NON e'
+  difensivo in crisi** come l'archetipo suggerisce ("correlazione
+  bassa/negativa con equity") — l'analisi per regime (sopra) lo misura
+  NEGATIVO in entrambe le crisi maggiori del suo backtest, coerente col
+  suo essere un moltiplicatore di beta a leva, non un hedge. Nessuna
+  azione correttiva presa — sono osservazioni per chi legge la checklist
+  aspettandosi che "Convex" si comporti come l'archetipo descrive, non
+  bug da correggere.
 
 ## Cosa NON è (ancora) qui, e perché
 
