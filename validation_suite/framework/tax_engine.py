@@ -28,7 +28,8 @@ def apply_italian_tax(
     tax_types: Dict[str, str],
     rebalance_every: Optional[int] = 1,
     rebalance_threshold: Optional[float] = None,
-) -> pd.Series:
+    return_final_state: bool = False,
+):
     """
     target_weights puo' essere un dict a pesi FISSI oppure un pd.DataFrame con
     un peso per ciascun asset per ciascun mese — stesso ciclo di
@@ -72,7 +73,19 @@ def apply_italian_tax(
     senza costi di transazione (separati dalla tassazione, non modellati qui
     per isolare l'effetto fiscale).
 
-    Ritorna la serie dei rendimenti periodici NETTI di tassazione.
+    Ritorna la serie dei rendimenti periodici NETTI di tassazione — oppure,
+    se return_final_state=True, la tupla (serie, final_state) dove
+    final_state = {"value", "cost_basis", "loss_pool_diverso", "nav"} e'
+    lo stato di posizione all'ULTIMO periodo simulato, da passare a
+    liquidation_tax_adjusted_nav() per calcolare la passivita' fiscale
+    LATENTE su posizioni mai vendute (rilevante soprattutto con
+    rebalance_every=None/rebalance_threshold molto larga: senza mai un
+    ribilanciamento, questa funzione non tassa MAI, nemmeno alla fine della
+    serie — la tassa non e' azzerata, e' solo posticipata oltre l'orizzonte
+    simulato, e un confronto "a chi va meglio" contro una policy che paga le
+    tasse lungo il percorso e' fuorviante senza rendere esplicita questa
+    passivita' latente — concern d'audit, vedi README). Default False,
+    nessuna regressione per i chiamanti esistenti.
 
     NAV (capitale proprio) e valore nozionale delle posizioni sono tenuti
     ESPLICITAMENTE separati: con leva (somma dei pesi target > 100%), il
@@ -156,4 +169,45 @@ def apply_italian_tax(
         net_returns.append(nav_after_tax / nav - 1)
         nav = nav_after_tax
 
-    return pd.Series(net_returns, index=sleeve_returns.index)
+    net_series = pd.Series(net_returns, index=sleeve_returns.index)
+    if return_final_state:
+        return net_series, {"value": value, "cost_basis": cost_basis, "loss_pool_diverso": loss_pool_diverso, "nav": nav}
+    return net_series
+
+
+def liquidation_tax_adjusted_nav(final_state: Dict, tax_types: Dict[str, str]) -> float:
+    """NAV se si liquidasse TUTTA la posizione subito dopo l'ultimo periodo
+    simulato da apply_italian_tax(..., return_final_state=True) — rende
+    esplicita la passivita' fiscale LATENTE su posizioni mai vendute (mai
+    zero, solo posticipata oltre l'orizzonte simulato con
+    rebalance_every=None o una soglia mai raggiunta), per un confronto equo
+    con varianti che pagano le tasse lungo il percorso (concern d'audit,
+    vedi README — "Convex mai vendere non tassa mai, nemmeno a fine serie").
+
+    Semplificazione dichiarata: tutte le posizioni REDDITO_DIVERSO sono
+    liquidate INSIEME in un unico evento — guadagni e perdite tra loro (piu'
+    l'eventuale loss_pool_diverso gia' accumulato) si compensano PRIMA di
+    applicare l'aliquota, indipendentemente dall'ordine con cui i singoli
+    asset sarebbero venduti nella realta' (l'ordine non dovrebbe contare per
+    vendite simultanee, a differenza del ciclo per-periodo di
+    apply_italian_tax, dove l'ordine di iterazione sugli asset puo' influire
+    lievemente se piu' vendite avvengono nello stesso periodo — un limite
+    preesistente di quella funzione, non introdotto qui)."""
+    value, cost_basis, loss_pool = final_state["value"], final_state["cost_basis"], final_state["loss_pool_diverso"]
+    # NAV di partenza dallo stato tracciato (mai la somma dei valori nozionali: con leva
+    # quella somma supera il NAV per costruzione — stesso principio gia' documentato in
+    # apply_italian_tax, l'errore di scala che aveva causato il bug del CAGR >10.000%).
+    tax_due = 0.0
+    diverso_gain_total = 0.0
+    for k in value:
+        gain = value[k] - cost_basis[k]
+        if tax_types[k] == "REDDITO_CAPITALE":
+            if gain > 0:
+                tax_due += gain * TAX_RATE_ITALY_FLAT
+            # minusvalenza REDDITO_CAPITALE: persa, non compensabile (come nel ciclo principale)
+        else:
+            diverso_gain_total += gain
+    if diverso_gain_total > 0:
+        offset = min(diverso_gain_total, loss_pool)
+        tax_due += (diverso_gain_total - offset) * TAX_RATE_ITALY_FLAT
+    return final_state["nav"] - tax_due

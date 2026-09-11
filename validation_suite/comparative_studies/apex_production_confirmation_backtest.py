@@ -97,15 +97,22 @@ def run_backtest(use_production_selection: bool, sector_of: dict):
                 basket = select_low_vol_basket(eq_data, prev_tickers=prev_basket_tickers, sector_of=sector_of, max_per_sector=V2_MAX_PER_SECTOR)
             return [b["Ticker"] for b in basket]
 
+        # Il rendimento di QUESTA settimana usa il basket cosi' com'era PRIMA di
+        # qualunque ribasket deciso questa stessa settimana — corretto per allinearsi
+        # ad apex_stocks_vs_etf_backtest.py e apex_dashboard_stat_regeneration.py (era
+        # invertito qui: il basket appena ricostruito con beta calcolata fino a QUESTA
+        # settimana inclusa ne guadagnava anche il rendimento, una fuga same-bar —
+        # concern d'audit #2, vedi README). Il nuovo basket comincia a rendere dalla
+        # settimana SUCCESSIVA alla ricostruzione, mai da quella in cui e' deciso.
+        basket_ret = float(np.mean([stock_rets[t].loc[wk] for t in current_basket if t in stock_rets])) if current_basket else 0.0
+        equity_return_basket.append(basket_ret)
+
         if not current_basket:
             current_basket = rebuild_basket()
             prev_basket_tickers = set(current_basket)
         elif is_month_end and wk.month in (3, 6, 9, 12):
             current_basket = rebuild_basket()
             prev_basket_tickers = set(current_basket)
-
-        basket_ret = float(np.mean([stock_rets[t].loc[wk] for t in current_basket if t in stock_rets])) if current_basket else 0.0
-        equity_return_basket.append(basket_ret)
 
     valid_from = MIN_HISTORY
     idx = weeks[valid_from:]

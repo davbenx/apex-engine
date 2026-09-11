@@ -9,7 +9,7 @@ implicito ai nomi delle sleeve di Kelly Stack).
 import numpy as np
 import pandas as pd
 
-from tax_engine import apply_italian_tax
+from tax_engine import apply_italian_tax, liquidation_tax_adjusted_nav, TAX_RATE_ITALY_FLAT
 
 
 def test_italian_tax_capital_income_pays_flat_26_on_realized_gain_only():
@@ -165,6 +165,68 @@ def test_rebalance_threshold_takes_precedence_over_rebalance_every():
     net_both = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=1, rebalance_threshold=0.50)
     net_threshold_only = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_threshold=0.50)
     pd.testing.assert_series_equal(net_both, net_threshold_only)
+
+
+def test_return_final_state_default_off_keeps_original_return_type():
+    """return_final_state=False (default): deve restituire ESATTAMENTE una
+    pd.Series come prima di questo fix, non una tupla — nessuna regressione
+    per i chiamanti esistenti che non passano questo argomento."""
+    returns = pd.DataFrame({"A": [0.10, 0.10], "B": [0.0, 0.0]})
+    net = apply_italian_tax(returns, {"A": 0.5, "B": 0.5}, tax_types={"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"})
+    assert isinstance(net, pd.Series)
+
+
+def test_liquidation_tax_adjusted_nav_matches_zero_gain_case():
+    """Nessuna plusvalenza mai maturata (rendimento sempre zero): il NAV
+    liquidato deve combaciare col NAV grezzo, nessuna tassa dovuta."""
+    returns = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, 0.0]})
+    weights = {"A": 0.5, "B": 0.5}
+    tax_types = {"A": "REDDITO_CAPITALE", "B": "REDDITO_CAPITALE"}
+    net, final_state = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=None, return_final_state=True)
+    liquidated = liquidation_tax_adjusted_nav(final_state, tax_types)
+    assert abs(liquidated - final_state["nav"]) < 1e-9
+
+
+def test_liquidation_tax_adjusted_nav_taxes_the_latent_gain_never_sold():
+    """rebalance_every=None su una sleeve REDDITO_CAPITALE che cresce senza
+    mai vendere: apply_italian_tax non tassa MAI (verificato altrove), ma
+    liquidation_tax_adjusted_nav deve rendere esplicita la tassa LATENTE —
+    il NAV liquidato deve essere STRETTAMENTE inferiore al NAV grezzo
+    (drift puro) di un importo pari al 26% della plusvalenza non realizzata."""
+    returns = pd.DataFrame({"A": [0.20, 0.20, 0.20]})
+    weights = {"A": 1.0}
+    tax_types = {"A": "REDDITO_CAPITALE"}
+    net, final_state = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=None, return_final_state=True)
+    drift_nav = float((1 + net).prod())  # nessuna tassa mai realizzata, quindi = drift puro
+    liquidated = liquidation_tax_adjusted_nav(final_state, tax_types)
+    expected_gain = final_state["value"]["A"] - final_state["cost_basis"]["A"]
+    expected_liquidated = drift_nav - expected_gain * TAX_RATE_ITALY_FLAT
+    assert liquidated < drift_nav - 1e-9
+    assert abs(liquidated - expected_liquidated) < 1e-9
+
+
+def test_liquidation_tax_adjusted_nav_offsets_diverso_gain_with_loss_pool():
+    """Una minusvalenza REDDITO_DIVERSO gia' accumulata nel loss_pool deve
+    compensare la plusvalenza latente alla liquidazione finale, esattamente
+    come farebbe una compensazione realizzata durante il percorso."""
+    keys = {"BTC_proxy": 0.5, "ALT_proxy": 0.5}
+    tax_types = {"BTC_proxy": "REDDITO_DIVERSO", "ALT_proxy": "REDDITO_DIVERSO"}
+    # ALT_proxy realizza una minusvalenza al mese 1 (ribilanciamento mensile normale),
+    # poi entrambe crescono senza piu' vendite (rebalance_every=2 = un solo evento).
+    returns = pd.DataFrame({
+        "BTC_proxy": [0.0, 0.30],
+        "ALT_proxy": [-0.40, 0.10],
+    })
+    net, final_state = apply_italian_tax(returns, keys, tax_types=tax_types, rebalance_every=2, return_final_state=True)
+    liquidated_with_pool = liquidation_tax_adjusted_nav(final_state, tax_types)
+    # Confronto: stesso stato finale ma SENZA loss_pool accumulato -> tassa piena sul gain
+    final_state_no_pool = dict(final_state)
+    final_state_no_pool["loss_pool_diverso"] = 0.0
+    liquidated_without_pool = liquidation_tax_adjusted_nav(final_state_no_pool, tax_types)
+    assert liquidated_with_pool >= liquidated_without_pool - 1e-9, (
+        "con un loss_pool disponibile la tassa alla liquidazione non deve mai essere superiore "
+        "a quella senza pool di compensazione"
+    )
 
 
 def test_rebalance_every_default_matches_historical_every_period_behavior():

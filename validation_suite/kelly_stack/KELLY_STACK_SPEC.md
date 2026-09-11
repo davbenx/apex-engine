@@ -10,6 +10,21 @@ prodotto due bug di produzione corretti in Apex (§8.5, §8.8 di `APEX_V2_SPEC.m
 
 **Stato di questo documento: DESIGN, parzialmente validato con dati reali.** Vedi §7.
 
+**Addendum di audit (post-adozione, Kelly Stack già scartato):** un audit
+qualitativo di robustezza su tutta la sessione ha trovato una fuga same-bar
+reale in `compute_trend_gate`/`apply_per_sleeve_stop_loss`
+(`kelly_backtest.py`) — il gate/stop del mese T veniva calcolato usando (ed
+era quindi influenzato da) il rendimento del mese T stesso, poi applicato
+al peso dello stesso mese T. Corretto (shift di una posizione: la decisione
+calcolata a fine mese T si applica dal mese T+1, mai a se stessa), con
+regressioni dedicate in `test_kelly_backtest.py`. **Impatto sulla
+conclusione di questo documento: nessuno** — Kelly Stack era già scartato
+per ragioni indipendenti da questo bug (§7.1 sotto), e la fuga era minore
+(un mese su N, non un lookahead esteso); i numeri §7.1 sotto restano quelli
+originali (pre-fix), leggermente ottimistici lato Kelly Stack, non
+ricalcolati perché il filone non viene riaperto. Da ricalcolare SOLO se si
+decide di riconsiderare Kelly Stack in futuro.
+
 **Obiettivo numerico riconciliato (dopo la validazione di §7.1):** l'obiettivo
 iniziale ("100k→2M in 10 anni, CAGR 30-35%") non è sostenuto da nessun
 walk-forward reale a nessuna combinazione di parametri provata — vedi §7.1.

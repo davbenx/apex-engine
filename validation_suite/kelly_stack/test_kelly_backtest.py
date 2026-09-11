@@ -137,6 +137,38 @@ def test_trend_gate_hysteresis_keeps_small_dip_active():
     assert gate["A"].iloc[-1] == 1.0
 
 
+def test_trend_gate_never_uses_same_bar_return_for_its_own_gate():
+    """Regressione concern d'audit #1: il gate del primo mese OOS non deve
+    dipendere dal rendimento di quello stesso mese — un crollo enorme proprio
+    nel primo mese OOS non deve poter disattivare il gate DI QUEL MESE
+    (potrebbe farlo dal mese successivo, non prima): il gate del primo mese
+    OOS e' deciso SOLO con dati di calibrazione."""
+    n = 30
+    calib = pd.DataFrame({"A": [0.02] * n})  # uptrend netto in calibrazione, gate sicuramente attivo a fine calib
+    oos_calm = pd.DataFrame({"A": [0.0] * 5})
+    oos_crash = pd.DataFrame({"A": [-0.50] + [0.0] * 4})  # crollo enorme solo nel primo mese OOS
+    gate_calm = compute_trend_gate(calib, oos_calm, ma_window=10, hysteresis_band=0.02)
+    gate_crash = compute_trend_gate(calib, oos_crash, ma_window=10, hysteresis_band=0.02)
+    assert gate_calm["A"].iloc[0] == gate_crash["A"].iloc[0] == 1.0, (
+        "il gate del primo mese OOS deve essere identico indipendentemente dal rendimento di quello stesso "
+        "mese (deciso solo con dati di calibrazione) — se cambia, il rendimento del mese sta bocciando se' stesso"
+    )
+
+
+def test_per_sleeve_stop_never_applies_same_bar_breach():
+    """Regressione concern d'audit #1: una sleeve che sfonda la soglia di stop
+    nel PRIMO mese OOS non deve azzerarsi in quello stesso mese (nessuno stato
+    precedente da cui scattare) — solo dal mese successivo."""
+    n = 5
+    oos = pd.DataFrame({"A": [-0.20, 0.0, 0.0, 0.0, 0.0]})
+    weights = pd.DataFrame({"A": [1.0] * n})
+    out = apply_per_sleeve_stop_loss(oos, weights, stop_threshold=-0.15)
+    assert out["A"].iloc[0] == 1.0, (
+        "il primo mese non ha uno stato di stop precedente: il -20% di QUEL mese non puo' azzerare se' stesso"
+    )
+    assert out["A"].iloc[1] == 0.0, "dal mese successivo alla violazione, la sleeve deve essere azzerata"
+
+
 def test_trend_gate_has_no_lookahead():
     """Il gate dei primi mesi OOS non deve dipendere da cosa succede DOPO in
     quello stesso OOS — stessa proprieta' gia' verificata per il governatore
