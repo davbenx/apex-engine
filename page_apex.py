@@ -861,8 +861,8 @@ with tab_perf:
     </div>
     """)
     st.caption(
-        f"Storico completo: {_m_apex_active.get('test_period', '')} — dati reali/backtest "
-        f"settimanale del basket e del segnale di produzione."
+        f"Periodo di validazione fuori campione: {_m_apex_active.get('test_period', '')} — "
+        f"mai usato per scegliere i parametri della strategia."
     )
 
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
