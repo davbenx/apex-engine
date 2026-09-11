@@ -24,6 +24,7 @@ solo la parte di test/ricerca/validazione e i dataset point-in-time.
 ```
 validation_suite/
 ├── README.md                    <- questo file
+├── EDGE_CHECKLIST.md            <- checklist Edge/Apex/Convex fornita dall'utente, NON verificata contro il codice (vedi "Idee in coda")
 ├── conftest.py                  <- risolve per pytest gli import dei moduli di produzione in root + framework/
 ├── pytest.ini                   <- testpaths = framework, kelly_stack, core_regression (comparative_studies escluso: lento)
 ├── requirements-test.txt        <- dipendenze SOLO per eseguire questa cartella (pytest)
@@ -1835,6 +1836,44 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
     volesse procedere comunque, il blend 50/50 + cooldown 12 mesi e' la
     scelta piu' prudente tra quelle testate, non quella con il numero
     migliore in assoluto.
+
+## Idee in coda per approfondimenti futuri
+
+Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.
+
+- **Kelly "al contrario" su Convex (Convex come accumulo anticiclico sui
+  ribassi).** Idea dell'utente: a differenza del Kelly testato su Apex
+  (pesa a favore di rendimento/rischio², una logica pro-trend) e del Kelly
+  su target Convex appena testato (stessa logica, solo applicata ai target),
+  qui l'idea e' un criterio che pesi l'allocazione di NUOVO capitale (o il
+  ribilanciamento) in modo CONTRARIAN — favorire le sleeve piu'
+  sottoperformanti/sottopesate per catturare mean-reversion, coerente con
+  l'identita' di Convex come motore PASSIVO che accumula nei ribassi
+  (il water-filling verso il sottopeso e' gia' implicitamente cosi', ma
+  senza alcuna stima esplicita di edge di mean-reversion dietro). Definizione
+  esatta del meccanismo da chiarire quando si arriva a testarlo (task #15
+  del tracking di sessione).
+- **Ri-testare Kelly blend Apex/Convex** (`apex_convex_kelly_mix_test.py`,
+  gia' fatto una volta — esito originale ~60/40 Sharpe-ottimale, corner
+  100/0 su crescita geometrica vincolata) ora che Apex e' cambiato (Kelly
+  sulle classi macro in produzione, §8.30) — le serie di rendimento usate
+  nel test originale sono stale rispetto alla nuova logica (task #16).
+- **Principio di design esplicito da preservare in ogni futura modifica**
+  (dichiarato dall'utente, non nuovo ma ora messo per iscritto): Apex e
+  Convex devono restare due motori a strategie DECORRELATE — Apex reattivo
+  (timing/trend), Convex passivo (accumulo strutturale) — e ciascuno deve
+  restare robusto anche PRESO DA SOLO, non solo in combinazione. Qualunque
+  cambiamento che aumenti la correlazione tra i due motori (es. far
+  reagire Convex agli stessi segnali di trend di Apex) va valutato con
+  sospetto anche se migliora le metriche aggregate del mix.
+- **Checklist Edge/Apex/Convex fornita dall'utente**: riprodotta
+  integralmente in `validation_suite/EDGE_CHECKLIST.md`, con annotazioni
+  esplicite su dove l'archetipo generico descritto li' diverge
+  dall'implementazione reale di questo repository (es. Apex non ha
+  stop-loss individuali, Convex non e' un sistema mean-reversion attivo
+  con segnali RSI/Z-score). **Non ancora incrociata sistematicamente**
+  contro il codice — da usare come lista di domande da porsi, non come
+  gap-list da colmare automaticamente (vedi avvertenza nel file stesso).
 
 ## Cosa NON è (ancora) qui, e perché
 
