@@ -35,6 +35,7 @@ from sector_cap_grid_test import SECTOR_MAP_FILE
 from metrics import cagr as _cagr, sharpe as _sharpe, max_drawdown as _max_drawdown, calmar as _calmar
 
 TEST_START = "2020-09-30"
+SERIES_OUT_DIR = Path(__file__).parent / "apex_sensitivity_series"
 
 # (label, kelly_fraction, vol_target, base_weight_per_class) — None = default di produzione
 GRID = [
@@ -52,6 +53,7 @@ GRID = [
 
 def main():
     sector_of = json.load(open(SECTOR_MAP_FILE))
+    SERIES_OUT_DIR.mkdir(exist_ok=True)
     results = {}
     for label, kf, vt, bw in GRID:
         print("=" * 78)
@@ -59,6 +61,8 @@ def main():
         print("=" * 78)
         gross_w, net_w = run_full_backtest(sector_of, kelly_fraction=kf, vol_target=vt, base_weight_per_class=bw)
         gross_m = to_monthly(gross_w).loc[:SLICE_END]
+        safe_name = label.replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "").replace("%", "pct")
+        gross_m.to_csv(SERIES_OUT_DIR / f"{safe_name}.csv")
         gross_test = gross_m.loc[TEST_START:]
         stats = {
             "cagr": _cagr(gross_test, 12),
