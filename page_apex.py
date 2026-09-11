@@ -868,6 +868,28 @@ with tab_perf:
         f"sotto (dal 2024-03, troppo giovane per aver attraversato un vero mercato ribassista)."
     )
 
+    # Nota auto-scadente sul cambio di algoritmo in produzione (basket low-beta
+    # + Kelly frazionario, merge del 2026-09-11): finché l'ultima decisione
+    # reale (v2_state.last_decision_month, cadenza mensile — vedi
+    # compute_should_decide in backend.py) resta antecedente al mese del merge,
+    # la curva live/statistiche/registro sotto riflettono ancora quasi
+    # interamente il sistema PRECEDENTE (basket low-vol, senza Kelly) — non
+    # per un bug, ma perché nessuna nuova decisione è ancora stata presa da
+    # allora. La nota sparisce da sola non appena last_decision_month
+    # raggiunge KELLY_DEPLOY_MONTH o lo supera, senza bisogno di rimuoverla a mano.
+    KELLY_DEPLOY_MONTH = "2026-09"
+    _last_decision_month = (data.get("v2_state", {}) or {}).get("last_decision_month")
+    if _last_decision_month and _last_decision_month < KELLY_DEPLOY_MONTH:
+        st.info(
+            f"L'ultima decisione di allocazione risale a {_last_decision_month} — prima "
+            f"dell'adozione in produzione della pesatura Kelly e della selezione low-beta "
+            f"(11 settembre 2026). La curva live, le statistiche operative e il registro "
+            f"qui sotto riflettono quindi ancora quasi interamente il sistema PRECEDENTE. "
+            f"La prossima decisione (fine mese, cadenza mensile) userà il nuovo sistema; "
+            f"queste statistiche si aggiorneranno gradualmente man mano che si accumulano "
+            f"nuove operazioni."
+        )
+
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
 
     selected_range = st.segmented_control(
