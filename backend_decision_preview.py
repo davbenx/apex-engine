@@ -49,7 +49,11 @@ def main():
 
     print("\n[1/3] Fetch live segnale macro (SPY/IEF/GLD/BTC-USD)...")
     signal_tickers = list(dict.fromkeys(list(V2_CLASS_TICKER.values()) + DISPLAY_TICKERS))
-    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO)
+    # period='5y' come in backend.py main(): serve piu' storico dei 2 anni di default
+    # per il calcolo Kelly delle classi (finestra trailing 208 settimane) — senza
+    # questo l'anteprima cadrebbe silenziosamente nel fallback a peso fisso e non
+    # rifletterebbe piu' fedelmente cosa farebbe backend.py in produzione.
+    b_data = fetch_bulk_parallel(signal_tickers, max_workers=MAX_WORKERS_CRYPTO, period='5y')
 
     for t in V2_CLASS_TICKER.values():
         if t in b_data and not b_data[t].empty:
@@ -57,7 +61,7 @@ def main():
         else:
             print(f"  {t}: dati non disponibili")
 
-    print("\n[2/3] compute_v2_macro_signal (stessa funzione di produzione, default 50%/22%)...")
+    print("\n[2/3] compute_v2_macro_signal (stessa funzione di produzione, default Kelly 208sett/frac0.25, vol-target 22%)...")
     alloc, new_hysteresis, debug = compute_v2_macro_signal(b_data, prev_hysteresis_state=prev_hysteresis)
     print(f"  Allocazione risultante: {alloc}")
     for cls, info in debug.items():
