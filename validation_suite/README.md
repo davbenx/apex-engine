@@ -2308,24 +2308,31 @@ soglia di Convex. Verdetto per punto, poi la sintesi finale.
   timing di esecuzione, integrità fiscale, data snooping — sub-agente
   dedicato, poi verificato a mano dove più critico). Oltre al
   survivorship bias (sopra, corretto in questa sessione), **4 concern
-  aperti — 2 CORRETTI in un giro successivo (richiesto dall'utente:
-  "parti con i 4 concern"), 2 lasciati aperti**:
-  1. **[APERTO]** `kelly_backtest.py` (Kelly Stack, già scartato/non in
-     produzione): `compute_trend_gate`/`apply_per_sleeve_stop_loss`
-     hanno una fuga same-bar reale (il gate del mese T usa il rendimento
-     del mese T stesso) — i confronti storici §7.1 Kelly-vs-Apex
-     potrebbero essere stati fatti con numeri Kelly leggermente
-     gonfiati. Basso impatto pratico (Kelly Stack non è in produzione)
-     ma da correggere se si riapre quel filone.
-  2. **[APERTO]** Rotazione trimestrale del basket
-     (`apex_production_confirmation_backtest.py`): il ribasket del
-     trimestre T usa la beta calcolata fino alla settimana wk, poi
-     guadagna il rendimento della stessa settimana wk — una fuga
-     same-bar minore (~1 settimana su 13). Inoltre i due driver di
-     backtest (`apex_production_confirmation_backtest.py` e
-     `apex_stocks_vs_etf_backtest.py`) usano ordini diversi tra
-     rendimento e ribasket — un'incongruenza interna mai notata prima
-     che è di per sé un segnale di verifica incrociata insufficiente.
+  aperti — TUTTI E 4 CORRETTI in un giro successivo (richiesto
+  dall'utente: "parti con i 4 concern")**:
+  1. **[CORRETTO, nessun impatto pratico]** `kelly_backtest.py` (Kelly
+     Stack, già scartato/non in produzione): `compute_trend_gate`/
+     `apply_per_sleeve_stop_loss` avevano una fuga same-bar reale (il
+     gate del mese T usava il rendimento del mese T stesso) — i
+     confronti storici §7.1 Kelly-vs-Apex potrebbero essere stati fatti
+     con numeri Kelly leggermente gonfiati. Corretto con uno shift di
+     una posizione (la decisione a fine mese T si applica da T+1), 2
+     nuovi test di regressione. Numeri §7.1 di `KELLY_STACK_SPEC.md` NON
+     ricalcolati (bug di basso impatto, filone non riaperto — vedi
+     addendum in cima a quel documento).
+  2. **[CORRETTO]** Rotazione trimestrale del basket: il ribasket del
+     trimestre T usava la beta calcolata fino alla settimana wk, poi ne
+     guadagnava anche il rendimento della stessa settimana wk — una fuga
+     same-bar minore (~1 settimana su 13), presente sia nella serie
+     CANONICA di produzione (`apex_dashboard_stat_regeneration.py`) sia
+     in `apex_production_confirmation_backtest.py` (non canonico). Solo
+     `apex_stocks_vs_etf_backtest.py` aveva già l'ordine corretto —
+     l'incongruenza tra i tre driver era quindi un vero segnale di
+     verifica incrociata insufficiente, non un'ambiguità su quale fosse
+     giusto. Corretti entrambi (canonico rigenerato, non-canonico solo
+     nel codice): vedi "Costo di turnover interno del basket introdotto
+     nella serie canonica" più sotto per l'impatto quantificato
+     (calcolato insieme al concern #4, stesso giro di rigenerazione).
   3. **[CORRETTO]** Convex "mai vendere" non tassa mai, nemmeno a fine
      serie — vedi "Passività fiscale latente su Convex 'mai vendere'"
      più sotto per la correzione e il risultato quantificato (un
@@ -2362,19 +2369,37 @@ soglia di Convex. Verdetto per punto, poi la sintesi finale.
   (13/13 verdi).
 
 - **Costo di turnover interno del basket introdotto nella serie
-  canonica** (concern #4 sopra). `apex_dashboard_stat_regeneration.py`
-  caricava il costo di transazione SOLO sul turnover della classe
-  macro "Equity" aggregata — invisibile per costruzione al fatto che, a
-  parità di peso di classe, il basket di 15 titoli ruota comunque
-  trimestralmente (titoli sostituiti dalla selezione low-beta point-in-
-  time). Corretto: ad ogni ribasket trimestrale, un costo one-time di
-  10bps (stessa convenzione di `backend.update_portfolio`, unica fonte
-  ora — `BASKET_STOCK_COST_BPS`) sui soli titoli EFFETTIVAMENTE
-  scambiati (mai sull'intero basket), nessun doppio conteggio al primo
-  ingresso nello slot Equity (già coperto dal turnover di classe, che è
-  lineare nel nozionale scambiato indipendentemente da quanti titoli lo
-  compongono). Vedi la sezione dati aggiornata sopra per l'impatto
-  quantificato sulle metriche dashboard dopo questa correzione.
+  canonica, insieme alla correzione della fuga same-bar del ribasket
+  (concern #4 e #2, stesso giro di rigenerazione)**.
+  `apex_dashboard_stat_regeneration.py` caricava il costo di transazione
+  SOLO sul turnover della classe macro "Equity" aggregata — invisibile
+  per costruzione al fatto che, a parità di peso di classe, il basket di
+  15 titoli ruota comunque trimestralmente. Corretto: ad ogni ribasket
+  trimestrale, un costo one-time di 10bps (stessa convenzione di
+  `backend.update_portfolio`, unica fonte ora — `BASKET_STOCK_COST_BPS`)
+  sui soli titoli EFFETTIVAMENTE scambiati, nessun doppio conteggio al
+  primo ingresso nello slot Equity (già coperto dal turnover di classe).
+  **Insieme**, nello stesso giro: il basket appena ricostruito con beta
+  calcolata fino alla settimana wk non ne guadagna più il rendimento
+  della stessa settimana wk — il nuovo basket rende dalla settimana
+  SUCCESSIVA, come già faceva correttamente `apex_stocks_vs_etf_backtest.py`
+  (anch'esso corretto per coerenza in `apex_production_confirmation_backtest.py`,
+  script non canonico, non rigenerato). **Impatto quantificato sulle
+  metriche di produzione (`get_apex_metrics()`)**: periodo TEST (72
+  mesi) — Sharpe 1,380→1,36, CAGR lordo 20,18%→19,61%, Sortino
+  2,397→2,353, Calmar 1,905→1,88, Ulcer Index 3,89→3,62, **MaxDD
+  leggermente MIGLIORE** -10,59%→-10,44% (rimuovere il vantaggio
+  same-bar toglie anche un po' di rumore favorevole, non solo rendimento
+  vero). MaxDD storico (471 mesi) -13,62%→-14,73% (peggiora: senza
+  l'edge illegittimo same-bar il worst-case storico reale emerge). Sul
+  **Combinato 70/30** (`get_combined_dual_engine_metrics()`): Sharpe
+  1,585→1,571, CAGR lordo 19,42%→19,02%, MaxDD sulla finestra TEST
+  **invariato** a -7,78% (la diversificazione assorbe di nuovo l'intero
+  impatto, come già osservato per il fix del survivorship bias), MaxDD
+  storico -10,98%→-11,78%. Direzione dell'effetto coerente con
+  l'aspettativa: rimuovere un lookahead e aggiungere un costo mancante
+  riduce le cifre, non le gonfia — ulteriore conferma indiretta che il
+  fix è nella direzione corretta.
 
 ### Verdetto complessivo
 
@@ -2391,10 +2416,14 @@ selezione multipla, o di un singolo regime fortunato. **Convex isolato
 non è un hedge di crisi** (perde in entrambe le crisi maggiori del suo
 backtest) — è esattamente quello che dichiara di essere, un veicolo di
 accumulo passivo a leva, e la sua funzione nel sistema è la
-diversificazione DEL MIX con Apex, non la protezione autonoma. Restano
-4 concern aperti dall'audit qualitativo (sopra), nessuno correttivo
-sui numeri già mostrati in dashboard, tutti candidati per una prossima
-sessione se si vuole spingere il rigore ulteriormente.
+diversificazione DEL MIX con Apex, non la protezione autonoma. I 4
+concern aperti dall'audit qualitativo (sopra) sono stati tutti corretti
+in un giro successivo (richiesto dall'utente) — 2 con impatto reale
+sulle cifre di dashboard (same-bar leak sul ribasket + costo di
+turnover del basket, vedi sopra: Sharpe Apex 1,380→1,36, CAGR lordo
+20,18%→19,61%), 2 senza impatto pratico (Kelly Stack non in produzione;
+la correzione fiscale di Convex "mai vendere" è un chiarimento di
+lettura, non un cambio di configurazione).
 
 **Addendum — Kelly frazionario vs sistema precedente, dopo il fix**:
 il fix del survivorship bias ha eroso anche la significatività
