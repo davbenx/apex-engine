@@ -59,6 +59,7 @@ from statistical_validation import block_bootstrap_ci
 
 TEST_START = "2020-09-30"
 SLICE_END = "2026-08-31"
+MAX_LEVERAGE = 3.0  # cap dichiarato sulla leva 1/beta per gamba — vedi commento inline sopra
 
 # Assunzioni dichiarate, NON misurate — sensitivity su due scenari
 BORROW_FEE_ANNUAL = {"base": 0.005, "stress": 0.015}      # 50bps / 150bps annuo sul nozionale short
@@ -141,8 +142,15 @@ def main():
         r_long = float(np.mean([stock_rets[t].loc[wk] for t in cur_long if t in stock_rets and wk in stock_rets[t].index])) if cur_long else 0.0
         r_short = float(np.mean([stock_rets[t].loc[wk] for t in cur_short if t in stock_rets and wk in stock_rets[t].index])) if cur_short else 0.0
         r_long_hist.append(r_long); r_short_hist.append(r_short)
-        w_long_hist.append(1.0 / beta_long if beta_long > 0.05 else 0.0)
-        w_short_hist.append(1.0 / beta_short if beta_short > 0.05 else 0.0)
+        # Cap di leva [0, MAX_LEVERAGE]: 1/beta esplode (o cambia segno) quando il beta
+        # medio del basket si avvicina a zero o diventa negativo — un evento raro ma
+        # reale su finestre di 26 settimane, non un caso patologico da ignorare. Le
+        # implementazioni reali di BAB (Frazzini-Pedersen incluso) limitano sempre la
+        # leva per questo motivo — senza cap, un singolo trimestre con beta vicino a
+        # zero produce leva/rendimenti numericamente assurdi (verificato: senza questo
+        # cap, CAGR lordo implausibile >69% e NAV che va a zero, CAGR netto NaN).
+        w_long_hist.append(float(np.clip(1.0 / beta_long, 0.0, MAX_LEVERAGE)) if beta_long > 1e-6 else 0.0)
+        w_short_hist.append(float(np.clip(1.0 / beta_short, 0.0, MAX_LEVERAGE)) if beta_short > 1e-6 else 0.0)
 
         # 2. ribasket trimestrale (beta a 26 sett., stessa cadenza di produzione)
         is_month_end = (i + 1 >= len(weeks)) or (weeks[i + 1].month != wk.month)
