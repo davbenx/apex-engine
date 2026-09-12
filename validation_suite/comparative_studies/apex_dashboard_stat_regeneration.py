@@ -72,7 +72,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "framework"))
 
-from apex_v2_engine import compute_v2_macro_signal, select_low_beta_basket, V2_CLASS_TICKER
+from apex_v2_engine import compute_v2_macro_signal, select_low_beta_basket, select_low_vol_basket, V2_CLASS_TICKER
 from metrics import (
     cagr as _cagr, sharpe as _sharpe, max_drawdown as _max_drawdown, calmar as _calmar,
     sortino_ratio, ulcer_index,
@@ -129,7 +129,7 @@ def spliced_price_index(proxy_file, real_file, real_start) -> pd.Series:
 
 def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
                        vol_target: float | None = None, base_weight_per_class: float | None = None,
-                       return_components: bool = False):
+                       return_components: bool = False, use_low_vol_basket: bool = False):
     """kelly_fraction/vol_target/base_weight_per_class=None (default) usano il
     default di produzione di compute_v2_macro_signal (rispettivamente
     V2_KELLY_FRACTION=0.25, V2_VOL_TARGET=0.22, 0.50 — il sistema ATTUALE).
@@ -137,7 +137,16 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     senza Kelly — vedi apex_kelly_vs_flat_v2_comparison.py). vol_target e
     base_weight_per_class esposti per la griglia di sensibilità dei
     parametri richiesta dall'utente (vedi
-    apex_v2_sensitivity_grid.py) — non toccano nulla se lasciati a None."""
+    apex_v2_sensitivity_grid.py) — non toccano nulla se lasciati a None.
+
+    use_low_vol_basket=True sostituisce select_low_beta_basket (default,
+    criterio di produzione ATTUALE dal §8.29) con select_low_vol_basket (il
+    criterio PRECEDENTE) — combinato con kelly_fraction=0.0 riproduce la
+    versione "v2" completa (basket low-vol + target-vol fisso, nessun
+    Kelly) sulla stessa pipeline dati corretta (survivorship bias, same-bar
+    leak, costo turnover) usata per la serie canonica attuale — richiesto
+    dall'utente per un confronto diretto v2-vs-v3 non contaminato da bug
+    ormai corretti solo su un lato del confronto."""
     snapshots = load_pointintime_snapshots()
     with open(DATA_DIR / "sp500_tickers.json") as f:
         all_tickers = json.load(f)
@@ -201,8 +210,11 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
         def rebuild_basket():
             eligible = eligible_universe_for_year(snapshots, wk.year)
             eq_data = {t: build_ohlc_like(p.loc[:wk]) for t, p in stock_prices.items() if t in eligible}
-            spy_data_upto = build_ohlc_like(macro_prices["SPY"].loc[:wk])
-            basket = select_low_beta_basket(eq_data, spy_data_upto, prev_tickers=prev_basket_tickers, sector_of=sector_of)
+            if use_low_vol_basket:
+                basket = select_low_vol_basket(eq_data, prev_tickers=prev_basket_tickers, sector_of=sector_of)
+            else:
+                spy_data_upto = build_ohlc_like(macro_prices["SPY"].loc[:wk])
+                basket = select_low_beta_basket(eq_data, spy_data_upto, prev_tickers=prev_basket_tickers, sector_of=sector_of)
             return [b["Ticker"] for b in basket]
 
         basket_turnover_cost.append(0.0)
