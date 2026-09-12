@@ -72,7 +72,7 @@ def test_gross_cap_preserves_proportions_among_uncapped_sleeves():
         assert abs(res.concentration_capped_weights[k]) < 0.60 - 1e-6, (
             "questo scenario presuppone che nessuna sleeve tocchi il cap di concentrazione"
         )
-    assert res.gross_leverage_final == 1.50, "questo scenario deve far scattare il tetto di leva lorda"
+    assert abs(res.gross_leverage_final - 1.50) < 1e-9, "questo scenario deve far scattare il tetto di leva lorda"
 
     ratio_before = res.concentration_capped_weights["NTSG"] / res.concentration_capped_weights["AVWS"]
     ratio_after = res.capped_weights["NTSG"] / res.capped_weights["AVWS"]
