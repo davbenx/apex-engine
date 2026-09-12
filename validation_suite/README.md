@@ -1,5 +1,11 @@
 # Validation Suite — indice unico di test, invalidazione istituzionale e dati point-in-time
 
+> **Devi fare un audit indipendente o riverificare i risultati di questa
+> sessione?** Vai direttamente a [`AUDIT_GUIDE.md`](AUDIT_GUIDE.md) —
+> ambiente, comandi esatti, dataset (già tutti tracciati in git, nessun
+> fetch necessario) e la lista degli script prioritari con il risultato
+> atteso da confrontare.
+
 Questa cartella centralizza tutto quello che serve per **verificare** (non per
 far girare in produzione) le strategie di questo repository: Apex V2,
 Convex Stack e Kelly Stack (quest'ultima esplorata e poi scartata — vedi
@@ -83,11 +89,19 @@ validation_suite/
 │   ├── altcoin_btc_vol_targeting_test.py  <- volatility targeting sull'esposizione BTC (Moreira & Muir 2017) — falsificato, il flat 100% vince nettamente
 │   ├── altcoin_btc_cash_rebalancing_premium_test.py <- rebalancing premium/Shannon's Demon su mix BTC/cash — riduce il MaxDD in modo robusto, non il CAGR/Sharpe in modo provato
 │   ├── altcoin_carry_market_neutral_test.py <- vero carry market-neutral (long spot + short perpetual) — magnitudine economica marginale, non praticabile
-│   ├── apex_stocks_data/                  <- cache prezzi (rigenerabile, gitignored)
-│   ├── altcoin_data/                      <- cache prezzi settimanali (rigenerabile, gitignored)
-│   ├── altcoin_daily_data/                <- cache prezzi daily (rigenerabile, gitignored)
-│   ├── convex_grid_data/                  <- cache prezzi mensili proxy Convex (rigenerabile, gitignored)
-│   └── carry_funding_data/                <- cache funding rate orari Kraken Futures (rigenerabile, gitignored, ~1 anno)
+│   ├── apex_v2_vs_v3_full_comparison.py   <- confronto diretto v2 (low-vol, no Kelly) vs v3 (low-beta+Kelly, produzione) sulla pipeline dati corretta — v3 non rende meno di v2, CAGR statisticamente pari, risk-adjusted meglio
+│   ├── apex_bab_long_short_quantified_test.py <- esperimento "rimuoviamo i vincoli": vero BAB long/short a leva, quantificato — fallisce nel regime recente (Sharpe~0, MaxDD -48%), non praticabile
+│   ├── apex_tax_loss_harvesting_test.py   <- raccolta minusvalenze nella zona cuscinetto del ribasket — segno giusto (CAGR lordo invariato, meno tasse pagate) ma magnitudine non significativa nella versione conservativa testata
+│   ├── apex_stocks_data/                  <- cache prezzi (705 file, TRACCIATA in git — vedi .gitignore)
+│   ├── altcoin_data/                      <- cache prezzi settimanali (TRACCIATA in git)
+│   ├── altcoin_daily_data/                <- cache prezzi daily (TRACCIATA in git)
+│   ├── convex_grid_data/                  <- cache prezzi mensili proxy Convex (TRACCIATA in git)
+│   ├── carry_funding_data/                <- cache funding rate orari Kraken Futures (TRACCIATA in git, ~1 anno)
+│   ├── apex_macro_extended_data/          <- proxy storici VFINX/VUSTX/GC=F 1986+ (TRACCIATA in git)
+│   ├── apex_country_etf_data/, apex_quality_data/, convex_extended_data/, apex_sensitivity_series/  <- altre cache/output di script dedicati (TRACCIATE in git)
+│   └── (75 script totali in questa cartella al 12 settembre 2026 — l'elenco sopra copre i più
+│        significativi in ordine cronologico, non è più esaustivo al 100%; `ls *.py` per il totale,
+│        ogni script ha una docstring di apertura che spiega cosa testa e perché)
 └── pointintime_data/             <- DATASET POINT-IN-TIME REALI, tracciati in git (non rigenerabili banalmente)
     ├── sp500_pointintime_snapshots.json          <- composizione reale S&P 500 per anno, 2012-2026
     └── cmc_altcoin_pointintime_snapshots.json    <- classifica reale altcoin per market cap, 2019-2026
@@ -131,7 +145,7 @@ quando**.
 Dalla root del repo (o da qualunque cwd — lo script risolve il percorso):
 
 ```bash
-# UN comando per tutta la suite veloce/deterministica (framework + kelly_stack + core_regression, 103 test):
+# UN comando per tutta la suite veloce/deterministica (framework + kelly_stack + core_regression, 141 test al 12 settembre 2026):
 ./validation_suite/run_fast_suite.sh
 
 # equivalente esplicito, se preferisci pytest direttamente:
