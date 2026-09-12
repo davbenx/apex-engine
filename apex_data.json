@@ -10,7 +10,7 @@
             "price": 396.3599853515625
         },
         "BTC-USD": {
-            "price": 77187.4921875
+            "price": 77274.8515625
         }
     },
     "allocations": {
@@ -117,7 +117,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 77187.49,
+            "Prezzo ($)": 77274.85,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -225,6 +225,6 @@
         "last_decision_month": "2026-08",
         "pending_decision": null
     },
-    "timestamp": "11 Sep 2026, 08:03 (UTC)",
-    "eur_usd": 1.1609
+    "timestamp": "12 Sep 2026, 00:50 (UTC)",
+    "eur_usd": 1.1602
 }
