@@ -2638,7 +2638,47 @@ netto che lo giustifichi. Nessuna modifica in produzione — argomento
 chiuso con confidenza alta, non per mancanza di ambizione ma perché,
 quantificato, il conto non torna.
 
+## Tax-loss harvesting sul basket — l'alternativa che non tocca CAGR ne' rischio
 
+Richiesto dall'utente dopo il fallimento del BAB come "altro modo per
+triangolare CAGR/rischio/netto-tasse" — a differenza di leva/short, questa
+idea non cerca piu' rendimento lordo ne' cambia il rischio: sposta solo
+QUANDO si paga il fisco, vendendo prima chi e' in minusvalenza (compensabile,
+REDDITO_DIVERSO) e tenendo piu' a lungo chi e' in plusvalenza, a parita' di
+merito (beta).
+
+`apex_tax_loss_harvesting_test.py` — variante HARVEST conservativa: tra gli
+incumbent nella zona cuscinetto del ribasket (rank 15-19, quelli che
+l'isteresi normale terrebbe comunque) chi e' in minusvalenza non realizzata
+viene venduto subito invece di essere tenuto; chi e' in plusvalenza segue
+la regola normale (nessun cambiamento). I titoli nel vero top-15 per beta
+non sono mai toccati da questa regola. Simulazione isolata sulla sola
+sleeve Equity (non condivide il pool di minusvalenze con Crypto come fa la
+produzione reale — limite dichiarato).
+
+**Risultato — il meccanismo funziona nella direzione giusta, ma l'effetto
+è piccolo**: CAGR lordo quasi identico tra le due varianti (10,94% vs
+10,98% sull'intero campione, +0,05pp/anno — conferma che il ribasket
+harvest non altera il merito di selezione, solo il timing fiscale, come
+disegnato). Tasse totali pagate leggermente inferiori nella variante
+HARVEST (1,1221 contro 1,1343, indice=1,0 iniziale). CAGR netto:
++0,06pp/anno sull'intero campione, +0,30pp/anno nel periodo TEST — **ma
+CI90 sulla differenza netta [-0,347;+0,357], include lo zero**, non
+distinguibile dal rumore con questa implementazione specifica.
+
+**Verdetto**: l'unica idea di questo giro che rispetta esattamente il
+vincolo "CAGR e rischio invariati" — e l'unica il cui segno è quello
+giusto, non quello sbagliato come il BAB. Ma la magnitudine, in questa
+versione CONSERVATIVA (harvest solo nella zona cuscinetto, poche posizioni
+all'anno), è troppo piccola per essere un caso pratico da solo. Una
+versione più aggressiva — raccolta opportunistica anche dentro il top-15
+con un sostituto quasi-equivalente per beta, non solo nella zona cuscinetto
+— potrebbe catturare di più, ma non è stata testata qui: aggiungerebbe
+turnover/costo di transazione che andrebbe giustificato a parte, lo stesso
+principio già applicato al costo di turnover del basket (concern #4).
+Nessuna modifica in produzione — non per il segno del risultato (corretto)
+ma per la magnitudine (troppo piccola per giustificare la complessità
+operativa aggiuntiva, allo stato attuale).
 
 Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.
 (Le due idee originarie di questa lista — Kelly "al contrario" su Convex e
