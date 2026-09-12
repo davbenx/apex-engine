@@ -102,9 +102,9 @@ CONVEX_INSTRUMENTS_METADATA = {
         "tax_regime": "Reddito Diverso (compensa minusvalenze)",
         "tax_type": "diverso",
         "target_weight": 0.075,
-        "trim_threshold": 0.1125,
+        "trim_threshold": 0.13125,
         "role": "Riserva di valore reale tangibile contro svalutazione monetaria e shock geopolitici sistemici",
-        "driver": "Safe-haven reale senza rischio di credito. Vendita parziale disciplinata solo sopra l'11.25% (+50% target).",
+        "driver": "Safe-haven reale senza rischio di credito. Vendita parziale disciplinata solo sopra il 13.13% (+75% target, verifica trimestrale).",
     },
     "WBTC": {
         "isin": "GB00BJYDH287",
@@ -115,9 +115,9 @@ CONVEX_INSTRUMENTS_METADATA = {
         "tax_regime": "Reddito Diverso (compensa minusvalenze)",
         "tax_type": "diverso",
         "target_weight": 0.075,
-        "trim_threshold": 0.1125,
+        "trim_threshold": 0.13125,
         "role": "Convessità asimmetrica monetaria digitale e riserva antifragile a scarsità assoluta",
-        "driver": "Rendimenti asimmetrici esponenziali. Trim automatico all'11.25% per monetizzare i run rialzisti e riallocare a costo zero.",
+        "driver": "Rendimenti asimmetrici esponenziali. Trim disciplinato sopra il 13.13% (+75% target, verifica trimestrale) per monetizzare i run rialzisti e riallocare a costo zero.",
     },
 }
 

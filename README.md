@@ -54,7 +54,7 @@ Questo README è solo un orientamento rapido.
 AVWS): NTSG (equity core a leva) · AVWS (small cap value, solo Completa) ·
 DBMFE (managed futures / crisis alpha) · PPFB (oro fisico) · WBTC (Bitcoin).
 Deposito PAC diretto all'asset più sottopesato; trim solo se un asset
-supera la propria banda di tolleranza (11.25% per PPFB/WBTC).
+supera la propria banda di tolleranza (13.13% per PPFB/WBTC, trim trimestrale a +75%).
 
 ---
 

@@ -66,7 +66,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
         report = convex_engine.evaluate_convex_stack(holdings, prices)
 
         btc_alert = next((a for a in report.trim_alerts if a["asset"] == "WBTC"), None)
-        self.assertIsNotNone(btc_alert, "WBTC sopra l'11.25% deve attivare l'alert di trim")
+        self.assertIsNotNone(btc_alert, "WBTC sopra il 13.13% deve attivare l'alert di trim")
         self.assertIn("COMPENSABILE con minusvalenze", btc_alert["tax_note"])
 
     def test_trim_never_fires_for_reddito_capitale(self):

@@ -42,7 +42,7 @@ def build_message() -> str:
         "• WBTC (Bitcoin ETP - Compensa Minusvalenze): 7.5%\n\n"
         "*REGOLE OPERATIVE:*\n"
         "1. Versa la liquidità sull'asset con maggior deficit (Water-Filling a costo fiscale zero).\n"
-        "2. Esegui il trim parziale solo se WBTC o PPFB superano l'11.25% (+50% sopra target).\n"
+        "2. Esegui il trim parziale solo se WBTC o PPFB superano il 13.13% (+75% sopra target) a fine trimestre.\n"
         "3. Apri la dashboard per calcolare esattamente quote e residuo cassa."
     )
 

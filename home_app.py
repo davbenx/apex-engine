@@ -444,7 +444,7 @@ with tab_guide:
         <div class="glass-card" style="text-align:center; height: 140px;">
             <div style="font-family:{FRAUNCES}; font-size:24px; color:{ACCENT}; font-weight:700;">2</div>
             <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">1° del Mese</div>
-            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Controlla Convex Stack: inserisci la rata PAC del mese e versa sull'asset più sottopesato. Esegui il trim se Oro o BTC superano l'11.25%.</div>
+            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Controlla Convex Stack: inserisci la rata PAC del mese e versa sull'asset più sottopesato. Esegui il trim se Oro o BTC superano il 13.13% a fine trimestre (+75% sopra target).</div>
         </div>
         """)
     with r3:

@@ -427,7 +427,7 @@ with tab_pf:
         <div style="background: rgba(61,220,151,0.06); border: 1px solid rgba(61,220,151,0.25); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
             <div style="color:{POS}; font-weight:700; font-size:13.5px;">TUTTI GLI ASSET SONO DENTRO LE BANDE DI TOLLERANZA</div>
             <div style="font-size:12px; color:{MUTED}; margin-top:3px;">
-                Nessuna vendita necessaria. Bitcoin e Oro sono entrambi sotto la soglia dell'11.25% (target ×1.5).
+                Nessuna vendita necessaria. Bitcoin e Oro sono entrambi sotto la soglia del 13.13% (target ×1.75, verifica trimestrale a +75%).
             </div>
         </div>
         """)
@@ -657,7 +657,7 @@ with tab_guida:
         meta = meta_map.get(key, {})
         target_pct = info.get("target_weight", 0.0) * 100.0
         target_col = _COLOR_MAP.get(key, ACCENT)
-        trim_str = f"Trim oltre {meta['trim_threshold']*100:.2f}% (+50% sopra target)" if meta.get("trim_threshold") else "Ribilanciamento passivo tramite PAC (nessuna vendita)"
+        trim_str = f"Trim trimestrale oltre {meta['trim_threshold']*100:.2f}% (+75% sopra target)" if meta.get("trim_threshold") else "Ribilanciamento passivo tramite PAC (nessuna vendita)"
         is_diverso = meta.get("tax_type") == "diverso"
         tax_badge_bg = "rgba(61,220,151,0.12)" if is_diverso else "rgba(255,247,237,0.05)"
         tax_badge_col = POS if is_diverso else MUTED
@@ -719,9 +719,9 @@ with tab_guida:
         <div style="font-size: 13px; color: {MUTED}; line-height: 1.6;">
             Convex Stack <strong>non è a leva zero</strong>: l'esposizione nozionale totale è il {_notional_pct:.1f}% del capitale,
             interamente tramite la leva 1.5x incorporata in NTSG (futures istituzionali, nessun debito a margine
-            personale). Il vero controllo del rischio sono le <strong>bande di trim all'11.25%</strong> su Bitcoin e
+            personale). Il vero controllo del rischio sono le <strong>bande di trim trimestrali al 13.13% (+75%)</strong> su Bitcoin e
             Oro — i due strumenti più volatili — che riportano automaticamente la posizione in linea quando supera
-            1,5 volte il suo peso target. Il resto della protezione viene dalla diversificazione tra {_motori_txt} —
+            1,75 volte il suo peso target a fine trimestre. Il resto della protezione viene dalla diversificazione tra {_motori_txt} —
             pensati per non muoversi tutti insieme nello stesso momento.
         </div>
     </div>

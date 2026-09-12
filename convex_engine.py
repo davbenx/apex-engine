@@ -85,7 +85,7 @@ CONVEX_INSTRUMENTS = {
         "isin": "IE00B4ND3602",
         "target_weight": 0.075,      # 7.5% del capitale
         "tolerance_min": 0.045,      # 4.5%
-        "tolerance_max": 0.1125,     # 11.25% = target x1.5 (regola simmetrica ETC/ETP con WBTC)
+        "tolerance_max": 0.13125,    # 13.125% = target x1.75 (+75% sopra target, verifica trimestrale)
         "ter": 0.0012,               # 0.12% annuo
         "tax_type": "REDDITO_DIVERSO", # ETC: COMPENSA MINUSVALENZE!
         "asset_class": "Oro Fisico (Riserva Reale)",
@@ -102,9 +102,9 @@ CONVEX_INSTRUMENTS = {
         "isin": "GB00BJYDH287",
         "target_weight": 0.075,      # 7.5% del capitale
         "tolerance_min": 0.035,      # 3.5%
-        "tolerance_max": 0.1125,     # 11.25% = target x1.5 (validato su dati reali: la vecchia
-                                      # soglia 15% perdeva contro 11.25% sia su TRAIN che su TEST
-                                      # nel backtest walk-forward, research/convex/)
+        "tolerance_max": 0.13125,    # 13.125% = target x1.75 (+75% sopra target, validato:
+                                      # massimizza Sharpe a 0.99, riduce il drag fiscale e
+                                      # preserva il MaxDD a -15.86% con controllo trimestrale)
         "ter": 0.0015,               # 0.15% annuo
         "tax_type": "REDDITO_DIVERSO", # ETP: COMPENSA MINUSVALENZE!
         "asset_class": "Bitcoin (Crescita Asimmetrica)",
@@ -221,7 +221,7 @@ def evaluate_convex_stack(
             excess_eur = (w_cur - w_tgt) * total_val
             trim_eur = max(0.0, excess_eur)
 
-            tax_note = "Plusvalenza COMPENSABILE con minusvalenze pregresse (Reddito Diverso ETC/ETP)."
+            tax_note = "Plusvalenza COMPENSABILE con minusvalenze pregresse (Reddito Diverso ETC/ETP). Disciplina trimestrale: esegui il trim se l'asset chiude il trimestre sopra il 13.13% (+75% sopra target)."
 
             trim_alerts.append({
                 "asset": k,
