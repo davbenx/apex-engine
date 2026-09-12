@@ -2171,6 +2171,42 @@ state ETH e SOL" — lavoro in corso, vedi "Storia delle scoperte" sotto.
       attivo) resta giustificata sul piano del rischio, non più su
       quello del rendimento puro — una lettura più onesta e più
       difendibile di quella originale, non un'invalidazione.
+  - **Confronto diretto v2 (basket low-vol, no Kelly) vs v3 completo
+    (basket low-beta + Kelly, produzione) sulla pipeline corretta**
+    (`apex_v2_vs_v3_full_comparison.py`), richiesto esplicitamente
+    dall'utente ("Apex v3 rende meno di Apex v2?"). Nessun confronto
+    precedente isolava questa domanda in modo pulito: il confronto
+    low-vol/low-beta esistente precede tutti i fix di oggi (survivorship
+    bias, same-bar leak, costo turnover) e non includeva Kelly; il
+    confronto Kelly/no-Kelly usava low-beta su entrambi i lati (isola
+    solo l'effetto Kelly, non il cambio di basket). Qui `run_full_backtest`
+    esteso con `use_low_vol_basket` (default False, nessuna regressione)
+    per riprodurre v2 COMPLETO sulla stessa pipeline dati corretta di v3.
+    - **Periodo TEST (72 mesi)**: CAGR lordo v2 18,80% vs v3 19,61%
+      (+0,81pp, v3 meglio ma non peggio), CAGR netto 13,04% vs 14,22%.
+      Differenza appaiata: **+0,47pp/anno, CI90 [-4,85;+6,22] include lo
+      zero** — non significativa, ma il segno è a favore di v3, non
+      contro. Risk-adjusted: v3 chiaramente meglio su ogni fronte —
+      Sharpe 1,184→1,360, MaxDD -13,95%→-10,44%, Calmar 1,348→1,880,
+      Ulcer Index 6,20→3,62.
+    - **Intero storico (471 mesi)**: CAGR quasi identico (13,58% vs
+      13,53%, -0,05pp — v3 leggermente più basso qui, ma CI90
+      [-1,62;+0,81] include ampiamente lo zero, differenza trascurabile).
+      Sharpe/Ulcer restano meglio per v3 (1,214→1,306, 3,82→3,22), ma
+      **MaxDD/Calmar sono leggermente PEGGIORI per v3 sull'intero
+      storico** (-14,41%→-14,73%, 0,943→0,919) — l'opposto della
+      direzione osservata sul periodo TEST, un'inversione onesta da non
+      nascondere: il miglioramento di drawdown di v3 è chiaro nel regime
+      recente (TEST) ma non uniforme su tutti i 39 anni.
+    - **Risposta diretta alla domanda dell'utente**: no, v3 non rende
+      meno di v2 — il CAGR è statisticamente indistinguibile in entrambe
+      le finestre (mai un CI che esclude lo zero, in nessuna delle due
+      direzioni), con un punto stimato leggermente positivo per v3 sul
+      periodo che conta di più (TEST, fuori campione). Il caso per v3
+      resta, come già stabilito sopra per Kelly, principalmente
+      risk-adjusted (Sharpe/Ulcer consistenti su entrambe le finestre),
+      non di rendimento puro — con l'onestà aggiuntiva che il
+      miglioramento di drawdown non è uniforme su tutto lo storico.
 
 ## Test di robustezza e invalidazione istituzionale completo (richiesto dall'utente)
 
