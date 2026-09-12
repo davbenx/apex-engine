@@ -2583,6 +2583,61 @@ tutte perdenti contro BTC buy&hold).
   confidenza; vol-targeting e carry market-neutral falliscono in modo
   più netto. Nessuna modifica in produzione.
 
+## Esperimento mentale: "rimuoviamo i vincoli" — BAB long/short quantificato
+
+Richiesto dall'utente dopo la domanda "è possibile avvicinarsi al quant
+istituzionale?": invece di restare nel qualitativo (più breadth/leva
+chiuderebbero il gap con Sharpe 2+, ma il fisco italiano e i costi non
+modellati eroderebbero gran parte del guadagno), una quantificazione
+concreta di UNA gamba — un vero Betting-Against-Beta long/short (long
+basso beta + short alto beta, scalati a beta-neutralità
+Frazzini-Pedersen), l'unica testabile con i dati già in repository.
+
+`apex_bab_long_short_quantified_test.py` — stesso universo/beta a 26
+settimane/buffer di rank di `select_low_beta_basket`, ma con una gamba
+short simmetrica (i beta più alti). Limiti dichiarati: storico 2012+
+(14 anni, non 39), costo di prestito titoli e dividendo dovuto sullo
+short ASSUNTI non misurati (sensitivity 50bps/1,2% annuo "base" vs
+150bps/2% "stress"), tassazione assunta REDDITO_DIVERSO via CFD/future
+(ipotesi ottimistica), nessun rischio di margin call modellato.
+
+**Bug reale trovato e corretto durante lo sviluppo**: senza un cap alla
+leva 1/beta, un beta di basket vicino a zero (o negativo — successo
+davvero, beta medio del basket long sceso a -0,92 nell'ultimo trimestre
+del campione) manda in overflow la leva e produce risultati numericamente
+assurdi (CAGR lordo >69%, CAGR netto NaN da NAV azzerato). Corretto con
+`MAX_LEVERAGE=3,0x`, lo stesso tipo di cap che le implementazioni reali
+di BAB applicano per lo stesso motivo — non un caso patologico isolato.
+
+**Risultato, scenario base**:
+- **Intero campione (2012-2026, 177 mesi)**: CAGR lordo 27,33% ma
+  **netto solo 6,09%** (il fisco/costi si mangiano il 78% relativo del
+  lordo — molto peggio del 27,5% già misurato sul sistema long-only
+  attuale, confermando l'argomento qualitativo di prima). Sharpe lordo
+  0,933, MaxDD **-48,66%**.
+- **Periodo TEST (2020-09+, 73 mesi, il regime più recente e rilevante)**:
+  CAGR lordo **-0,60%**, Sharpe **0,087** (rumore puro), Calmar
+  **-0,012** (negativo). Il MaxDD peggiore dell'intero campione
+  (-48,66%) cade PROPRIO in questa finestra — più del TRIPLO del MaxDD
+  storico di 39 anni dell'intero sistema Apex long-only attuale
+  (-14,73%). CI90 sul CAGR: [-11,50;+21,31], include ampiamente lo zero.
+  Lo scenario stress (costi più alti) peggiora ulteriormente ogni cifra.
+
+**Verdetto**: l'esperimento mentale del "rimuoviamo i vincoli" non
+regge alla quantificazione, nemmeno nella sua forma più favorevole
+(assunzioni fiscali ottimistiche, nessun rischio di margin call). Nel
+regime più recente — quello che conta per una decisione oggi, non il
+2012-2019 — la gamba BAB pura non produce un edge misurabile (Sharpe
+statisticamente indistinguibile da zero) e porta un drawdown che
+avrebbe da solo superato il peggior calo in 39 anni dell'intero sistema
+attuale. Conferma quantificata, non solo qualitativa, dell'avvertimento
+dato prima di lanciare questo test: la leva e lo short reintroducono
+esattamente il rischio di rovina che il design attuale (mai a leva,
+long-only) esiste per evitare, senza una prova credibile di un guadagno
+netto che lo giustifichi. Nessuna modifica in produzione — argomento
+chiuso con confidenza alta, non per mancanza di ambizione ma perché,
+quantificato, il conto non torna.
+
 
 
 Non ancora testate — annotate qui per non perderle, non ordinate per priorita'.
