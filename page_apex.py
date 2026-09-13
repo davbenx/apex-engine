@@ -209,7 +209,7 @@ def render_orders_html_table(df, curr_sym):
     th_cols = ["Operazione", "Strumento", "Variazione Peso", f"Controvalore ({curr_sym})", "Quote", "Prezzo ($)", "Dettaglio Operativo"]
     th_cells = []
     for c in th_cols:
-        align = "center" if c == "Operazione" else ("right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo ($)", "Variazione Peso"] else "left")
+        align = "left" if c in ["Operazione", "Strumento", "Dettaglio Operativo"] else "right"
         th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
 
     rows_html = []
@@ -218,9 +218,31 @@ def render_orders_html_table(df, curr_sym):
         op = str(r.get("Operazione", ""))
         for c in th_cols:
             val = r.get(c, "")
-            align = "right" if c in [f"Controvalore ({curr_sym})", "Quote", "Prezzo ($)", "Variazione Peso"] else "left"
+            align = "left" if c in ["Operazione", "Strumento", "Dettaglio Operativo"] else "right"
             if c == "Operazione":
-                td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_action_svg(op, size=16)}</td>')
+                op_u = op.upper()
+                if any(k in op_u for k in ("VENDITA", "CHIUSURA", "SELL")):
+                    badge_bg = "rgba(236,101,123,0.12)"
+                    badge_col = NEG
+                    border_col = "rgba(236,101,123,0.3)"
+                    op_name = "CHIUSURA" if "CHIUSURA" in op_u else "VENDITA"
+                elif any(k in op_u for k in ("RIDUZIONE", "TRIM")):
+                    badge_bg = "rgba(201,164,76,0.15)"
+                    badge_col = ACCENT
+                    border_col = "rgba(201,164,76,0.35)"
+                    op_name = "RIDUZIONE"
+                elif any(k in op_u for k in ("INCREMENTO", "AUMENTO")):
+                    badge_bg = "rgba(61,220,151,0.12)"
+                    badge_col = POS
+                    border_col = "rgba(61,220,151,0.3)"
+                    op_name = "INCREMENTO"
+                else:
+                    badge_bg = "rgba(61,220,151,0.12)"
+                    badge_col = POS
+                    border_col = "rgba(61,220,151,0.3)"
+                    op_name = "ACQUISTO"
+                action_svg = get_action_svg(op_name, size=13)
+                td_cells.append(f'<td style="padding:10px 14px; text-align:left; white-space:nowrap;"><span style="background:{badge_bg}; color:{badge_col}; border:1px solid {border_col}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; font-family:{MONO}; display:inline-flex; align-items:center; gap:6px;">{action_svg} {op_name}</span></td>')
             elif c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c == "Variazione Peso":
@@ -238,14 +260,88 @@ def render_orders_html_table(df, curr_sym):
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-    return f'''<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
+    th_joined = "".join(th_cells)
+    tr_joined = "".join(rows_html)
+    return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{th_joined}</tr></thead><tbody>{tr_joined}</tbody></table></div>'
+
+
+def render_action_log_html_table(actions):
+    th_cols = ["Operazione", "Strumento", "Dettaglio Operativo", "Prezzo ($)"]
+    th_cells = []
+    for c in th_cols:
+        align = "right" if c == "Prezzo ($)" else "left"
+        th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
+
+    rows_html = []
+    for act_str in actions:
+        clean = act_str.strip().replace("[", "").replace("]", "").replace("TRIM:", "RIDUZIONE:")
+        parts = [p.strip() for p in clean.split("|")]
+        first = parts[0]
+        op_label = "OPERAZIONE"
+        tkr = ""
+        if ":" in first:
+            a_p, t_p = first.split(":", 1)
+            op_label = a_p.strip().upper()
+            tkr = t_p.strip()
+        else:
+            tkr = first
+
+        op_u = op_label.upper()
+        if any(k in op_u for k in ("VENDITA", "CHIUSURA", "SELL")):
+            badge_bg = "rgba(236,101,123,0.12)"
+            badge_col = NEG
+            border_col = "rgba(236,101,123,0.3)"
+            op_name = "CHIUSURA" if "CHIUSURA" in op_u else "VENDITA"
+        elif any(k in op_u for k in ("RIDUZIONE", "TRIM")):
+            badge_bg = "rgba(201,164,76,0.15)"
+            badge_col = ACCENT
+            border_col = "rgba(201,164,76,0.35)"
+            op_name = "RIDUZIONE"
+        elif any(k in op_u for k in ("INCREMENTO", "AUMENTO")):
+            badge_bg = "rgba(61,220,151,0.12)"
+            badge_col = POS
+            border_col = "rgba(61,220,151,0.3)"
+            op_name = "INCREMENTO"
+        else:
+            badge_bg = "rgba(61,220,151,0.12)"
+            badge_col = POS
+            border_col = "rgba(61,220,151,0.3)"
+            op_name = "APERTURA"
+
+        action_svg = get_action_svg(op_name, size=13)
+        badge_html = f'<span style="background:{badge_bg}; color:{badge_col}; border:1px solid {border_col}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; font-family:{MONO}; display:inline-flex; align-items:center; gap:6px;">{action_svg} {op_name}</span>'
+
+        detail_str = parts[1] if len(parts) > 1 else "—"
+        price_str = ""
+        for p in parts[2:]:
+            if "Prezzo" in p:
+                price_str = p.replace("Prezzo:", "").strip()
+            elif not price_str:
+                price_str = p
+
+        if not price_str and len(parts) > 2:
+            price_str = parts[2].replace("Prezzo:", "").strip()
+
+        px_display = price_str if price_str else "—"
+
+        td_cells = [
+            f'<td style="padding:10px 14px; text-align:left; white-space:nowrap;">{badge_html}</td>',
+            f'<td style="padding:10px 14px; font-size:12.5px; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{tkr}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; color:{MUTED};">{detail_str}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; text-align:right; font-family:{MONO}; white-space:nowrap;">{px_display}</td>',
+        ]
+        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
+
+    th_joined = "".join(th_cells)
+    tr_joined = "".join(rows_html)
+    return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{th_joined}</tr></thead><tbody>{tr_joined}</tbody></table></div>'
 
 
 def render_recent_trades_html_table(df, active_cols):
     th_cells = []
     for c in active_cols:
         if c == "Operazione":
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Azione</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Azione</th>')
         elif c in ["Data Ingresso", "Data Uscita"]:
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
@@ -260,7 +356,24 @@ def render_recent_trades_html_table(df, active_cols):
             val = r.get(c, "")
             align = "right" if c in ["Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"] else "left"
             if c == "Operazione":
-                td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_action_svg(op, size=16)}</td>')
+                op_u = op.upper()
+                if any(k in op_u for k in ("CHIUSURA", "VENDITA", "SELL")):
+                    badge_bg = "rgba(236,101,123,0.12)"
+                    badge_col = NEG
+                    border_col = "rgba(236,101,123,0.3)"
+                    op_name = "CHIUSURA"
+                elif any(k in op_u for k in ("RIDUZIONE", "TRIM")):
+                    badge_bg = "rgba(201,164,76,0.15)"
+                    badge_col = ACCENT
+                    border_col = "rgba(201,164,76,0.35)"
+                    op_name = "RIDUZIONE"
+                else:
+                    badge_bg = "rgba(61,220,151,0.12)"
+                    badge_col = POS
+                    border_col = "rgba(61,220,151,0.3)"
+                    op_name = "ACQUISTO"
+                action_svg = get_action_svg(op_name, size=13)
+                td_cells.append(f'<td style="padding:10px 14px; text-align:left; white-space:nowrap;"><span style="background:{badge_bg}; color:{badge_col}; border:1px solid {border_col}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; font-family:{MONO}; display:inline-flex; align-items:center; gap:6px;">{action_svg} {op_name}</span></td>')
             elif c == "Strumento":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c in ["Data Ingresso", "Data Uscita"]:
@@ -281,7 +394,9 @@ def render_recent_trades_html_table(df, active_cols):
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-    return f'''<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
+    th_joined = "".join(th_cells)
+    tr_joined = "".join(rows_html)
+    return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{th_joined}</tr></thead><tbody>{tr_joined}</tbody></table></div>'
 
 
 def render_hist_trades_html_table(df, active_cols):
@@ -640,7 +755,93 @@ with tab_pf:
             latest_hist_exit_date = max(exit_dates)
             latest_hist_trades = [t for t in hist_trades if t.get("exit_date") == latest_hist_exit_date]
 
-    # --- 1. Regimi e Segnali Macro ---
+    # --- 1. Ordini Operativi & Stato Allineamento ---
+    st_html(section_title("Ordini Operativi & Stato Allineamento"))
+    if pending_orders:
+        orders_rows = []
+        tot_buy_val = 0.0
+        tot_sell_val = 0.0
+        num_buys = 0
+        num_sells = 0
+
+        for o in pending_orders:
+            act_label = o.get("action", "ORDINE")
+            if act_label == "TRIM":
+                act_label = "RIDUZIONE"
+            tkr = o.get("ticker", "")
+            disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
+            px = o.get("price", 0.0)
+            delta_w = abs(o.get("delta_w_pct", 0.0))
+            val_usd = (delta_w / 100.0) * capitale
+            val_user = val_usd * fx_ratio
+            is_cr = o.get("is_crypto", False) or tkr == "BTC"
+            shares = (val_usd / px) if px > 0 else 0.0
+            shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
+
+            is_buy_act = o.get("action_type") == "BUY" or "ACQUISTO" in str(act_label).upper() or "APERTURA" in str(act_label).upper() or "INCREMENTO" in str(act_label).upper()
+            if is_buy_act:
+                tot_buy_val += val_user
+                num_buys += 1
+            else:
+                tot_sell_val += val_user
+                num_sells += 1
+
+            orders_rows.append({
+                "Operazione": act_label,
+                "Strumento": disp_name,
+                "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}%",
+                f"Controvalore ({curr_sym})": val_user,
+                "Quote": shares_str,
+                "Prezzo ($)": px,
+                "Dettaglio Operativo": o.get("desc", "").replace("TRIM:", "RIDUZIONE:"),
+            })
+
+        fmt_action_date = format_date_italian(last_action_date) if last_action_date else "Lunedì"
+        summary_parts = []
+        if num_buys > 0:
+            summary_parts.append(f"{num_buys} acquisti ({curr_sym}{tot_buy_val:,.0f})")
+        if num_sells > 0:
+            summary_parts.append(f"{num_sells} vendite/riduzioni ({curr_sym}{tot_sell_val:,.0f})")
+        summary_text = " · ".join(summary_parts)
+
+        st_html(f"""
+        <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px; padding: 14px 18px; margin: 8px 0 12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="width:8px; height:8px; border-radius:50%; background:{ACCENT}; display:inline-block; flex-shrink:0;"></span>
+                    <strong style="font-size:14px; color:{BADGE_TEXT};">Ordini Operativi per Lunedì ({fmt_action_date})</strong>
+                    <span style="background:{BADGE_NEUTRAL_BG}; color:{ACCENT}; font-size:10.5px; font-weight:700; padding:3px 7px; border-radius:4px; font-family:{MONO};">DA ESEGUIRE ORE 15:30 CET</span>
+                </div>
+                <div style="font-size:11.5px; color:{MUTED};">Capitale operativo: <b style="color:{BADGE_TEXT};">{curr_sym}{capitale * fx_ratio:,.0f}</b></div>
+            </div>
+            <div style="font-size:12px; color:{BADGE_TEXT};">
+                {summary_text} — Esecuzione all'apertura mercati USA a prezzo di mercato o limite sul riferimento.
+            </div>
+        </div>
+        """)
+        df_orders = pd.DataFrame(orders_rows)
+        st_html(render_orders_html_table(df_orders, curr_sym))
+    else:
+        st_html(f"""
+        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; padding: 14px 18px; margin: 8px 0 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(61,220,151,0.12); border: 1px solid rgba(61,220,151,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <div>
+                        <strong style="font-size: 13.5px; color: {BADGE_TEXT};">Portafoglio allineato ai target quantitativi</strong>
+                        <div style="color: {MUTED}; font-size: 11.5px; margin-top: 1px;">Nessun ordine operativo da eseguire per lunedì. Tutti gli strumenti attivi rientrano nei pesi ottimali.</div>
+                    </div>
+                </div>
+                <div style="font-size: 11.5px; color: {MUTED}; background: rgba(255,247,237,0.02); border: 1px solid {BORDER_STRONG}; padding: 5px 10px; border-radius: 6px; font-family: {MONO};">
+                    Prossima verifica: Venerdì sera alle 22:00 CET
+                </div>
+            </div>
+        </div>
+        """)
+
+    # --- 2. Regimi e Segnali Macro ---
     st_html(section_title("Regimi e Segnali Macro"))
 
     def signal_item(label, value_text, title_attr=""):
@@ -671,7 +872,7 @@ with tab_pf:
     if not data:
         st.caption("Dati live non raggiungibili in questo momento — mostrati gli ultimi valori disponibili localmente, se presenti.")
 
-    # --- 2. Composizione del Portafoglio ---
+    # --- 3. Composizione del Portafoglio ---
     st_html(section_title("Composizione del Portafoglio"))
 
     alloc_segments = []
@@ -702,57 +903,6 @@ with tab_pf:
 
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
-
-    # --- 3. Ordini Operativi / Stato Allineamento ---
-    if pending_orders:
-        st_html(f"""
-        <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 8px; padding: 12px 16px; margin: 14px 0 10px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                <div>
-                    <span style="width:7px; height:7px; border-radius:50%; background:{ACCENT}; display:inline-block; margin-right:7px; flex-shrink:0;"></span>
-                    <strong style="font-size:13.5px;">Ordini Operativi per Lunedì ({last_action_date})</strong>
-                    <span style="background:{BADGE_NEUTRAL_BG}; color:{ACCENT}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; font-family:{MONO}; margin-left:8px;">DA ESEGUIRE ORE 15:30 CET</span>
-                </div>
-                <div style="font-size:11.5px; color:{MUTED};">Quote e importi calcolati sul tuo capitale ({curr_sym}{capitale * fx_ratio:,.0f})</div>
-            </div>
-        </div>
-        """)
-        orders_rows = []
-        for o in pending_orders:
-            act_label = o.get("action", "ORDINE")
-            if act_label == "TRIM":
-                act_label = "RIDUZIONE"
-            tkr = o.get("ticker", "")
-            disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
-            px = o.get("price", 0.0)
-            delta_w = abs(o.get("delta_w_pct", 0.0))
-            val_usd = (delta_w / 100.0) * capitale
-            val_user = val_usd * fx_ratio
-            is_cr = o.get("is_crypto", False) or tkr == "BTC"
-            shares = (val_usd / px) if px > 0 else 0.0
-            shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
-
-            orders_rows.append({
-                "Operazione": act_label,
-                "Strumento": disp_name,
-                "Variazione Peso": f"{o.get('delta_w_pct', 0.0):+.2f}%",
-                f"Controvalore ({curr_sym})": val_user,
-                "Quote": shares_str,
-                "Prezzo ($)": px,
-                "Dettaglio Operativo": o.get("desc", "").replace("TRIM:", "RIDUZIONE:"),
-            })
-        df_orders = pd.DataFrame(orders_rows)
-        st_html(render_orders_html_table(df_orders, curr_sym))
-    else:
-        st_html(f"""
-        <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 11px 16px; margin: 14px 0 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 9px; font-size: 13px;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <strong>Portafoglio allineato ai target quantitativi</strong>
-                <span style="color: {MUTED}; font-size: 12px;">— Nessun ordine da eseguire per lunedì</span>
-            </div>
-        </div>
-        """)
 
     # --- 4. Posizioni Attive nel Portafoglio ---
     st_html(section_title("Posizioni Attive nel Portafoglio"))
@@ -833,37 +983,62 @@ with tab_pf:
     else:
         st.caption("Nessuna posizione attiva al momento.")
 
-    # --- 5. Ultime Operazioni Simulate ---
+    # --- 5. Storico Recente Operazioni ---
+    st_html(section_title("Storico Recente Operazioni"))
+
+    has_recent_content = False
     if last_actions:
-        rebalance_date_label = f" ({last_action_date})" if last_action_date else ""
-        with st.expander(f"Ultime Operazioni Simulate{rebalance_date_label}"):
-            st.caption("Operazioni della simulazione nell'ultimo ciclo di ribilanciamento:")
-            st.code("\n".join(last_actions).replace("TRIM:", "RIDUZIONE:"), language=None)
-    elif latest_hist_trades:
-        rebalance_date_label = f" ({format_date_italian(latest_hist_exit_date)})" if latest_hist_exit_date else ""
-        with st.expander(f"Ultime Operazioni Simulate{rebalance_date_label}"):
-            st.caption("Operazioni della simulazione nell'ultimo ciclo di ribilanciamento:")
+        has_recent_content = True
+        fmt_last_date = format_date_italian(last_action_date) if last_action_date else ""
+        rebalance_date_label = f" ({fmt_last_date})" if fmt_last_date else ""
+        st_html(f"""
+        <div style="font-size:12px; font-weight:600; color:{MUTED}; margin:4px 0 8px;">
+            Operazioni eseguite nell'ultimo ribilanciamento{rebalance_date_label}:
+        </div>
+        """)
+        st_html(render_action_log_html_table(last_actions))
+
+    if latest_hist_trades or hist_trades:
+        has_recent_content = True
+        rec_source = latest_hist_trades if latest_hist_trades else hist_trades[-8:]
+        rec_exit_date = latest_hist_exit_date or (rec_source[-1].get("exit_date") if rec_source else "")
+        fmt_rec_exit = format_date_italian(rec_exit_date) if rec_exit_date else ""
+        rec_date_label = f" ({fmt_rec_exit})" if fmt_rec_exit else ""
+
+        c_rec_t, c_rec_tog = st.columns([3, 2])
+        with c_rec_t:
+            st_html(f"""
+            <div style="font-size:12px; font-weight:600; color:{MUTED}; margin:10px 0 6px;">
+                Ultime posizioni liquidate o ridotte{rec_date_label}:
+            </div>
+            """)
+        with c_rec_tog:
+            st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
             show_rec_details = st.toggle("Mostra dettagli esecuzione", value=False, key="rec_details_toggle")
-            recent_rows = []
-            for t in latest_hist_trades:
-                reason = t.get("reason", "")
-                op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
-                recent_rows.append({
-                    "Operazione": op_type,
-                    "Strumento": t.get("ticker", ""),
-                    "Data Ingresso": format_date_italian(t.get("entry_date", "")),
-                    "Data Uscita": format_date_italian(t.get("exit_date", "")),
-                    "Ingresso ($)": t.get("entry_price", 0.0),
-                    "Uscita ($)": t.get("exit_price", 0.0),
-                    "Rendimento %": t.get("profit_pct", 0.0),
-                    "Peso (%)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
-                })
-            df_rec = pd.DataFrame(recent_rows)
-            rec_compact = ["Operazione", "Strumento", "Data Uscita", "Rendimento %"]
-            rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"]
-            rec_cols = rec_full if show_rec_details else rec_compact
-            df_rec_display = df_rec[[c for c in rec_cols if c in df_rec.columns]]
-            st_html(render_recent_trades_html_table(df_rec_display, rec_cols))
+
+        recent_rows = []
+        for t in rec_source:
+            reason = str(t.get("reason", ""))
+            op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
+            recent_rows.append({
+                "Operazione": op_type,
+                "Strumento": t.get("ticker", ""),
+                "Data Ingresso": format_date_italian(t.get("entry_date", "")),
+                "Data Uscita": format_date_italian(t.get("exit_date", "")),
+                "Ingresso ($)": t.get("entry_price", 0.0),
+                "Uscita ($)": t.get("exit_price", 0.0),
+                "Rendimento %": t.get("profit_pct", 0.0),
+                "Peso (%)": t.get("weight", 0.0) * 100.0 if t.get("weight", 0.0) < 1.0 else t.get("weight", 0.0),
+            })
+        df_rec = pd.DataFrame(recent_rows)
+        rec_compact = ["Operazione", "Strumento", "Data Uscita", "Rendimento %"]
+        rec_full = ["Operazione", "Strumento", "Data Ingresso", "Data Uscita", "Ingresso ($)", "Uscita ($)", "Rendimento %", "Peso (%)"]
+        rec_cols = rec_full if show_rec_details else rec_compact
+        df_rec_display = df_rec[[c for c in rec_cols if c in df_rec.columns]]
+        st_html(render_recent_trades_html_table(df_rec_display, rec_cols))
+
+    if not has_recent_content:
+        st.caption("Nessuna operazione recente registrata.")
 
 
 # ==============================================================================
@@ -999,7 +1174,7 @@ with tab_perf:
         st.info("File storico di Apex non trovato.")
 
 
-    # --- Statistiche Operative (storico delle operazioni simulate) ---
+    # --- Statistiche Operative (storico delle operazioni chiuse) ---
     if pf:
         hist = pf.get("trade_history", [])
         wins = [t for t in hist if t.get("profit_pct", 0) > 0]

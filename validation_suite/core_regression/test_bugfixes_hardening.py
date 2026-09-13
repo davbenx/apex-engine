@@ -222,3 +222,54 @@ def test_convex_cash_allocation_bar():
     cash_val = total_val - sum(report.assets[k].current_value for k in convex_engine.CONVEX_INSTRUMENTS)
     cash_pct = (cash_val / total_val) * 100.0
     assert abs(cash_pct - (200.0 / 3000.0 * 100.0)) < 1e-4
+
+
+def test_trade_orders_and_action_log_renderers():
+    """Verifica che i renderers delle tabelle ordini e log storico non contengano emoji e includano i badge corretti."""
+    import page_apex
+    import pandas as pd
+    import json
+    import re
+
+    # 1. Verifica render_orders_html_table
+    df_orders = pd.DataFrame([
+        {
+            "Operazione": "ACQUISTO",
+            "Strumento": "Microsoft (MSFT)",
+            "Variazione Peso": "+2.50%",
+            "Controvalore (€)": 2500.0,
+            "Quote": "6",
+            "Prezzo ($)": 415.0,
+            "Dettaglio Operativo": "Nuovo ingresso a portafoglio",
+        },
+        {
+            "Operazione": "RIDUZIONE",
+            "Strumento": "Bitcoin",
+            "Variazione Peso": "-1.50%",
+            "Controvalore (€)": 1500.0,
+            "Quote": "0.0195",
+            "Prezzo ($)": 77000.0,
+            "Dettaglio Operativo": "Trim di ribilanciamento",
+        },
+    ])
+    html_orders = page_apex.render_orders_html_table(df_orders, "€")
+    assert "ACQUISTO" in html_orders
+    assert "RIDUZIONE" in html_orders
+    assert "Microsoft" in html_orders
+
+    # 2. Verifica render_action_log_html_table
+    actions = [
+        "INCREMENTO: Bitcoin | Riallocazione +15.4% | Prezzo: $76,652.09",
+        "CHIUSURA: KIM | Vende 2.13% del capitale (100% posizione) | Prezzo: $24.03 | P&L: +3.39%",
+    ]
+    html_log = page_apex.render_action_log_html_table(actions)
+    assert "INCREMENTO" in html_log
+    assert "CHIUSURA" in html_log
+    assert "76,652.09" in html_log
+
+    # 3. Verifica assenza di emoji in portfolio.json
+    with open("portfolio.json", "r", encoding="utf-8") as f:
+        content = f.read()
+    emoji_pattern = re.compile(r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
+    assert not emoji_pattern.findall(content), "Trovate emoji in portfolio.json"
+
