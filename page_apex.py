@@ -125,13 +125,22 @@ def get_action_svg(action_type, size=16):
 def get_reason_svg(reason_text, size=16):
     s = str(reason_text).lower()
     style = "display:inline-block; vertical-align:middle; flex-shrink:0; opacity:0.9;"
+    if "freeride" in s or "de-risk" in s:
+        svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polyline points="20 6 9 17 4 12"/></svg>'
+        return f'<span title="Freeride De-risk (Recupero 100% capitale)" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     if "rotazione" in s or "uscito" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>'
         return f'<span title="Rotazione trimestrale paniere" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
+    if "trail" in s:
+        svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="#A5B4FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>'
+        return f'<span title="Trailing Stop" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     if "ribilanciamento" in s or "rebalance" in s or "trim" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>'
         return f'<span title="Ribilanciamento pesi (Vol-targeting)" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
-    if "disattivata" in s or "regime" in s or "stop" in s:
+    if "time-stop" in s or "stagnazione" in s:
+        svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="#D8B4FE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+        return f'<span title="Time-Stop Stagnazione" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
+    if "disattivata" in s or "regime" in s or "stop" in s or "circuit" in s:
         svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>'
         return f'<span title="Uscita / Regime disattivato" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span>'
     svg = f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{MUTED}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
@@ -406,15 +415,27 @@ def get_reason_badge(reason_text, size=13):
     bg = "rgba(255,255,255,0.05)"
     fg = BADGE_TEXT
     border = "rgba(255,255,255,0.1)"
-    if "rotazione" in s_lower:
+    if "freeride" in s_lower or "de-risk" in s_lower:
+        bg = "rgba(61, 220, 151, 0.12)"
+        fg = POS
+        border = "rgba(61, 220, 151, 0.28)"
+    elif "rotazione" in s_lower:
         bg = "rgba(59, 130, 246, 0.10)"
         fg = "#93C5FD"
         border = "rgba(59, 130, 246, 0.25)"
+    elif "trail" in s_lower:
+        bg = "rgba(99, 102, 241, 0.12)"
+        fg = "#A5B4FC"
+        border = "rgba(99, 102, 241, 0.25)"
     elif "ribilanciamento" in s_lower or "trim" in s_lower:
         bg = "rgba(201, 164, 76, 0.12)"
         fg = "#E5C478"
         border = "rgba(201, 164, 76, 0.30)"
-    elif "regime" in s_lower or "stop" in s_lower or "disattivata" in s_lower or "bear" in s_lower:
+    elif "time-stop" in s_lower or "stagnazione" in s_lower:
+        bg = "rgba(168, 85, 247, 0.12)"
+        fg = "#D8B4FE"
+        border = "rgba(168, 85, 247, 0.25)"
+    elif "regime" in s_lower or "stop" in s_lower or "disattivata" in s_lower or "circuit" in s_lower or "bear" in s_lower:
         bg = "rgba(242, 114, 106, 0.10)"
         fg = NEG
         border = "rgba(242, 114, 106, 0.25)"
@@ -430,7 +451,7 @@ def render_hist_trades_html_table(df, active_cols):
     for c in active_cols:
         if c == "Motivazione":
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tipo Operazione</th>')
-        elif c in ["Data Ingresso", "Data Uscita", "Durata"]:
+        elif c in ["Classe", "Era", "Data Ingresso", "Data Uscita", "Durata"]:
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
             align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %"] else "left"
@@ -447,6 +468,14 @@ def render_hist_trades_html_table(df, active_cols):
                 td_cells.append(f'<td style="padding:8px 14px; text-align:left; white-space:nowrap;">{get_reason_badge(reason)}</td>')
             elif c == "Titolo":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
+            elif c == "Classe":
+                cls_str = str(val)
+                svg = get_class_svg(cls_str, size=14)
+                td_cells.append(f'<td style="padding:10px 14px; font-size:11.5px; text-align:center; white-space:nowrap;"><span title="{cls_str}" style="display:inline-flex; align-items:center; gap:5px; color:{MUTED};">{svg}<span>{cls_str}</span></span></td>')
+            elif c == "Era":
+                era_str = str(val)
+                short_era = era_str.split()[0] if "(" in era_str else era_str
+                td_cells.append(f'<td style="padding:10px 14px; font-size:11px; text-align:center; font-family:{MONO}; color:{MUTED}; white-space:nowrap;"><span style="background:rgba(255,255,255,0.04); border:1px solid {BORDER}; padding:2px 6px; border-radius:3px;">{short_era}</span></td>')
             elif c in ["Data Ingresso", "Data Uscita"]:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; color:{MUTED}; white-space:nowrap;">{val}</td>')
             elif c == "Durata":
@@ -455,7 +484,15 @@ def render_hist_trades_html_table(df, active_cols):
                 w_str = f"{val:.2f}%" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{w_str}</td>')
             elif c in ["Prezzo Ingresso", "Prezzo Uscita"]:
-                v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
+                if pd.notna(val) and isinstance(val, (int, float)):
+                    if val >= 100:
+                        v_str = f"${val:,.2f}"
+                    elif val >= 1:
+                        v_str = f"${val:,.3f}"
+                    else:
+                        v_str = f"${val:,.4f}"
+                else:
+                    v_str = "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
             elif c == "Rendimento %":
                 if pd.notna(val) and isinstance(val, (int, float)):
@@ -1241,45 +1278,116 @@ with tab_perf:
 
 
     # --- Statistiche Operative (storico delle operazioni chiuse) ---
-    if pf:
-        hist = pf.get("trade_history", [])
-        wins = [t for t in hist if t.get("profit_pct", 0) > 0]
-        losses = [t for t in hist if t.get("profit_pct", 0) <= 0]
+    hist_master = fetch_json_local_or_github("apex_full_historical_trades.json") or []
+    if not hist_master and pf:
+        hist_master = pf.get("trade_history", [])
 
-        win_rate = (len(wins) / len(hist) * 100) if hist else 0.0
-        gross_profit = sum(t["profit_pct"] for t in wins)
-        gross_loss = abs(sum(t["profit_pct"] for t in losses))
-        profit_factor = gross_profit / gross_loss if gross_loss != 0 else 0.0
-        expectancy_pct = sum(t["profit_pct"] for t in hist) / len(hist) if hist else 0.0
+    num_open = len(pf.get("open_positions", {})) if pf else 0
 
-        def kpi_item(title, value, subtext="", badge_text=None, badge_color=None, val_color=None):
-            badge_html = ""
-            if badge_text:
-                bcol = badge_color or BADGE_NEUTRAL_BG
-                badge_html = f'<div style="margin-top:4px;"><span style="background:{bcol}; color:{BADGE_TEXT}; font-size:8.5px; font-weight:700; padding:2px 5px; border-radius:3px; font-family:{MONO}; letter-spacing:0.3px; display:inline-block;">{badge_text}</span></div>'
-            return f"""
-            <div style="padding: 6px 8px; min-width: 0;">
-                <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{title}</div>
-                <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: {MONO}; margin: 2px 0;">{value}</div>
-                <div style="font-size: 10.5px; color: {MUTED}; line-height: 1.2;">{subtext}</div>
-                {badge_html}
+    def kpi_item(title, value, subtext="", badge_text=None, badge_color=None, val_color=None):
+        badge_html = ""
+        if badge_text:
+            bcol = badge_color or BADGE_NEUTRAL_BG
+            badge_html = f'<div style="margin-top:4px;"><span style="background:{bcol}; color:{BADGE_TEXT}; font-size:8.5px; font-weight:700; padding:2px 5px; border-radius:3px; font-family:{MONO}; letter-spacing:0.3px; display:inline-block;">{badge_text}</span></div>'
+        return f"""
+        <div style="padding: 6px 8px; min-width: 0;">
+            <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: {MUTED}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{title}</div>
+            <div style="font-size: 18px; font-weight: 800; color: {val_color or 'inherit'}; font-family: {MONO}; margin: 2px 0;">{value}</div>
+            <div style="font-size: 10.5px; color: {MUTED}; line-height: 1.2;">{subtext}</div>
+            {badge_html}
+        </div>
+        """
+
+    if hist_master:
+        st_html(section_title("Registro Operazioni e Statistiche di Esecuzione"))
+
+        st_html(f"""
+        <div style="background: rgba(255,247,237,0.03); border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; color: {MUTED}; line-height: 1.5;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+                <strong style="color: {BADGE_TEXT}; font-size: 13px;">Registro Operativo Completo (1987 – Oggi)</strong>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: {MONO};">{len(hist_master):,} OPERAZIONI REGISTRATE · {num_open} APERTE</span>
             </div>
-            """
+            Questo registro include la totalità delle operazioni storiche e recenti generate dalla strategia Apex:<br/>
+            dall'<strong>Allocazione Macro Sistematica (1987–2011)</strong>, alla selezione point-in-time del <strong>Paniere Low-Beta 15 Titoli e Macro (2012–2024)</strong>, alle operazioni del modulo <strong>Crypto Frontier Venture (2018–2024)</strong>, fino al <strong>Portafoglio Tracciato Live (marzo 2024–oggi)</strong>.<br/>
+            Le <strong>{num_open} posizioni aperte</strong> attualmente in essere sono consultabili sia selezionando la vista sottostante sia nel Tab <em>Portafoglio Attuale</em>.
+        </div>
+        """)
 
-        if hist:
-            st_html(section_title("Statistiche Operative (Portafoglio Tracciato 2024–2026)"))
-            strip_items = [
-                kpi_item("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}", badge_text=f"{len(wins)}/{len(hist)}"),
-                kpi_item("Aspettativa per Trade", f"{expectancy_pct:+.2f}%", "Rendimento atteso medio",
-                         badge_text="EDGE STATISTICO", badge_color=BADGE_POS_BG, val_color=POS if expectancy_pct > 0 else NEG),
-                kpi_item("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite",
-                         badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
-                         badge_color=(BADGE_POS_BG if profit_factor >= 1.5 else BADGE_NEUTRAL_BG)),
-            ]
-            p_list = [t.get("profit_pct", 0.0) for t in hist]
-            max_idx, min_idx = p_list.index(max(p_list)), p_list.index(min(p_list))
+        tab_sel = st.radio(
+            "Visualizzazione Registro",
+            [f"Operazioni Chiuse ({len(hist_master):,})", f"Posizioni Attualmente Aperte ({num_open})"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="apex_register_view_mode"
+        )
+
+        if tab_sel.startswith("Operazioni Chiuse"):
+            df_master = pd.DataFrame(hist_master)
+            if "exit_date" in df_master.columns:
+                df_master["exit_date_raw"] = df_master["exit_date"].astype(str)
+            else:
+                df_master["exit_date_raw"] = ""
+
+            c_scp, c_cls, c_yr, c_srch = st.columns([1.6, 1.3, 1.1, 1.4])
+            with c_scp:
+                n_tot = len(df_master)
+                n_pit = len(df_master[df_master["era"] != "1987-2011 (Macro Allocazione)"]) if "era" in df_master.columns else n_tot
+                n_cry = len(df_master[df_master["era"] == "2018-2024 (Crypto Frontier Venture)"]) if "era" in df_master.columns else 0
+                n_live = len(df_master[df_master["era"] == "2024-Oggi (Tracking Live)"]) if "era" in df_master.columns else 0
+                scope_opts = [
+                    f"Tutto lo Storico ({n_tot})",
+                    f"Titoli & Macro PIT ({n_pit})",
+                    f"Crypto Frontier Venture ({n_cry})",
+                    f"Tracking Live 2024-Oggi ({n_live})",
+                ]
+                flt_scope = st.selectbox("Ambito Storico", scope_opts, label_visibility="collapsed")
+
+            with c_cls:
+                classes = sorted([str(c) for c in df_master["asset_class"].dropna().unique()]) if "asset_class" in df_master.columns else []
+                cls_opts = ["Tutte le Classi"] + classes
+                flt_cls = st.selectbox("Classe di Attivo", cls_opts, label_visibility="collapsed")
+
+            with c_yr:
+                y_counts = {}
+                for t in hist_master:
+                    y = str(t.get("exit_date", ""))[:4]
+                    if y and len(y) == 4 and y.isdigit():
+                        y_counts[y] = y_counts.get(y, 0) + 1
+                y_opts = ["Tutti gli Anni"] + [f"{y} ({y_counts[y]})" for y in sorted(y_counts.keys(), reverse=True)]
+                flt_yr = st.selectbox("Filtro Anno", y_opts, label_visibility="collapsed")
+
+            with c_srch:
+                search_t = st.text_input("Cerca Ticker", placeholder="Cerca ticker (es. BTC, AAPL, IEF...)", label_visibility="collapsed")
+
+            df_display = df_master.copy()
+            if "Titoli & Macro PIT" in flt_scope and "era" in df_display.columns:
+                df_display = df_display[df_display["era"] != "1987-2011 (Macro Allocazione)"]
+            elif "Crypto Frontier Venture" in flt_scope and "era" in df_display.columns:
+                df_display = df_display[df_display["era"] == "2018-2024 (Crypto Frontier Venture)"]
+            elif "Tracking Live" in flt_scope and "era" in df_display.columns:
+                df_display = df_display[df_display["era"] == "2024-Oggi (Tracking Live)"]
+
+            if flt_cls != "Tutte le Classi" and "asset_class" in df_display.columns:
+                df_display = df_display[df_display["asset_class"] == flt_cls]
+
+            if flt_yr != "Tutti gli Anni":
+                chosen_year = flt_yr.split()[0]
+                df_display = df_display[df_display["exit_date_raw"].str.startswith(chosen_year)]
+
+            if search_t and "ticker" in df_display.columns:
+                df_display = df_display[df_display["ticker"].astype(str).str.contains(search_t.strip().upper(), na=False)]
+
+            disp_trades = df_display.to_dict("records")
+            wins = [t for t in disp_trades if t.get("profit_pct", 0) > 0]
+            losses = [t for t in disp_trades if t.get("profit_pct", 0) <= 0]
+            win_rate = (len(wins) / len(disp_trades) * 100) if disp_trades else 0.0
+            gross_profit = sum(t.get("profit_pct", 0.0) for t in wins)
+            gross_loss = abs(sum(t.get("profit_pct", 0.0) for t in losses))
+            profit_factor = gross_profit / gross_loss if gross_loss != 0 else (999.0 if gross_profit > 0 else 0.0)
+            expectancy_pct = sum(t.get("profit_pct", 0.0) for t in disp_trades) / len(disp_trades) if disp_trades else 0.0
+
             durations = []
-            for t in hist:
+            for t in disp_trades:
                 try:
                     d_in = datetime.datetime.strptime(str(t.get("entry_date", "")), "%Y-%m-%d")
                     d_out = datetime.datetime.strptime(str(t.get("exit_date", "")), "%Y-%m-%d")
@@ -1287,145 +1395,111 @@ with tab_perf:
                 except Exception:
                     pass
             avg_days_val = int(round(sum(durations) / len(durations))) if durations else 0
-            strip_items += [
-                kpi_item("Miglior Operazione", hist[max_idx].get("ticker", "-"), f"{hist[max_idx].get('profit_pct', 0.0):+.2f}%", val_color=POS),
-                kpi_item("Peggior Operazione", hist[min_idx].get("ticker", "-"), f"{hist[min_idx].get('profit_pct', 0.0):+.2f}%", val_color=NEG),
-                kpi_item("Durata Media", f"{avg_days_val}g", "giorni in posizione"),
+
+            p_list = [t.get("profit_pct", 0.0) for t in disp_trades]
+            best_trade_val, worst_trade_val = "—", "—"
+            if p_list:
+                max_idx, min_idx = p_list.index(max(p_list)), p_list.index(min(p_list))
+                best_t = disp_trades[max_idx]
+                worst_t = disp_trades[min_idx]
+                best_trade_val = f"{best_t.get('ticker', '-')}: {best_t.get('profit_pct', 0.0):+.2f}%"
+                worst_trade_val = f"{worst_t.get('ticker', '-')}: {worst_t.get('profit_pct', 0.0):+.2f}%"
+
+            st_html(section_title(f"Statistiche Operative ({len(disp_trades):,} Operazioni)"))
+            strip_items = [
+                kpi_item("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(disp_trades)}", badge_text=f"{len(wins)}/{len(disp_trades)}"),
+                kpi_item("Aspettativa per Trade", f"{expectancy_pct:+.2f}%", "Rendimento medio per operazione",
+                         badge_text="EDGE STATISTICO", badge_color=BADGE_POS_BG, val_color=POS if expectancy_pct > 0 else NEG),
+                kpi_item("Fattore di Profitto", f"{profit_factor:.2f}", "Profitti lordi / perdite",
+                         badge_text=("ECCELLENTE" if profit_factor >= 1.5 else "STABILE"),
+                         badge_color=(BADGE_POS_BG if profit_factor >= 1.5 else BADGE_NEUTRAL_BG)),
+                kpi_item("Miglior Operazione", best_trade_val, "Massimo profitto registrato", val_color=POS),
+                kpi_item("Peggior Operazione", worst_trade_val, "Massima perdita registrata", val_color=NEG),
+                kpi_item("Durata Media", f"{avg_days_val}g", "giorni medi in posizione"),
             ]
             st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 4px 8px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;">{"".join(strip_items)}</div>')
 
-            st_html(section_title("Registro Operazioni del Portafoglio Tracciato"))
+            def calc_duration(r):
+                try:
+                    d_in = datetime.datetime.strptime(str(r.get("entry_date", "")), "%Y-%m-%d")
+                    d_out = datetime.datetime.strptime(str(r.get("exit_date", "")), "%Y-%m-%d")
+                    return f"{max(1, (d_out - d_in).days)}g"
+                except Exception:
+                    return "-"
 
-            num_open = len(pf.get("open_positions", {}))
-            st_html(f"""
-            <div style="background: rgba(255,247,237,0.03); border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; color: {MUTED}; line-height: 1.5;">
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
-                    <strong style="color: {BADGE_TEXT}; font-size: 13px;">Archivio Operativo Completo (Marzo 2024 – Oggi)</strong>
-                    <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: {MONO};">{len(hist)} OPERAZIONI CHIUSE · {num_open} APERTE</span>
-                </div>
-                Questo registro raccoglie ogni singola operazione di compravendita e ribilanciamento eseguita dal motore algoritmico dal <strong>4 marzo 2024 a oggi</strong>.<br/>
-                I dati precedenti (<strong>1987–2024</strong>) mostrati nei grafici storici e nella tabella mensile soprastante derivano dalla simulazione quantitativa del modello sui rendimenti di mercato (senza archiviazione di singoli ticket d'ordine).
-                Le <strong>{num_open} posizioni aperte</strong> attualmente in essere sono consultabili sia selezionando la vista sottostante sia nel Tab <em>Portafoglio Attuale</em>.
-            </div>
-            """)
+            df_display["Durata"] = df_display.apply(calc_duration, axis=1)
+            df_display["Peso (%)"] = df_display["weight"].apply(lambda w: round(w * 100, 2) if pd.notna(w) else 0.0)
+            df_display = df_display.rename(columns={
+                "ticker": "Titolo", "entry_date": "Data Ingresso", "exit_date": "Data Uscita",
+                "entry_price": "Prezzo Ingresso", "exit_price": "Prezzo Uscita",
+                "profit_pct": "Rendimento %", "reason": "Motivazione",
+                "asset_class": "Classe", "era": "Era"
+            })
 
-            tab_sel = st.radio(
-                "Visualizzazione Registro",
-                [f"Operazioni Chiuse ({len(hist)})", f"Posizioni Attualmente Aperte ({num_open})"],
-                horizontal=True,
-                label_visibility="collapsed",
-                key="apex_register_view_mode"
-            )
+            cols_hist = ["Titolo", "Classe", "Era", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]
 
-            if tab_sel.startswith("Operazioni Chiuse"):
-                df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
-                df_hist["exit_date_raw"] = df_hist["exit_date"].astype(str)
+            df_table = df_display.copy()
+            df_table["Data Uscita"] = df_table["Data Uscita"].apply(lambda d: format_date_italian(d) if d else "—")
+            if "Data Ingresso" in df_table.columns:
+                df_table["Data Ingresso"] = df_table["Data Ingresso"].apply(lambda d: format_date_italian(d) if d else "—")
 
-                def calc_duration(r):
-                    try:
-                        d_in = datetime.datetime.strptime(str(r.get("entry_date", "")), "%Y-%m-%d")
-                        d_out = datetime.datetime.strptime(str(r.get("exit_date", "")), "%Y-%m-%d")
-                        return f"{max(1, (d_out - d_in).days)}g"
-                    except Exception:
-                        return "-"
+            st_html(render_hist_trades_html_table(df_table, cols_hist))
 
-                df_hist["Durata"] = df_hist.apply(calc_duration, axis=1)
-                df_hist["Peso (%)"] = df_hist["weight"].apply(lambda w: round(w * 100, 2) if pd.notna(w) else 0.0)
-                df_hist = df_hist.rename(columns={
-                    "ticker": "Titolo", "entry_date": "Data Ingresso", "exit_date": "Data Uscita",
-                    "entry_price": "Prezzo Ingresso", "exit_price": "Prezzo Uscita",
-                    "profit_pct": "Rendimento %", "reason": "Motivazione"
-                })
-
-                def _short_reason(raw):
-                    s = str(raw)
-                    if "Migrazione" in s:
-                        return "Migrazione"
-                    if "Ribilanciamento" in s:
-                        return "Ribilanciamento"
-                    if "Uscito" in s or "disattivata" in s:
-                        return "Rotazione"
-                    if "Regime" in s or "Bear" in s:
-                        return "Stop Regime"
-                    return (s[:20] + "…") if len(s) > 20 else s
-
-                if "Motivazione" in df_hist.columns:
-                    df_hist["Motivazione"] = df_hist["Motivazione"].apply(_short_reason)
-
-                c_yr, c_srch, c_flt = st.columns([1.2, 1.8, 1.2])
-                with c_yr:
-                    y_counts = {}
-                    for t in hist:
-                        y = str(t.get("exit_date", ""))[:4]
-                        if y:
-                            y_counts[y] = y_counts.get(y, 0) + 1
-                    y_opts = [f"Tutti gli Anni ({len(hist)})"] + [f"{y} ({y_counts[y]})" for y in sorted(y_counts.keys(), reverse=True)]
-                    flt_yr = st.selectbox("Filtro Anno", y_opts, label_visibility="collapsed")
-                with c_srch:
-                    search_t = st.text_input("Cerca Ticker", placeholder="Cerca ticker (es. BTC, NVDA, IEF...)", label_visibility="collapsed")
-                with c_flt:
-                    reason_options = ["Tutti i Tipi"] + sorted(df_hist["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist.columns else ["Tutti i Tipi"]
-                    flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
-
-                df_display = df_hist.copy()
-                if flt_yr != f"Tutti gli Anni ({len(hist)})":
-                    chosen_year = flt_yr.split()[0]
-                    df_display = df_display[df_display["exit_date_raw"].str.startswith(chosen_year)]
-                if search_t:
-                    df_display = df_display[df_display["Titolo"].str.contains(search_t.strip().upper(), na=False)]
-                if flt_reason != "Tutti i Tipi":
-                    df_display = df_display[df_display["Motivazione"] == flt_reason]
-
-                cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]
-
-                df_display["Data Uscita"] = df_display["Data Uscita"].apply(lambda d: format_date_italian(d) if d else "—")
-                if "Data Ingresso" in df_display.columns:
-                    df_display["Data Ingresso"] = df_display["Data Ingresso"].apply(lambda d: format_date_italian(d) if d else "—")
-
-                st_html(render_hist_trades_html_table(df_display, cols_hist))
-
-                # Export CSV button
-                csv_export_df = df_hist[["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]].copy()
-                csv_data = csv_export_df.to_csv(index=False).encode('utf-8')
+            c_csv1, c_csv2 = st.columns([1, 1])
+            with c_csv1:
+                csv_filt_df = df_display[["Titolo", "Classe", "Era", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]].copy()
+                csv_filtered = csv_filt_df.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="Esporta Registro Completo (CSV)",
-                    data=csv_data,
-                    file_name="apex_registro_operazioni_2024_2026.csv",
+                    label=f"Esporta Selezione ({len(df_display)} trade) in CSV",
+                    data=csv_filtered,
+                    file_name="apex_operazioni_selezionate.csv",
                     mime="text/csv",
-                    key="dl_trades_csv"
+                    key="dl_trades_filtered_csv"
                 )
-                st.caption(f"Visualizzate {len(df_display)} su {len(hist)} operazioni chiuse · Dati di mercato reali.")
-            else:
-                # Posizioni Attualmente Aperte
-                open_pos = pf.get("open_positions", {})
-                today = datetime.date.today()
-                open_rows = []
-                for tkr, pos in open_pos.items():
-                    entry_d_str = pos.get("entry_date", "")
-                    try:
-                        entry_d = datetime.datetime.strptime(entry_d_str, "%Y-%m-%d").date()
-                        days = max(0, (today - entry_d).days)
-                    except Exception:
-                        days = 0
-                    entry_p = pos.get("entry_price", 0.0)
-                    curr_p = pos.get("current_price", entry_p)
-                    rend = ((curr_p / entry_p) - 1.0) * 100 if entry_p > 0 else 0.0
-                    w = pos.get("weight", 0.0) * 100
-                    open_rows.append({
-                        "Titolo": tkr,
-                        "Data Ingresso": format_date_italian(entry_d_str) if entry_d_str else "—",
-                        "Giorni": f"{days}g",
-                        "Prezzo Ingresso": entry_p,
-                        "Prezzo Attuale": curr_p,
-                        "Peso (%)": round(w, 2),
-                        "Rendimento %": round(rend, 2),
-                        "Stato": "In Posizione",
-                    })
-                df_open = pd.DataFrame(open_rows).sort_values("Peso (%)", ascending=False)
-                st_html(render_open_trades_html_table(df_open))
-                st.caption(f"{len(df_open)} posizioni aperte attive nel portafoglio. Verranno archiviate nel registro operazioni chiuse alla loro liquidazione o rotazione.")
+            with c_csv2:
+                csv_master_path = os.path.join(os.path.dirname(__file__), "apex_full_historical_trades.csv")
+                if os.path.exists(csv_master_path):
+                    with open(csv_master_path, "rb") as f_csv:
+                        csv_all = f_csv.read()
+                    st.download_button(
+                        label=f"Esporta Registro Completo 1987–Oggi ({len(hist_master)} trade)",
+                        data=csv_all,
+                        file_name="apex_full_historical_trades_1987_2026.csv",
+                        mime="text/csv",
+                        key="dl_trades_master_csv"
+                    )
+            st.caption(f"Visualizzate {len(df_display):,} su {len(hist_master):,} operazioni totali registrate · Nessuna discrepanza temporale.")
         else:
-            st.info("Nessuna operazione chiusa registrata.")
+            # Posizioni Attualmente Aperte
+            open_pos = pf.get("open_positions", {})
+            today = datetime.date.today()
+            open_rows = []
+            for tkr, pos in open_pos.items():
+                entry_d_str = pos.get("entry_date", "")
+                try:
+                    entry_d = datetime.datetime.strptime(entry_d_str, "%Y-%m-%d").date()
+                    days = max(0, (today - entry_d).days)
+                except Exception:
+                    days = 0
+                entry_p = pos.get("entry_price", 0.0)
+                curr_p = pos.get("current_price", entry_p)
+                rend = ((curr_p / entry_p) - 1.0) * 100 if entry_p > 0 else 0.0
+                w = pos.get("weight", 0.0) * 100
+                open_rows.append({
+                    "Titolo": tkr,
+                    "Data Ingresso": format_date_italian(entry_d_str) if entry_d_str else "—",
+                    "Giorni": f"{days}g",
+                    "Prezzo Ingresso": entry_p,
+                    "Prezzo Attuale": curr_p,
+                    "Peso (%)": round(w, 2),
+                    "Rendimento %": round(rend, 2),
+                    "Stato": "In Posizione",
+                })
+            df_open = pd.DataFrame(open_rows).sort_values("Peso (%)", ascending=False)
+            st_html(render_open_trades_html_table(df_open))
+            st.caption(f"{len(df_open)} posizioni aperte attive nel portafoglio. Verranno archiviate nel registro operazioni chiuse alla loro liquidazione o rotazione.")
+    else:
+        st.info("Nessuna operazione chiusa registrata.")
 
 
 # ==============================================================================

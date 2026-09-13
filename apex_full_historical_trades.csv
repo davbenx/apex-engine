@@ -1,0 +1,1079 @@
+ticker,entry_date,exit_date,entry_price,exit_price,profit_pct,weight,reason,is_crypto,asset_class,era,trade_id
+BTC,2026-08-24,2026-09-13,78564.98,77191.44,-1.75,0.32613,Regime macro crypto disattivato o Bear Market Bitcoin,True,Cryptovalute,2024-Oggi (Tracking Live),1
+AFL,2026-06-01,2026-08-24,116.23,116.18,-0.05,0.009925,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),2
+MCD,2026-06-01,2026-08-24,277.13,268.1,-3.26,0.011423,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),3
+KVUE,2026-06-01,2026-08-24,17.53,19.22,9.65,0.012044,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),4
+NI,2026-06-01,2026-08-24,47.3,40.65,-14.06,0.010526,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),5
+CTVA,2026-06-01,2026-08-24,79.82,83.05,4.05,0.014323,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),6
+KIM,2026-05-04,2026-08-24,23.24,24.03,3.39,0.0111,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),7
+REG,2026-05-04,2026-08-24,79.59,76.72,-3.6,0.011367,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),8
+TJX,2026-05-04,2026-08-24,155.81,139.48,-10.48,0.006692,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),9
+SNA,2026-05-04,2026-08-24,372.66,394.56,5.88,0.01037,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),10
+ATO,2026-05-04,2026-08-24,184.21,167.56,-9.04,0.011746,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),11
+RSG,2026-05-04,2026-08-24,207.71,220.96,6.38,0.012877,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),12
+KO,2026-05-04,2026-08-24,77.85,91.64,17.72,0.013341,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),13
+PFE,2026-05-04,2026-08-24,25.42,28.57,12.38,0.013614,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),14
+CB,2026-05-04,2026-08-24,329.31,343.11,4.19,0.011064,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),15
+LIN,2026-05-04,2026-08-24,508.86,487.2,-4.26,0.011615,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),16
+AFL,2026-06-01,2026-08-03,116.23,128.9,10.9,0.00083,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),17
+TJX,2026-05-04,2026-08-03,155.81,160.29,2.88,0.002302,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),18
+SNA,2026-05-04,2026-08-03,372.66,416.72,11.82,0.001288,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),19
+KO,2026-05-04,2026-08-03,77.85,88.27,13.39,0.001514,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),20
+PFE,2026-05-04,2026-08-03,25.42,25.25,-0.68,0.004318,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),21
+CB,2026-05-04,2026-08-03,329.31,363.5,10.38,0.000328,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),22
+AFL,2026-06-01,2026-07-06,116.23,116.66,0.37,0.000503,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),23
+KVUE,2026-06-01,2026-07-06,17.51,19.27,9.99,0.002764,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),24
+CTVA,2026-06-01,2026-07-06,78.91,84.69,7.33,0.00317,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),25
+KIM,2026-05-04,2026-07-06,23.23,24.88,7.12,0.000365,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),26
+REG,2026-05-04,2026-07-06,79.55,79.74,0.24,0.000604,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),27
+SNA,2026-05-04,2026-07-06,372.66,399.92,7.32,0.0014,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),28
+ATO,2026-05-04,2026-07-06,184.41,171.24,-7.14,0.000633,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),29
+RSG,2026-05-04,2026-07-06,207.54,212.46,2.37,0.001016,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),30
+KO,2026-05-04,2026-07-06,77.85,81.27,4.4,0.001363,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),31
+CB,2026-05-04,2026-07-06,329.31,340.74,3.47,0.001762,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),32
+LIN,2026-05-04,2026-07-06,508.68,518.94,2.02,0.000899,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),33
+KIM,2026-05-04,2026-06-01,23.23,24.23,4.32,0.001081,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),34
+TJX,2026-05-04,2026-06-01,156.19,158.47,1.46,0.001349,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),35
+SNA,2026-05-04,2026-06-01,372.66,369.81,-0.77,0.000392,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),36
+ROST,2026-05-04,2026-06-01,225.37,229.92,2.02,0.033654,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),37
+L,2026-05-04,2026-06-01,112.24,108.97,-2.92,0.033976,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),38
+RSG,2026-05-04,2026-06-01,207.54,206.45,-0.53,0.001307,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),39
+WEC,2026-05-04,2026-06-01,113.8,112.01,-1.57,0.033655,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),40
+KO,2026-05-04,2026-06-01,77.85,79.94,2.69,0.0001,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),41
+PFE,2026-05-04,2026-06-01,25.6,25.41,-0.77,0.000117,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),42
+CB,2026-05-04,2026-06-01,329.31,324.44,-1.48,0.000339,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),43
+KMI,2026-05-04,2026-06-01,31.12,31.39,0.86,0.033271,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),44
+LIN,2026-05-04,2026-06-01,508.68,513.35,0.92,0.000748,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),45
+CHD,2026-05-04,2026-06-01,96.47,96.38,-0.1,0.034264,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),46
+GLD,2024-03-04,2026-05-04,336.19,421.91,25.5,0.498071,Uscito da basket/classe disattivata,False,Oro,2024-Oggi (Tracking Live),47
+MAA,2026-03-02,2026-04-06,130.95,119.26,-8.93,0.021907,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),48
+PG,2026-03-02,2026-04-06,162.83,142.3,-12.61,0.021748,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),49
+ATO,2026-03-02,2026-04-06,179.91,182.58,1.48,0.023678,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),50
+OTIS,2026-03-02,2026-04-06,88.15,78.99,-10.39,0.020625,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),51
+AFL,2026-03-02,2026-04-06,111.32,108.6,-2.45,0.022895,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),52
+DIS,2026-03-02,2026-04-06,100.77,98.42,-2.33,0.022479,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),53
+COO,2026-03-02,2026-04-06,76.55,71.21,-6.98,0.021411,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),54
+IEF,2026-03-02,2026-04-06,95.53,93.86,-1.75,0.342163,Uscito da basket/classe disattivata,False,Obbligazioni,2024-Oggi (Tracking Live),55
+CMS,2025-12-01,2026-04-06,72.02,76.37,6.03,0.023679,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),56
+L,2025-12-01,2026-04-06,105.83,106.62,0.75,0.022977,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),57
+REG,2025-12-01,2026-04-06,69.25,74.95,8.23,0.023164,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),58
+MCD,2025-12-01,2026-04-06,306.54,308.7,0.71,0.021447,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),59
+MLM,2025-12-01,2026-04-06,626.02,587.84,-6.1,0.023829,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),60
+TJX,2025-12-01,2026-04-06,149.35,158.68,6.25,0.023345,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),61
+NSC,2025-12-01,2026-04-06,285.43,284.64,-0.28,0.022519,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),62
+KO,2025-07-07,2026-04-06,70.18,75.56,7.67,0.023304,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),63
+CMS,2025-12-01,2026-03-02,72.02,75.58,4.93,0.012795,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),64
+L,2025-12-01,2026-03-02,105.83,109.15,3.14,0.010133,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),65
+COST,2025-12-01,2026-03-02,912.36,995.4,9.1,0.032709,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),66
+INVH,2025-12-01,2026-03-02,26.06,25.63,-1.64,0.032647,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),67
+VMC,2025-12-01,2026-03-02,293.02,316.07,7.87,0.02787,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),68
+REG,2025-12-01,2026-03-02,69.25,75.81,9.47,0.01209,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),69
+MCD,2025-12-01,2026-03-02,306.54,328.97,7.32,0.010863,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),70
+MLM,2025-12-01,2026-03-02,626.02,695.0,11.02,0.00682,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),71
+SCHW,2025-12-01,2026-03-02,96.32,94.61,-1.77,0.029834,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),72
+TJX,2025-12-01,2026-03-02,149.35,156.65,4.89,0.011414,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),73
+NSC,2025-12-01,2026-03-02,285.43,313.49,9.83,0.010199,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),74
+ADP,2025-12-01,2026-03-02,250.63,202.46,-19.22,0.032083,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),75
+SO,2025-07-07,2026-03-02,88.26,94.25,6.78,0.035783,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),76
+WM,2025-07-07,2026-03-02,221.4,227.68,2.84,0.035595,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),77
+KO,2025-07-07,2026-03-02,70.18,79.65,13.5,0.009763,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),78
+GLD,2024-03-04,2026-03-02,299.0,474.61,58.73,0.17834,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),79
+IEF,2025-03-03,2026-02-02,91.09,93.81,2.99,0.319004,Uscito da basket/classe disattivata,False,Obbligazioni,2024-Oggi (Tracking Live),80
+VMC,2025-12-01,2026-01-05,291.05,287.23,-1.31,0.000545,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),81
+MLM,2025-12-01,2026-01-05,615.47,629.75,2.32,0.000781,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),82
+SCHW,2025-12-01,2026-01-05,92.9,99.19,6.77,0.000779,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),83
+GLD,2024-03-04,2026-01-05,257.97,398.89,54.63,0.013256,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),84
+VTR,2025-09-01,2025-12-01,66.38,78.0,17.5,0.023207,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),85
+SYY,2025-09-01,2025-12-01,76.72,74.3,-3.15,0.021294,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),86
+CB,2025-09-01,2025-12-01,271.29,295.97,9.1,0.022468,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),87
+AEP,2025-07-07,2025-12-01,102.81,118.85,15.61,0.021366,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),88
+ROL,2025-07-07,2025-12-01,55.63,60.53,8.8,0.023015,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),89
+MCK,2025-07-07,2025-12-01,734.11,886.73,20.79,0.020805,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),90
+WM,2025-07-07,2025-12-01,217.41,213.62,-1.75,0.001034,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),91
+LIN,2025-07-07,2025-12-01,460.63,403.72,-12.35,0.020886,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),92
+RSG,2025-07-07,2025-12-01,232.38,215.21,-7.39,0.023066,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),93
+COR,2025-07-07,2025-12-01,297.05,372.53,25.41,0.020657,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),94
+CME,2025-07-07,2025-12-01,263.21,267.88,1.78,0.021454,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),95
+VICI,2025-07-07,2025-12-01,30.44,27.38,-10.05,0.020016,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),96
+T,2025-07-07,2025-12-01,26.56,24.96,-6.02,0.022297,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),97
+GLD,2024-03-04,2025-12-01,257.97,380.08,47.34,0.011374,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),98
+BTC,2025-05-05,2025-11-03,96215.0651,112956.1641,17.4,0.232215,Uscito da basket/classe disattivata,True,Cryptovalute,2024-Oggi (Tracking Live),99
+ZEC-USD,2025-08-23,2025-10-17,44.0003,203.507,362.51,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),100
+NEAR-USD,2025-09-18,2025-10-11,2.8258,2.3721,-16.05,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),101
+AVAX-USD,2025-09-14,2025-10-10,30.071,14.2837,-52.5,0.011429,Circuit Breaker Emergenza (-50%),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),102
+SOL-USD,2025-08-29,2025-10-10,214.6157,220.7721,2.87,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),103
+AEP,2025-07-07,2025-10-06,100.75,109.11,8.31,0.000662,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),104
+SO,2025-07-07,2025-10-06,88.68,91.74,3.45,0.000475,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),105
+MCK,2025-07-07,2025-10-06,723.68,770.33,6.45,0.001113,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),106
+COR,2025-07-07,2025-10-06,292.29,310.17,6.12,0.000735,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),107
+GLD,2024-03-04,2025-10-06,236.68,355.47,50.19,0.017702,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),108
+ZEC-USD,2025-08-23,2025-10-01,44.0003,99.0008,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),109
+DOT-USD,2025-09-19,2025-09-24,4.542,3.9691,-12.61,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),110
+BCH-USD,2025-09-18,2025-09-24,617.503,556.4746,-9.88,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),111
+WIF-USD,2025-09-14,2025-09-23,0.9777,0.7944,-18.75,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),112
+NEO-USD,2025-08-23,2025-09-16,7.0267,6.5239,-7.16,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),113
+QTUM-USD,2025-08-23,2025-09-15,2.3744,2.5087,5.65,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),114
+AAVE-USD,2025-08-23,2025-09-14,344.8774,314.5516,-8.79,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),115
+LINK-USD,2025-07-16,2025-09-13,16.1091,25.1107,55.88,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),116
+INJ-USD,2025-07-16,2025-09-05,13.4213,12.4459,-7.27,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),117
+MCK,2025-07-07,2025-09-01,723.68,677.76,-6.35,0.00047,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),118
+COR,2025-07-07,2025-09-01,292.29,287.51,-1.63,0.000443,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),119
+MO,2025-07-07,2025-09-01,54.45,62.23,14.29,0.017259,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),120
+VICI,2025-07-07,2025-09-01,30.97,31.42,1.43,0.000335,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),121
+O,2025-07-07,2025-09-01,54.53,55.11,1.06,0.017204,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),122
+AZO,2025-07-07,2025-09-01,3718.59,4180.17,12.41,0.017408,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),123
+T,2025-07-07,2025-09-01,27.31,27.27,-0.12,0.000876,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),124
+IEF,2025-03-03,2025-09-01,89.81,92.21,2.68,0.004207,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2024-Oggi (Tracking Live),125
+GLD,2024-03-04,2025-09-01,236.68,312.08,31.86,0.01407,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),126
+BCH-USD,2025-08-13,2025-08-26,619.3411,543.893,-12.18,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),127
+AAVE-USD,2025-08-14,2025-08-20,332.8416,276.7951,-16.84,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),128
+LTC-USD,2025-08-13,2025-08-20,130.5942,112.3744,-13.95,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),129
+AVAX-USD,2025-07-16,2025-08-19,22.5365,23.677,5.06,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),130
+NEAR-USD,2025-07-16,2025-08-12,2.6703,2.6059,-2.41,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),131
+WIF-USD,2025-07-16,2025-08-12,1.0715,0.9115,-14.93,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),132
+AEP,2025-07-07,2025-08-04,100.42,105.07,4.63,0.001046,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),133
+SO,2025-07-07,2025-08-04,88.65,91.43,3.14,0.000144,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),134
+ROL,2025-07-07,2025-08-04,55.67,56.34,1.2,0.00079,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),135
+WM,2025-07-07,2025-08-04,225.19,231.84,2.95,0.000444,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),136
+MO,2025-07-07,2025-08-04,54.45,55.59,2.1,0.001602,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),137
+CME,2025-07-07,2025-08-04,265.11,264.32,-0.3,0.00021,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),138
+AZO,2025-07-07,2025-08-04,3718.59,3873.85,4.18,0.001246,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),139
+T,2025-07-07,2025-08-04,27.31,26.18,-4.14,0.00046,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),140
+IEF,2025-03-03,2025-08-04,89.81,91.26,1.62,0.000338,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2024-Oggi (Tracking Live),141
+NEO-USD,2025-07-16,2025-08-02,6.5359,5.7669,-11.77,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),142
+AAVE-USD,2025-07-16,2025-07-30,327.4261,281.7708,-13.94,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),143
+BTC,2025-05-05,2025-07-07,94934.2886,105698.2812,11.34,0.095251,Ribilanciamento mensile (trim parziale),True,Cryptovalute,2024-Oggi (Tracking Live),144
+IEF,2025-03-03,2025-07-07,89.81,91.39,1.76,0.060275,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2024-Oggi (Tracking Live),145
+GLD,2024-03-04,2025-07-07,236.65,307.55,29.96,0.060616,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),146
+IEF,2025-03-03,2025-05-05,89.81,91.11,1.44,0.194885,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2024-Oggi (Tracking Live),147
+GLD,2024-03-04,2025-05-05,232.7,306.06,31.53,0.203515,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),148
+BTC,2024-10-07,2025-04-07,69165.7416,85169.1719,23.14,0.330397,Uscito da basket/classe disattivata,True,Cryptovalute,2024-Oggi (Tracking Live),149
+PG,2024-12-02,2025-03-03,169.63,165.55,-2.4,0.021582,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),150
+FE,2024-12-02,2025-03-03,39.19,40.96,4.53,0.019782,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),151
+JNJ,2024-12-02,2025-03-03,147.25,159.88,8.57,0.022608,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),152
+T,2024-12-02,2025-03-03,21.37,24.93,16.67,0.022769,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),153
+CME,2024-12-02,2025-03-03,217.54,239.14,9.93,0.021528,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),154
+NI,2024-12-02,2025-03-03,36.3,38.27,5.42,0.020912,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),155
+VRSK,2024-12-02,2025-03-03,290.02,296.13,2.11,0.021076,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),156
+FIS,2024-12-02,2025-03-03,80.68,66.43,-17.66,0.017602,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),157
+MA,2024-12-02,2025-03-03,523.72,558.89,6.72,0.020018,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),158
+VICI,2024-12-02,2025-03-03,28.96,29.82,2.97,0.022341,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),159
+CMCSA,2024-12-02,2025-03-03,35.48,33.0,-6.99,0.022533,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),160
+DGX,2024-09-02,2025-03-03,149.12,170.77,14.52,0.022239,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),161
+FRT,2024-09-02,2025-03-03,105.13,98.93,-5.89,0.018808,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),162
+CL,2024-06-03,2025-03-03,88.22,89.0,0.89,0.022973,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),163
+LIN,2024-03-04,2025-03-03,437.67,458.29,4.71,0.021224,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),164
+AAVE-USD,2024-12-24,2025-01-15,384.4193,295.2597,-23.19,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),165
+FE,2024-12-02,2025-01-06,39.39,37.06,-5.91,0.000288,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),166
+JNJ,2024-12-02,2025-01-06,147.56,138.1,-6.41,0.00041,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),167
+CME,2024-12-02,2025-01-06,217.01,221.42,2.03,0.001069,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),168
+NI,2024-12-02,2025-01-06,36.47,35.05,-3.9,0.000806,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),169
+VRSK,2024-12-02,2025-01-06,290.83,272.14,-6.43,0.000136,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),170
+MA,2024-12-02,2025-01-06,522.9,521.01,-0.36,0.0005,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),171
+BTC,2024-10-07,2025-01-06,61840.437,93429.2031,51.08,0.000968,Ribilanciamento mensile (trim parziale),True,Cryptovalute,2024-Oggi (Tracking Live),172
+DGX,2024-09-02,2025-01-06,148.81,146.15,-1.78,0.000662,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),173
+GLD,2024-03-04,2025-01-06,209.71,242.13,15.46,0.026226,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),174
+LINK-USD,2024-11-25,2025-01-04,17.9626,23.3751,30.13,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),175
+EGLD-USD,2024-11-25,2024-12-27,39.0374,33.7015,-13.67,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),176
+DOT-USD,2024-11-25,2024-12-26,8.8224,7.4853,-15.16,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),177
+QTUM-USD,2024-11-25,2024-12-26,3.7627,3.2983,-12.34,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),178
+NEO-USD,2024-11-25,2024-12-26,15.3807,14.8185,-3.66,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),179
+FIL-USD,2024-11-25,2024-12-26,5.7223,5.2853,-7.64,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),180
+ATOM-USD,2024-11-25,2024-12-22,8.7594,6.5103,-25.68,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),181
+BTC,2024-10-07,2024-12-02,61840.437,91985.3203,48.75,0.080763,Ribilanciamento mensile (trim parziale),True,Cryptovalute,2024-Oggi (Tracking Live),182
+MSI,2024-09-02,2024-12-02,429.42,487.32,13.48,0.018404,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),183
+GD,2024-09-02,2024-12-02,282.62,272.75,-3.49,0.016647,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),184
+SPGI,2024-09-02,2024-12-02,464.81,486.82,4.74,0.019514,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),185
+CSX,2024-09-02,2024-12-02,32.56,35.77,9.84,0.018198,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),186
+WELL,2024-09-02,2024-12-02,123.26,127.73,3.63,0.018107,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),187
+DGX,2024-09-02,2024-12-02,148.81,157.21,5.65,0.000254,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),188
+FRT,2024-09-02,2024-12-02,105.41,107.5,1.99,0.000418,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),189
+WMB,2024-09-02,2024-12-02,43.44,53.69,23.6,0.019136,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),190
+KMI,2024-09-02,2024-12-02,20.48,25.86,26.28,0.019582,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),191
+KO,2024-06-03,2024-12-02,59.45,61.41,3.3,0.018683,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),192
+CL,2024-06-03,2024-12-02,88.48,92.62,4.67,0.000834,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),193
+AVY,2024-06-03,2024-12-02,208.94,197.23,-5.6,0.018794,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),194
+ECL,2024-06-03,2024-12-02,230.99,242.91,5.16,0.018977,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),195
+LIN,2024-03-04,2024-12-02,438.63,446.26,1.74,0.000136,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),196
+ROP,2024-03-04,2024-12-02,535.73,554.5,3.5,0.018406,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),197
+GLD,2024-03-04,2024-12-02,209.71,242.95,15.85,0.001668,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),198
+IEF,2024-07-01,2024-11-04,87.07,88.29,1.4,0.210454,Uscito da basket/classe disattivata,False,Obbligazioni,2024-Oggi (Tracking Live),199
+MSI,2024-09-02,2024-10-07,423.35,440.71,4.1,0.008385,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),200
+GD,2024-09-02,2024-10-07,279.31,293.87,5.21,0.007101,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),201
+SPGI,2024-09-02,2024-10-07,470.54,476.9,1.35,0.006983,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),202
+CSX,2024-09-02,2024-10-07,32.62,33.65,3.16,0.007534,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),203
+WELL,2024-09-02,2024-10-07,120.55,121.11,0.47,0.006601,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),204
+DGX,2024-09-02,2024-10-07,148.07,148.41,0.23,0.006001,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),205
+FRT,2024-09-02,2024-10-07,105.69,105.19,-0.47,0.005951,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),206
+WMB,2024-09-02,2024-10-07,41.36,47.67,15.27,0.009812,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),207
+KMI,2024-09-02,2024-10-07,19.45,22.73,16.9,0.010166,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),208
+IEF,2024-07-01,2024-10-07,87.07,91.53,5.12,0.090162,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2024-Oggi (Tracking Live),209
+KO,2024-06-03,2024-10-07,57.96,68.22,17.7,0.006167,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),210
+CL,2024-06-03,2024-10-07,87.28,97.64,11.87,0.00494,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),211
+AVY,2024-06-03,2024-10-07,214.56,211.88,-1.25,0.006612,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),212
+ECL,2024-06-03,2024-10-07,223.74,248.96,11.27,0.007443,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),213
+LIN,2024-03-04,2024-10-07,427.75,464.26,8.53,0.007286,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),214
+ROP,2024-03-04,2024-10-07,533.53,540.3,1.27,0.006681,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),215
+GLD,2024-03-04,2024-10-07,195.3,245.61,25.76,0.118444,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),216
+KO,2024-06-03,2024-09-02,57.96,67.56,16.56,0.000226,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),217
+V,2024-06-03,2024-09-02,272.78,275.22,0.9,0.023306,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),218
+ADP,2024-06-03,2024-09-02,230.65,261.83,13.52,0.02228,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),219
+CL,2024-06-03,2024-09-02,87.28,101.07,15.79,0.000679,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),220
+AVY,2024-06-03,2024-09-02,214.56,208.73,-2.72,0.000485,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),221
+INVH,2024-06-03,2024-09-02,32.17,33.27,3.41,0.021828,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),222
+L,2024-03-04,2024-09-02,74.24,80.26,8.1,0.022108,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),223
+RSG,2024-03-04,2024-09-02,179.59,202.47,12.74,0.021843,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),224
+TMUS,2024-03-04,2024-09-02,158.49,197.5,24.61,0.021606,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),225
+ED,2024-03-04,2024-09-02,81.55,93.15,14.22,0.022337,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),226
+WM,2024-03-04,2024-09-02,199.84,203.01,1.59,0.021614,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),227
+ROP,2024-03-04,2024-09-02,533.53,543.19,1.81,0.000313,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),228
+ATO,2024-03-04,2024-09-02,106.34,123.59,16.22,0.022273,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),229
+GLD,2024-03-04,2024-09-02,195.3,233.39,19.5,0.000539,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),230
+IEF,2024-07-01,2024-08-05,87.06,88.12,1.22,0.000878,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2024-Oggi (Tracking Live),231
+KO,2024-06-03,2024-08-05,57.96,63.95,10.33,0.001087,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),232
+ADP,2024-06-03,2024-08-05,230.65,245.68,6.52,0.001862,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),233
+CL,2024-06-03,2024-08-05,87.28,95.89,9.86,0.000652,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),234
+L,2024-03-04,2024-08-05,74.24,80.0,7.76,0.000626,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),235
+RSG,2024-03-04,2024-08-05,179.59,188.18,4.78,0.00012,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),236
+TMUS,2024-03-04,2024-08-05,158.49,169.75,7.1,0.001223,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),237
+ED,2024-03-04,2024-08-05,81.55,91.06,11.66,0.002265,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),238
+ATO,2024-03-04,2024-08-05,106.34,121.79,14.53,0.001952,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),239
+KO,2024-06-03,2024-07-01,57.96,60.32,4.07,0.001327,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),240
+V,2024-06-03,2024-07-01,273.98,265.81,-2.98,0.000502,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),241
+CL,2024-06-03,2024-07-01,87.28,93.7,7.35,0.001989,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),242
+AVY,2024-06-03,2024-07-01,215.08,216.7,0.75,0.00014,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),243
+ECL,2024-06-03,2024-07-01,223.73,236.28,5.61,0.001158,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),244
+INVH,2024-06-03,2024-07-01,32.14,33.35,3.77,0.002084,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),245
+L,2024-03-04,2024-07-01,74.24,75.69,1.95,0.000737,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),246
+RSG,2024-03-04,2024-07-01,179.59,189.74,5.65,0.002263,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),247
+TMUS,2024-03-04,2024-07-01,158.49,171.94,8.49,0.001125,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),248
+ED,2024-03-04,2024-07-01,81.55,82.93,1.69,0.000603,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),249
+WM,2024-03-04,2024-07-01,200.09,205.79,2.85,0.002343,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),250
+LIN,2024-03-04,2024-07-01,427.75,429.91,0.51,0.00131,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),251
+ROP,2024-03-04,2024-07-01,533.22,554.07,3.91,0.001561,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),252
+ATO,2024-03-04,2024-07-01,106.34,110.68,4.09,0.001168,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),253
+GLD,2024-03-04,2024-07-01,195.05,214.56,10.0,0.033503,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),254
+BTC,2024-03-04,2024-07-01,58761.0784,61804.6406,5.18,0.281709,Uscito da basket/classe disattivata,True,Cryptovalute,2024-Oggi (Tracking Live),255
+GIS,2024-03-04,2024-06-03,57.11,59.7,4.53,0.016511,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),256
+AIG,2024-03-04,2024-06-03,68.15,73.58,7.98,0.016421,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),257
+KMB,2024-03-04,2024-06-03,109.5,117.78,7.56,0.01718,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),258
+TJX,2024-03-04,2024-06-03,97.22,98.61,1.43,0.018887,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),259
+LH,2024-03-04,2024-06-03,209.22,191.84,-8.3,0.016442,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),260
+ELV,2024-03-04,2024-06-03,486.27,499.09,2.64,0.017296,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),261
+HLT,2024-03-04,2024-06-03,202.07,199.01,-1.51,0.016826,Uscito da basket/classe disattivata,False,Azioni (Low-Beta),2024-Oggi (Tracking Live),262
+KMB,2024-03-04,2024-05-06,109.5,124.51,13.71,0.000686,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),263
+ED,2024-03-04,2024-05-06,79.92,86.83,8.64,0.000818,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),264
+ELV,2024-03-04,2024-05-06,486.27,508.12,4.49,0.000358,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),265
+IEF,2024-03-04,2024-05-06,85.34,83.72,-1.9,0.254439,Uscito da basket/classe disattivata,False,Obbligazioni,2024-Oggi (Tracking Live),266
+BCH-USD,2024-03-28,2024-04-28,540.3351,476.9424,-11.73,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),267
+LTC-USD,2024-03-30,2024-04-13,109.3532,86.1777,-21.19,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),268
+ICP-USD,2024-03-27,2024-04-13,19.0692,13.9433,-26.88,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),269
+NEAR-USD,2024-03-03,2024-04-06,4.4985,7.2205,60.51,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),270
+DOT-USD,2024-03-03,2024-04-05,9.4498,8.4823,-10.24,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),271
+AAVE-USD,2024-03-03,2024-04-04,116.5947,114.6745,-1.65,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),272
+L,2024-03-04,2024-04-01,74.48,76.37,2.53,0.000134,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),273
+GIS,2024-03-04,2024-04-01,57.0,60.67,6.43,0.000873,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),274
+RSG,2024-03-04,2024-04-01,179.5,184.53,2.8,0.000157,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),275
+AIG,2024-03-04,2024-04-01,68.11,73.61,8.07,0.000544,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),276
+HLT,2024-03-04,2024-04-01,202.43,211.83,4.64,0.000212,Ribilanciamento mensile (trim parziale),False,Azioni (Low-Beta),2024-Oggi (Tracking Live),277
+GLD,2024-03-04,2024-04-01,188.0,201.64,7.26,0.012508,Ribilanciamento mensile (trim parziale),False,Oro,2024-Oggi (Tracking Live),278
+AXS-USD,2024-03-03,2024-04-01,10.719,11.0185,2.79,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),279
+YFI-USD,2024-03-03,2024-03-27,9599.1374,9208.7079,-4.07,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),280
+QTUM-USD,2024-03-03,2024-03-26,4.3214,4.5361,4.97,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),281
+NEO-USD,2024-03-03,2024-03-20,16.9914,13.3241,-21.58,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),282
+GLD,2023-11-03,2024-01-26,652.36,660.2,1.2,0.1627,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),283
+DOT-USD,2023-12-10,2024-01-17,7.1245,7.4811,5.01,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),284
+SOL-USD,2023-12-21,2024-01-16,82.2678,94.3439,14.68,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),285
+EGLD-USD,2023-12-04,2024-01-16,49.4463,53.217,7.63,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),286
+AXS-USD,2023-11-27,2024-01-16,6.7309,7.8582,16.75,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),287
+AVAX-USD,2023-12-10,2024-01-15,31.8572,35.2959,10.79,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),288
+ICP-USD,2023-12-05,2024-01-08,5.1362,11.2507,119.04,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),289
+NEAR-USD,2023-11-06,2024-01-08,1.6385,3.2053,95.62,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),290
+LMT,2023-12-01,2023-12-29,417.84,421.4,0.85,0.014973,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),291
+PARA,2023-12-01,2023-12-29,87049.3,15366.45,-82.35,0.014973,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),292
+HUM,2023-12-01,2023-12-29,478.41,443.15,-7.37,0.014973,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),293
+CEG,2023-12-01,2023-12-29,117.87,114.93,-2.49,0.014973,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),294
+GLD,2023-11-03,2023-12-29,652.36,674.89,3.45,0.1551,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),295
+NEAR-USD,2023-11-06,2023-12-22,1.6385,3.6866,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),296
+ILV-USD,2023-11-05,2023-12-19,62.3387,91.4631,46.72,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),297
+ICP-USD,2023-12-05,2023-12-16,5.1362,11.5566,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),298
+ATOM-USD,2023-11-06,2023-12-05,8.3836,9.7394,16.17,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),299
+DOT-USD,2023-11-06,2023-12-05,4.7776,5.6214,17.66,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),300
+INJ-USD,2023-11-07,2023-12-03,16.9816,17.766,4.62,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),301
+AAVE-USD,2023-11-07,2023-12-01,99.4794,98.1474,-1.34,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),302
+XRP-USD,2023-11-06,2023-11-22,0.6618,0.5799,-12.38,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),303
+WMT,2023-09-29,2023-10-06,51.66,50.52,-2.2,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),304
+MPC,2023-09-29,2023-10-06,142.65,134.95,-5.39,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),305
+CF,2023-09-29,2023-10-06,80.05,75.54,-5.63,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),306
+VLO,2023-09-29,2023-10-06,130.49,116.52,-10.71,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),307
+UNH,2023-09-29,2023-10-06,476.39,495.88,4.09,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),308
+CEG,2023-09-29,2023-10-06,107.0,108.07,1.0,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),309
+NRG,2023-09-29,2023-10-06,36.45,36.87,1.17,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),310
+GPN,2023-09-29,2023-10-06,111.99,111.33,-0.59,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),311
+MOH,2023-09-29,2023-10-06,327.89,333.13,1.6,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),312
+J,2023-09-29,2023-10-06,109.8,110.69,0.81,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),313
+ORLY,2023-06-30,2023-10-06,63.69,60.14,-5.56,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),314
+AON,2023-06-30,2023-10-06,337.28,320.15,-5.08,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),315
+ACGL,2023-06-30,2023-10-06,71.17,78.14,9.79,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),316
+LLY,2023-06-30,2023-10-06,458.43,553.69,20.78,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),317
+PARA,2023-02-03,2023-10-06,83452.89,86640.61,3.82,0.030407,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),318
+LIN,2023-06-30,2023-09-29,365.52,358.33,-1.97,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),319
+NI,2023-06-30,2023-09-29,24.69,22.48,-8.95,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),320
+PEP,2023-06-30,2023-09-29,165.05,152.05,-7.88,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),321
+ROP,2023-06-30,2023-09-29,470.52,474.6,0.87,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),322
+TSCO,2023-06-30,2023-09-29,41.53,38.33,-7.71,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),323
+SO,2023-03-31,2023-09-29,61.52,58.36,-5.13,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),324
+RSG,2023-03-31,2023-09-29,130.2,138.18,6.13,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),325
+WM,2023-03-31,2023-09-29,155.17,146.25,-5.75,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),326
+MRK,2023-03-31,2023-09-29,96.36,94.5,-1.92,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),327
+HSY,2023-02-03,2023-09-29,213.16,182.99,-14.15,0.016567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),328
+GLD,2023-01-06,2023-07-07,622.77,630.65,1.27,0.5912,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),329
+ED,2023-03-31,2023-06-30,84.9,80.89,-4.72,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),330
+FOX,2023-03-31,2023-06-30,29.9,30.46,1.85,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),331
+ABBV,2023-03-31,2023-06-30,140.82,120.14,-14.68,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),332
+CME,2023-03-31,2023-06-30,167.4,162.94,-2.67,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),333
+SJM,2023-02-03,2023-06-30,130.75,130.47,-0.21,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),334
+CPB,2023-02-03,2023-06-30,43.8,39.62,-9.55,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),335
+CAG,2023-02-03,2023-06-30,29.8,27.81,-6.68,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),336
+FOXA,2023-02-03,2023-06-30,32.94,32.59,-1.04,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),337
+LW,2023-02-03,2023-06-30,90.84,106.69,17.45,0.013747,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),338
+GLD,2023-01-06,2023-04-28,618.97,652.4,5.4,0.0754,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),339
+ICP-USD,2023-04-18,2023-04-24,6.2534,5.4164,-13.38,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),340
+LINK-USD,2023-04-18,2023-04-22,8.1736,7.1105,-13.01,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),341
+AVAX-USD,2023-04-18,2023-04-21,20.5384,18.3146,-10.83,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),342
+AXS-USD,2023-04-18,2023-04-20,9.3738,8.445,-9.91,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),343
+CI,2023-02-03,2023-03-31,272.38,238.9,-12.29,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),344
+MCD,2023-02-03,2023-03-31,241.78,257.33,6.43,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),345
+YUM,2023-02-03,2023-03-31,118.78,124.09,4.47,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),346
+FSLR,2023-02-03,2023-03-31,168.19,217.5,29.32,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),347
+ALL,2023-02-03,2023-03-31,120.68,102.52,-15.05,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),348
+GL,2023-02-03,2023-03-31,116.62,107.0,-8.25,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),349
+BIIB,2023-02-03,2023-03-31,283.63,278.03,-1.97,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),350
+PCG,2023-02-03,2023-03-31,15.28,15.89,3.99,0.01528,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),351
+GLD,2023-01-06,2023-02-24,613.25,594.33,-3.09,0.2863,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),352
+GLD,2022-04-01,2022-06-03,618.71,609.26,-1.53,0.4387,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),353
+BKR,2022-04-01,2022-05-06,32.93,29.05,-11.78,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),354
+NEM,2022-04-01,2022-05-06,73.37,64.58,-11.97,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),355
+CVX,2022-04-01,2022-05-06,137.37,142.78,3.94,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),356
+INCY,2022-04-01,2022-05-06,79.94,75.2,-5.93,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),357
+KR,2022-04-01,2022-05-06,52.06,48.78,-6.32,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),358
+NOC,2022-04-01,2022-05-06,422.85,435.78,3.06,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),359
+HII,2022-04-01,2022-05-06,184.21,196.59,6.72,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),360
+WELL,2022-04-01,2022-05-06,88.04,79.59,-9.6,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),361
+VTR,2022-04-01,2022-05-06,54.45,49.37,-9.34,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),362
+SJM,2022-04-01,2022-05-06,117.35,120.19,2.42,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),363
+AEP,2022-04-01,2022-05-06,86.34,84.76,-1.83,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),364
+MRK,2022-04-01,2022-05-06,73.43,77.71,5.83,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),365
+DUK,2022-04-01,2022-05-06,94.9,93.64,-1.33,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),366
+JKHY,2022-04-01,2022-05-06,188.91,174.37,-7.7,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),367
+PKG,2022-04-01,2022-05-06,137.23,143.14,4.31,0.05608,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),368
+SBAC,2021-12-31,2022-02-04,358.34,296.19,-17.34,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),369
+CF,2021-12-31,2022-02-04,64.04,67.91,6.05,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),370
+TTWO,2021-12-31,2022-02-04,177.72,175.0,-1.53,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),371
+IBM,2021-12-31,2022-02-04,111.86,114.78,2.61,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),372
+PFE,2021-12-31,2022-02-04,45.72,41.35,-9.56,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),373
+PPL,2021-12-31,2022-02-04,25.85,25.3,-2.16,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),374
+CLX,2021-12-31,2022-02-04,147.33,120.27,-18.36,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),375
+WMB,2021-12-31,2022-02-04,21.37,25.1,17.43,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),376
+MRK,2021-12-31,2022-02-04,66.79,68.46,2.51,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),377
+PGR,2021-12-31,2022-02-04,93.29,99.23,6.36,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),378
+HPQ,2021-12-31,2022-02-04,31.72,31.66,-0.19,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),379
+HIG,2021-09-24,2022-02-04,62.82,64.2,2.19,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),380
+EQIX,2021-09-24,2022-02-04,755.56,637.89,-15.57,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),381
+GIS,2021-03-26,2022-02-04,49.32,56.76,15.08,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),382
+DUK,2020-12-04,2022-02-04,73.02,86.82,18.91,0.056793,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),383
+RMD,2021-09-24,2021-12-31,267.07,249.31,-6.65,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),384
+EFX,2021-09-24,2021-12-31,255.2,281.82,10.43,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),385
+PG,2021-09-24,2021-12-31,126.25,144.75,14.66,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),386
+JKHY,2021-09-24,2021-12-31,160.61,156.99,-2.26,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),387
+CCI,2021-09-24,2021-12-31,144.17,166.53,15.5,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),388
+LYV,2021-09-24,2021-12-31,92.74,119.69,29.06,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),389
+VRSN,2021-09-24,2021-12-31,213.89,249.3,16.55,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),390
+VRSK,2021-09-24,2021-12-31,201.33,221.71,10.12,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),391
+AWK,2021-09-24,2021-12-31,158.71,170.16,7.21,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),392
+DXCM,2021-09-24,2021-12-31,140.18,134.24,-4.24,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),393
+LUMN,2021-06-25,2021-12-31,12.62,11.72,-7.13,0.013567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),394
+ILV-USD,2021-11-24,2021-12-23,1283.592,1131.5147,-11.85,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),395
+ZEC-USD,2021-11-25,2021-12-05,261.3242,187.2098,-28.36,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),396
+AVAX-USD,2021-11-22,2021-12-05,128.9114,92.9264,-27.91,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),397
+EGLD-USD,2021-11-22,2021-12-05,428.3599,308.9171,-27.88,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),398
+EGLD-USD,2021-08-21,2021-10-06,156.1695,244.3832,56.49,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),399
+DOT-USD,2021-08-21,2021-10-06,28.1936,31.3662,11.25,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),400
+IEF,2021-08-06,2021-10-01,954.8,944.52,-1.08,0.7585,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),401
+IEF,2021-08-06,2021-09-24,954.8,944.68,-1.06,0.0401,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),402
+SLG,2021-06-25,2021-09-24,58.71,52.75,-10.14,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),403
+STX,2021-06-25,2021-09-24,74.52,74.76,0.32,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),404
+BIIB,2021-06-25,2021-09-24,347.93,291.71,-16.16,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),405
+BXP,2021-06-25,2021-09-24,91.58,86.94,-5.07,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),406
+WDC,2021-06-25,2021-09-24,53.22,43.58,-18.11,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),407
+KR,2021-03-26,2021-09-24,33.08,35.87,8.45,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),408
+VNO,2021-03-26,2021-09-24,39.81,38.02,-4.51,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),409
+IRM,2021-03-26,2021-09-24,30.27,36.92,21.96,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),410
+FOXA,2021-03-26,2021-09-24,35.28,36.89,4.54,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),411
+AAL,2021-03-26,2021-09-24,22.93,21.39,-6.72,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),412
+DGX,2020-12-04,2021-09-24,110.32,138.91,25.91,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),413
+FOX,2020-12-04,2021-09-24,26.99,33.93,25.71,0.066667,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),414
+ATOM-USD,2021-08-21,2021-09-22,18.9497,30.4107,60.48,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),415
+LINK-USD,2021-08-21,2021-09-22,28.7293,21.3824,-25.57,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),416
+BTG-USD,2021-08-21,2021-09-20,73.5509,64.7292,-11.99,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),417
+ATOM-USD,2021-08-21,2021-09-19,18.9497,42.6369,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),418
+SOL-USD,2021-08-21,2021-09-18,78.7776,147.3013,86.98,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),419
+DASH-USD,2021-08-21,2021-09-14,233.0824,196.4777,-15.7,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),420
+SOL-USD,2021-08-21,2021-09-07,78.7776,177.2497,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),421
+ADP,2021-03-26,2021-06-25,171.85,176.85,2.91,0.02716,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),422
+CPB,2021-03-26,2021-06-25,41.12,37.26,-9.38,0.02716,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),423
+AIZ,2021-03-26,2021-06-25,131.96,145.22,10.05,0.02716,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),424
+DTE,2020-12-25,2021-06-25,85.08,94.86,11.5,0.02716,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),425
+WMB,2020-12-25,2021-06-25,15.98,21.29,33.27,0.02716,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),426
+EXR,2020-12-04,2021-06-25,91.6,136.28,48.78,0.02716,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),427
+YFI-USD,2021-04-08,2021-05-24,44049.6658,32650.1043,-25.88,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),428
+INJ-USD,2021-04-22,2021-05-22,15.5279,10.2602,-33.92,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),429
+SOL-USD,2021-03-28,2021-05-20,16.4959,35.008,112.22,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),430
+LINK-USD,2021-05-05,2021-05-19,45.555,21.6386,-52.5,0.011429,Circuit Breaker Emergenza (-50%),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),431
+DASH-USD,2021-05-06,2021-05-18,397.089,293.9053,-25.99,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),432
+ZEC-USD,2021-04-01,2021-05-18,157.0814,234.8492,49.51,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),433
+ZEC-USD,2021-04-01,2021-05-12,157.0814,353.4332,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),434
+AXS-USD,2021-03-31,2021-05-12,6.3391,8.0824,27.5,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),435
+NEO-USD,2021-04-02,2021-04-23,52.9632,90.0037,69.94,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),436
+QTUM-USD,2021-03-25,2021-04-23,7.3839,13.3737,81.12,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),437
+SOL-USD,2021-03-28,2021-04-22,16.4959,37.1158,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),438
+XRP-USD,2021-03-27,2021-04-20,0.5678,1.3086,130.49,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),439
+NEO-USD,2021-04-02,2021-04-18,52.9632,119.1672,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),440
+XRP-USD,2021-03-27,2021-04-10,0.5678,1.2775,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),441
+QTUM-USD,2021-03-25,2021-04-07,7.3839,16.6139,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),442
+FIL-USD,2021-03-14,2021-04-07,49.637,165.7635,233.95,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),443
+FIL-USD,2021-03-14,2021-03-26,49.637,111.6832,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),444
+MLM,2020-12-25,2021-03-26,265.45,329.89,24.28,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),445
+ALL,2020-12-25,2021-03-26,93.42,101.88,9.05,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),446
+UA,2020-12-25,2021-03-26,15.05,18.31,21.66,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),447
+UAA,2020-12-25,2021-03-26,17.41,22.36,28.43,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),448
+HBAN,2020-12-25,2021-03-26,9.71,12.76,31.43,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),449
+VMC,2020-12-04,2021-03-26,139.86,163.04,16.58,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),450
+VZ,2020-12-04,2021-03-26,43.43,41.49,-4.46,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),451
+HOG,2020-12-04,2021-03-26,35.27,32.55,-7.69,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),452
+AZO,2020-12-04,2021-03-26,1162.63,1413.73,21.6,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),453
+NEAR-USD,2021-03-14,2021-03-23,7.3849,5.4194,-26.61,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),454
+XRP-USD,2021-02-11,2021-03-16,0.5036,0.437,-13.21,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),455
+DOT-USD,2021-02-17,2021-03-14,30.1945,37.1329,22.98,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),456
+LINK-USD,2021-01-24,2021-03-14,24.7959,29.7414,19.94,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),457
+ATOM-USD,2021-02-09,2021-03-10,14.2394,21.1066,48.23,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),458
+SOL-USD,2021-02-01,2021-03-06,4.2655,12.5574,194.39,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),459
+QTUM-USD,2021-02-09,2021-03-05,4.7479,5.6822,19.68,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),460
+AVAX-USD,2021-02-10,2021-03-04,31.6312,27.2393,-13.88,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),461
+EGLD-USD,2021-01-28,2021-02-16,53.5024,139.8976,161.48,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),462
+SOL-USD,2021-02-01,2021-02-11,4.2655,9.5974,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),463
+EGLD-USD,2021-01-28,2021-02-07,53.5024,120.3805,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),464
+RMD,2020-12-04,2020-12-25,199.29,201.88,1.3,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),465
+MCD,2020-12-04,2020-12-25,184.39,184.96,0.31,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),466
+WEC,2020-12-04,2020-12-25,76.93,73.75,-4.14,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),467
+DG,2020-12-04,2020-12-25,195.14,193.17,-1.01,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),468
+CL,2020-12-04,2020-12-25,74.24,74.25,0.01,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),469
+PSA,2020-12-04,2020-12-25,176.04,181.09,2.87,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),470
+FFIV,2020-12-04,2020-12-25,166.07,175.61,5.74,0.040567,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),471
+IEF,2020-10-02,2020-11-06,986.44,977.42,-0.92,0.7525,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),472
+RMD,2020-09-25,2020-11-06,160.37,203.21,26.71,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),473
+EXPD,2020-09-25,2020-11-06,84.36,82.5,-2.21,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),474
+VRTX,2020-09-25,2020-11-06,268.18,220.28,-17.86,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),475
+VRSN,2020-09-25,2020-11-06,201.92,202.99,0.53,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),476
+EQIX,2020-09-25,2020-11-06,669.74,708.13,5.73,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),477
+VRSK,2020-09-25,2020-11-06,174.47,189.88,8.83,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),478
+PGR,2020-09-25,2020-11-06,78.74,83.34,5.84,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),479
+KR,2020-07-03,2020-11-06,29.28,29.15,-0.47,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),480
+CLX,2020-07-03,2020-11-06,181.33,179.79,-0.85,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),481
+CAG,2020-07-03,2020-11-06,26.38,27.23,3.25,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),482
+NFLX,2020-07-03,2020-11-06,47.69,51.47,7.93,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),483
+ROL,2020-07-03,2020-11-06,26.53,38.97,46.9,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),484
+TTWO,2020-07-03,2020-11-06,144.4,175.19,21.32,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),485
+AKAM,2020-07-03,2020-11-06,113.12,101.63,-10.16,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),486
+MKTX,2020-07-03,2020-11-06,467.23,539.82,15.54,0.050453,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),487
+NEO-USD,2020-08-23,2020-10-10,18.9343,17.3977,-8.12,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),488
+CHRW,2020-07-03,2020-09-25,68.81,89.41,29.94,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),489
+ORCL,2020-07-03,2020-09-25,51.25,55.02,7.35,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),490
+GILD,2020-07-03,2020-09-25,60.91,50.18,-17.61,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),491
+AMZN,2020-07-03,2020-09-25,144.51,154.76,7.09,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),492
+UPS,2020-07-03,2020-09-25,87.72,128.23,46.19,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),493
+CPB,2020-07-03,2020-09-25,39.0,37.87,-2.89,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),494
+REGN,2020-07-03,2020-09-25,616.63,568.69,-7.77,0.012893,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),495
+FIL-USD,2020-08-25,2020-09-20,21.9972,18.1182,-17.63,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),496
+ATOM-USD,2020-08-11,2020-09-16,5.488,4.8754,-11.16,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),497
+XRP-USD,2020-07-09,2020-09-08,0.2048,0.2418,18.06,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),498
+SOL-USD,2020-08-29,2020-09-06,4.0182,2.5977,-35.35,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),499
+LTC-USD,2020-07-31,2020-09-04,56.7115,47.7314,-15.83,0.011429,ATR Stop Loss (2.5x ATR),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),500
+IEF,2020-02-07,2020-09-04,943.67,984.02,4.28,0.7491,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),501
+ZEC-USD,2020-06-24,2020-08-28,58.4411,74.2972,27.13,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),502
+IEF,2020-02-07,2020-08-28,943.67,982.58,4.12,0.0053,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),503
+QTUM-USD,2020-07-09,2020-08-26,2.019,3.4965,73.18,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),504
+BCH-USD,2020-07-31,2020-08-24,292.2775,284.7843,-2.56,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),505
+LINK-USD,2020-06-24,2020-08-22,4.8135,13.8208,187.13,0.011429,Trailing Stop (30% dal picco),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),506
+QTUM-USD,2020-07-09,2020-08-21,2.019,4.5427,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),507
+ATOM-USD,2020-07-08,2020-08-09,3.2447,4.4294,36.51,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),508
+LINK-USD,2020-06-24,2020-08-08,4.8135,10.8304,125.0,0.011429,Freeride De-risk (recupero 100% capitale),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),509
+IEF,2020-02-07,2020-07-31,943.67,993.27,5.26,0.1817,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),510
+BTG-USD,2020-06-29,2020-07-23,10.042,9.5196,-5.2,0.011429,Time-Stop Stagnazione (21gg),True,Cryptovalute,2018-2024 (Crypto Frontier Venture),511
+IEF,2020-02-07,2020-06-26,943.67,985.66,4.45,0.0639,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),512
+GLD,2020-01-03,2020-03-06,514.93,556.2,8.01,0.0754,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),513
+AMGN,2019-12-27,2020-03-06,196.77,172.83,-12.17,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),514
+EIX,2019-12-27,2020-03-06,54.96,49.81,-9.37,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),515
+AKAM,2019-12-27,2020-03-06,86.5,90.62,4.76,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),516
+MLM,2019-12-27,2020-03-06,266.3,228.66,-14.13,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),517
+EQIX,2019-12-27,2020-03-06,513.26,538.54,4.93,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),518
+LEN,2019-12-27,2020-03-06,49.17,55.03,11.91,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),519
+DHI,2019-09-27,2020-03-06,48.43,51.21,5.74,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),520
+TGT,2019-09-27,2020-03-06,87.59,88.47,1.0,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),521
+NEE,2019-09-27,2020-03-06,48.52,57.64,18.78,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),522
+MRK,2019-09-27,2020-03-06,64.04,63.93,-0.18,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),523
+LW,2019-09-27,2020-03-06,64.87,74.09,14.22,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),524
+NEM,2019-07-05,2020-03-06,31.8,43.77,37.63,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),525
+AMT,2019-07-05,2020-03-06,172.22,204.72,18.87,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),526
+HSY,2019-07-05,2020-03-06,116.34,133.48,14.74,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),527
+CME,2019-07-05,2020-03-06,154.84,168.35,8.72,0.066667,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),528
+GLD,2020-01-03,2020-02-28,514.93,523.83,1.73,0.1757,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),529
+RMD,2019-09-27,2019-12-27,125.56,147.2,17.23,0.01966,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),530
+MCD,2019-09-27,2019-12-27,180.81,169.17,-6.44,0.01966,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),531
+CTAS,2019-09-27,2019-12-27,61.81,63.09,2.06,0.01966,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),532
+JCI,2019-07-05,2019-12-27,36.34,36.07,-0.74,0.01966,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),533
+AWK,2019-07-05,2019-12-27,102.29,107.53,5.13,0.01966,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),534
+PSA,2019-07-05,2019-12-27,183.46,161.15,-12.16,0.01966,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),535
+GLD,2019-07-05,2019-12-06,502.7,485.84,-3.35,0.0647,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),536
+IEF,2018-12-07,2019-12-06,838.85,890.34,6.14,0.5931,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),537
+GLD,2019-07-05,2019-09-27,503.01,497.98,-1.0,0.0268,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),538
+ED,2019-07-05,2019-09-27,68.55,73.65,7.45,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),539
+FIS,2019-07-05,2019-09-27,109.57,113.23,3.34,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),540
+HRB,2019-07-05,2019-09-27,21.67,17.72,-18.21,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),541
+PHM,2019-07-05,2019-09-27,29.73,33.53,12.81,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),542
+TTWO,2019-07-05,2019-09-27,117.23,123.97,5.75,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),543
+DLTR,2019-07-05,2019-09-27,109.64,114.3,4.25,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),544
+RSG,2019-07-05,2019-09-27,79.21,78.05,-1.46,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),545
+NCLH,2019-07-05,2019-09-27,51.95,51.02,-1.79,0.0178,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),546
+IEF,2018-12-07,2019-08-30,834.69,909.15,8.92,0.1042,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),547
+IEF,2018-12-07,2019-07-26,834.69,871.17,4.37,0.248,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),548
+PHM,2019-03-29,2019-06-07,25.93,30.37,17.13,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),549
+HSY,2019-03-29,2019-06-07,96.09,116.13,20.85,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),550
+HIG,2019-03-29,2019-06-07,42.28,47.01,11.19,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),551
+LW,2019-03-29,2019-06-07,65.88,53.77,-18.38,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),552
+CPB,2019-03-29,2019-06-07,28.98,33.03,13.99,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),553
+NEM,2019-03-01,2019-06-07,27.09,29.52,8.98,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),554
+D,2019-03-01,2019-06-07,53.94,55.32,2.55,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),555
+AZO,2019-03-01,2019-06-07,929.32,1099.14,18.27,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),556
+PSA,2019-03-01,2019-06-07,155.87,181.95,16.73,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),557
+DUK,2019-03-01,2019-06-07,66.54,65.39,-1.73,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),558
+O,2019-03-01,2019-06-07,46.58,49.41,6.09,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),559
+HRL,2019-03-01,2019-06-07,34.77,33.87,-2.6,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),560
+LIN,2019-03-01,2019-06-07,150.14,180.17,20.0,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),561
+VZ,2019-03-01,2019-06-07,37.33,37.9,1.53,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),562
+RSG,2019-03-01,2019-06-07,70.44,78.23,11.05,0.0288,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),563
+GLD,2019-01-04,2019-05-03,428.72,425.93,-0.65,0.0262,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),564
+GLD,2019-01-04,2019-04-26,428.72,428.47,-0.06,0.065,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),565
+MCD,2019-03-01,2019-03-29,155.23,159.3,2.62,0.0288,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),566
+GIS,2019-03-01,2019-03-29,35.6,39.01,9.59,0.0288,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),567
+CME,2019-03-01,2019-03-29,138.29,125.19,-9.47,0.0288,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),568
+AIV,2019-03-01,2019-03-29,1.61,1.65,2.51,0.0288,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),569
+AJG,2019-03-01,2019-03-29,73.15,71.13,-2.76,0.0288,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),570
+GLD,2019-01-04,2019-03-29,428.72,430.73,0.47,0.0131,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),571
+IEF,2018-12-07,2019-03-29,807.56,842.56,4.33,0.4189,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),572
+GLD,2019-01-04,2019-02-22,428.72,443.05,3.34,0.0171,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),573
+IEF,2018-12-07,2019-01-25,807.22,816.84,1.19,0.1214,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),574
+KR,2018-09-28,2018-11-02,24.5,25.39,3.64,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),575
+ANDV,2018-09-28,2018-11-02,153.5,153.5,0.0,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),576
+M,2018-09-28,2018-11-02,25.11,25.7,2.33,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),577
+BMY,2018-09-28,2018-11-02,46.06,37.85,-17.82,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),578
+NKE,2018-09-28,2018-11-02,75.12,67.9,-9.61,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),579
+VTR,2018-09-28,2018-11-02,40.07,41.7,4.06,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),580
+TGT,2018-09-28,2018-11-02,70.39,67.36,-4.31,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),581
+RSG,2018-09-28,2018-11-02,64.85,63.93,-1.42,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),582
+KSS,2018-09-28,2018-11-02,48.87,50.42,3.15,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),583
+SCG,2018-09-28,2018-11-02,38.79,39.91,2.88,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),584
+KIM,2018-09-28,2018-11-02,11.34,10.77,-4.98,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),585
+DRI,2018-09-28,2018-11-02,88.62,84.51,-4.64,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),586
+AIZ,2018-09-28,2018-11-02,93.3,83.54,-10.47,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),587
+AEE,2018-06-01,2018-11-02,45.68,50.77,11.14,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),588
+ETR,2018-06-01,2018-11-02,29.84,31.34,5.06,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),589
+IEF,2018-09-07,2018-10-05,795.09,779.58,-1.95,0.5,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),590
+HAS,2018-06-29,2018-09-28,68.73,78.77,14.6,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),591
+CHD,2018-06-29,2018-09-28,48.08,53.9,12.12,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),592
+TWX,2018-06-29,2018-09-28,100.0,100.0,0.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),593
+VNO,2018-06-29,2018-09-28,53.02,52.83,-0.37,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),594
+DG,2018-06-29,2018-09-28,88.08,97.93,11.18,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),595
+TPR,2018-06-29,2018-09-28,37.74,40.89,8.35,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),596
+OMC,2018-06-29,2018-09-28,57.1,51.37,-10.03,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),597
+SPG,2018-06-01,2018-09-28,104.6,116.29,11.17,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),598
+HCA,2018-06-01,2018-09-28,97.29,130.09,33.71,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),599
+PSA,2018-06-01,2018-09-28,151.27,146.86,-2.92,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),600
+QRVO,2018-06-01,2018-09-28,81.81,76.89,-6.01,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),601
+MAT,2018-06-01,2018-09-28,15.8,15.7,-0.63,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),602
+VFC,2018-06-01,2018-09-28,59.57,69.17,16.12,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),603
+TJX,2018-06-01,2018-06-29,40.46,42.59,5.26,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),604
+KR,2018-06-01,2018-06-29,20.45,23.83,16.5,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),605
+TGT,2018-06-01,2018-06-29,57.64,60.27,4.56,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),606
+ULTA,2018-06-01,2018-06-29,245.15,233.46,-4.77,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),607
+NOC,2018-06-01,2018-06-29,288.13,268.67,-6.75,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),608
+UHS,2018-06-01,2018-06-29,109.97,107.36,-2.37,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),609
+FFIV,2018-06-01,2018-06-29,175.19,172.45,-1.56,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),610
+GLD,2017-12-01,2018-05-04,440.33,439.66,-0.15,0.5,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),611
+CHD,2018-03-30,2018-04-06,45.34,44.56,-1.71,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),612
+TJX,2018-03-30,2018-04-06,36.33,37.16,2.31,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),613
+TPR,2018-03-30,2018-04-06,42.19,42.08,-0.27,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),614
+HCA,2018-03-30,2018-04-06,90.16,89.46,-0.78,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),615
+ETR,2018-03-30,2018-04-06,29.01,29.09,0.25,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),616
+OXY,2018-03-30,2018-04-06,53.33,55.44,3.96,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),617
+DLTR,2018-03-30,2018-04-06,94.9,98.72,4.03,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),618
+FE,2018-03-30,2018-04-06,24.06,24.19,0.56,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),619
+VFC,2018-03-30,2018-04-06,54.29,55.89,2.95,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),620
+NOC,2018-03-30,2018-04-06,303.72,305.98,0.74,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),621
+LMT,2018-03-30,2018-04-06,269.59,266.98,-0.97,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),622
+UHS,2018-03-30,2018-04-06,113.98,114.06,0.08,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),623
+FFIV,2018-03-30,2018-04-06,144.61,140.71,-2.7,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),624
+COTY,2017-12-29,2018-04-06,18.09,16.74,-7.48,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),625
+EXR,2017-09-29,2018-04-06,57.59,63.69,10.59,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),626
+ISRG,2017-12-29,2018-03-30,121.65,137.61,13.12,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),627
+MCD,2017-12-29,2018-03-30,139.92,127.93,-8.57,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),628
+IRM,2017-12-29,2018-03-30,23.92,21.21,-11.34,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),629
+SJM,2017-12-29,2018-03-30,93.33,93.77,0.47,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),630
+PRGO,2017-12-29,2018-03-30,66.52,63.75,-4.16,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),631
+LRCX,2017-12-29,2018-03-30,16.4,18.14,10.65,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),632
+GRMN,2017-12-29,2018-03-30,48.72,48.6,-0.24,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),633
+CMS,2017-12-29,2018-03-30,36.44,35.18,-3.44,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),634
+AEP,2017-12-29,2018-03-30,54.16,50.98,-5.86,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),635
+NDAQ,2017-09-29,2018-03-30,22.6,25.36,12.2,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),636
+JBHT,2017-09-29,2018-03-30,102.41,108.46,5.91,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),637
+RL,2017-09-29,2018-03-30,74.83,95.65,27.83,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),638
+WMT,2017-06-30,2018-03-30,21.8,26.08,19.63,0.01262,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),639
+GLD,2017-12-01,2018-02-23,429.25,445.31,3.74,0.0127,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),640
+GLD,2017-12-01,2018-01-26,429.25,452.13,5.33,0.0503,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),641
+MUR,2017-09-29,2017-12-29,19.33,22.78,17.89,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),642
+HRB,2017-09-29,2017-12-29,18.62,18.61,-0.07,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),643
+BDX,2017-09-29,2017-12-29,131.19,143.81,9.62,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),644
+NEM,2017-09-29,2017-12-29,29.5,29.57,0.24,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),645
+CME,2017-09-29,2017-12-29,97.39,107.82,10.71,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),646
+PSA,2017-09-29,2017-12-29,150.0,147.9,-1.4,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),647
+EXC,2017-09-29,2017-12-29,19.63,20.69,5.44,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),648
+PHM,2017-06-30,2017-12-29,22.22,30.3,36.37,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),649
+STZ,2017-06-30,2017-12-29,166.13,197.01,18.59,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),650
+PEG,2017-06-30,2017-12-29,31.71,38.65,21.87,0.01388,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),651
+GLD,2017-08-04,2017-11-03,422.4,425.82,0.81,0.1952,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),652
+GLD,2017-08-04,2017-10-27,422.4,426.81,1.04,0.013,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),653
+IEF,2017-06-02,2017-10-06,817.36,812.2,-0.63,0.2082,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),654
+GLD,2017-08-04,2017-09-29,422.4,429.21,1.61,0.0188,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),655
+TWX,2017-06-30,2017-09-29,98.77,101.18,2.44,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),656
+VLO,2017-06-30,2017-09-29,47.41,54.62,15.21,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),657
+CCI,2017-06-30,2017-09-29,68.61,69.1,0.71,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),658
+ZBH,2017-06-30,2017-09-29,115.74,105.77,-8.62,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),659
+VTR,2017-06-30,2017-09-29,47.8,45.31,-5.2,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),660
+PVH,2017-06-30,2017-09-29,112.95,124.39,10.13,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),661
+NVDA,2017-06-30,2017-09-29,3.56,4.41,23.77,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),662
+AAL,2017-06-30,2017-09-29,48.84,46.19,-5.43,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),663
+LEN,2017-06-30,2017-09-29,45.69,45.28,-0.9,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),664
+TROW,2017-06-30,2017-09-29,52.74,64.86,22.98,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),665
+IEF,2017-06-02,2017-09-29,817.36,814.05,-0.41,0.0188,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),666
+NEE,2017-03-31,2017-09-29,25.24,29.2,15.72,0.01466,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),667
+IEF,2017-06-02,2017-08-25,817.36,822.67,0.65,0.055,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),668
+GLD,2017-05-05,2017-07-07,413.08,406.97,-1.48,0.2199,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),669
+GLD,2017-05-05,2017-06-30,413.08,416.65,0.86,0.0374,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),670
+EFX,2017-03-31,2017-06-30,125.03,126.01,0.78,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),671
+CVX,2017-03-31,2017-06-30,71.81,70.48,-1.84,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),672
+FMC,2017-03-31,2017-06-30,48.27,50.79,5.21,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),673
+IFF,2017-03-31,2017-06-30,105.25,107.72,2.35,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),674
+EXPE,2017-03-31,2017-06-30,120.52,142.56,18.29,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),675
+PM,2017-03-31,2017-06-30,71.1,74.6,4.92,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),676
+AMT,2017-03-31,2017-06-30,95.19,104.68,9.96,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),677
+CNC,2017-03-31,2017-06-30,35.63,39.94,12.1,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),678
+SYK,2016-12-30,2017-06-30,108.0,125.89,16.56,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),679
+ESS,2016-12-30,2017-06-30,169.09,189.8,12.25,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),680
+AIV,2016-12-30,2017-06-30,1.38,1.32,-3.89,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),681
+ADM,2016-12-02,2017-06-30,33.0,31.5,-4.55,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),682
+D,2016-12-02,2017-06-30,48.28,51.11,5.87,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),683
+NFLX,2016-12-02,2017-06-30,12.08,14.94,23.67,0.02258,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),684
+HOT,2016-12-30,2017-03-31,77.05,77.05,0.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),685
+FTI,2016-12-30,2017-03-31,24.21,22.14,-8.53,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),686
+AKAM,2016-12-30,2017-03-31,66.68,59.7,-10.47,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),687
+HSY,2016-12-30,2017-03-31,81.71,86.8,6.23,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),688
+EQIX,2016-12-30,2017-03-31,296.22,333.61,12.62,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),689
+EOG,2016-12-02,2017-03-31,75.25,70.87,-5.82,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),690
+AEE,2016-12-02,2017-03-31,37.21,41.61,11.82,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),691
+APA,2016-12-02,2017-03-31,50.69,40.16,-20.76,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),692
+HP,2016-12-02,2017-03-31,50.05,42.36,-15.36,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),693
+MA,2016-12-02,2016-12-30,95.5,97.53,2.13,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),694
+MU,2016-12-02,2016-12-30,18.32,21.38,16.66,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),695
+MO,2016-12-02,2016-12-30,32.68,34.84,6.63,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),696
+DD,2016-12-02,2016-12-30,80.42,83.68,4.06,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),697
+SCG,2016-12-02,2016-12-30,64.77,67.46,4.15,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),698
+CAG,2016-12-02,2016-12-30,25.11,26.92,7.21,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),699
+WDC,2016-12-02,2016-12-30,42.39,45.79,8.03,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),700
+ORLY,2016-12-02,2016-12-30,18.26,18.56,1.63,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),701
+MU,2016-09-30,2016-11-04,17.34,16.27,-6.19,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),702
+CCL,2016-09-30,2016-11-04,42.82,42.14,-1.6,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),703
+MNST,2016-09-30,2016-11-04,12.23,11.27,-7.89,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),704
+MO,2016-09-30,2016-11-04,32.29,32.88,1.82,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),705
+OXY,2016-09-30,2016-11-04,55.78,50.94,-8.68,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),706
+HUM,2016-09-30,2016-11-04,162.53,154.08,-5.2,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),707
+NOV,2016-09-30,2016-11-04,32.58,28.27,-13.23,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),708
+APA,2016-09-30,2016-11-04,49.52,43.7,-11.75,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),709
+WM,2016-09-30,2016-11-04,53.59,53.26,-0.61,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),710
+VZ,2016-09-30,2016-11-04,30.35,27.8,-8.39,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),711
+BSX,2016-09-30,2016-11-04,23.8,21.56,-9.41,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),712
+XEL,2016-09-30,2016-11-04,30.51,29.93,-1.9,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),713
+RRC,2016-09-30,2016-11-04,36.31,30.0,-17.37,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),714
+CMS,2016-09-30,2016-11-04,31.19,30.51,-2.2,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),715
+GLD,2016-07-01,2016-11-04,449.34,439.13,-2.27,0.25,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),716
+NEM,2016-04-01,2016-11-04,20.77,29.54,42.19,0.01442,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),717
+IEF,2016-02-05,2016-11-04,823.76,831.99,1.0,0.25,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),718
+XOM,2016-06-24,2016-09-30,57.54,56.66,-1.53,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),719
+CMCSA,2016-06-24,2016-09-30,22.18,23.96,8.06,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),720
+LMT,2016-06-24,2016-09-30,182.86,184.12,0.69,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),721
+ED,2016-04-01,2016-09-30,52.91,52.67,-0.46,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),722
+TWX,2016-04-01,2016-09-30,70.16,77.34,10.23,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),723
+SYY,2016-04-01,2016-09-30,36.15,37.87,4.76,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),724
+WMT,2016-04-01,2016-09-30,19.21,20.34,5.92,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),725
+CHRW,2016-04-01,2016-09-30,57.89,56.05,-3.18,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),726
+ISRG,2016-04-01,2016-09-30,67.39,80.54,19.51,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),727
+O,2016-04-01,2016-09-30,36.91,40.43,9.52,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),728
+T,2016-04-01,2016-09-30,14.23,15.27,7.28,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),729
+DUK,2016-04-01,2016-09-30,52.96,53.34,0.71,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),730
+SCG,2016-04-01,2016-09-30,63.9,66.09,3.44,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),731
+CPB,2016-04-01,2016-09-30,45.43,38.5,-15.25,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),732
+GLD,2016-07-01,2016-08-26,453.33,444.99,-1.84,0.0076,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),733
+IEF,2016-02-05,2016-08-26,821.7,835.61,1.69,0.0076,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),734
+IEF,2016-02-05,2016-07-29,821.7,846.58,3.03,0.1282,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),735
+HAS,2016-04-01,2016-06-24,55.82,58.4,4.63,0.015313,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),736
+AET,2016-04-01,2016-06-24,110.37,114.47,3.71,0.015313,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),737
+EW,2016-04-01,2016-06-24,29.97,32.01,6.81,0.015313,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),738
+GLD,2016-03-04,2016-06-03,424.11,419.68,-1.04,0.25,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),739
+IEF,2016-02-05,2016-03-25,815.75,812.74,-0.37,0.0346,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),740
+NWL,2015-12-25,2016-01-01,27.74,28.04,1.08,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),741
+DRI,2015-12-25,2016-01-01,47.32,46.65,-1.43,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),742
+CI,2015-12-25,2016-01-01,131.59,131.48,-0.09,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),743
+LLY,2015-11-06,2016-01-01,67.02,70.63,5.39,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),744
+MSI,2015-11-06,2016-01-01,57.52,58.24,1.25,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),745
+CMS,2015-11-06,2016-01-01,24.86,26.2,5.37,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),746
+WEC,2015-11-06,2016-01-01,34.6,36.19,4.61,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),747
+TAP,2015-11-06,2016-01-01,65.87,70.96,7.73,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),748
+HRL,2015-11-06,2016-01-01,25.12,29.81,18.69,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),749
+ICE,2015-11-06,2016-01-01,45.73,44.81,-2.01,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),750
+DHI,2015-11-06,2016-01-01,26.0,28.4,9.21,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),751
+PSA,2015-11-06,2016-01-01,148.93,163.56,9.82,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),752
+CPB,2015-11-06,2016-01-01,33.8,36.42,7.75,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),753
+CCI,2015-11-06,2016-01-01,54.05,55.73,3.11,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),754
+WM,2015-11-06,2016-01-01,44.5,43.95,-1.24,0.020253,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),755
+TJX,2015-11-06,2015-12-25,31.31,30.52,-2.52,0.018867,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),756
+CHRW,2015-11-06,2015-12-25,53.3,49.63,-6.89,0.018867,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),757
+HRB,2015-11-06,2015-12-25,24.43,22.0,-9.94,0.018867,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),758
+IEF,2015-09-04,2015-12-04,789.06,783.8,-0.67,0.283,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),759
+IEF,2015-09-04,2015-11-27,789.06,786.95,-0.27,0.217,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),760
+CF,2015-06-26,2015-09-04,46.77,40.87,-12.6,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),761
+MCD,2015-06-26,2015-09-04,73.57,72.36,-1.65,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),762
+NEM,2015-06-26,2015-09-04,18.53,12.21,-34.12,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),763
+CTAS,2015-06-26,2015-09-04,18.94,18.57,-1.94,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),764
+BMY,2015-06-26,2015-09-04,46.15,39.37,-14.69,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),765
+OXY,2015-06-26,2015-09-04,57.42,50.49,-12.07,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),766
+MNST,2015-06-26,2015-09-04,11.62,11.19,-3.71,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),767
+BA,2015-06-26,2015-09-04,126.19,115.66,-8.35,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),768
+EMN,2015-06-26,2015-09-04,58.44,48.51,-16.98,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),769
+AIZ,2015-06-26,2015-09-04,54.88,58.38,6.38,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),770
+MHK,2015-06-26,2015-09-04,193.17,197.5,2.24,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),771
+DVA,2015-03-27,2015-09-04,81.83,74.55,-8.9,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),772
+CPB,2015-03-27,2015-09-04,31.19,33.02,5.87,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),773
+ESS,2015-03-06,2015-09-04,151.16,144.63,-4.32,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),774
+KR,2015-03-06,2015-09-04,29.63,27.3,-7.86,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),775
+EIX,2015-03-27,2015-06-26,39.29,35.8,-8.89,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),776
+COL,2015-03-27,2015-06-26,0.65,0.5,-23.08,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),777
+CMG,2015-03-06,2015-06-26,13.17,12.19,-7.47,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),778
+WEC,2015-03-06,2015-06-26,33.21,31.99,-3.67,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),779
+BDX,2015-03-06,2015-06-26,93.11,91.67,-1.54,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),780
+AMZN,2015-03-06,2015-06-26,19.0,21.91,15.26,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),781
+VTR,2015-03-06,2015-06-26,49.21,44.73,-9.11,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),782
+MAC,2015-03-06,2015-06-26,46.23,41.47,-10.3,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),783
+CLX,2015-03-06,2015-06-26,77.41,76.81,-0.77,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),784
+CAG,2015-03-06,2015-06-26,17.41,22.51,29.3,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),785
+AIV,2015-03-06,2015-06-26,1.06,1.08,2.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),786
+IEF,2014-02-07,2015-06-05,738.92,766.45,3.73,0.5,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),787
+ED,2015-03-06,2015-03-27,39.6,39.48,-0.3,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),788
+NEM,2015-03-06,2015-03-27,18.08,17.27,-4.49,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),789
+VNO,2015-03-06,2015-03-27,55.26,58.57,5.99,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),790
+BIIB,2015-03-06,2015-03-27,417.63,429.87,2.93,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),791
+GLD,2015-02-06,2015-03-06,418.83,394.9,-5.71,0.5,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),792
+VNO,2014-12-26,2015-02-06,56.2,59.47,5.81,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),793
+SBUX,2014-12-26,2015-02-06,32.23,35.18,9.16,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),794
+CMG,2014-12-26,2015-02-06,13.56,13.2,-2.68,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),795
+ESRX,2014-12-26,2015-02-06,85.74,81.84,-4.54,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),796
+BDX,2014-12-26,2015-02-06,89.19,91.73,2.86,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),797
+KO,2014-12-26,2015-02-06,29.96,28.91,-3.51,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),798
+BMS,2014-12-26,2015-02-06,40.86,41.04,0.43,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),799
+CAG,2014-12-26,2015-02-06,18.61,18.52,-0.46,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),800
+SLM,2014-12-26,2015-02-06,8.84,8.15,-7.8,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),801
+SO,2014-09-26,2015-02-06,26.28,29.46,12.13,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),802
+RSG,2014-09-26,2015-02-06,31.43,33.2,5.63,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),803
+DUK,2014-09-26,2015-02-06,45.39,51.42,13.28,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),804
+CLX,2014-09-26,2015-02-06,67.15,76.16,13.42,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),805
+AMT,2014-09-26,2015-02-06,70.08,72.07,2.83,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),806
+VTR,2014-06-27,2015-02-06,43.7,53.09,21.48,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),807
+IBM,2014-09-26,2014-12-26,112.01,96.33,-14.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),808
+BMY,2014-09-26,2014-12-26,34.26,40.23,17.42,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),809
+NKE,2014-09-26,2014-12-26,37.86,41.08,8.5,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),810
+DRI,2014-09-26,2014-12-26,32.52,37.0,13.77,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),811
+REGN,2014-09-26,2014-12-26,354.83,409.61,15.44,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),812
+HPQ,2014-09-26,2014-12-26,10.88,12.57,15.54,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),813
+CHRW,2014-06-27,2014-12-26,48.15,58.53,21.56,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),814
+T,2014-06-27,2014-12-26,11.37,11.35,-0.12,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),815
+ADM,2014-06-27,2014-12-26,30.79,37.9,23.07,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),816
+MSFT,2014-06-27,2014-09-26,35.34,39.06,10.53,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),817
+NEM,2014-06-27,2014-09-26,19.5,18.45,-5.38,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),818
+KMB,2014-06-27,2014-09-26,69.79,68.11,-2.4,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),819
+VRTX,2014-06-27,2014-09-26,93.77,113.6,21.15,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),820
+VZ,2014-06-27,2014-09-26,26.0,26.52,2.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),821
+BXP,2014-06-27,2014-09-26,71.83,70.24,-2.21,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),822
+MCD,2014-03-28,2014-09-26,70.46,69.77,-0.98,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),823
+PEG,2014-03-28,2014-09-26,24.32,24.95,2.59,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),824
+MRK,2014-03-28,2014-09-26,36.58,39.38,7.67,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),825
+RRC,2014-03-28,2014-09-26,79.25,63.01,-20.49,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),826
+EXC,2014-03-28,2014-09-26,15.21,15.69,3.12,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),827
+GLD,2014-07-04,2014-09-05,448.91,430.91,-4.01,0.3333,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),828
+IEF,2014-02-07,2014-07-25,734.39,749.02,1.99,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),829
+TSN,2014-03-28,2014-06-27,32.47,28.23,-13.08,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),830
+DAL,2014-03-28,2014-06-27,28.95,34.01,17.48,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),831
+SYY,2014-03-28,2014-06-27,25.79,27.35,6.05,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),832
+PRGO,2014-03-28,2014-06-27,114.67,109.37,-4.62,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),833
+NFLX,2014-03-28,2014-06-27,5.13,6.32,23.19,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),834
+OKE,2014-03-28,2014-06-27,27.67,32.23,16.48,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),835
+EQT,2014-03-28,2014-06-27,48.77,52.99,8.65,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),836
+DD,2014-03-28,2014-06-27,64.19,69.21,7.83,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),837
+LUV,2014-03-28,2014-06-27,20.07,23.57,17.45,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),838
+MU,2013-12-27,2014-06-27,20.98,30.73,46.42,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),839
+GLD,2014-03-07,2014-06-06,455.73,425.79,-6.57,0.3333,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),840
+IEF,2014-02-07,2014-03-28,729.21,727.96,-0.17,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),841
+TRIP,2013-12-27,2014-03-28,72.6,80.08,10.3,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),842
+NBR,2013-12-27,2014-03-28,726.66,1071.15,47.41,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),843
+CI,2013-12-27,2014-03-28,77.68,71.33,-8.18,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),844
+WYNN,2013-12-27,2014-03-28,157.7,180.36,14.37,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),845
+UNH,2013-12-27,2014-03-28,60.78,66.65,9.67,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),846
+XYL,2013-12-27,2014-03-28,29.33,30.67,4.55,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),847
+DE,2013-12-27,2014-03-28,72.27,71.12,-1.58,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),848
+HOG,2013-12-27,2014-03-28,50.92,49.0,-3.76,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),849
+APA,2013-12-27,2014-03-28,64.21,61.64,-4.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),850
+ESRX,2013-10-04,2014-03-28,62.53,75.52,20.77,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),851
+MTB,2013-10-04,2014-03-28,79.02,85.38,8.05,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),852
+CME,2013-10-04,2014-03-28,43.97,45.21,2.83,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),853
+KSS,2013-10-04,2014-03-28,28.54,31.4,10.02,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),854
+AAPL,2013-10-04,2014-03-28,14.85,16.71,12.46,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),855
+CMG,2013-10-04,2013-12-27,8.68,10.61,22.26,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),856
+SJM,2013-10-04,2013-12-27,72.05,70.56,-2.07,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),857
+HSY,2013-10-04,2013-12-27,67.28,70.95,5.45,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),858
+PRGO,2013-10-04,2013-12-27,96.49,113.81,17.95,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),859
+XRAY,2013-10-04,2013-12-27,37.99,41.33,8.79,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),860
+PPL,2013-10-04,2013-12-27,15.99,16.04,0.29,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),861
+MRK,2013-10-04,2013-12-27,30.99,32.28,4.17,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),862
+ROP,2013-10-04,2013-12-27,120.02,128.04,6.69,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),863
+RRC,2013-10-04,2013-12-27,71.12,77.66,9.2,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),864
+LH,2013-10-04,2013-12-27,81.85,74.11,-9.46,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),865
+UNH,2013-06-28,2013-09-06,52.88,59.81,13.1,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),866
+BBT,2013-06-28,2013-09-06,18.81,17.06,-9.32,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),867
+AET,2013-06-28,2013-09-06,59.85,61.52,2.8,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),868
+PRGO,2013-06-28,2013-09-06,90.4,92.67,2.51,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),869
+KMB,2013-06-28,2013-09-06,58.97,57.0,-3.36,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),870
+ADBE,2013-06-28,2013-09-06,45.56,46.87,2.88,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),871
+DLTR,2013-06-28,2013-09-06,50.84,53.45,5.13,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),872
+WFC,2013-06-28,2013-09-06,28.6,28.91,1.08,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),873
+AFL,2013-06-28,2013-09-06,21.28,21.5,1.03,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),874
+MSI,2013-06-28,2013-09-06,46.61,45.6,-2.18,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),875
+KSS,2013-06-28,2013-09-06,27.27,28.28,3.72,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),876
+PCG,2013-06-28,2013-09-06,38.67,34.57,-10.61,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),877
+CMG,2013-03-29,2013-09-06,6.52,8.17,25.36,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),878
+DVA,2013-02-01,2013-09-06,58.36,55.29,-5.25,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),879
+SRE,2013-02-01,2013-09-06,25.08,28.12,12.15,0.033333,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),880
+YUM,2013-03-29,2013-06-28,40.14,38.89,-3.13,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),881
+FSLR,2013-03-29,2013-06-28,26.96,44.81,66.21,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),882
+AON,2013-03-29,2013-06-28,54.05,56.73,4.95,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),883
+COL,2013-03-29,2013-06-28,0.8,0.45,-43.75,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),884
+SLM,2013-03-29,2013-06-28,6.17,6.92,12.22,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),885
+FIS,2013-02-01,2013-06-28,29.48,33.9,14.98,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),886
+VTR,2013-02-01,2013-06-28,42.79,45.17,5.56,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),887
+GILD,2013-02-01,2013-06-28,27.84,35.19,26.41,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),888
+PPL,2013-02-01,2013-06-28,15.54,15.86,2.09,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),889
+CLX,2013-02-01,2013-06-28,53.01,56.08,5.78,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),890
+AMT,2013-02-01,2013-06-28,56.01,53.84,-3.87,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),891
+CPB,2013-02-01,2013-06-28,23.8,28.97,21.75,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),892
+IEF,2013-05-03,2013-06-07,762.05,740.21,-2.87,0.5,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),893
+FISV,2013-02-01,2013-03-29,20.34,21.97,8.0,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),894
+HSY,2013-02-01,2013-03-29,57.87,63.54,9.79,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),895
+CAG,2013-02-01,2013-03-29,15.83,17.14,8.29,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),896
+AZO,2013-02-01,2013-03-29,374.88,396.77,5.84,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),897
+ECL,2013-02-01,2013-03-29,63.73,69.38,8.87,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),898
+ORLY,2013-02-01,2013-03-29,6.23,6.83,9.69,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),899
+IEF,2012-12-07,2013-02-01,755.75,741.48,-1.89,0.5,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),900
+TRIP,2012-12-28,2013-01-04,36.76,39.23,6.72,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),901
+FIS,2012-12-28,2013-01-04,26.82,28.17,5.02,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),902
+NFLX,2012-12-28,2013-01-04,1.28,1.37,7.44,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),903
+HRL,2012-12-28,2013-01-04,10.99,12.29,11.83,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),904
+DVA,2012-12-28,2013-01-04,54.88,54.92,0.07,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),905
+VTR,2012-12-28,2013-01-04,40.81,41.47,1.63,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),906
+PPL,2012-12-28,2013-01-04,14.42,14.95,3.66,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),907
+CLX,2012-12-28,2013-01-04,48.25,49.61,2.82,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),908
+DE,2012-12-28,2013-01-04,65.79,68.99,4.87,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),909
+AMT,2012-12-28,2013-01-04,55.45,56.3,1.53,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),910
+MCK,2012-12-28,2013-01-04,86.94,90.61,4.22,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),911
+SRE,2012-12-28,2013-01-04,23.24,23.84,2.58,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),912
+ECL,2012-12-28,2013-01-04,61.07,64.15,5.04,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),913
+GLD,2012-09-07,2013-01-04,591.83,566.4,-4.3,0.3333,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),914
+CPB,2012-07-06,2013-01-04,20.83,23.08,10.81,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),915
+CAG,2012-07-06,2013-01-04,11.99,14.37,19.83,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),916
+NEM,2012-09-28,2012-12-28,41.14,33.33,-19.0,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),917
+PFE,2012-09-28,2012-12-28,13.06,13.2,1.06,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),918
+LMT,2012-09-28,2012-12-28,62.46,61.86,-0.97,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),919
+AZO,2012-09-28,2012-12-28,369.67,348.57,-5.71,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),920
+GLD,2012-09-07,2012-12-28,591.83,566.75,-4.24,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,2012-2024 (Point-In-Time),921
+WMT,2012-07-06,2012-12-28,18.05,17.29,-4.21,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),922
+HRB,2012-07-06,2012-12-28,9.64,11.14,15.64,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),923
+SO,2012-07-06,2012-12-28,25.42,23.6,-7.13,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),924
+T,2012-07-06,2012-12-28,10.12,9.66,-4.53,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),925
+BMY,2012-07-06,2012-12-28,21.73,20.23,-6.9,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),926
+VZ,2012-07-06,2012-12-28,21.7,21.19,-2.36,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),927
+PEP,2012-07-06,2012-12-28,45.61,44.86,-1.65,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),928
+PEG,2012-07-06,2012-12-28,19.38,18.45,-4.8,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),929
+ROST,2012-07-06,2012-12-28,29.2,23.26,-20.37,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),930
+IEF,2012-05-04,2012-11-02,734.58,752.66,2.46,0.3333,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),931
+WM,2012-07-06,2012-09-28,24.1,23.67,-1.78,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),932
+MCK,2012-07-06,2012-09-28,84.41,77.83,-7.8,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),933
+LUV,2012-07-06,2012-09-28,7.93,7.51,-5.29,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),934
+CMG,2012-07-06,2012-09-28,7.67,6.35,-17.2,0.033333,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),935
+IEF,2012-05-04,2012-09-28,734.58,756.53,2.99,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),936
+EXPE,2012-03-30,2012-06-01,30.32,40.56,33.79,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),937
+EP,2012-03-30,2012-06-01,1.63,1.44,-11.76,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),938
+LLY,2012-03-30,2012-06-01,29.67,29.94,0.91,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),939
+BMS,2012-03-30,2012-06-01,26.5,24.91,-6.01,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),940
+KSS,2012-03-30,2012-06-01,26.09,23.31,-10.65,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),941
+CPB,2012-03-30,2012-06-01,21.0,19.61,-6.65,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),942
+SO,2012-03-16,2012-06-01,23.96,25.09,4.75,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),943
+ED,2012-03-16,2012-06-01,33.53,35.44,5.7,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),944
+KMB,2012-03-16,2012-06-01,42.38,45.49,7.35,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),945
+HSY,2012-03-16,2012-06-01,42.71,47.07,10.19,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),946
+AZO,2012-03-16,2012-06-01,378.87,373.68,-1.37,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),947
+AMT,2012-03-16,2012-06-01,45.69,45.71,0.03,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),948
+ABT,2012-03-16,2012-06-01,21.34,21.92,2.72,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),949
+LMT,2012-03-16,2012-06-01,58.39,53.74,-7.97,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),950
+SHW,2012-03-16,2012-06-01,30.89,36.22,17.24,0.02222,Disattivazione regime macro equity,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),951
+GLD,2012-02-03,2012-04-06,591.82,558.88,-5.57,0.3333,Disattivazione regime macro,False,Oro,2012-2024 (Point-In-Time),952
+IEF,2011-06-03,2012-04-06,662.28,717.01,8.26,0.3333,Disattivazione regime macro,False,Obbligazioni,2012-2024 (Point-In-Time),953
+MCD,2012-03-16,2012-03-30,66.29,66.59,0.45,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),954
+BMY,2012-03-16,2012-03-30,20.42,20.78,1.72,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),955
+VRSN,2012-03-16,2012-03-30,37.78,37.67,-0.31,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),956
+WM,2012-03-16,2012-03-30,25.17,25.25,0.34,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),957
+VZ,2012-03-16,2012-03-30,18.86,18.23,-3.39,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),958
+OKE,2012-03-16,2012-03-30,16.2,15.97,-1.44,0.02222,Rotazione trimestrale,False,Azioni (Low-Beta),2012-2024 (Point-In-Time),959
+IEF,2011-06-03,2012-02-24,662.28,725.45,9.54,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,2012-2024 (Point-In-Time),960
+GLD,2011-11-04,2011-12-02,603.15,599.51,-0.6,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),961
+GLD,2011-03-04,2011-10-07,514.24,561.95,9.28,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),962
+SPY,2010-10-01,2011-07-01,790.56,906.16,14.62,0.3333,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),963
+GLD,2011-03-04,2011-06-24,491.95,516.34,4.96,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),964
+SPY,2010-10-01,2011-06-24,790.56,858.05,8.54,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),965
+GLD,2010-09-03,2011-02-04,450.05,464.8,3.28,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),966
+IEF,2010-05-07,2010-12-03,609.7,640.96,5.13,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),967
+GLD,2010-09-03,2010-10-29,430.2,468.19,8.83,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),968
+IEF,2010-05-07,2010-10-29,609.7,656.96,7.75,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),969
+GLD,2010-05-07,2010-08-06,422.81,416.01,-1.61,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),970
+SPY,2010-03-05,2010-06-04,762.25,705.22,-7.48,0.3333,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),971
+SPY,2010-03-05,2010-05-28,762.25,722.05,-5.27,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),972
+GLD,2010-03-05,2010-04-02,391.19,389.25,-0.5,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),973
+IEF,2010-02-05,2010-04-02,591.4,583.04,-1.41,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),974
+IEF,2010-02-05,2010-03-26,591.4,583.14,-1.4,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),975
+SPY,2009-06-05,2010-02-05,645.31,701.28,8.67,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),976
+GLD,2009-02-06,2010-02-05,336.45,369.55,9.84,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),977
+IEF,2009-11-06,2010-01-01,586.85,574.91,-2.03,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),978
+SPY,2009-06-05,2009-11-27,614.92,716.55,16.53,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),979
+GLD,2009-02-06,2009-11-27,317.64,406.2,27.88,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),980
+GLD,2009-02-06,2009-06-26,316.37,325.81,2.98,0.0479,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),981
+IEF,2008-12-05,2009-05-01,594.87,588.13,-1.13,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),982
+IEF,2008-12-05,2009-02-27,594.67,587.22,-1.25,0.0121,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),983
+IEF,2008-09-05,2008-11-07,554.57,549.83,-0.86,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),984
+GLD,2008-07-04,2008-09-05,325.0,278.82,-14.21,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),985
+GLD,2007-09-07,2008-05-02,260.99,298.59,14.41,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),986
+IEF,2007-08-03,2008-05-02,497.72,535.66,7.62,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),987
+SPY,2007-10-05,2007-12-07,972.81,941.97,-3.17,0.3333,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),988
+GLD,2007-09-07,2007-10-26,244.97,274.27,11.96,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),989
+IEF,2007-08-03,2007-10-26,486.79,503.84,3.5,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),990
+SPY,2006-08-04,2007-08-03,863.45,893.35,3.46,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),991
+IEF,2007-03-02,2007-06-01,482.67,474.14,-1.77,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),992
+GLD,2006-12-01,2007-06-01,230.6,234.55,1.71,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),993
+GLD,2006-12-01,2007-03-30,230.6,232.08,0.64,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),994
+SPY,2006-08-04,2007-03-30,827.89,878.38,6.1,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),995
+IEF,2006-08-04,2007-02-02,463.07,471.06,1.73,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),996
+SPY,2006-08-04,2006-12-29,794.21,872.57,9.87,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),997
+IEF,2006-08-04,2006-12-29,463.07,472.89,2.12,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),998
+GLD,2005-09-02,2006-09-01,174.85,219.37,25.47,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),999
+GLD,2005-09-02,2006-08-25,174.85,218.07,24.72,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),1000
+SPY,2005-12-02,2006-06-02,771.73,783.49,1.52,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1001
+IEF,2006-01-06,2006-03-03,461.56,453.73,-1.7,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1002
+SPY,2005-12-02,2006-01-27,763.33,777.6,1.87,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1003
+GLD,2005-09-02,2006-01-27,159.71,196.39,22.97,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),1004
+SPY,2005-06-03,2005-11-04,719.79,734.81,2.09,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1005
+IEF,2005-09-02,2005-10-07,466.64,457.46,-1.97,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1006
+SPY,2005-06-03,2005-09-30,719.24,740.4,2.94,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1007
+GLD,2005-07-01,2005-08-05,150.74,153.92,2.11,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1008
+IEF,2005-05-06,2005-08-05,455.67,453.97,-0.37,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1009
+SPY,2005-06-03,2005-07-29,717.06,741.46,3.4,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1010
+IEF,2005-05-06,2005-07-29,455.67,456.94,0.28,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),1011
+GLD,2005-05-06,2005-06-03,150.11,148.87,-0.82,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1012
+GLD,2005-03-04,2005-04-01,153.14,150.46,-1.75,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1013
+SPY,2004-10-01,2005-04-01,687.59,700.82,1.92,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1014
+IEF,2004-08-06,2005-03-04,445.7,448.84,0.71,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1015
+GLD,2004-09-03,2005-02-04,144.58,146.4,1.26,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1016
+GLD,2004-09-03,2004-10-29,144.58,154.69,6.99,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),1017
+IEF,2004-08-06,2004-10-29,443.52,453.2,2.18,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),1018
+SPY,2004-07-02,2004-08-06,663.14,627.72,-5.34,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1019
+GLD,2004-07-02,2004-08-06,143.79,144.33,0.38,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1020
+GLD,2004-04-02,2004-05-07,152.2,136.71,-10.18,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1021
+IEF,2003-10-03,2004-05-07,432.05,421.24,-2.5,0.3333,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1022
+SPY,2003-05-02,2004-05-07,584.18,643.64,10.18,0.3333,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1023
+IEF,2003-10-03,2004-04-30,432.05,429.29,-0.64,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),1024
+SPY,2003-05-02,2004-04-30,584.18,649.49,11.18,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1025
+GLD,2003-08-01,2004-03-05,124.95,144.87,15.95,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1026
+GLD,2003-08-01,2003-10-31,124.95,138.81,11.1,0.1667,Ribilanciamento mensile (trim parziale),False,Oro,1987-2011 (Macro Allocazione),1027
+SPY,2003-05-02,2003-10-31,551.31,611.32,10.89,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1028
+IEF,2003-01-03,2003-08-01,406.87,407.64,0.19,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1029
+GLD,2003-06-06,2003-07-04,131.3,126.71,-3.49,0.3333,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1030
+SPY,2003-05-02,2003-06-27,537.12,564.8,5.15,0.1667,Ribilanciamento mensile (trim parziale),False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1031
+IEF,2003-01-03,2003-06-27,404.08,426.43,5.53,0.1667,Ribilanciamento mensile (trim parziale),False,Obbligazioni,1987-2011 (Macro Allocazione),1032
+GLD,2002-12-06,2003-04-04,117.8,117.44,-0.31,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1033
+IEF,2002-05-03,2002-12-06,372.51,399.72,7.3,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1034
+GLD,2002-10-04,2002-11-01,116.28,115.09,-1.02,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1035
+GLD,2002-03-01,2002-08-09,107.58,113.43,5.44,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1036
+SPY,2002-04-05,2002-05-03,638.5,609.55,-4.53,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1037
+IEF,2002-03-01,2002-04-05,368.81,365.06,-1.01,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1038
+IEF,2001-08-03,2002-01-04,356.82,358.55,0.49,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1039
+GLD,2001-09-07,2001-12-07,98.59,98.88,0.29,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1040
+GLD,2001-07-06,2001-08-03,95.99,96.71,0.75,0.5,Disattivazione regime macro,False,Oro,1987-2011 (Macro Allocazione),1041
+IEF,2000-03-03,2001-05-04,304.47,349.7,14.85,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1042
+SPY,2000-09-01,2000-10-06,845.99,784.5,-7.27,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1043
+SPY,2000-07-07,2000-08-04,821.54,812.01,-1.16,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1044
+SPY,2000-04-07,2000-06-02,838.12,818.23,-2.37,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1045
+SPY,1999-11-05,2000-02-04,759.26,787.17,3.68,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1046
+SPY,1999-09-03,1999-10-01,746.66,707.46,-5.25,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1047
+SPY,1998-11-06,1999-08-06,621.24,715.94,15.24,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1048
+IEF,1999-02-05,1999-03-05,312.14,303.34,-2.82,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1049
+IEF,1997-06-06,1999-01-01,250.51,318.0,26.94,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1050
+SPY,1997-12-05,1998-08-07,531.33,591.94,11.41,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1051
+SPY,1997-06-06,1997-11-07,460.37,499.1,8.41,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1052
+SPY,1996-10-04,1997-05-02,371.67,434.06,16.79,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1053
+IEF,1996-11-01,1997-03-07,244.21,244.25,0.02,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1054
+SPY,1995-02-03,1996-08-02,244.42,349.89,43.15,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1055
+IEF,1995-01-06,1996-03-01,191.96,239.83,24.94,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1056
+SPY,1994-09-02,1994-12-02,237.33,230.02,-3.08,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1057
+SPY,1993-06-04,1994-04-01,219.97,222.3,1.06,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1058
+IEF,1994-02-04,1994-03-04,207.24,199.02,-3.97,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1059
+IEF,1993-02-05,1993-12-03,182.56,206.43,13.07,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1060
+SPY,1992-08-07,1993-05-07,201.58,215.41,6.86,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1061
+IEF,1992-06-05,1992-12-04,161.63,172.83,6.93,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1062
+SPY,1992-01-03,1992-07-03,198.43,197.61,-0.41,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1063
+IEF,1990-11-02,1992-04-03,131.52,159.07,20.95,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1064
+SPY,1991-08-02,1991-12-06,180.79,179.11,-0.93,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1065
+SPY,1991-02-01,1991-07-05,157.8,174.46,10.55,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1066
+IEF,1990-07-06,1990-09-07,129.46,126.85,-2.01,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1067
+SPY,1990-06-01,1990-09-07,163.49,146.86,-10.18,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1068
+SPY,1990-04-06,1990-05-04,152.27,151.8,-0.31,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1069
+SPY,1989-12-01,1990-02-02,155.2,147.15,-5.19,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1070
+IEF,1989-04-07,1990-02-02,112.73,126.29,12.03,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1071
+SPY,1989-01-06,1989-11-03,120.73,148.99,23.41,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1072
+IEF,1988-10-07,1989-03-03,110.94,111.88,0.85,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1073
+SPY,1988-10-07,1988-12-02,118.59,116.57,-1.7,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1074
+SPY,1988-07-01,1988-09-02,114.77,112.47,-2.0,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1075
+IEF,1988-07-01,1988-09-02,107.25,107.67,0.4,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1076
+IEF,1988-01-01,1988-05-06,101.97,103.54,1.54,0.5,Disattivazione regime macro,False,Obbligazioni,1987-2011 (Macro Allocazione),1077
+SPY,1987-06-26,1987-11-06,126.04,103.64,-17.77,0.5,Disattivazione regime macro,False,Azioni (Indice S&P 500),1987-2011 (Macro Allocazione),1078

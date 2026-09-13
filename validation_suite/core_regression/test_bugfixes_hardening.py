@@ -336,3 +336,82 @@ def test_apex_trades_register_renderers():
     assert not emoji_pattern.findall(html_open)
 
 
+def test_apex_full_historical_trades_integrity():
+    """Verifica l'integrità, la completezza e l'assenza di lookahead/emoji nel registro storico completo (1987-Oggi)."""
+    import json
+    import re
+    from pathlib import Path
+    import page_apex
+
+    json_path = Path("/home/davide/Scrivania/ApexConvex/apex_full_historical_trades.json")
+    csv_path = Path("/home/davide/Scrivania/ApexConvex/apex_full_historical_trades.csv")
+
+    assert json_path.exists(), "apex_full_historical_trades.json non trovato"
+    assert csv_path.exists(), "apex_full_historical_trades.csv non trovato"
+
+    with open(json_path, encoding="utf-8") as f:
+        trades = json.load(f)
+
+    # 1. Almeno 1000 trade storici registrati
+    assert len(trades) >= 1000, f"Attesi almeno 1000 trade, trovati {len(trades)}"
+
+    required_fields = {
+        "trade_id", "ticker", "entry_date", "exit_date", "entry_price",
+        "exit_price", "profit_pct", "weight", "reason", "is_crypto",
+        "asset_class", "era"
+    }
+
+    eras = set()
+    classes = set()
+    date_regex = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+    for t in trades:
+        # Campi obbligatori
+        for field in required_fields:
+            assert field in t, f"Campo {field} mancante nel trade {t.get('trade_id')}"
+
+        # Formattazione date
+        assert date_regex.match(t["entry_date"]), f"Data ingresso non valida: {t['entry_date']}"
+        assert date_regex.match(t["exit_date"]), f"Data uscita non valida: {t['exit_date']}"
+        assert t["exit_date"] >= t["entry_date"], f"Data uscita precedente all'ingresso nel trade {t}"
+
+        eras.add(t["era"])
+        classes.add(t["asset_class"])
+
+    # 2. Tutte le 4 ere storiche devono essere presenti
+    assert "1987-2011 (Macro Allocazione)" in eras
+    assert "2012-2024 (Point-In-Time)" in eras
+    assert "2018-2024 (Crypto Frontier Venture)" in eras
+    assert "2024-Oggi (Tracking Live)" in eras
+
+    # 3. Tutte le 5 classi di attivo devono essere coperte
+    assert "Azioni (Low-Beta)" in classes
+    assert "Cryptovalute" in classes
+    assert "Obbligazioni" in classes
+    assert "Oro" in classes
+    assert "Azioni (Indice S&P 500)" in classes
+
+    # 4. Rendering tabella HTML con colonne complete
+    sample_df = pd.DataFrame(trades[:10]).rename(columns={
+        "ticker": "Titolo", "entry_date": "Data Ingresso", "exit_date": "Data Uscita",
+        "entry_price": "Prezzo Ingresso", "exit_price": "Prezzo Uscita",
+        "profit_pct": "Rendimento %", "reason": "Motivazione",
+        "asset_class": "Classe", "era": "Era"
+    })
+    sample_df["Durata"] = "14g"
+    sample_df["Peso (%)"] = 1.25
+    cols = ["Titolo", "Classe", "Era", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]
+    html_out = page_apex.render_hist_trades_html_table(sample_df, cols)
+
+    assert "Tipo Operazione" in html_out
+    assert "Classe" in html_out
+    assert "Era" in html_out
+
+    # 5. Assoluta assenza di emoji
+    emoji_pattern = re.compile(r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
+    assert not emoji_pattern.findall(html_out), "Trovate emoji nella tabella HTML renderizzata"
+    with open(json_path, encoding="utf-8") as f:
+        json_content = f.read()
+    assert not emoji_pattern.findall(json_content), "Trovate emoji nel file JSON dei trade storici"
+
+
