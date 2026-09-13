@@ -137,7 +137,7 @@ def test_days_no_high_invariance_to_same_day_runs():
             config=cfg
         )
         sui_pos = res["updated_positions"]["SUI"]
-        assert sui_pos["days_no_high"] == 4, f"Atteso days_no_high=4, ottenuto {sui_pos["days_no_high"]}"
+        assert sui_pos["days_no_high"] == 4, f"Atteso days_no_high=4, ottenuto {sui_pos['days_no_high']}"
 
 
 def test_atr_stop_floor_bound():
@@ -177,7 +177,7 @@ def test_atr_stop_floor_bound():
     )
     vol_pos = res["updated_positions"].get("VOL")
     if vol_pos:
-        assert vol_pos["stop_loss"] >= 50.0, f"Stop loss {vol_pos["stop_loss"]} inferiore al minimo consentito"
+        assert vol_pos["stop_loss"] >= 50.0, f"Stop loss {vol_pos['stop_loss']} inferiore al minimo consentito"
 
 
 def test_weekly_close_dataframe_robustness():
