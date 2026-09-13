@@ -673,12 +673,19 @@ with tab_pf:
         alloc_segments.append(("Azioni", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
     if op_cr:
         alloc_segments.append(("Cryptovalute", sum(r.get("Peso (%)", 0.0) for r in op_cr), CLASS_COLOR_BTC))
-    if alloc.get('Gold', 0) > 0:
+    if gold_detail:
+        alloc_segments.append(("Oro", gold_detail.get("weight_pct", alloc.get('Gold', 0)), CLASS_COLOR_GOLD))
+    elif alloc.get('Gold', 0) > 0:
         alloc_segments.append(("Oro", alloc.get('Gold', 0), CLASS_COLOR_GOLD))
-    if alloc.get('Bonds', 0) > 0:
+    if bond_detail:
+        alloc_segments.append(("Obbligazioni", bond_detail.get("weight_pct", alloc.get('Bonds', 0)), CLASS_COLOR_BOND))
+    elif alloc.get('Bonds', 0) > 0:
         alloc_segments.append(("Obbligazioni", alloc.get('Bonds', 0), CLASS_COLOR_BOND))
-    if alloc.get('Cash', 0) > 0:
-        alloc_segments.append(("Liquidità", alloc.get('Cash', 0), CLASS_COLOR_CASH))
+
+    tot_invested_pct = sum(pct for _, pct, _ in alloc_segments)
+    cash_pct = max(0.0, 100.0 - tot_invested_pct)
+    if cash_pct > 0.001:
+        alloc_segments.append(("Liquidità", cash_pct, CLASS_COLOR_CASH))
 
     if alloc_segments:
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)

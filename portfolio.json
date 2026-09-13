@@ -123,10 +123,10 @@
         "BTC": {
             "entry_date": "2026-09-13",
             "entry_price": 77173.7265625,
-            "current_price": 77250.078125,
+            "current_price": 76719.7265625,
             "stop_loss": 0.0,
             "is_crypto": true,
-            "weight": 0.005080876357369313
+            "weight": 0.1588
         }
     },
     "macro_positions": {},
@@ -2809,21 +2809,21 @@
     "last_telegram_alert_date": "2026-09-11",
     "pending_orders": [
         {
-            "action": "APERTURA",
+            "action": "INCREMENTO",
             "action_type": "BUY",
             "ticker": "BTC",
             "display_name": "Bitcoin",
-            "cur_w_pct": 0.0,
-            "tgt_w_pct": 0.51,
-            "delta_w_pct": 0.51,
-            "price": 77173.7265625,
+            "cur_w_pct": 0.51,
+            "tgt_w_pct": 15.88,
+            "delta_w_pct": 15.37,
+            "price": 76652.09375,
             "is_crypto": true,
-            "desc": "Bitcoin Core: allocazione 0.5% del portafoglio"
+            "desc": "Riallocazione capitale inattivo su Bitcoin Core (+15.4%)"
         }
     ],
     "pending_orders_date": "2026-09-13",
     "last_action_log": [
-        "APERTURA: Bitcoin | Allocazione 0.5% | Prezzo: $77,173.73"
+        "INCREMENTO: Bitcoin | Riallocazione +15.4% | Prezzo: $76,652.09"
     ],
     "last_action_date": "2026-09-13"
 }

@@ -979,7 +979,7 @@ def evaluate_daily_crypto_frontier(
     rs_spread_pct = (rs_beat_btc_count / valid_univ_count * 100.0) if valid_univ_count > 0 else 0.0
     altseason_gate = is_btc_bull and (breadth_pct >= cfg.altseason_breadth_pct) and (rs_spread_pct >= cfg.altseason_rs_spread_pct)
 
-    current_alts = [k for k in updated_positions if k not in ("BTC", "Bitcoin")]
+    current_alts = [k for k, v in updated_positions.items() if v.get("is_crypto") and k not in ("BTC", "Bitcoin")]
     free_slots = max(0, cfg.max_slots - len(current_alts))
 
     if altseason_gate and free_slots > 0:
@@ -1066,7 +1066,7 @@ def evaluate_daily_crypto_frontier(
             }
 
     # 3. Bilanciamento Bitcoin Core Ballast (capitale inattivo)
-    alts_weight_sum = sum(v["weight"] for k, v in updated_positions.items() if k not in ("BTC", "Bitcoin"))
+    alts_weight_sum = sum(v["weight"] for k, v in updated_positions.items() if v.get("is_crypto") and k not in ("BTC", "Bitcoin"))
     btc_target_w = max(0.0, crypto_frac - alts_weight_sum)
     cur_btc_w = float(open_positions.get("BTC", {}).get("weight", 0.0))
     delta_btc_w = btc_target_w - cur_btc_w

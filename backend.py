@@ -904,6 +904,16 @@ def main():
     output['eur_usd'] = round(float(b_data['EURUSD=X']['Close'].iloc[-1]), 4) if b_data.get('EURUSD=X') is not None and not b_data['EURUSD=X'].empty else 1.0850
     output["macro"] = {t: {"price": float(b_data[t]['Close'].iloc[-1])} for t in V2_CLASS_TICKER.values() if t in b_data and not b_data[t].empty}
 
+    # Calcolo live del segnale macro con pesatura Kelly (§8.30)
+    live_allocations, live_hysteresis, live_debug = compute_v2_macro_signal(b_data, prev_hysteresis)
+    output["allocations"] = live_allocations
+    output["v2_state"]["hysteresis"] = live_hysteresis
+    output["v2_state"]["signal_debug"] = live_debug
+    output["v2_state"]["kelly_migrated"] = True
+    macro_dates, macro_events = update_macro_regimes(live_allocations, old_data, today_str)
+    output["macro_dates"] = macro_dates
+    output["macro_events"] = macro_events
+
     spy_df = b_data.get("SPY")
     latest_market_date_str = spy_df.index[-1].strftime("%Y-%m-%d") if spy_df is not None and not spy_df.empty else None
     executing_pending = compute_executing_pending(prev_pending, latest_market_date_str)
