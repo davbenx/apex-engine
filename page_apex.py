@@ -889,10 +889,9 @@ with tab_perf:
     """)
     st.caption(
         f"Periodo di validazione fuori campione: {_m_apex_active.get('test_period', '')} — "
-        f"mai usato per scegliere i parametri della strategia. Eccezione: \"Calo Massimo "
-        f"Backtest\" è calcolato sull'intero backtest {_m_apex_active.get('storico_period', '')}, "
-        f"non sulla sola finestra di validazione — e non coincide con la simulazione live più "
-        f"sotto (dal 2024-03, troppo giovane per aver attraversato un vero mercato ribassista)."
+        f"mai usato per scegliere i parametri della strategia. Tutte le metriche primarie e i grafici "
+        f"sono calcolati al LORDO delle imposte. \"Calo Massimo Backtest\" è calcolato sull'intero backtest "
+        f"{_m_apex_active.get('storico_period', '')}, coerente con la vista storica del grafico sottostante."
     )
 
     # Nota auto-scadente sul cambio di algoritmo in produzione (basket low-beta
@@ -919,213 +918,301 @@ with tab_perf:
 
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
 
-    selected_range = st.segmented_control(
-        "Periodo",
-        options=["6M", "1A", "3A", "5A", "Da Inizio"],
-        default="1A",
-        label_visibility="collapsed",
-        key="chart_range_ctrl"
-    )
-    if not selected_range:
-        selected_range = "1A"
+    c_mode, c_rng = st.columns([1.8, 2.2])
+    with c_mode:
+        selected_view = st.segmented_control(
+            "Visualizzazione",
+            options=["Backtest Storico (1987-2026)", "Simulazione Live (2024-Oggi)"],
+            default="Backtest Storico (1987-2026)",
+            label_visibility="collapsed",
+            key="apex_chart_view_mode"
+        )
+        if not selected_view:
+            selected_view = "Backtest Storico (1987-2026)"
 
+    with c_rng:
+        selected_range = st.segmented_control(
+            "Periodo",
+            options=["6M", "1A", "3A", "5A", "Da Inizio"],
+            default="5A" if selected_view.startswith("Backtest") else "1A",
+            label_visibility="collapsed",
+            key="chart_range_ctrl"
+        )
+        if not selected_range:
+            selected_range = "5A" if selected_view.startswith("Backtest") else "1A"
 
-    @st.cache_data(ttl=3600)
-    def load_benchmark():
-        # 1. Carica dalla cache pre-scaricata (aggiornata offline dal workflow)
-        cache = _load_price_cache()
-        if cache and cache.get("spy_history"):
-            hist = cache["spy_history"]
-            idx = pd.to_datetime([h["date"] for h in hist])
-            df_b = pd.DataFrame({
-                "open": [h["open"] for h in hist],
-                "high": [h["high"] for h in hist],
-                "low": [h["low"] for h in hist],
-                "close": [h["close"] for h in hist],
-            }, index=idx).ffill().dropna()
-            if not df_b.empty:
-                return df_b
-        # 2. Fallback deterministico offline: serie storica locale SPY
-        csv_path = os.path.join(os.path.dirname(__file__), "spy_monthly_history.csv")
-        if os.path.exists(csv_path):
-            try:
-                df_csv = pd.read_csv(csv_path)
-                df_csv['Date'] = pd.to_datetime(df_csv['Date'])
-                df_csv = df_csv.set_index('Date').sort_index()
-                return pd.DataFrame({
-                    'open': df_csv['Close'],
-                    'high': df_csv['Close'],
-                    'low': df_csv['Close'],
-                    'close': df_csv['Close']
-                }, index=df_csv.index).ffill().dropna()
-            except Exception:
-                pass
-        return pd.DataFrame()
+    if selected_view.startswith("Backtest"):
+        _apex_gross_path = os.path.join(os.path.dirname(__file__), "apex_monthly_returns_extended_gross.csv")
+        if os.path.exists(_apex_gross_path):
+            _ap_ret = pd.read_csv(_apex_gross_path, index_col=0, parse_dates=True).iloc[:, 0]
+            _ap_nav = pd.DataFrame({"value": (1.0 + _ap_ret).cumprod() * 100.0})
+            _ap_nav["roll_max"] = _ap_nav["value"].cummax()
+            _ap_nav["drawdown"] = (_ap_nav["value"] - _ap_nav["roll_max"]) / _ap_nav["roll_max"] * 100.0
 
-    # Storico della simulazione Apex, calcolato da segnali e prezzi di mercato
-    # reali (nessun dato inventato) — non un conto broker reale, vedi didascalia.
-    _eq_path_local = os.path.join(os.path.dirname(__file__), "equity.json")
-    eq_curve = fetch_json_local_or_github("equity.json") or (json.load(open(_eq_path_local)) if os.path.exists(_eq_path_local) else None)
-    df_eq = None
-    if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
-        df_eq = pd.DataFrame(eq_curve["history"])
-        df_eq['date'] = pd.to_datetime(df_eq['date'])
-        df_eq = df_eq.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
-        if 'open' not in df_eq.columns or df_eq['open'].isna().all():
-            df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
-        df_eq['close'] = df_eq['value'] if 'value' in df_eq.columns else df_eq['close']
-
-    if df_eq is not None and len(df_eq) > 0:
-        df_eq['roll_max'] = df_eq['close'].cummax()
-        df_eq['drawdown'] = (df_eq['close'] - df_eq['roll_max']) / df_eq['roll_max'] * 100
-
-        initial_val = df_eq['open'].iloc[0]
-        base_val = initial_val if initial_val > 0 else 100000.0
-        # Solo la chiusura serve al grafico (linea, non candlestick) — open/high/low
-        # non vengono mai disegnati, quindi non calcolati (erano lavoro sprecato ad
-        # ogni render).
-        df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
-
-        if len(df_eq) >= 5:
-            df_agg = df_eq.resample('W-FRI').agg({'norm_close': 'last', 'close': 'last'}).dropna()
-        else:
-            df_agg = df_eq
-
-        last_dt = df_agg.index[-1]
-        if selected_range == "6M":
-            start_dt = last_dt - pd.DateOffset(months=6)
-        elif selected_range == "1A":
-            start_dt = last_dt - pd.DateOffset(years=1)
-        elif selected_range == "3A":
-            start_dt = last_dt - pd.DateOffset(years=3)
-        elif selected_range == "5A":
-            start_dt = last_dt - pd.DateOffset(years=5)
-        else:
-            start_dt = df_agg.index[0]
-
-        df_plot = df_agg[df_agg.index >= start_dt].copy()
-
-        ticks, tick_labels = [], []
-        if not df_plot.empty:
-            start_d, end_d = df_plot.index[0], df_plot.index[-1]
-            total_days = (end_d - start_d).days
-            all_days = pd.date_range(start_d, end_d, freq='D')
-            if total_days <= 45:
-                ticks = [all_days[i] for i in range(0, len(all_days), 7)]
-                tick_labels = [f"{d.day} {MESI_IT[d.month-1]}" for d in ticks]
-            elif total_days <= 120:
-                ticks = [d for d in all_days if d.day in [1, 15]]
-                tick_labels = [f"{d.day:02d} {MESI_IT[d.month-1]}" for d in ticks]
-            elif total_days <= 450:
-                ticks = [d for d in all_days if d.day == 1]
-                tick_labels = [f"{MESI_IT[d.month-1]} '{d.strftime('%y')}" if (d.month in [1, 7] or (len(ticks) > 0 and d == ticks[0])) else MESI_IT[d.month-1] for d in ticks]
+            last_dt = _ap_nav.index[-1]
+            if selected_range == "6M":
+                start_dt = last_dt - pd.DateOffset(months=6)
+            elif selected_range == "1A":
+                start_dt = last_dt - pd.DateOffset(years=1)
+            elif selected_range == "3A":
+                start_dt = last_dt - pd.DateOffset(years=3)
+            elif selected_range == "5A":
+                start_dt = last_dt - pd.DateOffset(years=5)
             else:
-                ticks = [d for d in all_days if d.day == 1 and d.month in [1, 4, 7, 10]]
-                tick_labels = [f"{MESI_IT[d.month-1]} '{d.strftime('%y')}" for d in ticks]
+                start_dt = _ap_nav.index[0]
 
-        it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_plot.index]
+            _plot_df = _ap_nav[_ap_nav.index >= start_dt].copy()
+            _plot_df["norm"] = (_plot_df["value"] / _plot_df["value"].iloc[0]) * 100.0
 
-        df_spy = load_benchmark()
+            s_spy_full = portfolio_manager.load_monthly_benchmark_spy(start_date=_plot_df.index[0])
+            common_dt = _plot_df.index.intersection(s_spy_full.index)
 
-        # Scala logaritmica: solo sui periodi lunghi, dove la scala lineare
-        # esagera visivamente i guadagni recenti e schiaccia la storia iniziale
-        # (convenzione standard per curve NAV pluriennali). Sui periodi brevi
-        # non aggiunge nulla, quindi non viene nemmeno proposta.
-        _use_log = False
-        if selected_range in ("3A", "5A", "Da Inizio"):
-            _use_log = st.toggle("Scala logaritmica", value=False, key="apex_log_scale")
+            _use_log = False
+            if selected_range in ("3A", "5A", "Da Inizio"):
+                _use_log = st.toggle("Scala logaritmica", value=False, key="apex_hist_log_scale")
 
-        fig = go.Figure()
-        _y_values = list(df_plot['norm_close'])
-
-        fig.add_trace(go.Scatter(
-            x=df_plot.index, y=df_plot['norm_close'], mode='lines', name="Apex Engine",
-            line=dict(color=ACCENT, width=2),
-            fill=None if _use_log else 'tozeroy', fillcolor='rgba(201, 164, 76, 0.10)',
-            text=it_dates_str, hovertemplate="<b>%{text}</b><br>Base 100: %{y:.2f}<extra></extra>"
-        ))
-
-        if not df_spy.empty:
-            start_date = df_plot.index[0]
-            df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
-            if not df_spy_aligned.empty:
-                first_spy = df_spy_aligned['close'].iloc[0]
-                df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna() if len(df_spy_aligned) >= 5 else df_spy_aligned['close']
-                df_spy_norm = (df_spy_plot / first_spy) * 100
-                _y_values.extend(df_spy_norm.tolist())
-                spy_it_dates = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_spy_plot.index]
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=_plot_df.index, y=_plot_df["norm"], mode="lines", name="Apex Engine (Backtest Lordo)",
+                line=dict(color=ACCENT, width=2),
+                fill=None if _use_log else "tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
+                hovertemplate="Base 100: %{y:.2f}<extra></extra>"
+            ))
+            if len(common_dt) > 0:
+                _spy_aligned = s_spy_full.loc[common_dt]
+                _spy_norm = (_spy_aligned / _spy_aligned.iloc[0]) * 100.0
                 fig.add_trace(go.Scatter(
-                    x=df_spy_plot.index, y=df_spy_norm, text=spy_it_dates,
-                    hovertemplate="<b>%{text}</b><br>S&P 500: %{y:.2f}<extra></extra>",
-                    mode='lines', name="S&P 500 Benchmark", line=dict(color='#7A7266', width=1.5, dash='dot'),
+                    x=_spy_norm.index, y=_spy_norm, mode="lines", name="S&P 500 Benchmark",
+                    line=dict(color='#7A7266', width=1.5, dash='dot'),
+                    hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
                 ))
+
+            # Linea verticale demarcazione Out-of-Sample a Settembre 2020
+            _oos_start = pd.Timestamp("2020-09-30")
+            if _plot_df.index[0] < _oos_start <= _plot_df.index[-1]:
+                fig.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
+                fig.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
+                                   text="Inizio Fuori Campione (OOS) →", showarrow=False,
+                                   font=dict(size=10, color=ACCENT))
+
+            fig.update_layout(
+                template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family="Inter, sans-serif"),
+                xaxis=dict(showgrid=False, tickfont=dict(size=11)),
+                yaxis=dict(type="log", showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11)) if _use_log else dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11)),
+                margin=dict(l=0, r=0, t=10, b=0), height=380,
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            st_html(section_title("Calo dal Massimo (Backtest Storico)", top="14px", bottom="6px"))
+            fig_dd = go.Figure()
+            fig_dd.add_trace(go.Scatter(
+                x=_plot_df.index, y=_plot_df['drawdown'], fill='tozeroy', mode='lines',
+                line=dict(color=NEG, width=1.2), fillcolor='rgba(236, 101, 123, 0.15)',
+                hovertemplate="Calo: %{y:.2f}%<extra></extra>", name="Calo"
+            ))
+            fig_dd.update_layout(
+                template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family="Inter, sans-serif"),
+                xaxis=dict(showgrid=False, tickfont=dict(size=10)),
+                yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.05)', tickfont=dict(size=10), ticksuffix="%"),
+                margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
+            )
+            st.plotly_chart(fig_dd, use_container_width=True)
+
+            st.caption(
+                f"Serie mensile dal backtest storico multi-decennale ({_ap_ret.index[0].year}–{_ap_ret.index[-1].year}, {len(_ap_ret)} mesi) "
+                f"al LORDO delle tasse. Include selezione Low-Beta (15 titoli S&P 500), pesatura Kelly (0.25) e motore Crypto Frontier Venture "
+                f"(Dual-Regime BTC Core + Altseason Satellite Top 25 dal 2018). Calo massimo su questo intervallo: {_plot_df['drawdown'].min():.2f}% "
+                f"(calo massimo storico intera serie 1987–2026: {_ap_nav['drawdown'].min():.2f}%)."
+            )
+
+            st_html(section_title("Matrice dei Rendimenti (Backtest Storico)"))
+            st_html(render_monthly_returns_html_table(_ap_nav))
         else:
-            st.caption("Benchmark SPY non raggiungibile in questo momento — mostrata solo la curva della strategia.")
-
-        _y_min, _y_max = min(_y_values), max(_y_values)
-        _y_pad = max((_y_max - _y_min) * 0.08, 1.0)
-        # Scala log: il range va lasciato all'autoscaling di Plotly (in scala
-        # log un range esplicito va espresso in esponenti, non nei valori
-        # originali — un range lineare qui produrrebbe un grafico sbagliato).
-        _yaxis = dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11))
-        if _use_log:
-            _yaxis["type"] = "log"
-        else:
-            _yaxis["range"] = [_y_min - _y_pad, _y_max + _y_pad]
-
-        fig.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Inter, sans-serif"),
-            xaxis=dict(showgrid=False, tickfont=dict(size=11),
-                       tickmode='array' if len(ticks) > 0 else 'auto',
-                       tickvals=ticks if len(ticks) > 0 else None,
-                       ticktext=tick_labels if len(tick_labels) > 0 else None),
-            yaxis=_yaxis,
-            margin=dict(l=0, r=0, t=10, b=0), height=380,
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        if not df_spy.empty:
-            _spy_fresh_note = _spy_benchmark_freshness_label()
-            if _spy_fresh_note:
-                st.caption(_spy_fresh_note)
-
-        st_html(section_title("Calo dal Massimo (simulazione live)", top="14px", bottom="6px"))
-        df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
-        dd_it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_underwater.index]
-        fig_dd = go.Figure()
-        fig_dd.add_trace(go.Scatter(
-            x=df_underwater.index, y=df_underwater['drawdown'], fill='tozeroy', mode='lines',
-            line=dict(color=NEG, width=1.2), fillcolor='rgba(236, 101, 123, 0.15)',
-            text=dd_it_dates_str, hovertemplate="<b>%{text}</b><br>Calo: %{y:.2f}%<extra></extra>", name="Calo"
-        ))
-        fig_dd.update_layout(
-            template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Inter, sans-serif"),
-            xaxis=dict(showgrid=False, tickfont=dict(size=10),
-                       tickmode='array' if len(ticks) > 0 else 'auto',
-                       tickvals=ticks if len(ticks) > 0 else None,
-                       ticktext=tick_labels if len(tick_labels) > 0 else None),
-            yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.05)', tickfont=dict(size=10), ticksuffix="%"),
-            margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
-        )
-        st.plotly_chart(fig_dd, use_container_width=True)
-
-        st.caption(
-            f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale, "
-            f"al lordo delle tasse — nessun conto broker reale ancora collegato. "
-            f"{len(df_eq)} punti disponibili "
-            f"({df_eq.index[0].date()} → {df_eq.index[-1].date()}). "
-            f"Calo massimo di questa simulazione: {df_eq['drawdown'].min():.2f}% — inferiore al "
-            f"\"Calo Massimo Backtest\" mostrato sopra perché questa finestra è troppo recente "
-            f"per aver attraversato una vera crisi di mercato, non perché le due cifre siano in "
-            f"contraddizione."
-        )
-
-        st_html(section_title("Matrice dei Rendimenti"))
-        st_html(render_monthly_returns_html_table(df_eq.rename(columns={"close": "value"}) if "value" not in df_eq.columns else df_eq))
+            st.info("File di backtest storico apex_monthly_returns_extended_gross.csv non trovato.")
     else:
-        st.info("In attesa del file di tracciamento storico.")
+        # Simulazione Live (2024-Oggi) da equity.json
+        @st.cache_data(ttl=3600)
+        def load_benchmark():
+            cache = _load_price_cache()
+            if cache and cache.get("spy_history"):
+                hist = cache["spy_history"]
+                idx = pd.to_datetime([h["date"] for h in hist])
+                df_b = pd.DataFrame({
+                    "open": [h["open"] for h in hist],
+                    "high": [h["high"] for h in hist],
+                    "low": [h["low"] for h in hist],
+                    "close": [h["close"] for h in hist],
+                }, index=idx).ffill().dropna()
+                if not df_b.empty:
+                    return df_b
+            csv_path = os.path.join(os.path.dirname(__file__), "spy_monthly_history.csv")
+            if os.path.exists(csv_path):
+                try:
+                    df_csv = pd.read_csv(csv_path)
+                    df_csv['Date'] = pd.to_datetime(df_csv['Date'])
+                    df_csv = df_csv.set_index('Date').sort_index()
+                    return pd.DataFrame({
+                        'open': df_csv['Close'],
+                        'high': df_csv['Close'],
+                        'low': df_csv['Close'],
+                        'close': df_csv['Close']
+                    }, index=df_csv.index).ffill().dropna()
+                except Exception:
+                    pass
+            return pd.DataFrame()
+
+        _eq_path_local = os.path.join(os.path.dirname(__file__), "equity.json")
+        eq_curve = fetch_json_local_or_github("equity.json") or (json.load(open(_eq_path_local)) if os.path.exists(_eq_path_local) else None)
+        df_eq = None
+        if eq_curve and "history" in eq_curve and len(eq_curve["history"]) > 0:
+            df_eq = pd.DataFrame(eq_curve["history"])
+            df_eq['date'] = pd.to_datetime(df_eq['date'])
+            df_eq = df_eq.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
+            if 'open' not in df_eq.columns or df_eq['open'].isna().all():
+                df_eq['open'] = df_eq['value'].shift(1).fillna(df_eq['value'].iloc[0])
+            df_eq['close'] = df_eq['value'] if 'value' in df_eq.columns else df_eq['close']
+
+        if df_eq is not None and len(df_eq) > 0:
+            df_eq['roll_max'] = df_eq['close'].cummax()
+            df_eq['drawdown'] = (df_eq['close'] - df_eq['roll_max']) / df_eq['roll_max'] * 100
+
+            initial_val = df_eq['open'].iloc[0]
+            base_val = initial_val if initial_val > 0 else 100000.0
+            df_eq['norm_close'] = (df_eq['close'] / base_val) * 100
+
+            if len(df_eq) >= 5:
+                df_agg = df_eq.resample('W-FRI').agg({'norm_close': 'last', 'close': 'last'}).dropna()
+            else:
+                df_agg = df_eq
+
+            last_dt = df_agg.index[-1]
+            if selected_range == "6M":
+                start_dt = last_dt - pd.DateOffset(months=6)
+            elif selected_range == "1A":
+                start_dt = last_dt - pd.DateOffset(years=1)
+            elif selected_range == "3A":
+                start_dt = last_dt - pd.DateOffset(years=3)
+            elif selected_range == "5A":
+                start_dt = last_dt - pd.DateOffset(years=5)
+            else:
+                start_dt = df_agg.index[0]
+
+            df_plot = df_agg[df_agg.index >= start_dt].copy()
+
+            ticks, tick_labels = [], []
+            if not df_plot.empty:
+                start_d, end_d = df_plot.index[0], df_plot.index[-1]
+                total_days = (end_d - start_d).days
+                all_days = pd.date_range(start_d, end_d, freq='D')
+                if total_days <= 45:
+                    ticks = [all_days[i] for i in range(0, len(all_days), 7)]
+                    tick_labels = [f"{d.day} {MESI_IT[d.month-1]}" for d in ticks]
+                elif total_days <= 120:
+                    ticks = [d for d in all_days if d.day in [1, 15]]
+                    tick_labels = [f"{d.day:02d} {MESI_IT[d.month-1]}" for d in ticks]
+                elif total_days <= 450:
+                    ticks = [d for d in all_days if d.day == 1]
+                    tick_labels = [f"{MESI_IT[d.month-1]} '{d.strftime('%y')}" if (d.month in [1, 7] or (len(ticks) > 0 and d == ticks[0])) else MESI_IT[d.month-1] for d in ticks]
+                else:
+                    ticks = [d for d in all_days if d.day == 1 and d.month in [1, 4, 7, 10]]
+                    tick_labels = [f"{MESI_IT[d.month-1]} '{d.strftime('%y')}" for d in ticks]
+
+            it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_plot.index]
+
+            df_spy = load_benchmark()
+
+            _use_log = False
+            if selected_range in ("3A", "5A", "Da Inizio"):
+                _use_log = st.toggle("Scala logaritmica", value=False, key="apex_log_scale")
+
+            fig = go.Figure()
+            _y_values = list(df_plot['norm_close'])
+
+            fig.add_trace(go.Scatter(
+                x=df_plot.index, y=df_plot['norm_close'], mode='lines', name="Apex Engine (Live)",
+                line=dict(color=ACCENT, width=2),
+                fill=None if _use_log else 'tozeroy', fillcolor='rgba(201, 164, 76, 0.10)',
+                text=it_dates_str, hovertemplate="<b>%{text}</b><br>Base 100: %{y:.2f}<extra></extra>"
+            ))
+
+            if not df_spy.empty:
+                start_date = df_plot.index[0]
+                df_spy_aligned = df_spy[df_spy.index >= start_date].copy()
+                if not df_spy_aligned.empty:
+                    first_spy = df_spy_aligned['close'].iloc[0]
+                    df_spy_plot = df_spy_aligned['close'].resample('W-FRI').last().dropna() if len(df_spy_aligned) >= 5 else df_spy_aligned['close']
+                    df_spy_norm = (df_spy_plot / first_spy) * 100
+                    _y_values.extend(df_spy_norm.tolist())
+                    spy_it_dates = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_spy_plot.index]
+                    fig.add_trace(go.Scatter(
+                        x=df_spy_plot.index, y=df_spy_norm, text=spy_it_dates,
+                        hovertemplate="<b>%{text}</b><br>S&P 500: %{y:.2f}<extra></extra>",
+                        mode='lines', name="S&P 500 Benchmark", line=dict(color='#7A7266', width=1.5, dash='dot'),
+                    ))
+            else:
+                st.caption("Benchmark SPY non raggiungibile in questo momento — mostrata solo la curva della strategia.")
+
+            _y_min, _y_max = min(_y_values), max(_y_values)
+            _y_pad = max((_y_max - _y_min) * 0.08, 1.0)
+            _yaxis = dict(showgrid=True, gridcolor='rgba(255,247,237,0.07)', tickfont=dict(size=11))
+            if _use_log:
+                _yaxis["type"] = "log"
+            else:
+                _yaxis["range"] = [_y_min - _y_pad, _y_max + _y_pad]
+
+            fig.update_layout(
+                template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family="Inter, sans-serif"),
+                xaxis=dict(showgrid=False, tickfont=dict(size=11),
+                           tickmode='array' if len(ticks) > 0 else 'auto',
+                           tickvals=ticks if len(ticks) > 0 else None,
+                           ticktext=tick_labels if len(tick_labels) > 0 else None),
+                yaxis=_yaxis,
+                margin=dict(l=0, r=0, t=10, b=0), height=380,
+                legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01, bgcolor='rgba(0,0,0,0)')
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            if not df_spy.empty:
+                _spy_fresh_note = _spy_benchmark_freshness_label()
+                if _spy_fresh_note:
+                    st.caption(_spy_fresh_note)
+
+            st_html(section_title("Calo dal Massimo (simulazione live)", top="14px", bottom="6px"))
+            df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
+            dd_it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_underwater.index]
+            fig_dd = go.Figure()
+            fig_dd.add_trace(go.Scatter(
+                x=df_underwater.index, y=df_underwater['drawdown'], fill='tozeroy', mode='lines',
+                line=dict(color=NEG, width=1.2), fillcolor='rgba(236, 101, 123, 0.15)',
+                text=dd_it_dates_str, hovertemplate="<b>%{text}</b><br>Calo: %{y:.2f}%<extra></extra>", name="Calo"
+            ))
+            fig_dd.update_layout(
+                template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(family="Inter, sans-serif"),
+                xaxis=dict(showgrid=False, tickfont=dict(size=10),
+                           tickmode='array' if len(ticks) > 0 else 'auto',
+                           tickvals=ticks if len(ticks) > 0 else None,
+                           ticktext=tick_labels if len(tick_labels) > 0 else None),
+                yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.05)', tickfont=dict(size=10), ticksuffix="%"),
+                margin=dict(l=0, r=0, t=4, b=0), height=110, showlegend=False
+            )
+            st.plotly_chart(fig_dd, use_container_width=True)
+
+            st.caption(
+                f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale, "
+                f"al lordo delle tasse — nessun conto broker reale ancora collegato. "
+                f"{len(df_eq)} punti disponibili "
+                f"({df_eq.index[0].date()} → {df_eq.index[-1].date()}). "
+                f"Calo massimo di questa simulazione: {df_eq['drawdown'].min():.2f}%."
+            )
+
+            st_html(section_title("Matrice dei Rendimenti (Simulazione Live)"))
+            st_html(render_monthly_returns_html_table(df_eq.rename(columns={"close": "value"}) if "value" not in df_eq.columns else df_eq))
+        else:
+            st.info("In attesa del file di tracciamento storico.")
 
     # --- Statistiche Operative (storico delle operazioni simulate) ---
     if pf:

@@ -175,6 +175,44 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     gld_ret = spliced_return(*SPLICE_SPEC["GLD"])
     btc_ret = spliced_return(*SPLICE_SPEC["BTC-USD"])
 
+    crypto_spliced_file = EXT_DATA_DIR / "crypto_venture_weekly_spliced.csv"
+    if not crypto_spliced_file.exists():
+        try:
+            from crypto_frontier_venture_engine import (
+                CryptoVentureConfig, load_crypto_dataset, precompute_market_matrices, run_crypto_venture_backtest
+            )
+            cache_dir = str(REPO_ROOT / "research" / "crypto_ohlcv_extended_cache")
+            if os.path.exists(cache_dir):
+                dfs = load_crypto_dataset(cache_dir)
+                cfg = CryptoVentureConfig(
+                    universe_mode="TOP25", max_slots=7, stop_mode="ATR_CLOSE",
+                    atr_multiplier=2.5, time_stop_days=21, freeride_multiplier=2.25,
+                    trailing_stop_pct=0.30, slippage_bps=10.0
+                )
+                matrices = precompute_market_matrices(dfs, cfg)
+                res_g = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
+                res_n = run_crypto_venture_backtest(matrices, cfg, tax_enabled=True)
+                ret_w_g = res_g["equity_curve"].resample("W-FRI").last().pct_change().dropna()
+                ret_w_n = res_n["equity_curve"].resample("W-FRI").last().pct_change().dropna()
+                s_g = btc_ret.copy()
+                for d, r in ret_w_g.items():
+                    s_g.loc[d] = r
+                s_n = btc_ret.copy()
+                for d, r in ret_w_n.items():
+                    s_n.loc[d] = r
+                df_cv = pd.DataFrame({"gross": s_g, "net": s_n}).sort_index()
+                df_cv.to_csv(crypto_spliced_file)
+        except Exception as e:
+            print(f"[!] Impossibile generare cache crypto venture: {e}")
+
+    if crypto_spliced_file.exists():
+        df_cv = pd.read_csv(crypto_spliced_file, index_col=0, parse_dates=True)
+        crypto_ret_gross = df_cv["gross"]
+        crypto_ret_net = df_cv["net"]
+    else:
+        crypto_ret_gross = btc_ret
+        crypto_ret_net = btc_ret
+
     hysteresis_state, prev_basket_tickers, current_basket = None, None, []
     locked_alloc = None
     macro_alloc_history, equity_return_basket, basket_turnover_cost = [], [], []
@@ -276,15 +314,21 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
 
     weights_df = pd.DataFrame({"Equity": alloc_frac("Equities"), "Bonds": alloc_frac("Bonds"),
                                 "Gold": alloc_frac("Gold"), "Crypto": alloc_frac("Crypto")})
-    returns_df = pd.DataFrame({
+    returns_df_gross = pd.DataFrame({
         "Equity": pd.Series(equity_return_basket[valid_from:], index=idx),
         "Bonds": ief_ret.reindex(idx).fillna(0.0),
         "Gold": gld_ret.reindex(idx).fillna(0.0),
-        "Crypto": btc_ret.reindex(idx).fillna(0.0),
+        "Crypto": crypto_ret_gross.reindex(idx).fillna(0.0),
+    })
+    returns_df_net = pd.DataFrame({
+        "Equity": pd.Series(equity_return_basket[valid_from:], index=idx),
+        "Bonds": ief_ret.reindex(idx).fillna(0.0),
+        "Gold": gld_ret.reindex(idx).fillna(0.0),
+        "Crypto": crypto_ret_net.reindex(idx).fillna(0.0),
     })
     tax_types = {"Equity": "REDDITO_DIVERSO", "Bonds": "REDDITO_CAPITALE", "Gold": "REDDITO_DIVERSO", "Crypto": "REDDITO_DIVERSO"}
 
-    port_gross = (returns_df * weights_df).sum(axis=1)
+    port_gross = (returns_df_gross * weights_df).sum(axis=1)
     weight_change = weights_df.diff().abs().sum(axis=1).fillna(0.0)
     cost_bps_map = {"Equity": BASKET_STOCK_COST_BPS, "Bonds": 0.0008, "Gold": 0.0010, "Crypto": 0.0010}
     basket_turnover_series = pd.Series(basket_turnover_cost[valid_from:], index=idx)
@@ -294,7 +338,7 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     # concern #4 dell'audit, invisibile al turnover di classe per costruzione).
     cost_drag = weight_change * np.mean(list(cost_bps_map.values())) + basket_turnover_series
     port_gross_after_costs = port_gross - cost_drag
-    port_net = _apply_italian_tax(returns_df, weights_df, tax_types=tax_types)
+    port_net = _apply_italian_tax(returns_df_net, weights_df, tax_types=tax_types)
     port_net_after_costs = port_net - cost_drag
 
     if return_components:
@@ -304,7 +348,7 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
         # costoso — weights_df/returns_df/weight_change non dipendono dal
         # coefficiente di costo, solo il passo finale (cost_drag) lo usa.
         return port_gross_after_costs, port_net_after_costs, {
-            "weights_df": weights_df, "returns_df": returns_df, "weight_change": weight_change,
+            "weights_df": weights_df, "returns_df": returns_df_gross, "weight_change": weight_change,
             "port_gross": port_gross, "port_net": port_net, "tax_types": tax_types,
             "cost_bps_map": cost_bps_map, "basket_turnover_series": basket_turnover_series,
         }

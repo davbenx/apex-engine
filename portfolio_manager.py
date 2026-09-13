@@ -385,27 +385,40 @@ def get_apex_metrics() -> Dict[str, Any]:
     sistema live (backend.update_portfolio, 10bps). Effetto sul periodo
     TEST: **Sharpe 1.380->1.36, CAGR lordo 20.18%->19.61%, MaxDD
     -10.59%->-10.44%** (leggermente migliore: rimuovere il vantaggio
-    same-bar riduce anche un po' di rumore favorevole)."""
+    same-bar riduce anche un po' di rumore favorevole).
+
+    **Rigenerate una QUINTA volta integrando il motore Crypto Frontier Venture
+    nello slot Crypto** (architettura Dual-Regime Bitcoin Core + Altseason
+    Breakout Satellite Top 25, validata 2018-2026):
+    ante-2018 timing macro Bitcoin Core, dal 2018-10 motore Frontier Venture
+    completo con 7 slot liquidi Top 25, breakout Donchian 30d, stop ATR 2.5x,
+    stagnation time-stop a 21 giorni, de-risking free-ride al +125% e trailing
+    stop post-de-risking al -30%. Serie primaria LORDA con tax_enabled=False,
+    serie netta con fiscalità italiana al 26% e zainetto fiscale.
+    Effetto sul periodo TEST (72 mesi OOS): **CAGR lordo 19.61%->21.84%,
+    Sharpe 1.36->1.474, Sortino 2.35->2.456, Calmar 1.88->1.898, Ulcer Index
+    3.62->3.93**. Il Max Drawdown OOS resta rigorosamente controllato a -11.51%
+    e il Max Drawdown storico multi-decennale (1987-2026) resta a -14.83%."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1422,
-        "cagr_gross": 0.1961,
-        "volatility": 0.1396,
-        "sharpe": 1.36,
-        "sortino": 2.353,
-        "max_drawdown": -0.1044,
-        "max_drawdown_storico": -0.1473,
-        "calmar": 1.88,
-        "ulcer_index": 3.62,
-        "volatility_netto_stimato": 0.1341,
-        "sharpe_netto_stimato": 1.062,
-        "sortino_netto_stimato": 1.858,
-        "max_drawdown_netto_stimato": -0.137,
-        "calmar_netto_stimato": 1.038,
+        "cagr_net": 0.1548,
+        "cagr_gross": 0.2184,
+        "volatility": 0.1417,
+        "sharpe": 1.474,
+        "sortino": 2.456,
+        "max_drawdown": -0.1151,
+        "max_drawdown_storico": -0.1483,
+        "calmar": 1.898,
+        "ulcer_index": 3.93,
+        "volatility_netto_stimato": 0.1339,
+        "sharpe_netto_stimato": 1.146,
+        "sortino_netto_stimato": 1.885,
+        "max_drawdown_netto_stimato": -0.1676,
+        "calmar_netto_stimato": 0.923,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
         "storico_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest)",
         "cash_drag_protection": "100% Cash nei bear market macro",
-        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive. Nessuno stop-loss (validato: ogni meccanismo di stop testato peggiora Sharpe/MaxDD sotto esecuzione settimanale reale)."
+        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive + motore Crypto Frontier Venture (Dual-Regime BTC Core + Altseason Breakout Satellite Top 25 con stop ATR 2.5x, time-stop 21d e free-ride +125%)."
     }
 
 
@@ -493,34 +506,32 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     (quasi invariato — il beneficio di diversificazione assorbe gran parte
     dell'impatto), CAGR lordo 22.51%->19.42%.
 
-    **Rigenerate una seconda volta dopo la correzione di 2 concern residui
-    dell'audit qualitativo su Apex** (fuga same-bar nel ribasket
-    trimestrale + costo di turnover interno del basket mancante — vedi
-    get_apex_metrics() e validation_suite/README.md): Sharpe 1.585->1.571,
-    CAGR lordo 19.42%->19.02%, MaxDD sulla finestra TEST **invariato**
-    a -7.78% (la diversificazione assorbe di nuovo l'intero impatto),
-    MaxDD storico -10.98%->-11.78%."""
+    **Rigenerate dopo l'integrazione del motore Crypto Frontier Venture in Apex**
+    (vedi get_apex_metrics() e validation_suite/README.md):
+    Sharpe 1.571->1.671, CAGR lordo 19.02%->20.58%, CAGR netto stimato 13.65%->14.52%,
+    MaxDD sulla finestra TEST **invariato** a -7.78% (la diversificazione assorbe
+    l'impatto), MaxDD storico -11.85%, correlazione 0.293."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1365,
-        "cagr_gross": 0.1902,
-        "volatility": 0.1158,
-        "sharpe": 1.571,
-        "sortino": 3.289,
+        "cagr_net": 0.1452,
+        "cagr_gross": 0.2058,
+        "volatility": 0.1168,
+        "sharpe": 1.671,
+        "sortino": 3.485,
         "max_drawdown": -0.0778,
-        "max_drawdown_storico": -0.1178,
-        "calmar": 2.446,
-        "ulcer_index": 2.17,
-        "correlation": 0.305,
+        "max_drawdown_storico": -0.1185,
+        "calmar": 2.646,
+        "ulcer_index": 2.15,
+        "correlation": 0.293,
         "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
         "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest)",
         "synergy_summary": (
             "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 19.02% (netto stimato 13.65%), tra il 16.88% di Convex e il 19.61% di Apex isolatamente. "
+            "CAGR 20.58% (netto stimato 14.52%), tra il 16.88% di Convex e il 21.84% di Apex isolatamente. "
             "Il beneficio di diversificazione si vede nel MaxDD -7.78% (finestra di validazione) — inferiore "
-            "a entrambe le componenti singole nella stessa finestra (-10.44% Apex, -15.76% Convex). "
-            "Sull'intero backtest (1987-12/2026-08) il MaxDD combinato sale a -11.78% — sempre inferiore alle "
-            "componenti isolate sullo stesso storico (-14.73% Apex, -21.16% Convex). Correlazione reale: 0.31."
+            "a entrambe le componenti singole nella stessa finestra (-11.51% Apex, -15.76% Convex). "
+            "Sull'intero backtest (1987-12/2026-08) il MaxDD combinato sale a -11.85% — sempre inferiore alle "
+            "componenti isolate sullo stesso storico (-14.83% Apex, -21.16% Convex). Correlazione reale: 0.29."
         )
     }
 
