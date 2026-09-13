@@ -273,3 +273,66 @@ def test_trade_orders_and_action_log_renderers():
     emoji_pattern = re.compile(r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
     assert not emoji_pattern.findall(content), "Trovate emoji in portfolio.json"
 
+
+def test_apex_trades_register_renderers():
+    """Verifica che le tabelle del registro storico e posizioni aperte di Apex renderizzino correttamente e senza emoji."""
+    import page_apex
+    import pandas as pd
+    import re
+
+    # 1. Verifica render_hist_trades_html_table
+    df_hist = pd.DataFrame([
+        {
+            "Titolo": "BTC",
+            "Data Ingresso": "24 Ago 2026",
+            "Data Uscita": "13 Set 2026",
+            "Durata": "20g",
+            "Prezzo Ingresso": 78564.98,
+            "Prezzo Uscita": 77191.44,
+            "Peso (%)": 32.61,
+            "Rendimento %": -1.75,
+            "Motivazione": "Stop Regime",
+        },
+        {
+            "Titolo": "KIM",
+            "Data Ingresso": "4 Mag 2026",
+            "Data Uscita": "24 Ago 2026",
+            "Durata": "112g",
+            "Prezzo Ingresso": 23.24,
+            "Prezzo Uscita": 24.03,
+            "Peso (%)": 1.11,
+            "Rendimento %": 3.39,
+            "Motivazione": "Ribilanciamento",
+        }
+    ])
+    cols = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]
+    html_hist = page_apex.render_hist_trades_html_table(df_hist, cols)
+    assert "BTC" in html_hist
+    assert "Stop Regime" in html_hist
+    assert "32.61%" in html_hist
+    assert "Ribilanciamento" in html_hist
+
+    # 2. Verifica render_open_trades_html_table
+    df_open = pd.DataFrame([
+        {
+            "Titolo": "BTC",
+            "Data Ingresso": "13 Set 2026",
+            "Giorni": "0g",
+            "Prezzo Ingresso": 77173.73,
+            "Prezzo Attuale": 76738.02,
+            "Peso (%)": 15.88,
+            "Rendimento %": -0.56,
+            "Stato": "In Posizione",
+        }
+    ])
+    html_open = page_apex.render_open_trades_html_table(df_open)
+    assert "BTC" in html_open
+    assert "IN POSIZIONE" in html_open
+    assert "15.88%" in html_open
+
+    # 3. Assenza emoji
+    emoji_pattern = re.compile(r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
+    assert not emoji_pattern.findall(html_hist)
+    assert not emoji_pattern.findall(html_open)
+
+

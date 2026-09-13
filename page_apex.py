@@ -399,15 +399,41 @@ def render_recent_trades_html_table(df, active_cols):
     return f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:14px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{th_joined}</tr></thead><tbody>{tr_joined}</tbody></table></div>'
 
 
+def get_reason_badge(reason_text, size=13):
+    s = str(reason_text).strip()
+    svg = get_reason_svg(s, size=size)
+    s_lower = s.lower()
+    bg = "rgba(255,255,255,0.05)"
+    fg = BADGE_TEXT
+    border = "rgba(255,255,255,0.1)"
+    if "rotazione" in s_lower:
+        bg = "rgba(59, 130, 246, 0.10)"
+        fg = "#93C5FD"
+        border = "rgba(59, 130, 246, 0.25)"
+    elif "ribilanciamento" in s_lower or "trim" in s_lower:
+        bg = "rgba(201, 164, 76, 0.12)"
+        fg = "#E5C478"
+        border = "rgba(201, 164, 76, 0.30)"
+    elif "regime" in s_lower or "stop" in s_lower or "disattivata" in s_lower or "bear" in s_lower:
+        bg = "rgba(242, 114, 106, 0.10)"
+        fg = NEG
+        border = "rgba(242, 114, 106, 0.25)"
+    elif "migrazione" in s_lower:
+        bg = "rgba(156, 163, 175, 0.10)"
+        fg = MUTED
+        border = "rgba(156, 163, 175, 0.20)"
+    return f'<div style="display:inline-flex; align-items:center; gap:6px; background:{bg}; color:{fg}; border:1px solid {border}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:600; font-family:{MONO}; white-space:nowrap;">{svg}<span>{s}</span></div>'
+
+
 def render_hist_trades_html_table(df, active_cols):
     th_cells = []
     for c in active_cols:
         if c == "Motivazione":
-            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; width:44px; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tipo</th>')
+            th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Tipo Operazione</th>')
         elif c in ["Data Ingresso", "Data Uscita", "Durata"]:
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
-            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Rendimento %"] else "left"
+            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %"] else "left"
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
 
     rows_html = []
@@ -416,15 +442,18 @@ def render_hist_trades_html_table(df, active_cols):
         reason = str(r.get("Motivazione", ""))
         for c in active_cols:
             val = r.get(c, "")
-            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Rendimento %"] else "left"
+            align = "right" if c in ["Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %"] else "left"
             if c == "Motivazione":
-                td_cells.append(f'<td style="padding:10px 14px; text-align:center; width:44px;">{get_reason_svg(reason, size=16)}</td>')
+                td_cells.append(f'<td style="padding:8px 14px; text-align:left; white-space:nowrap;">{get_reason_badge(reason)}</td>')
             elif c == "Titolo":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{val}</td>')
             elif c in ["Data Ingresso", "Data Uscita"]:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; color:{MUTED}; white-space:nowrap;">{val}</td>')
             elif c == "Durata":
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:center; font-family:{MONO}; white-space:nowrap;">{val}</td>')
+            elif c == "Peso (%)":
+                w_str = f"{val:.2f}%" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
+                td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{w_str}</td>')
             elif c in ["Prezzo Ingresso", "Prezzo Uscita"]:
                 v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
@@ -438,7 +467,44 @@ def render_hist_trades_html_table(df, active_cols):
             else:
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align};">{val}</td>')
         rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(td_cells)}</tr>')
-    return f'''<div style="width:100%; max-height:420px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
+    return f'''<div style="width:100%; max-height:450px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
+
+
+def render_open_trades_html_table(df):
+    th_cells = [
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:left; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Titolo</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Data Ingresso</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Permanenza</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Prezzo Ingresso</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Prezzo Attuale</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Peso (%)</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:right; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Rendimento %</th>',
+        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">Stato</th>',
+    ]
+    rows_html = []
+    for _, r in df.iterrows():
+        tkr = r["Titolo"]
+        d_in = r["Data Ingresso"]
+        giorni = r["Giorni"]
+        p_in = f"${r['Prezzo Ingresso']:,.2f}" if pd.notna(r['Prezzo Ingresso']) else "—"
+        p_cur = f"${r['Prezzo Attuale']:,.2f}" if pd.notna(r['Prezzo Attuale']) else "—"
+        peso = f"{r['Peso (%)']:.2f}%"
+        rend = r['Rendimento %']
+        color = POS if rend > 0 else NEG if rend < 0 else MUTED
+        rend_str = f"{rend:+.2f}%"
+        badge_stato = f'<span style="background:rgba(61,220,151,0.12); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:3px 7px; border-radius:4px; font-size:10.5px; font-weight:700; font-family:{MONO};">IN POSIZIONE</span>'
+        tds = [
+            f'<td style="padding:10px 14px; font-size:12.5px; text-align:left; font-weight:700; color:{BADGE_TEXT}; white-space:nowrap;">{tkr}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; text-align:center; color:{MUTED}; white-space:nowrap;">{d_in}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; text-align:center; font-family:{MONO}; white-space:nowrap;">{giorni}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; text-align:right; font-family:{MONO}; white-space:nowrap;">{p_in}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; text-align:right; font-family:{MONO}; white-space:nowrap;">{p_cur}</td>',
+            f'<td style="padding:10px 14px; font-size:12px; text-align:right; font-family:{MONO}; white-space:nowrap;">{peso}</td>',
+            f'<td style="padding:10px 14px; font-size:12.5px; text-align:right; font-family:{MONO}; font-weight:700; color:{color}; white-space:nowrap;">{rend_str}</td>',
+            f'<td style="padding:10px 14px; text-align:center; white-space:nowrap;">{badge_stato}</td>',
+        ]
+        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER}; transition:background 0.15s ease;">{"".join(tds)}</tr>')
+    return f'''<div style="width:100%; max-height:450px; overflow-y:auto; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; background:rgba(255,247,237,0.02); margin-bottom:18px;"><table style="width:100%; border-collapse:collapse; text-align:left;"><thead><tr>{"".join(th_cells)}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'''
 
 
 def monogram(text, size=26):
@@ -1201,7 +1267,7 @@ with tab_perf:
             """
 
         if hist:
-            st_html(section_title("Statistiche Operative"))
+            st_html(section_title("Statistiche Operative (Portafoglio Tracciato 2024–2026)"))
             strip_items = [
                 kpi_item("Tasso di Successo", f"{win_rate:.1f}%", f"{len(wins)} vincenti su {len(hist)}", badge_text=f"{len(wins)}/{len(hist)}"),
                 kpi_item("Aspettativa per Trade", f"{expectancy_pct:+.2f}%", "Rendimento atteso medio",
@@ -1228,62 +1294,136 @@ with tab_perf:
             ]
             st_html(f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 4px 8px; background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;">{"".join(strip_items)}</div>')
 
-            st_html(section_title("Registro Operazioni Chiuse"))
-            df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
+            st_html(section_title("Registro Operazioni del Portafoglio Tracciato"))
 
-            def calc_duration(r):
-                try:
-                    d_in = datetime.datetime.strptime(str(r.get("entry_date", "")), "%Y-%m-%d")
-                    d_out = datetime.datetime.strptime(str(r.get("exit_date", "")), "%Y-%m-%d")
-                    return f"{max(1, (d_out - d_in).days)}g"
-                except Exception:
-                    return "-"
+            num_open = len(pf.get("open_positions", {}))
+            st_html(f"""
+            <div style="background: rgba(255,247,237,0.03); border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; color: {MUTED}; line-height: 1.5;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+                    <strong style="color: {BADGE_TEXT}; font-size: 13px;">Archivio Operativo Completo (Marzo 2024 – Oggi)</strong>
+                    <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-family: {MONO};">{len(hist)} OPERAZIONI CHIUSE · {num_open} APERTE</span>
+                </div>
+                Questo registro raccoglie ogni singola operazione di compravendita e ribilanciamento eseguita dal motore algoritmico dal <strong>4 marzo 2024 a oggi</strong>.<br/>
+                I dati precedenti (<strong>1987–2024</strong>) mostrati nei grafici storici e nella tabella mensile soprastante derivano dalla simulazione quantitativa del modello sui rendimenti di mercato (senza archiviazione di singoli ticket d'ordine).
+                Le <strong>{num_open} posizioni aperte</strong> attualmente in essere sono consultabili sia selezionando la vista sottostante sia nel Tab <em>Portafoglio Attuale</em>.
+            </div>
+            """)
 
-            df_hist["Durata"] = df_hist.apply(calc_duration, axis=1)
-            df_hist = df_hist.rename(columns={
-                "ticker": "Titolo", "entry_date": "Data Ingresso", "exit_date": "Data Uscita",
-                "entry_price": "Prezzo Ingresso", "exit_price": "Prezzo Uscita",
-                "profit_pct": "Rendimento %", "reason": "Motivazione"
-            })
+            tab_sel = st.radio(
+                "Visualizzazione Registro",
+                [f"Operazioni Chiuse ({len(hist)})", f"Posizioni Attualmente Aperte ({num_open})"],
+                horizontal=True,
+                label_visibility="collapsed",
+                key="apex_register_view_mode"
+            )
 
-            def _short_reason(raw):
-                s = str(raw)
-                if "Migrazione" in s:
-                    return "Migrazione"
-                if "Ribilanciamento" in s:
-                    return "Ribilanciamento"
-                if "Uscito" in s or "disattivata" in s:
-                    return "Rotazione"
-                return (s[:20] + "…") if len(s) > 20 else s
+            if tab_sel.startswith("Operazioni Chiuse"):
+                df_hist = pd.DataFrame(hist).sort_values("exit_date", ascending=False)
+                df_hist["exit_date_raw"] = df_hist["exit_date"].astype(str)
 
-            if "Motivazione" in df_hist.columns:
-                df_hist["Motivazione"] = df_hist["Motivazione"].apply(_short_reason)
+                def calc_duration(r):
+                    try:
+                        d_in = datetime.datetime.strptime(str(r.get("entry_date", "")), "%Y-%m-%d")
+                        d_out = datetime.datetime.strptime(str(r.get("exit_date", "")), "%Y-%m-%d")
+                        return f"{max(1, (d_out - d_in).days)}g"
+                    except Exception:
+                        return "-"
 
-            show_trade_details = st.toggle("Mostra dettagli esecuzione", value=False, key="trade_details_toggle")
-            compact_cols_hist = ["Titolo", "Data Uscita", "Durata", "Rendimento %", "Motivazione"]
-            full_cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Rendimento %", "Motivazione"]
-            cols_hist = full_cols_hist if show_trade_details else compact_cols_hist
+                df_hist["Durata"] = df_hist.apply(calc_duration, axis=1)
+                df_hist["Peso (%)"] = df_hist["weight"].apply(lambda w: round(w * 100, 2) if pd.notna(w) else 0.0)
+                df_hist = df_hist.rename(columns={
+                    "ticker": "Titolo", "entry_date": "Data Ingresso", "exit_date": "Data Uscita",
+                    "entry_price": "Prezzo Ingresso", "exit_price": "Prezzo Uscita",
+                    "profit_pct": "Rendimento %", "reason": "Motivazione"
+                })
 
-            df_hist["Data Uscita"] = df_hist["Data Uscita"].apply(lambda d: format_date_italian(d) if d else "—")
-            if "Data Ingresso" in df_hist.columns:
-                df_hist["Data Ingresso"] = df_hist["Data Ingresso"].apply(lambda d: format_date_italian(d) if d else "—")
+                def _short_reason(raw):
+                    s = str(raw)
+                    if "Migrazione" in s:
+                        return "Migrazione"
+                    if "Ribilanciamento" in s:
+                        return "Ribilanciamento"
+                    if "Uscito" in s or "disattivata" in s:
+                        return "Rotazione"
+                    if "Regime" in s or "Bear" in s:
+                        return "Stop Regime"
+                    return (s[:20] + "…") if len(s) > 20 else s
 
-            df_hist_display = df_hist[[c for c in cols_hist if c in df_hist.columns]]
+                if "Motivazione" in df_hist.columns:
+                    df_hist["Motivazione"] = df_hist["Motivazione"].apply(_short_reason)
 
-            c_srch, c_flt = st.columns([2, 1])
-            with c_srch:
-                search_t = st.text_input("Cerca Ticker", placeholder="Cerca per simbolo o nome (es. NVDA, AAPL, BTC...)", label_visibility="collapsed")
-            with c_flt:
-                reason_options = ["Tutte le Operazioni"] + sorted(df_hist_display["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist_display.columns else ["Tutte le Operazioni"]
-                flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
+                c_yr, c_srch, c_flt = st.columns([1.2, 1.8, 1.2])
+                with c_yr:
+                    y_counts = {}
+                    for t in hist:
+                        y = str(t.get("exit_date", ""))[:4]
+                        if y:
+                            y_counts[y] = y_counts.get(y, 0) + 1
+                    y_opts = [f"Tutti gli Anni ({len(hist)})"] + [f"{y} ({y_counts[y]})" for y in sorted(y_counts.keys(), reverse=True)]
+                    flt_yr = st.selectbox("Filtro Anno", y_opts, label_visibility="collapsed")
+                with c_srch:
+                    search_t = st.text_input("Cerca Ticker", placeholder="Cerca ticker (es. BTC, NVDA, IEF...)", label_visibility="collapsed")
+                with c_flt:
+                    reason_options = ["Tutti i Tipi"] + sorted(df_hist["Motivazione"].dropna().unique().tolist()) if "Motivazione" in df_hist.columns else ["Tutti i Tipi"]
+                    flt_reason = st.selectbox("Filtro Uscita", reason_options, label_visibility="collapsed")
 
-            if search_t:
-                df_hist_display = df_hist_display[df_hist_display["Titolo"].str.contains(search_t.strip().upper(), na=False)]
-            if flt_reason != "Tutte le Operazioni":
-                df_hist_display = df_hist_display[df_hist_display["Motivazione"] == flt_reason]
+                df_display = df_hist.copy()
+                if flt_yr != f"Tutti gli Anni ({len(hist)})":
+                    chosen_year = flt_yr.split()[0]
+                    df_display = df_display[df_display["exit_date_raw"].str.startswith(chosen_year)]
+                if search_t:
+                    df_display = df_display[df_display["Titolo"].str.contains(search_t.strip().upper(), na=False)]
+                if flt_reason != "Tutti i Tipi":
+                    df_display = df_display[df_display["Motivazione"] == flt_reason]
 
-            st_html(render_hist_trades_html_table(df_hist_display, cols_hist))
-            st.caption("Esecuzione algoritmica sistematica su dati di mercato reali.")
+                cols_hist = ["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]
+
+                df_display["Data Uscita"] = df_display["Data Uscita"].apply(lambda d: format_date_italian(d) if d else "—")
+                if "Data Ingresso" in df_display.columns:
+                    df_display["Data Ingresso"] = df_display["Data Ingresso"].apply(lambda d: format_date_italian(d) if d else "—")
+
+                st_html(render_hist_trades_html_table(df_display, cols_hist))
+
+                # Export CSV button
+                csv_export_df = df_hist[["Titolo", "Data Ingresso", "Data Uscita", "Durata", "Prezzo Ingresso", "Prezzo Uscita", "Peso (%)", "Rendimento %", "Motivazione"]].copy()
+                csv_data = csv_export_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Esporta Registro Completo (CSV)",
+                    data=csv_data,
+                    file_name="apex_registro_operazioni_2024_2026.csv",
+                    mime="text/csv",
+                    key="dl_trades_csv"
+                )
+                st.caption(f"Visualizzate {len(df_display)} su {len(hist)} operazioni chiuse · Dati di mercato reali.")
+            else:
+                # Posizioni Attualmente Aperte
+                open_pos = pf.get("open_positions", {})
+                today = datetime.date.today()
+                open_rows = []
+                for tkr, pos in open_pos.items():
+                    entry_d_str = pos.get("entry_date", "")
+                    try:
+                        entry_d = datetime.datetime.strptime(entry_d_str, "%Y-%m-%d").date()
+                        days = max(0, (today - entry_d).days)
+                    except Exception:
+                        days = 0
+                    entry_p = pos.get("entry_price", 0.0)
+                    curr_p = pos.get("current_price", entry_p)
+                    rend = ((curr_p / entry_p) - 1.0) * 100 if entry_p > 0 else 0.0
+                    w = pos.get("weight", 0.0) * 100
+                    open_rows.append({
+                        "Titolo": tkr,
+                        "Data Ingresso": format_date_italian(entry_d_str) if entry_d_str else "—",
+                        "Giorni": f"{days}g",
+                        "Prezzo Ingresso": entry_p,
+                        "Prezzo Attuale": curr_p,
+                        "Peso (%)": round(w, 2),
+                        "Rendimento %": round(rend, 2),
+                        "Stato": "In Posizione",
+                    })
+                df_open = pd.DataFrame(open_rows).sort_values("Peso (%)", ascending=False)
+                st_html(render_open_trades_html_table(df_open))
+                st.caption(f"{len(df_open)} posizioni aperte attive nel portafoglio. Verranno archiviate nel registro operazioni chiuse alla loro liquidazione o rotazione.")
         else:
             st.info("Nessuna operazione chiusa registrata.")
 
