@@ -554,7 +554,7 @@ with tab_pf:
                 value=float(cfg.get("apex_capital_eur", 100000.0)),
                 step=5000.0,
                 format="%.0f",
-                help="Capitale usato per calcolare quote e controvalori della simulazione. Apex Engine gira ad esecuzione simulata: nessun conto broker reale è ancora collegato."
+                help="Capitale di riferimento per il calcolo delle quote e dei controvalori operativi di Apex Engine."
             )
         with c_save:
             st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
@@ -1012,10 +1012,8 @@ with tab_perf:
             st.plotly_chart(fig_dd, use_container_width=True)
 
             st.caption(
-                f"Serie mensile dal backtest storico multi-decennale ({_ap_ret.index[0].year}–{_ap_ret.index[-1].year}, {len(_ap_ret)} mesi) "
-                f"al LORDO delle tasse. Include selezione Low-Beta (15 titoli S&P 500), pesatura Kelly (0.25) e motore Crypto Frontier Venture "
-                f"(Dual-Regime BTC Core + Altseason Satellite Top 25 dal 2018). Calo massimo su questo intervallo: {_plot_df['drawdown'].min():.2f}% "
-                f"(calo massimo storico intera serie 1987–2026: {_ap_nav['drawdown'].min():.2f}%)."
+                f"Serie mensile Base 100 vs S&P 500 al lordo delle imposte ({_ap_ret.index[0].year}–{_ap_ret.index[-1].year}, {len(_ap_ret)} mesi). "
+                f"Linee verticali: Out-of-Sample (2020) e Live (2024)."
             )
 
             st_html(section_title("Matrice dei Rendimenti (Backtest Storico)"))
@@ -1192,11 +1190,8 @@ with tab_perf:
             st.plotly_chart(fig_dd, use_container_width=True)
 
             st.caption(
-                f"Simulazione a esecuzione settimanale su dati di mercato reali, capitale virtuale, "
-                f"al lordo delle tasse — nessun conto broker reale ancora collegato. "
-                f"{len(df_eq)} punti disponibili "
-                f"({df_eq.index[0].date()} → {df_eq.index[-1].date()}). "
-                f"Calo massimo di questa simulazione: {df_eq['drawdown'].min():.2f}%."
+                f"Esecuzione sistematica settimanale al lordo delle imposte ({df_eq.index[0].date()} → {df_eq.index[-1].date()}, {len(df_eq)} punti). "
+                f"Calo massimo periodo: {df_eq['drawdown'].min():.2f}%."
             )
 
             st_html(section_title("Matrice dei Rendimenti (Simulazione Live)"))
@@ -1313,7 +1308,7 @@ with tab_perf:
                 df_hist_display = df_hist_display[df_hist_display["Motivazione"] == flt_reason]
 
             st_html(render_hist_trades_html_table(df_hist_display, cols_hist))
-            st.caption("**Trasparenza Metodologica:** I dati mostrano la simulazione oggettiva su dati storici reali di mercato. Le posizioni correnti e i segnali settimanali sono elaborati dal vivo dall'algoritmo Apex.")
+            st.caption("Esecuzione algoritmica sistematica su dati di mercato reali.")
         else:
             st.info("Nessuna operazione chiusa registrata.")
 

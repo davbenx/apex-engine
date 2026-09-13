@@ -470,7 +470,7 @@ with tab_guide:
         <div class="glass-card" style="text-align:center; height: 140px;">
             <div style="font-family:{FRAUNCES}; font-size:24px; color:#8B7FC7; font-weight:700;">3</div>
             <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Ribilanciamento Smart-Flow</div>
-            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Se Apex scende sotto il {(_target_apex-0.05)*100:.0f}% del totale, indirizza il nuovo risparmio mensile verso Apex; altrimenti va su Convex, sull'asset più sottopesato tra i 5 — sempre a costo fiscale zero.</div>
+            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Se Apex scende sotto il {(_target_apex-0.05)*100:.0f}% del totale, indirizza il nuovo risparmio mensile verso Apex; altrimenti va su Convex, sull'asset più sottopesato tra i 5, riequilibrando tramite flussi senza vendite.</div>
         </div>
         """)
 

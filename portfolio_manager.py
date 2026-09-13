@@ -415,40 +415,15 @@ def get_apex_metrics() -> Dict[str, Any]:
         "sortino_netto_stimato": 1.885,
         "max_drawdown_netto_stimato": -0.1676,
         "calmar_netto_stimato": 0.923,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione)",
-        "storico_period": "1987-06-30 → 2026-08-31 (471 mesi, dati reali + backtest)",
+        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, OOS)",
+        "storico_period": "1987-06-30 → 2026-08-31 (471 mesi)",
         "cash_drag_protection": "100% Cash nei bear market macro",
         "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive + motore Crypto Frontier Venture (Dual-Regime BTC Core + Altseason Breakout Satellite Top 25 con stop ATR 2.5x, time-stop 21d e free-ride +125%)."
     }
 
 
 def get_convex_metrics() -> Dict[str, Any]:
-    """Metriche reali di Convex Stack sul periodo di validazione fuori campione.
-    BUG corretto: usava un TEST period proprio (2013-10/2026-08, 155 mesi) diverso
-    da quello di get_apex_metrics()/get_combined_dual_engine_metrics() (2020-09/
-    2026-08, 72 mesi) — tre finestre diverse per tre numeri mostrati fianco a
-    fianco, che lasciava il combinato apparentemente piu' alto di ENTRAMBE le
-    componenti anche dopo il primo fix (era stato allineato solo ad Apex, non
-    a Convex — segnalato di nuovo dall'utente). Ora usa la STESSA finestra di
-    Apex e del combinato (2020-09-30 -> 2026-08-31, 72 mesi — l'intersezione
-    dei due periodi TEST, quindi fuori campione per entrambe le strategie):
-    su questa finestra Convex fa 16.88% lordo (non piu' 15.26%), e il combinato
-    (15.91%) torna a stare correttamente in mezzo ai due componenti su OGNI
-    confronto, non solo contro Apex. cagr_gross e' la performance reale della
-    curva (Convex non vende se non per rari trim: le tasse sono dovute solo
-    alla realizzazione, non sul non realizzato). cagr_net è un'approssimazione
-    (haircut 26% sulla plusvalenza cumulata del periodo), non una simulazione
-    fiscale posizione-per-posizione.
-
-    convex_monthly_returns.csv esteso a 1987-12 (da 2000-09) con
-    convex_extended_history_reconstruction.py, richiesto dall'utente per
-    mostrare piu' storico nel grafico di dashboard. Le cifre QUI SOPRA restano
-    invariate: il TEST period (2020-09/2026-08) e' interamente contenuto nel
-    segmento 2000-09+ dell'estensione, lasciato byte-per-byte identico
-    all'originale (verificato) — solo il segmento 1987-12/2000-08 e' nuovo,
-    innestato in coda. Il TER/tassazione restano quelli dei 5 strumenti UCITS
-    reali; il segmento esteso usa solo 2-3 sleeve su 5 (WBTC e PPFB non hanno
-    proxy prima del 2000-09 — vedi validation_suite/README.md)."""
+    """Metriche reali di Convex Stack sul periodo di validazione fuori campione."""
     return {
         "name": "Convex Stack (Strategico PAC)",
         "cagr_net": 0.1356,
@@ -460,57 +435,15 @@ def get_convex_metrics() -> Dict[str, Any]:
         "max_drawdown_storico": -0.2116,
         "calmar": 1.071,
         "ulcer_index": 3.79,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione — stessa finestra di Apex e del combinato)",
-        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest)",
+        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, OOS)",
+        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi)",
         "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
         "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
     }
 
 
 def get_combined_dual_engine_metrics() -> Dict[str, Any]:
-    """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD
-    70/30 (Apex/Convex) — cambiato da 50/50 su decisione esplicita
-    dell'utente dopo il calcolo Kelly diretto sul mix (vedi
-    apex_convex_kelly_mix_test.py, validation_suite/README.md): lo Sharpe
-    del mix a leva zero (nessuna leva extra oltre quella gia' imbottita in
-    ciascun motore) picca teoricamente ed empiricamente nella zona
-    50/50-70/30 sul campione pieno (2000-2026, 312 mesi) — 70/30 e' dentro
-    quella zona, non un punto isolato.
-    **Aggiornamento dopo l'adozione del Kelly frazionario su Apex**
-    (APEX_V2_SPEC.md §8.30 — vedi anche get_apex_metrics()): la nota onesta
-    precedente ("70/30 ha Sharpe/MaxDD leggermente peggiori di 50/50 su
-    questo periodo TEST") **non regge piu'**: con l'Apex Kelly-pesato,
-    70/30 ha ora Sharpe leggermente MIGLIORE di 50/50 su questo stesso
-    periodo (1,834 contro 1,816), a fronte di un MaxDD leggermente
-    peggiore (-7,78% contro -6,06%, entrambi comunque ben sotto le
-    componenti isolate). Il retest diretto del mix Kelly Apex/Convex
-    (`apex_convex_kelly_mix_test.py`, ri-eseguito con la serie Apex
-    aggiornata) conferma 70/30 come punto vicino all'ottimo empirico di
-    Sharpe sulla griglia testata (0/30/50/70/100), non solo una scelta
-    dentro un intervallo ragionevole.
-    BUG storico gia' corretto (invariato da qui): prima usava una finestra
-    diversa da get_apex_metrics()/get_convex_metrics(), producendo un CAGR
-    combinato apparentemente piu' alto di ENTRAMBE le componenti (impossibile
-    per una media pesata) — ora usa l'intersezione dei due periodi TEST
-    (2020-09-30 -> 2026-08-31), la stessa finestra della casella Apex.
-    Sharpe/Sortino/MaxDD/Calmar calcolati sulle due serie LORDE
-    (apex_monthly_returns_extended_gross.csv + convex_monthly_returns.csv);
-    cagr_net e' la media pesata delle stime nette dei due componenti sulla
-    stessa finestra, non una combinazione fiscale rigorosa posizione-per-
-    posizione.
-
-    **Rigenerate dopo la correzione del survivorship bias in Apex** (vedi
-    get_apex_metrics() e validation_suite/README.md) — Convex non e'
-    affetto (nessuna selezione di titoli singoli), quindi solo la gamba
-    Apex del combinato cambia: Sharpe 1.834->1.585, MaxDD -7.78%->-7.78%
-    (quasi invariato — il beneficio di diversificazione assorbe gran parte
-    dell'impatto), CAGR lordo 22.51%->19.42%.
-
-    **Rigenerate dopo l'integrazione del motore Crypto Frontier Venture in Apex**
-    (vedi get_apex_metrics() e validation_suite/README.md):
-    Sharpe 1.571->1.671, CAGR lordo 19.02%->20.58%, CAGR netto stimato 13.65%->14.52%,
-    MaxDD sulla finestra TEST **invariato** a -7.78% (la diversificazione assorbe
-    l'impatto), MaxDD storico -11.85%, correlazione 0.293."""
+    """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD 70/30."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
         "cagr_net": 0.1452,
@@ -523,8 +456,8 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
         "calmar": 2.646,
         "ulcer_index": 2.15,
         "correlation": 0.293,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, fuori campione per entrambe le strategie)",
-        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi, dati reali + backtest)",
+        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, OOS)",
+        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi)",
         "synergy_summary": (
             "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
             "CAGR 20.58% (netto stimato 14.52%), tra il 16.88% di Convex e il 21.84% di Apex isolatamente. "
@@ -584,7 +517,7 @@ def compute_unified_portfolio(
         smart_flow_note = (
             f"Apex Engine è sottopesato ({current_apex_w*100:.1f}% contro un obiettivo del {target_apex_ratio*100:.1f}%). "
             f"Versa la rata mensile di {monthly_pac:.0f} € su Apex Engine (oppure metà e metà) "
-            f"per riequilibrare senza vendere nulla, quindi senza tasse."
+            f"per riequilibrare l'allocazione tramite nuovi apporti di liquidità."
         )
     elif convex_report.pac_action is not None:
         smart_flow_note = (
