@@ -402,9 +402,9 @@ def update_equity_curve(nav_usd, today_str):
     if not history:
         history.append({
             "date": today_str,
-            "open": INITIAL_CAPITAL,
-            "high": INITIAL_CAPITAL,
-            "low": INITIAL_CAPITAL,
+            "open": current_portfolio_value,
+            "high": current_portfolio_value,
+            "low": current_portfolio_value,
             "close": current_portfolio_value,
             "value": current_portfolio_value,
             "live": True

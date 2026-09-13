@@ -580,37 +580,86 @@ def compute_unified_portfolio(
     }
 
 
-def load_combined_monthly_history(target_apex: float = 0.50, target_convex: float = 0.50) -> pd.DataFrame:
+def load_apex_contiguous_history() -> pd.DataFrame:
     """
-    Carica le serie mensili storiche di Apex Engine (471 mesi dal 1987-06 al 2026-08,
-    proxy VFINX/VUSTX/GC=F prima delle inception reali SPY/IEF/GLD) e di Convex Stack
-    (465 mesi dal 1987-12 al 2026-08, proxy sintetici NTSG/AVWS/DBMFE prima del
-    2000-09 -- vedi convex_extended_history_reconstruction.py), e genera la serie
-    di rendimenti e NAV Base 100 del portafoglio combinato sull'intersezione delle
-    due (oggi vincolata da Convex: 1987-12, 6 mesi dopo l'inizio di Apex, per il
-    warmup del segnale TSMOM sintetico di DBMFE_proxy). Lettura da disco ad ogni
-    chiamata, nessuna cache -- riflette immediatamente qualunque aggiornamento dei
-    due file sorgente.
+    Carica la serie storica lorda di Apex Engine (471 mesi 1987-06 -> 2026-08)
+    e raccorda in modo contiguo (senza salti o scalini) gli eventuali dati di operatività
+    reale (live) registrati a partire dal 14 settembre 2026.
+    Restituisce un DataFrame con colonne ['return', 'value', 'roll_max', 'drawdown'].
     """
     base_dir = os.path.dirname(__file__)
-    # BUG corretto: prima combinava la serie NETTA di Apex con quella LORDA di
-    # Convex nella stessa somma pesata -- due basi fiscali diverse sommate come
-    # se fossero comparabili. Ora usa la versione lorda di Apex (Convex è già
-    # lorda per costruzione, IPS no-sell), coerente con la convenzione
-    # lordo-primario/netto-stimato-secondario del resto della dashboard.
     apex_file = os.path.join(base_dir, "apex_monthly_returns_extended_gross.csv")
-    conv_file = os.path.join(base_dir, "convex_monthly_returns.csv")
-
-    if not os.path.exists(apex_file) or not os.path.exists(conv_file):
+    if not os.path.exists(apex_file):
         return pd.DataFrame()
-    apex_ret = pd.read_csv(apex_file, index_col=0, parse_dates=True).iloc[:, 0]
-    cx_ret = pd.read_csv(conv_file, index_col=0, parse_dates=True).iloc[:, 0]
 
-    common = apex_ret.index.intersection(cx_ret.index)
+    apex_ret = pd.read_csv(apex_file, index_col=0, parse_dates=True).iloc[:, 0]
+    df_apex = pd.DataFrame({"return": apex_ret})
+    df_apex["value"] = (1.0 + apex_ret).cumprod() * 100.0
+
+    # Raccordo contiguo con equity.json per eventuali registrazioni live dal 2026-09-14 in poi
+    eq_file = os.path.join(base_dir, "equity.json")
+    if os.path.exists(eq_file):
+        try:
+            with open(eq_file, "r") as f:
+                eq_data = json.load(f)
+            hist = eq_data.get("history", [])
+            live_entries = [h for h in hist if h.get("date", "") >= "2026-09-14" and h.get("value", 0) > 0]
+            if live_entries:
+                v_bt_last = df_apex["value"].iloc[-1]
+                v_live_base = live_entries[0]["value"]
+                for e in live_entries:
+                    dt = pd.to_datetime(e["date"])
+                    val_contiguous = v_bt_last * (e["value"] / v_live_base)
+                    df_apex.loc[dt, "value"] = val_contiguous
+                df_apex = df_apex.sort_index()
+                df_apex["return"] = df_apex["value"].pct_change().fillna(df_apex["return"].iloc[0])
+        except Exception:
+            pass
+
+    df_apex["roll_max"] = df_apex["value"].cummax()
+    df_apex["drawdown"] = (df_apex["value"] - df_apex["roll_max"]) / df_apex["roll_max"] * 100.0
+    return df_apex
+
+
+def load_convex_contiguous_history() -> pd.DataFrame:
+    """
+    Carica la serie storica lorda di Convex Stack (465 mesi 1987-12 -> 2026-08)
+    e raccorda in modo contiguo gli eventuali dati di operatività reale a partire dal
+    14 settembre 2026.
+    Restituisce un DataFrame con colonne ['return', 'value', 'roll_max', 'drawdown'].
+    """
+    base_dir = os.path.dirname(__file__)
+    conv_file = os.path.join(base_dir, "convex_monthly_returns.csv")
+    if not os.path.exists(conv_file):
+        return pd.DataFrame()
+
+    cx_ret = pd.read_csv(conv_file, index_col=0, parse_dates=True).iloc[:, 0]
+    df_cx = pd.DataFrame({"return": cx_ret})
+    df_cx["value"] = (1.0 + cx_ret).cumprod() * 100.0
+
+    df_cx["roll_max"] = df_cx["value"].cummax()
+    df_cx["drawdown"] = (df_cx["value"] - df_cx["roll_max"]) / df_cx["roll_max"] * 100.0
+    return df_cx
+
+
+def load_combined_monthly_history(target_apex: float = 0.50, target_convex: float = 0.50) -> pd.DataFrame:
+    """
+    Carica le serie storiche contigue di Apex Engine (471 mesi dal 1987-06 al 2026-08,
+    estendibile con i dati live dal 2026-09-14) e di Convex Stack (465 mesi dal 1987-12
+    al 2026-08), e genera la serie di rendimenti e NAV Base 100 del portafoglio combinato
+    sull'intersezione delle due. Lettura da disco ad ogni chiamata, nessuna cache.
+    """
+    df_apex = load_apex_contiguous_history()
+    df_cx = load_convex_contiguous_history()
+
+    if df_apex.empty or df_cx.empty:
+        return pd.DataFrame()
+
+    common = df_apex.index.intersection(df_cx.index)
     if len(common) == 0:
         return pd.DataFrame()
 
-    comb_ret = target_apex * apex_ret.loc[common] + target_convex * cx_ret.loc[common]
+    comb_ret = target_apex * df_apex["return"].loc[common] + target_convex * df_cx["return"].loc[common]
     df_comb = pd.DataFrame({"return": comb_ret})
     df_comb["value"] = (1.0 + comb_ret).cumprod() * 100.0
     df_comb["roll_max"] = df_comb["value"].cummax()

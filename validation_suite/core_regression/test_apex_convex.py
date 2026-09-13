@@ -292,6 +292,42 @@ class TestApexConvexEcosystem(unittest.TestCase):
         self.assertIn('title="Visione d\'Insieme"', ref_content)
         self.assertIn('default=True', ref_content)
 
+    def test_contiguous_history_loaders_and_drawdown_alignment(self):
+        """Verifica che i loader storici di Apex, Convex e Combinato restituiscano
+        strutture contigue complete con drawdown, e che i grafici del drawdown
+        usino il dataframe filtrato coerente con il grafico principale."""
+        df_ap = portfolio_manager.load_apex_contiguous_history()
+        self.assertFalse(df_ap.empty, "Lo storico contiguo di Apex non deve essere vuoto")
+        for col in ["return", "value", "roll_max", "drawdown"]:
+            self.assertIn(col, df_ap.columns)
+        self.assertGreaterEqual(len(df_ap), 460)
+
+        df_cx = portfolio_manager.load_convex_contiguous_history()
+        self.assertFalse(df_cx.empty, "Lo storico contiguo di Convex non deve essere vuoto")
+        for col in ["return", "value", "roll_max", "drawdown"]:
+            self.assertIn(col, df_cx.columns)
+        self.assertGreaterEqual(len(df_cx), 460)
+
+        df_comb = portfolio_manager.load_combined_monthly_history()
+        self.assertFalse(df_comb.empty, "Lo storico contiguo Combinato non deve essere vuoto")
+        for col in ["return", "value", "roll_max", "drawdown"]:
+            self.assertIn(col, df_comb.columns)
+
+        # Verifica sincronizzazione drawdown nei file UI
+        base_dir = REPO_ROOT
+        with open(os.path.join(base_dir, "home_app.py"), "r", encoding="utf-8") as f:
+            home_txt = f.read()
+        self.assertIn('x=_comb_plot.index, y=_comb_plot["drawdown"]', home_txt)
+
+        with open(os.path.join(base_dir, "page_convex.py"), "r", encoding="utf-8") as f:
+            cx_txt = f.read()
+        self.assertIn('x=_nav_plot.index, y=_nav_plot["drawdown"]', cx_txt)
+
+        with open(os.path.join(base_dir, "page_apex.py"), "r", encoding="utf-8") as f:
+            apex_txt = f.read()
+        self.assertIn("x=_plot_df.index, y=_plot_df['drawdown']", apex_txt)
+        self.assertNotIn("Operatività Recente (2024-Oggi)", apex_txt)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -571,11 +571,11 @@ with tab_metriche:
                                       text="Fase di test recente (2020) →", showarrow=False,
                                       font=dict(size=10, color=ACCENT))
 
-        _live_start = pd.Timestamp("2024-03-01")
+        _live_start = pd.Timestamp("2026-09-14")
         if _nav_plot.index[0] < _live_start <= _nav_plot.index[-1]:
             fig_cx_eq.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
             fig_cx_eq.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                      text="Inizio operatività reale (2024) →", showarrow=False,
+                                      text="Inizio operatività reale (Settembre 2026) →", showarrow=False,
                                       font=dict(size=10, color="#3DDC97"))
 
         fig_cx_update_layout = dict(
@@ -584,6 +584,7 @@ with tab_metriche:
             font=dict(color=MUTED, family="Inter"),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(size=10)),
             margin=dict(t=30, b=10, l=10, r=10), height=280,
+            xaxis=dict(range=[_nav_plot.index[0], _nav_plot.index[-1]], showgrid=False, tickfont=dict(size=10)),
             yaxis=dict(type="log") if _cx_use_log else dict(),
             yaxis_title="Base 100"
         )
@@ -593,19 +594,19 @@ with tab_metriche:
         st_html(section_title("Perdite Temporanee dal Massimo (Calo dal Picco)", top="14px", bottom="6px"))
         fig_cx_dd = go.Figure()
         fig_cx_dd.add_trace(go.Scatter(
-            x=_cx_nav.index, y=_cx_nav["drawdown"], fill="tozeroy", mode="lines",
+            x=_nav_plot.index, y=_nav_plot["drawdown"], fill="tozeroy", mode="lines",
             line=dict(color=NEG, width=1.2), fillcolor="rgba(236,101,123,0.15)",
             hovertemplate="%{x|%d %b %Y}<br>Calo: %{y:.2f}%<extra></extra>", name="Calo"
         ))
-        if _cx_nav.index[0] < _oos_start <= _cx_nav.index[-1]:
+        if _nav_plot.index[0] < _oos_start <= _nav_plot.index[-1]:
             fig_cx_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
-        if _cx_nav.index[0] < _live_start <= _cx_nav.index[-1]:
+        if _nav_plot.index[0] < _live_start <= _nav_plot.index[-1]:
             fig_cx_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
 
         fig_cx_dd.update_layout(
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color=MUTED, family="Inter"),
-            xaxis=dict(showgrid=False, tickfont=dict(size=10)),
+            xaxis=dict(range=[_nav_plot.index[0], _nav_plot.index[-1]], showgrid=False, tickfont=dict(size=10)),
             yaxis=dict(showgrid=True, gridcolor='rgba(255,247,237,0.05)', tickfont=dict(size=10), ticksuffix="%"),
             margin=dict(t=4, b=10, l=10, r=10), height=140, showlegend=False
         )
