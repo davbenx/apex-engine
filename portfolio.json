@@ -2807,20 +2807,7 @@
     "v2_migrated": true,
     "nav_usd": 142457.98512675293,
     "last_telegram_alert_date": "2026-09-11",
-    "pending_orders": [
-        {
-            "action": "INCREMENTO",
-            "action_type": "BUY",
-            "ticker": "BTC",
-            "display_name": "Bitcoin",
-            "cur_w_pct": 0.51,
-            "tgt_w_pct": 15.88,
-            "delta_w_pct": 15.37,
-            "price": 76652.09375,
-            "is_crypto": true,
-            "desc": "Riallocazione capitale inattivo su Bitcoin Core (+15.4%)"
-        }
-    ],
+    "pending_orders": [],
     "pending_orders_date": "2026-09-13",
     "last_action_log": [
         "INCREMENTO: Bitcoin | Riallocazione +15.4% | Prezzo: $76,652.09"

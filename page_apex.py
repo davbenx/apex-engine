@@ -481,6 +481,8 @@ if pf:
         if is_crypto:
             num_cr += 1
             pos_num = num_cr
+        elif ticker in ("GLD", "IEF"):
+            continue  # GLD (Oro) e IEF (Obbligazioni) gestiti separatamente come classi macro
         else:
             num_eq += 1
             pos_num = num_eq
@@ -588,14 +590,18 @@ with tab_pf:
         tot_pnl_usd += (r["Rendimento %"] / 100) * size
         tot_invested_usd += size
 
-    gold_detail = position_detail("GLD", capitale) if alloc.get('Gold', 0) > 0 else None
+    gold_detail = position_detail("GLD", capitale) if ("GLD" in open_pos_raw or alloc.get('Gold', 0) > 0) else None
     if gold_detail:
         tot_pnl_usd += gold_detail["pnl_usd"]
+        tot_invested_usd += gold_detail.get("value_usd", gold_cap)
+    elif alloc.get('Gold', 0) > 0:
         tot_invested_usd += gold_cap
 
-    bond_detail = position_detail("IEF", capitale) if alloc.get('Bonds', 0) > 0 else None
+    bond_detail = position_detail("IEF", capitale) if ("IEF" in open_pos_raw or alloc.get('Bonds', 0) > 0) else None
     if bond_detail:
         tot_pnl_usd += bond_detail["pnl_usd"]
+        tot_invested_usd += bond_detail.get("value_usd", bond_cap)
+    elif alloc.get('Bonds', 0) > 0:
         tot_invested_usd += bond_cap
 
     btc_ticker, _ = find_crypto_position(open_pos_raw)

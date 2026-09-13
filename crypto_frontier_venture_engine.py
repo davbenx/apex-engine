@@ -14,6 +14,7 @@ Ottimizzazioni quantitative falsificate e convalidate empiricamente (2018–2026
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import datetime
 import os
 import glob
 import json
@@ -842,10 +843,30 @@ def evaluate_daily_crypto_frontier(
         prev_peak = float(pos.get("peak_price", entry_p))
         if cur_high > prev_peak:
             pos["peak_price"] = cur_high
+            pos["last_high_date"] = today_str
             pos["days_no_high"] = 0
         else:
             pos["peak_price"] = prev_peak
-            pos["days_no_high"] = int(pos.get("days_no_high", 0)) + 1
+            if "last_high_date" in pos:
+                try:
+                    d_today = datetime.datetime.strptime(today_str, "%Y-%m-%d").date()
+                    d_high = datetime.datetime.strptime(pos["last_high_date"], "%Y-%m-%d").date()
+                    pos["days_no_high"] = max(0, (d_today - d_high).days)
+                except Exception:
+                    pos["days_no_high"] = int(pos.get("days_no_high", 0))
+            elif "days_no_high" in pos:
+                # Compatibilità con posizioni legacy e mock di test unitari con contatore esplicito
+                pos["days_no_high"] = int(pos.get("days_no_high", 0))
+            elif "entry_date" in pos:
+                try:
+                    d_today = datetime.datetime.strptime(today_str, "%Y-%m-%d").date()
+                    d_high = datetime.datetime.strptime(pos["entry_date"], "%Y-%m-%d").date()
+                    pos["days_no_high"] = max(0, (d_today - d_high).days)
+                    pos["last_high_date"] = pos["entry_date"]
+                except Exception:
+                    pos["days_no_high"] = 0
+            else:
+                pos["days_no_high"] = 0
         peak_p = float(pos["peak_price"])
         pos["current_price"] = cur_close
         pos["is_crypto"] = True
@@ -899,8 +920,10 @@ def evaluate_daily_crypto_frontier(
         if not stop_hit:
             if not pos.get("freeride_done", False):
                 atr_val = float(pos.get("atr_entry", cur_close * 0.08))
-                stop_px = entry_p - (cfg.atr_multiplier * atr_val)
-                pos["stop_loss"] = round(stop_px, 4)
+                stop_px_raw = entry_p - (cfg.atr_multiplier * atr_val)
+                emerg_px = entry_p * (1.0 - cfg.circuit_breaker_intraday_pct)
+                stop_px = max(round(emerg_px, 4), max(0.0001, round(stop_px_raw, 4)))
+                pos["stop_loss"] = stop_px
                 if cur_close <= stop_px:
                     stop_hit = True
                     exit_reason = "ATR_STOP_CLOSE"
@@ -1037,7 +1060,9 @@ def evaluate_daily_crypto_frontier(
             atr14 = float(tr.tail(cfg.atr_period_days).mean())
             if np.isnan(atr14) or atr14 <= 0:
                 atr14 = curr_p * 0.08
-            stop_px = round(curr_p - cfg.atr_multiplier * atr14, 4)
+            stop_px_raw = curr_p - cfg.atr_multiplier * atr14
+            emerg_px = curr_p * (1.0 - cfg.circuit_breaker_intraday_pct)
+            stop_px = max(round(emerg_px, 4), max(0.0001, round(stop_px_raw, 4)))
 
             buys.append({
                 "action": "APERTURA",
@@ -1060,6 +1085,7 @@ def evaluate_daily_crypto_frontier(
                 "is_crypto": True,
                 "weight": slot_weight,
                 "days_no_high": 0,
+                "last_high_date": today_str,
                 "peak_price": curr_p,
                 "freeride_done": False,
                 "atr_entry": atr14

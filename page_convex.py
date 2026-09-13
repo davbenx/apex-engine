@@ -54,6 +54,7 @@ _COLOR_MAP = {
     "DBMFE": portfolio_manager.get_class_color("Futures gestiti"),
     "PPFB": portfolio_manager.get_class_color("Oro"),
     "WBTC": portfolio_manager.get_class_color("Cryptovalute"),
+    "Liquidità": portfolio_manager.get_class_color("Liquidità"),
 }
 
 
@@ -76,6 +77,8 @@ def get_convex_class_svg(strumento, size=16, color="currentColor", style=""):
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>'
     if strumento == "WBTC":
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>'
+    if strumento == "Liquidità":
+        return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
     return ""
 
 MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
@@ -373,6 +376,10 @@ with tab_pf:
     if convex_report.total_value > 0:
         st_html(section_title("Composizione del Portafoglio"))
         alloc_segments = [(k, convex_report.assets[k].current_weight * 100.0, _COLOR_MAP.get(k, ACCENT)) for k in active_instruments]
+        cash_val = convex_report.total_value - sum(convex_report.assets[k].current_value for k in active_instruments)
+        cash_pct = max(0.0, (cash_val / convex_report.total_value) * 100.0) if convex_report.total_value > 0 else 0.0
+        if cash_pct > 0.01:
+            alloc_segments.append(("Liquidità", cash_pct, _COLOR_MAP.get("Liquidità", "#8E877F")))
         bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
         legend_items = "".join(
             f'<div style="display:flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14, color=color)} <span style="opacity:0.85;">{k}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'

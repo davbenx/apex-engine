@@ -75,7 +75,21 @@ def _weekly_close(df: pd.DataFrame) -> pd.Series:
     """Chiusura settimanale (venerdi'), coerente con la convenzione usata altrove nel progetto."""
     if df is None or df.empty:
         return pd.Series(dtype=float)
-    return df["Close"].resample("W-FRI").last().dropna()
+    if "Close" in df.columns:
+        close_col = df["Close"]
+    elif isinstance(df.columns, pd.MultiIndex):
+        if "Close" in df.columns.get_level_values(0):
+            close_col = df.xs("Close", axis=1, level=0)
+        elif "Close" in df.columns.get_level_values(-1):
+            close_col = df.xs("Close", axis=1, level=-1)
+        else:
+            return pd.Series(dtype=float)
+    else:
+        return pd.Series(dtype=float)
+
+    if isinstance(close_col, pd.DataFrame):
+        close_col = close_col.iloc[:, 0]
+    return close_col.resample("W-FRI").last().dropna().astype(float)
 
 
 def _realized_vol(weekly_close: pd.Series, window: int) -> Optional[float]:
@@ -239,7 +253,13 @@ def compute_v2_macro_signal(
     allocations = {}
     for cls in V2_CLASS_TICKER:
         allocations[cls] = round(raw_weights.get(cls, 0.0) * 100.0, 2)
-    allocations["Cash"] = round(100.0 - sum(allocations.values()), 2)
+    sum_assets = round(sum(allocations.values()), 2)
+    if sum_assets > 100.0:
+        largest_cls = max(V2_CLASS_TICKER, key=lambda c: allocations[c])
+        allocations[largest_cls] = round(allocations[largest_cls] - (sum_assets - 100.0), 2)
+        allocations["Cash"] = 0.0
+    else:
+        allocations["Cash"] = round(max(0.0, 100.0 - sum_assets), 2)
 
     debug["_vol_target"] = {"vol_portafoglio_stimata_pct": round(port_vol * 100, 2), "fattore_scala": round(scale, 3)}
     return allocations, state, debug

@@ -97,16 +97,32 @@ def is_rebalancing_schedule(dt=None):
 
 def compute_should_decide(now_dt, prev_state, just_migrating):
     """Vero se e' il momento di ricalcolare la decisione mensile (segnale + eventuale
-    ribilanciamento, §6 della spec). Finestra negli ultimi 5 giorni del mese + flag
-    persistito (`last_decision_month`) invece del solo "e' venerdi' adesso": i workflow
-    schedulati di GitHub Actions possono slittare di ore, a volte oltre mezzanotte UTC —
-    un'esecuzione pensata per l'ultimo venerdi' del mese puo' partire di sabato, e con un
-    controllo sul solo giorno corrente la decisione mensile verrebbe saltata per l'intero
-    mese. Con la finestra, la prima esecuzione giornaliera negli ultimi 5 giorni del mese
-    la cattura comunque, una sola volta (vedi APEX_V2_SPEC.md §8.13)."""
+    ribilanciamento, §6 della spec). Ancorato all'ultimo venerdi' del mese (o alla finestra
+    di grazia sabato/domenica se un run schedulato slitta oltre mezzanotte UTC, con fallback
+    all'ultimo giorno del mese se l'intero weekend e' saltato).
+    Garantisce che la decisione non venga mai saltata nei mesi in cui l'ultimo venerdi'
+    cade il giorno 24, 25 o 26 (es. settembre 2026, aprile 2025/2026, luglio 2025, ecc.)
+    e che non venga scatenata anticipatamente a meta' settimana."""
     current_month_str = now_dt.strftime("%Y-%m")
-    near_month_end = (now_dt + datetime.timedelta(days=5)).month != now_dt.month
-    return just_migrating or (near_month_end and prev_state.get("last_decision_month") != current_month_str)
+    if not just_migrating and prev_state.get("last_decision_month") == current_month_str:
+        return False
+    if just_migrating:
+        return True
+
+    # 1. Ultimo venerdi' del mese (weekday 4 + 7 giorni e' nel mese successivo)
+    is_friday = (now_dt.weekday() == 4)
+    is_last_friday = is_friday and (now_dt + datetime.timedelta(days=7)).month != now_dt.month
+
+    # 2. Finestra di tolleranza nel weekend (sabato/domenica) se il run di venerdi' e' slittato
+    is_weekend = (now_dt.weekday() in (5, 6))
+    days_since_fri = now_dt.weekday() - 4
+    prev_fri = now_dt - datetime.timedelta(days=days_since_fri)
+    is_weekend_after_last_friday = is_weekend and (prev_fri + datetime.timedelta(days=7)).month != now_dt.month
+
+    # 3. Fallback di sicurezza: ultimo giorno di calendario del mese
+    is_last_day = (now_dt + datetime.timedelta(days=1)).month != now_dt.month
+
+    return is_last_friday or is_weekend_after_last_friday or is_last_day
 
 
 def compute_weekly_due(now_dt, last_alert_str):
@@ -1013,6 +1029,19 @@ def main():
     if "BTC-USD" in b_data and ("BTC-USD" not in crypto_data or crypto_data["BTC-USD"].empty):
         crypto_data["BTC-USD"] = b_data["BTC-USD"]
 
+    prices_by_ticker = {}
+    prices_by_ticker.update(latest_prices(b_data))
+    prices_by_ticker.update(latest_prices(eq_data))
+    prices_by_ticker.update(latest_prices(crypto_data))
+    for sym, df in crypto_data.items():
+        if not df.empty:
+            base = sym.replace("-USD", "")
+            prices_by_ticker[base] = float(df["Close"].iloc[-1])
+
+    # Mark-to-market e capitalizzazione composta del NAV quotidiano (step 1/2 di accounting)
+    # DEVE essere eseguito PRIMA che le posizioni vengano aggiornate da crypto_eval o da rotazioni
+    nav_usd = mark_to_market_and_compound_nav(pf, prices_by_ticker)
+
     crypto_eval = evaluate_daily_crypto_frontier(
         open_positions=pf.get("open_positions", {}),
         crypto_alloc_pct=crypto_alloc_pct,
@@ -1031,21 +1060,13 @@ def main():
         if pos.get("is_crypto") or tkr == "BTC"
     ]
 
-    prices_by_ticker = {}
-    prices_by_ticker.update(latest_prices(b_data))
-    prices_by_ticker.update(latest_prices(eq_data))
-    prices_by_ticker.update(latest_prices(crypto_data))
-    for sym, df in crypto_data.items():
-        if not df.empty:
-            base = sym.replace("-USD", "")
-            prices_by_ticker[base] = float(df["Close"].iloc[-1])
-
     if crypto_eval.get("closed_trades"):
         pf.setdefault("trade_history", []).extend(crypto_eval["closed_trades"])
 
     pf["open_positions"] = crypto_eval["updated_positions"]
 
     # Calcola ordini pendenti se oggi è giorno di decisione
+    pending_orders_struct = None
     if deciding_new:
         pending_orders_struct = compute_rebalance_orders_structured(
             pf.get("open_positions", {}),
@@ -1070,23 +1091,20 @@ def main():
         pf["pending_orders_date"] = today_str
         pf["last_action_log"] = pending_orders_struct["action_log"]
         pf["last_action_date"] = today_str
-    elif crypto_eval.get("orders"):
-        pending_orders_struct = {
-            "sells": crypto_eval["sells"],
-            "buys": crypto_eval["buys"],
-            "orders": crypto_eval["orders"],
-            "action_log": crypto_eval["action_log"]
-        }
-        pf["pending_orders"] = crypto_eval["orders"]
-        pf["pending_orders_date"] = today_str
-        pf["last_action_log"] = crypto_eval["action_log"]
-        pf["last_action_date"] = today_str
+    elif not executing_pending:
+        # Se non è giorno di decisione e non c'è una decisione mensile in attesa di esecuzione,
+        # le eventuali azioni crypto odierne sono già state eseguite e integrate nel modello
+        if crypto_eval.get("action_log"):
+            pf["last_action_log"] = crypto_eval["action_log"]
+            pf["last_action_date"] = today_str
+        # Pulisce eventuali ordini pendenti obsoleti/zombie
+        if not prev_pending:
+            pf["pending_orders"] = []
 
     save_json_atomic(APEX_DATA_FILE, output)
 
     # 4. Ribilanciamento (solo il giorno dell'esecuzione) + tracking quotidiano dell'equity curve
     print("[4/4] Aggiornamento Portafoglio ed Equity Curve...")
-    nav_usd = mark_to_market_and_compound_nav(pf, prices_by_ticker)
     save_json_atomic(PORTFOLIO_FILE, pf)
 
     if executing_pending:
@@ -1105,7 +1123,7 @@ def main():
             pf_after["last_action_date"] = today_str
         save_json_atomic(PORTFOLIO_FILE, pf_after)
     else:
-        action_log = (pending_orders_struct["action_log"] if pending_orders_struct else [])
+        action_log = (pending_orders_struct["action_log"] if pending_orders_struct else (crypto_eval.get("action_log", [])))
 
     update_equity_curve(nav_usd, today_str)
 
