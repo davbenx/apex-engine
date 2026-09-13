@@ -397,7 +397,7 @@ def test_select_low_beta_basket_ranks_correctly():
         "LOWBETA": _beta_controlled_df(spy, beta=0.1, seed=2),
         "HIGHBETA": _beta_controlled_df(spy, beta=1.5, seed=3),
     }
-    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26)
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=None)
     tickers = [b["Ticker"] for b in basket]
     assert tickers == ["NEGBETA", "LOWBETA"], "beta negativo preferito a beta positivo basso, entrambi preferiti al beta alto"
     assert "HIGHBETA" not in tickers
@@ -414,7 +414,7 @@ def test_select_low_beta_basket_reports_beta_not_volatility():
         "LOWBETA_HIGHVOL": _beta_controlled_df(spy, beta=0.05, noise_std=0.05, seed=1),
         "HIGHBETA_LOWVOL": _beta_controlled_df(spy, beta=1.2, noise_std=0.0002, seed=2),
     }
-    basket = select_low_beta_basket(eq_data, spy, top_n=1, lookback_weeks=26)
+    basket = select_low_beta_basket(eq_data, spy, top_n=1, lookback_weeks=26, trend_ma_weeks=None)
     assert basket[0]["Ticker"] == "LOWBETA_HIGHVOL", "basso beta vince anche se la volatilita' assoluta e' piu' alta"
     assert "Beta (vs SPY)" in basket[0]
     assert "Volatilita' Ann. (%)" not in basket[0]
@@ -428,12 +428,12 @@ def test_select_low_beta_basket_buffer_retains_incumbent_within_rank_window():
         "MIDBETA": _beta_controlled_df(spy, beta=0.6, seed=3),
         "HIGHBETA": _beta_controlled_df(spy, beta=1.8, seed=4),
     }
-    no_buffer = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26)
+    no_buffer = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=None)
     assert [b["Ticker"] for b in no_buffer] == ["LOWBETA", "MIDBETA2"], "senza buffer, MIDBETA (rank 3) deve uscire"
 
     buffered = select_low_beta_basket(
         eq_data, spy, top_n=2, lookback_weeks=26,
-        prev_tickers={"LOWBETA", "MIDBETA"}, buffer_rank=3,
+        prev_tickers={"LOWBETA", "MIDBETA"}, buffer_rank=3, trend_ma_weeks=None,
     )
     tickers = [b["Ticker"] for b in buffered]
     assert "MIDBETA" in tickers, "MIDBETA (rank 3, 0-indexed 2 < buffer_rank 3) deve restare grazie al buffer"
@@ -450,10 +450,10 @@ def test_select_low_beta_basket_respects_sector_cap():
     }
     sector_of = {"A1": "A", "A2": "A", "B1": "B", "C1": "C"}
 
-    no_cap = select_low_beta_basket(eq_data, spy, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=99)
+    no_cap = select_low_beta_basket(eq_data, spy, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=99, trend_ma_weeks=None)
     assert [b["Ticker"] for b in no_cap] == ["A1", "A2", "B1"]
 
-    capped = select_low_beta_basket(eq_data, spy, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=1)
+    capped = select_low_beta_basket(eq_data, spy, top_n=3, lookback_weeks=26, sector_of=sector_of, max_per_sector=1, trend_ma_weeks=None)
     assert [b["Ticker"] for b in capped] == ["A1", "B1", "C1"]
 
 
@@ -463,7 +463,7 @@ def test_select_low_beta_basket_sector_cap_fails_open_on_missing_data():
         "KNOWN": _beta_controlled_df(spy, beta=-0.2, seed=1),
         "UNKNOWN": _beta_controlled_df(spy, beta=0.1, seed=2),
     }
-    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, sector_of={"KNOWN": "A"}, max_per_sector=1)
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, sector_of={"KNOWN": "A"}, max_per_sector=1, trend_ma_weeks=None)
     assert {b["Ticker"] for b in basket} == {"KNOWN", "UNKNOWN"}
 
 
@@ -476,10 +476,49 @@ def test_select_low_beta_basket_insufficient_history_excluded():
         "TOOSHORT": short_df,
         "ENOUGH": _beta_controlled_df(spy, beta=0.8, seed=2),
     }
-    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26)
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=None)
     tickers = [b["Ticker"] for b in basket]
     assert "TOOSHORT" not in tickers
     assert tickers == ["ENOUGH"]
+
+
+def test_select_low_beta_basket_trend_filter_excludes_downtrend():
+    """Verifica che con trend_ma_weeks=40 (default di produzione), un titolo a basso beta
+    ma con prezzo sotto la SMA(40) venga escluso a favore di un titolo in trend positivo."""
+    spy = _spy_ref_df(n_weeks=60)
+    # Creiamo un titolo che scende costantemente negli ultimi 20 periodi (prezzo < SMA40)
+    dates = spy.index
+    # DOWNTREND: parte a 150 e scende a 80 (sotto SMA40 ~115)
+    px_down = np.linspace(150, 80, len(dates))
+    df_down = pd.DataFrame({"Close": px_down}, index=dates)
+
+    # UPTREND: parte a 80 e sale a 120 (sopra SMA40 ~100)
+    px_up = np.linspace(80, 120, len(dates))
+    df_up = pd.DataFrame({"Close": px_up}, index=dates)
+
+    eq_data = {
+        "FALLING_LOWBETA": df_down,
+        "RISING_MIDBETA": df_up,
+    }
+    # Con filtro di trend attivo (default): FALLING_LOWBETA viene escluso
+    basket = select_low_beta_basket(eq_data, spy, top_n=1, lookback_weeks=26, trend_ma_weeks=40)
+    assert basket[0]["Ticker"] == "RISING_MIDBETA", "il titolo in downtrend deve essere escluso dal filtro SMA40"
+
+
+def test_select_low_beta_basket_trend_filter_fallback():
+    """Verifica che se tutti i titoli sono sotto la SMA40, il fallback garantisca
+    comunque la cardinalita' del basket selezionando i migliori a basso beta."""
+    spy = _spy_ref_df(n_weeks=60)
+    dates = spy.index
+    # Entrambi i titoli in declino sotto SMA40
+    df1 = pd.DataFrame({"Close": np.linspace(150, 70, len(dates))}, index=dates)
+    df2 = pd.DataFrame({"Close": np.linspace(140, 80, len(dates))}, index=dates)
+
+    eq_data = {"BEAR1": df1, "BEAR2": df2}
+    basket = select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=40)
+    assert len(basket) == 2, "il fallback deve saturare il basket anche se i titoli sono sotto SMA40"
+    assert {b["Ticker"] for b in basket} == {"BEAR1", "BEAR2"}
+
 
 
 def test_quarter_end_month():

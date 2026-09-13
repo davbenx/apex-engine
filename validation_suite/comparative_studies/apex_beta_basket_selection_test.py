@@ -185,7 +185,8 @@ def run_backtest(use_beta_selection: bool, sector_of: dict):
             current_basket = rebuild_basket()
             prev_basket_tickers = set(current_basket)
 
-        basket_ret = float(np.mean([stock_rets[t].loc[wk] for t in current_basket if t in stock_rets])) if current_basket else 0.0
+        r_list = [stock_rets[t].loc[wk] for t in current_basket if t in stock_rets and wk in stock_rets[t].index and not np.isnan(stock_rets[t].loc[wk])]
+        basket_ret = float(np.mean(r_list)) if r_list else 0.0
         equity_return_basket.append(basket_ret)
 
     valid_from = MIN_HISTORY

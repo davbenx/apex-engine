@@ -41,9 +41,9 @@ ASSET_CLASSES_INFO = {
         "short_name": "Oro",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{style}"><polygon points="8.5 6 15.5 6 17 12 7 12" /><polygon points="2.5 13 9.5 13 11 19 1 19" /><polygon points="14.5 13 21.5 13 23 19 13 19" /></svg>',
     },
-    "Bitcoin": {
+    "Cryptovalute": {
         "color": "#F7931A",
-        "short_name": "Bitcoin",
+        "short_name": "Cryptovalute",
         "svg": '<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{style}"><path d="M7 6h6a3 3 0 0 1 0 6H7zm0 6h7a3 3 0 0 1 0 6H7z"></path><line x1="10" y1="3" x2="10" y2="6"></line><line x1="14" y1="3" x2="14" y2="6"></line><line x1="10" y1="18" x2="10" y2="21"></line><line x1="14" y1="18" x2="14" y2="21"></line><line x1="7" y1="6" x2="7" y2="18"></line></svg>',
     },
     "Liquidità": {
@@ -131,8 +131,8 @@ def get_macro_class_svg(classe: str, size: int = 15, color: str = None, style: s
         key = "Azioni"
     elif "oro" in c or "gold" in c:
         key = "Oro"
-    elif "btc" in c or "bitcoin" in c or "crypto" in c:
-        key = "Bitcoin"
+    elif "btc" in c or "bitcoin" in c or "crypto" in c or "cryptovalute" in c:
+        key = "Cryptovalute"
     elif "future" in c or "cta" in c or "managed" in c:
         key = "Futures gestiti"
     elif "liquid" in c or "cash" in c:
@@ -140,7 +140,7 @@ def get_macro_class_svg(classe: str, size: int = 15, color: str = None, style: s
     else:
         key = "Liquidità"
 
-    info = ASSET_CLASSES_INFO[key]
+    info = ASSET_CLASSES_INFO.get(key, ASSET_CLASSES_INFO.get("Cryptovalute" if "btc" in key.lower() or "crypto" in key.lower() else "Liquidità"))
     use_color = color if color is not None else info["color"]
     return info["svg"].format(size=size, color=use_color, style=inline_style)
 
@@ -154,8 +154,8 @@ def get_class_color(classe: str) -> str:
         return ASSET_CLASSES_INFO["Azioni"]["color"]
     elif "oro" in c or "gold" in c:
         return ASSET_CLASSES_INFO["Oro"]["color"]
-    elif "btc" in c or "bitcoin" in c or "crypto" in c:
-        return ASSET_CLASSES_INFO["Bitcoin"]["color"]
+    elif "btc" in c or "bitcoin" in c or "crypto" in c or "cryptovalute" in c:
+        return ASSET_CLASSES_INFO["Cryptovalute"]["color"]
     elif "future" in c or "cta" in c or "managed" in c:
         return ASSET_CLASSES_INFO["Futures gestiti"]["color"]
     elif "liquid" in c or "cash" in c:
@@ -604,7 +604,7 @@ def compute_unified_portfolio(
     conv_bd  = convex_val * convex_report.macro_exposure["Obbligazionario Governativo (Treasury Futures)"]
     conv_cta = convex_val * convex_report.macro_exposure["Managed Futures (Crisis Alpha CTA)"]
     conv_gld = convex_val * convex_report.macro_exposure["Oro Fisico (Riserva Reale)"]
-    conv_cr  = convex_val * convex_report.macro_exposure["Bitcoin (Convessità Asimmetrica)"]
+    conv_cr  = convex_val * convex_report.macro_exposure.get("Cryptovalute (Convessità Asimmetrica)", convex_report.macro_exposure.get("Bitcoin (Convessità Asimmetrica)", 0.0))
     conv_cash = convex_val * convex_report.macro_exposure.get("Liquidità Cassa", 0.0)
 
     macro_breakdown = {
@@ -612,7 +612,7 @@ def compute_unified_portfolio(
         "Obbligazioni": (apex_bd + conv_bd) / tot_wealth,
         "Futures gestiti": conv_cta / tot_wealth,
         "Oro": (apex_gld + conv_gld) / tot_wealth,
-        "Bitcoin": (apex_cr + conv_cr) / tot_wealth,
+        "Cryptovalute": (apex_cr + conv_cr) / tot_wealth,
     }
     # Liquidità reale (mai negativa) ed esposizione nozionale totale (può
     # legittimamente superare il 100% per via della leva incorporata di Convex)

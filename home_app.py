@@ -241,7 +241,7 @@ with tab_pf:
         "Obbligazioni",
         "Futures gestiti",
         "Oro",
-        "Bitcoin",
+        "Cryptovalute",
     ]
     macro_segs = [(k, _macro.get(k, 0.0) * 100.0, portfolio_manager.get_class_color(k)) for k in canonical_classes]
     if unified_data.get("idle_cash_pct", 0.0) > 0.001:

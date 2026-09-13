@@ -53,7 +53,7 @@ _COLOR_MAP = {
     "AVWS": portfolio_manager.get_class_color("Azioni"),
     "DBMFE": portfolio_manager.get_class_color("Futures gestiti"),
     "PPFB": portfolio_manager.get_class_color("Oro"),
-    "WBTC": portfolio_manager.get_class_color("Bitcoin"),
+    "WBTC": portfolio_manager.get_class_color("Cryptovalute"),
 }
 
 

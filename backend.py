@@ -22,6 +22,10 @@ from apex_v2_engine import (
     compute_v2_macro_signal, select_low_beta_basket, is_quarter_end_month,
     V2_CLASS_TICKER, V2_EQUITY_TOP_N,
 )
+from crypto_frontier_venture_engine import (
+    fetch_kraken_futures_top_universe,
+    evaluate_daily_crypto_frontier,
+)
 
 # ==============================================================================
 # CONFIGURATION & CONSTANTS
@@ -178,11 +182,15 @@ def fetch_yahoo_history(ticker, period='2y', interval='1d'):
             timestamps = pd.to_datetime(result['timestamp'], unit='s')
             quote = result['indicators']['quote'][0]
 
+            vol = quote.get('volume')
+            if vol is None:
+                vol = [0.0] * len(quote['close'])
             df = pd.DataFrame({
                 'Open': quote['open'],
                 'High': quote['high'],
                 'Low': quote['low'],
-                'Close': quote['close']
+                'Close': quote['close'],
+                'Volume': vol
             }, index=timestamps).ffill().dropna()
             return ticker, df
         except Exception:
@@ -337,7 +345,7 @@ def mark_to_market_and_compound_nav(pf, prices_by_ticker):
     for ticker, pos in pf.get("open_positions", {}).items():
         sym = ticker + "-USD" if pos.get("is_crypto") else ticker
         old_price = pos.get("current_price", pos.get("entry_price", 0.0))
-        new_price = prices_by_ticker.get(sym)
+        new_price = prices_by_ticker.get(sym, prices_by_ticker.get(ticker))
         if new_price is not None and old_price and old_price > 0:
             ratio = new_price / old_price
             price_ratios[ticker] = ratio
@@ -425,7 +433,7 @@ def _close_position(pf, ticker, pos, exit_price, exit_date, reason, action_log, 
     action_log.append(f"[{verb}]: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
 
 
-def update_portfolio(allocations, basket, prices_by_ticker, today_str):
+def update_portfolio(allocations, basket, prices_by_ticker, today_str, target_crypto_positions=None):
     """
     Ribilancia il portafoglio verso i pesi target Apex v2 (vedi APEX_V2_SPEC.md §2-4).
     Ogni posizione la cui composizione (basket trimestrale) o il cui peso (vol-target
@@ -470,7 +478,11 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
         target["IEF"] = allocations["Bonds"] / 100.0
     if allocations.get("Gold", 0.0) > 0:
         target["GLD"] = allocations["Gold"] / 100.0
-    if allocations.get("Crypto", 0.0) > 0:
+    if target_crypto_positions is not None:
+        for c_tkr, c_pos in target_crypto_positions.items():
+            if c_pos.get("is_crypto") or c_tkr in ("BTC", "Bitcoin"):
+                target[c_tkr] = c_pos.get("weight", 0.0)
+    elif allocations.get("Crypto", 0.0) > 0:
         target["BTC"] = allocations["Crypto"] / 100.0
 
     EPS = 1e-4  # tolleranza sotto la quale non vale la pena ribilanciare (rumore di calcolo)
@@ -541,20 +553,24 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
     for ticker, tgt_w in target.items():
         if ticker in current or tgt_w <= EPS:
             continue
-        is_crypto = (ticker == "BTC")
+        c_meta = (target_crypto_positions or {}).get(ticker, {})
+        is_crypto = (ticker == "BTC") or c_meta.get("is_crypto", False)
         sym = ticker + "-USD" if is_crypto else ticker
-        price = prices_by_ticker.get(sym)
+        price = prices_by_ticker.get(sym, prices_by_ticker.get(ticker))
         if price is None or price <= 0:
             action_log.append(f"[ATTENZIONE] Impossibile aprire {ticker}: prezzo non disponibile")
             continue
+        stop_loss_px = c_meta.get("stop_loss", 0.0)
         current[ticker] = {
             "entry_date": today_str,
             "entry_price": price,
             "current_price": price,
-            "stop_loss": 0.0,  # v2 non usa stop per posizione — vedi APEX_V2_SPEC.md §4
+            "stop_loss": stop_loss_px,
             "is_crypto": is_crypto,
             "weight": tgt_w,
         }
+        if c_meta.get("atr_entry"):
+            current[ticker]["atr_entry"] = c_meta["atr_entry"]
         action_log.append(f"[APERTURA]: {ticker} (peso {tgt_w * 100:.2f}%) | Prezzo: {fmt_usd(price)}")
         turnover_cost_frac += tgt_w * (cost_bps(ticker) / 10000.0)
 
@@ -563,6 +579,8 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
         sym = ticker + "-USD" if pos.get("is_crypto") else ticker
         if sym in prices_by_ticker:
             pos["current_price"] = prices_by_ticker[sym]
+        elif ticker in prices_by_ticker:
+            pos["current_price"] = prices_by_ticker[ticker]
 
     pf["open_positions"] = current
     pf["macro_positions"] = {}  # v2: oro/bond vivono in open_positions come le altre posizioni
@@ -575,19 +593,19 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str):
 PROXIES = {
     "GLD": {"name": "Oro", "full": "Oro"},
     "IEF": {"name": "Obbligazioni", "full": "Obbligazioni"},
-    "BTC": {"name": "Bitcoin", "full": "Bitcoin"},
+    "BTC": {"name": "Cryptovalute", "full": "Cryptovalute"},
     "Cash": {"name": "Liquidità", "full": "Liquidità"},
 }
 
 
 def get_display_ticker(ticker):
-    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Bitcoin, Obbligazioni, Liquidità) o il ticker per le azioni."""
+    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Cryptovalute, Obbligazioni, Liquidità) o il ticker per le azioni."""
     if ticker in PROXIES:
         return PROXIES[ticker]["full"]
     return ticker
 
 
-def compute_rebalance_orders_structured(open_positions, target_allocations, basket, prices_by_ticker):
+def compute_rebalance_orders_structured(open_positions, target_allocations, basket, prices_by_ticker, target_crypto_positions=None):
     """
     Calcola gli ordini di ribilanciamento in formato strutturato (percentuali, quote,
     prezzi, suddivisione Vendite/Acquisti) sin dal venerdì sera della decisione,
@@ -602,7 +620,11 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
         target["IEF"] = target_allocations["Bonds"] / 100.0
     if target_allocations.get("Gold", 0.0) > 0:
         target["GLD"] = target_allocations["Gold"] / 100.0
-    if target_allocations.get("Crypto", 0.0) > 0:
+    if target_crypto_positions is not None:
+        for c_tkr, c_pos in target_crypto_positions.items():
+            if c_pos.get("is_crypto") or c_tkr in ("BTC", "Bitcoin"):
+                target[c_tkr] = c_pos.get("weight", 0.0)
+    elif target_allocations.get("Crypto", 0.0) > 0:
         target["BTC"] = target_allocations["Crypto"] / 100.0
 
     EPS = 1e-4
@@ -618,9 +640,12 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
         if abs(delta_w) <= EPS:
             continue
 
-        is_crypto = (ticker == "BTC") or open_positions.get(ticker, {}).get("is_crypto", False)
+        c_meta = (target_crypto_positions or {}).get(ticker, {})
+        is_crypto = (ticker == "BTC") or open_positions.get(ticker, {}).get("is_crypto", False) or c_meta.get("is_crypto", False)
         sym = ticker + "-USD" if is_crypto else ticker
         price = prices_by_ticker.get(sym, open_positions.get(ticker, {}).get("current_price", open_positions.get(ticker, {}).get("entry_price", 0.0)))
+        if price is None:
+            price = prices_by_ticker.get(ticker, 0.0)
         
         cur_w_pct = cur_w * 100.0
         tgt_w_pct = tgt_w * 100.0
@@ -721,7 +746,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
         signals_line = (
             f"*REGIMI DI MERCATO*\n"
             f"• Azioni: {_dot(alloc.get('Equities', 0))} {alloc.get('Equities', 0):.0f}%\n"
-            f"• Bitcoin: {_dot(alloc.get('Crypto', 0))} {alloc.get('Crypto', 0):.0f}%\n"
+            f"• Cryptovalute: {_dot(alloc.get('Crypto', 0))} {alloc.get('Crypto', 0):.0f}%\n"
             f"• Oro: {_dot(alloc.get('Gold', 0))} {alloc.get('Gold', 0):.0f}%\n"
             f"• Obbligazioni: {_dot(alloc.get('Bonds', 0))} {alloc.get('Bonds', 0):.0f}%\n"
             f"• Liquidità: [—] {alloc.get('Cash', 0):.0f}%"
@@ -749,8 +774,20 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                 msg += "\n"
 
             if struct and (struct.get("sells") or struct.get("buys")):
-                msg += "*ORDINI OPERATIVI PER LUNEDÌ*\n"
-                msg += "Esecuzione: Apertura mercati USA (15:30 CET)\n\n"
+                all_o = struct.get("sells", []) + struct.get("buys", [])
+                has_tradfi = any(not o.get("is_crypto") for o in all_o)
+                has_crypto = any(o.get("is_crypto") for o in all_o)
+
+                if has_tradfi and has_crypto:
+                    msg += "*ORDINI OPERATIVI (AZIONI & CRYPTO)*\n"
+                    msg += "Azioni: Esecuzione Lunedì (15:30 CET) | Crypto: Esecuzione Immediata (24/7)\n\n"
+                elif has_tradfi:
+                    msg += "*ORDINI OPERATIVI PER LUNEDÌ*\n"
+                    msg += "Esecuzione: Apertura mercati USA (15:30 CET)\n\n"
+                else:
+                    msg += "*ORDINI OPERATIVI CRYPTO FRONTIER*\n"
+                    msg += "Esecuzione: Immediata (Mercati Crypto 24/7)\n\n"
+
                 if struct.get("sells"):
                     msg += "*1. VENDITE*\n"
                     for o in struct["sells"]:
@@ -782,9 +819,9 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                     p.get("weight", 0.0) * (((p.get("current_price", p.get("entry_price", 0.0)) / p["entry_price"]) - 1.0) * 100)
                     for p in open_pos.values() if p.get("entry_price", 0) > 0
                 )
-                status_line = f"Portafoglio invariato ({weighted_pnl:+.2f}% su {len(open_pos)} posizioni attive).\nNessuna operazione richiesta sul broker per Lunedì."
+                status_line = f"Portafoglio invariato ({weighted_pnl:+.2f}% su {len(open_pos)} posizioni attive).\nNessuna operazione richiesta al momento."
             else:
-                status_line = "Nessuna posizione aperta al momento.\nNessuna operazione richiesta per Lunedì."
+                status_line = "Nessuna posizione aperta al momento.\nNessuna operazione richiesta."
 
             msg = f"*APEX ENGINE* · {date_str}\n\n{status_line}\n\n{signals_line}"
 
@@ -954,26 +991,85 @@ def main():
     output["v2_state"]["basket"] = basket
     output["top20"] = basket  # compatibilita' di schema con la dashboard esistente
 
-    # 3. Crypto: solo BTC-USD, nessuna rotazione altcoin (testata e respinta — vedi Apex Allocation §7-bis)
-    print("[3/4] Prezzo BTC-USD...")
-    if allocations.get("Crypto", 0) > 0 and b_data.get("BTC-USD") is not None and not b_data["BTC-USD"].empty:
-        output["crypto_top"] = [{"Ticker": "BTC", "Prezzo ($)": round(float(b_data["BTC-USD"]["Close"].iloc[-1]), 2), "Stop Loss ($)": 0.0}]
-    else:
-        output["crypto_top"] = []
+    # 3. Crypto: Crypto Frontier Venture Engine su Universo Kraken Futures
+    print("[3/4] Valutazione Strategia Crypto Frontier Venture...")
+    crypto_alloc_pct = allocations.get("Crypto", 0.0)
+    kraken_universe = fetch_kraken_futures_top_universe(25)
+
+    current_crypto_held = [k for k, v in pf.get("open_positions", {}).items() if v.get("is_crypto")]
+    crypto_bases = list(set(["BTC"] + kraken_universe + current_crypto_held))
+    crypto_tickers = [f"{b}-USD" for b in crypto_bases]
+    crypto_data = download_universe_batch(crypto_tickers, max_workers=MAX_WORKERS_CRYPTO, desc="Cryptovalute Kraken", period="1y")
+    if "BTC-USD" in b_data and ("BTC-USD" not in crypto_data or crypto_data["BTC-USD"].empty):
+        crypto_data["BTC-USD"] = b_data["BTC-USD"]
+
+    crypto_eval = evaluate_daily_crypto_frontier(
+        open_positions=pf.get("open_positions", {}),
+        crypto_alloc_pct=crypto_alloc_pct,
+        crypto_dfs=crypto_data,
+        today_str=today_str,
+        kraken_universe=kraken_universe
+    )
+
+    output["crypto_top"] = [
+        {
+            "Ticker": tkr,
+            "Prezzo ($)": round(float(pos.get("current_price", 0.0)), 2),
+            "Stop Loss ($)": round(float(pos.get("stop_loss", 0.0)), 2) if pos.get("stop_loss", 0.0) > 0 else 0.0
+        }
+        for tkr, pos in crypto_eval["updated_positions"].items()
+        if pos.get("is_crypto") or tkr == "BTC"
+    ]
 
     prices_by_ticker = {}
     prices_by_ticker.update(latest_prices(b_data))
     prices_by_ticker.update(latest_prices(eq_data))
+    prices_by_ticker.update(latest_prices(crypto_data))
+    for sym, df in crypto_data.items():
+        if not df.empty:
+            base = sym.replace("-USD", "")
+            prices_by_ticker[base] = float(df["Close"].iloc[-1])
+
+    if crypto_eval.get("closed_trades"):
+        pf.setdefault("trade_history", []).extend(crypto_eval["closed_trades"])
+
+    pf["open_positions"] = crypto_eval["updated_positions"]
 
     # Calcola ordini pendenti se oggi è giorno di decisione
     if deciding_new:
-        pending_orders_struct = compute_rebalance_orders_structured(pf.get("open_positions", {}), allocations_new, new_basket, prices_by_ticker)
+        pending_orders_struct = compute_rebalance_orders_structured(
+            pf.get("open_positions", {}),
+            allocations_new,
+            new_basket,
+            prices_by_ticker,
+            target_crypto_positions=crypto_eval["updated_positions"]
+        )
+        for o in crypto_eval.get("sells", []):
+            if not any(x.get("ticker") == o["ticker"] for x in pending_orders_struct["sells"]):
+                pending_orders_struct["sells"].append(o)
+        for o in crypto_eval.get("buys", []):
+            if not any(x.get("ticker") == o["ticker"] for x in pending_orders_struct["buys"]):
+                pending_orders_struct["buys"].append(o)
+        pending_orders_struct["orders"] = pending_orders_struct["sells"] + pending_orders_struct["buys"]
+        pending_orders_struct["action_log"] = crypto_eval["action_log"] + pending_orders_struct["action_log"]
+
         if new_pending:
             new_pending["orders"] = pending_orders_struct["orders"]
             new_pending["action_log"] = pending_orders_struct["action_log"]
         pf["pending_orders"] = pending_orders_struct["orders"]
         pf["pending_orders_date"] = today_str
         pf["last_action_log"] = pending_orders_struct["action_log"]
+        pf["last_action_date"] = today_str
+    elif crypto_eval.get("orders"):
+        pending_orders_struct = {
+            "sells": crypto_eval["sells"],
+            "buys": crypto_eval["buys"],
+            "orders": crypto_eval["orders"],
+            "action_log": crypto_eval["action_log"]
+        }
+        pf["pending_orders"] = crypto_eval["orders"]
+        pf["pending_orders_date"] = today_str
+        pf["last_action_log"] = crypto_eval["action_log"]
         pf["last_action_date"] = today_str
 
     save_json_atomic(APEX_DATA_FILE, output)
@@ -984,7 +1080,13 @@ def main():
     save_json_atomic(PORTFOLIO_FILE, pf)
 
     if executing_pending:
-        action_log = update_portfolio(allocations, basket, prices_by_ticker, today_str)
+        action_log = update_portfolio(
+            allocations,
+            basket,
+            prices_by_ticker,
+            today_str,
+            target_crypto_positions=crypto_eval["updated_positions"]
+        )
         pf_after = load_json_safe(PORTFOLIO_FILE, default={"open_positions": {}, "trade_history": []})
         nav_usd = pf_after.get("nav_usd", nav_usd)
         pf_after["pending_orders"] = []  # ordini eseguiti

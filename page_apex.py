@@ -91,7 +91,7 @@ BADGE_NEG_BG = "#7B2836"
 BADGE_NEUTRAL_BG = "rgba(255,247,237,0.1)"
 
 CLASS_COLOR_EQ = portfolio_manager.get_class_color("Azioni")
-CLASS_COLOR_BTC = portfolio_manager.get_class_color("Bitcoin")
+CLASS_COLOR_BTC = portfolio_manager.get_class_color("Cryptovalute")
 CLASS_COLOR_GOLD = portfolio_manager.get_class_color("Oro")
 CLASS_COLOR_BOND = portfolio_manager.get_class_color("Obbligazioni")
 CLASS_COLOR_CASH = portfolio_manager.get_class_color("Liquidità")
@@ -149,7 +149,7 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
         elif c == "Data Ingresso":
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:center; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
         else:
-            align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
+            align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
             th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
 
     rows_html = []
@@ -158,7 +158,7 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
         classe = str(r.get("Classe", ""))
         for c in active_cols:
             val = r.get(c, "")
-            align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
+            align = "right" if c in ["Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Uscita ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label] else "left"
             if c == "Classe":
                 svg = get_class_svg(classe, size=16)
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:center; width:44px;"><span title="{classe}" style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; cursor:help;">{svg}</span></td>')
@@ -171,6 +171,14 @@ def render_positions_html_table(df, active_cols, curr_sym, col_val_label, col_re
             elif c in ["Ingresso ($)", "Attuale ($)"]:
                 v_str = f"${val:,.2f}" if (pd.notna(val) and isinstance(val, (int, float))) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; white-space:nowrap;">{v_str}</td>')
+            elif c == "Stop Loss ($)":
+                if pd.notna(val) and isinstance(val, (int, float)) and val > 0:
+                    v_str = f"${val:,.2f}"
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; font-weight:600; color:{NEG}; white-space:nowrap;">{v_str}</td>')
+                elif isinstance(val, str) and val and val != "—":
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; font-weight:600; color:{NEG}; white-space:nowrap;">{val}</td>')
+                else:
+                    td_cells.append(f'<td style="padding:10px 14px; font-size:12px; text-align:{align}; font-family:{MONO}; color:{MUTED}; opacity:0.5;">—</td>')
             elif c == "Peso (%)":
                 v_str = f"{val:.2f}%" if pd.notna(val) else "—"
                 td_cells.append(f'<td style="padding:10px 14px; font-size:12.5px; text-align:{align}; font-family:{MONO}; font-weight:600; white-space:nowrap;">{v_str}</td>')
@@ -484,6 +492,7 @@ if pf:
             "Data Ingresso": entry_formatted,
             "Ingresso ($)": info.get("entry_price", 0.0),
             "Attuale ($)": curr_p,
+            "Stop Loss ($)": info.get("stop_loss", float("nan")),
             "Peso (%)": info.get("weight", 0.0) * 100.0,
             "Rendimento %": pnl_pct
         }
@@ -614,7 +623,7 @@ with tab_pf:
     last_actions = (pf or {}).get("last_action_log") or []
     last_action_date = (pf or {}).get("pending_orders_date") or (pf or {}).get("last_action_date") or ""
 
-    PROXIES_DISPLAY = {"GLD": "Oro", "IEF": "Obbligazioni", "BTC": "Bitcoin", "Cash": "Liquidità"}
+    PROXIES_DISPLAY = {"GLD": "Oro", "IEF": "Obbligazioni", "BTC": "Cryptovalute", "Cash": "Liquidità"}
 
     hist_trades = (pf or {}).get("trade_history") or []
     latest_hist_exit_date = ""
@@ -647,7 +656,7 @@ with tab_pf:
 
     signals_html = "".join([
         signal_item("Azioni", _eq_val, _eq_title),
-        signal_item("Bitcoin", _cr_val, _cr_title),
+        signal_item("Cryptovalute", _cr_val, _cr_title),
         signal_item("Oro", _g_val, _g_title),
         signal_item("Obbligazioni", _b_val, _b_title),
         signal_item("Liquidità", f"{alloc.get('Cash', 0):.0f}%"),
@@ -663,7 +672,7 @@ with tab_pf:
     if op_eq:
         alloc_segments.append(("Azioni", sum(r.get("Peso (%)", 0.0) for r in op_eq), CLASS_COLOR_EQ))
     if op_cr:
-        alloc_segments.append(("Bitcoin", op_cr[0].get("Peso (%)", 0.0), CLASS_COLOR_BTC))
+        alloc_segments.append(("Cryptovalute", sum(r.get("Peso (%)", 0.0) for r in op_cr), CLASS_COLOR_BTC))
     if alloc.get('Gold', 0) > 0:
         alloc_segments.append(("Oro", alloc.get('Gold', 0), CLASS_COLOR_GOLD))
     if alloc.get('Bonds', 0) > 0:
@@ -746,14 +755,16 @@ with tab_pf:
             "Classe": "Azioni", "Strumento": r["Titolo"],
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
+            "Stop Loss ($)": r.get("Stop Loss ($)", float("nan")),
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
         })
-    if op_cr:
-        r = op_cr[0]
+    for r in sorted(op_cr, key=lambda x: x["Rendimento %"], reverse=True):
+        disp_name = "Bitcoin" if r["Titolo"] in ["BTC", "Bitcoin"] else r["Titolo"]
         unified_rows.append({
-            "Classe": "Bitcoin", "Strumento": "Bitcoin",
+            "Classe": "Cryptovalute", "Strumento": disp_name,
             "Data Ingresso": r["Data Ingresso"],
             "Ingresso ($)": r["Ingresso ($)"], "Attuale ($)": r["Attuale ($)"],
+            "Stop Loss ($)": r.get("Stop Loss ($)", float("nan")),
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
         })
 
@@ -763,6 +774,7 @@ with tab_pf:
             "Classe": classe, "Strumento": disp_name,
             "Data Ingresso": f"{fmt_d} ({detail['days']}g)" if fmt_d != "—" else "—",
             "Ingresso ($)": detail["entry_price"], "Attuale ($)": detail["current_price"],
+            "Stop Loss ($)": float("nan"),
             "Peso (%)": detail["weight_pct"], "Rendimento %": detail["pnl_pct"],
         }
 
@@ -775,13 +787,14 @@ with tab_pf:
         "Classe": "Liquidità", "Strumento": "Liquidità",
         "Data Ingresso": "—",
         "Ingresso ($)": float("nan"), "Attuale ($)": float("nan"),
+        "Stop Loss ($)": float("nan"),
         "Peso (%)": cash_weight_pct, "Rendimento %": float("nan"),
     })
 
     if unified_rows:
         show_details = st.toggle("Mostra dettagli esecuzione", value=False, key="pos_details_toggle")
-        compact_cols = ["Strumento", "Peso (%)", col_val_label, "Rendimento %"]
-        full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
+        compact_cols = ["Strumento", "Peso (%)", "Stop Loss ($)", col_val_label, "Rendimento %"]
+        full_cols = ["Classe", "Strumento", "Data Ingresso", "Quote", "Ingresso ($)", "Attuale ($)", "Stop Loss ($)", "Peso (%)", col_val_label, "Rendimento %", col_rend_label]
         active_cols = full_cols if show_details else compact_cols
 
         df_pos = pd.DataFrame(unified_rows)
@@ -795,7 +808,8 @@ with tab_pf:
             q = row["Quote_raw"]
             if pd.isna(q):
                 return "—"
-            return f"{q:.6f}" if row["Classe"] == "Bitcoin" and q < 1 else (f"{q:.4f}" if row["Classe"] == "Bitcoin" else f"{int(round(q)):,}")
+            is_crypto_class = row["Classe"] in ["Cryptovalute", "Bitcoin"]
+            return f"{q:.6f}" if is_crypto_class and q < 1 else (f"{q:.4f}" if is_crypto_class else f"{int(round(q)):,}")
 
         df_pos["Quote_raw"] = df_pos.apply(_quote_raw, axis=1)
         df_pos["Quote"] = df_pos.apply(_quote_display, axis=1)
@@ -1266,10 +1280,10 @@ with tab_guide:
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Bitcoin", 16)} Bitcoin</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">ATTIVO DIGITALE</span>
+                <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Cryptovalute", 16)} Cryptovalute</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">ATTIVI DIGITALI & VENTURE</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte espansione dei cicli di liquidità globale. Disattivato tempestivamente durante i mercati ribassisti prolungati.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte espansione dei cicli di liquidità globale tramite Bitcoin Core e posizioni asimmetriche su altcoin con Stop Loss e de-risking disciplinato. Disattivato durante i mercati ribassisti prolungati.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">

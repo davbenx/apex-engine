@@ -201,7 +201,8 @@ class TestApexConvexEcosystem(unittest.TestCase):
         )
         base_dir = REPO_ROOT
         py_files = ["main.py", "app.py", "home_app.py", "page_apex.py", "page_convex.py",
-                    "convex_stack_app.py", "streamlit_app.py", "portfolio_manager.py"]
+                    "convex_stack_app.py", "streamlit_app.py", "portfolio_manager.py",
+                    "backend.py", "crypto_frontier_venture_engine.py"]
         for pf in py_files:
             path = os.path.join(base_dir, pf)
             if os.path.exists(path):
@@ -213,7 +214,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
 
     def test_canonical_classes_and_colors(self):
         """Verifica che le 6 classi canoniche abbiano nomi, colori e icone univoci."""
-        expected_classes = ["Azioni", "Obbligazioni", "Futures gestiti", "Oro", "Bitcoin", "Liquidità"]
+        expected_classes = ["Azioni", "Obbligazioni", "Futures gestiti", "Oro", "Cryptovalute", "Liquidità"]
         self.assertEqual(list(portfolio_manager.ASSET_CLASSES_INFO.keys()), expected_classes)
 
         expected_colors = {
@@ -221,7 +222,7 @@ class TestApexConvexEcosystem(unittest.TestCase):
             "Obbligazioni": "#4E80EE",
             "Futures gestiti": "#E07A5F",
             "Oro": "#E5B233",
-            "Bitcoin": "#F7931A",
+            "Cryptovalute": "#F7931A",
             "Liquidità": "#8E877F",
         }
         for c, col in expected_colors.items():
@@ -231,9 +232,12 @@ class TestApexConvexEcosystem(unittest.TestCase):
         # Verifica che Azioni e Obbligazioni abbiano icone SVG differenti e non coincidenti
         svg_azioni = portfolio_manager.get_macro_class_svg("Azioni")
         svg_obbligazioni = portfolio_manager.get_macro_class_svg("Obbligazioni")
+        svg_crypto = portfolio_manager.get_macro_class_svg("Cryptovalute")
         self.assertNotEqual(svg_azioni, svg_obbligazioni, "Azioni e Obbligazioni devono avere icone SVG distinte")
         self.assertIn("polyline", svg_azioni)
         self.assertIn("line", svg_obbligazioni)
+        # Verifica che l'icona di Cryptovalute sia l'icona SVG vettoriale di Bitcoin (simbolo B)
+        self.assertIn("M7 6h6", svg_crypto, "L'icona di Cryptovalute deve corrispondere al simbolo vettoriale di Bitcoin")
 
     def test_forbidden_strings_and_renames(self):
         """Verifica la rimozione delle diciture vietate e la presenza delle nuove etichette."""

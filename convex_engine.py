@@ -301,6 +301,7 @@ def evaluate_convex_stack(
         "Obbligazionario Governativo (Treasury Futures)": bonds_tot / total_val,
         "Managed Futures (Crisis Alpha CTA)": cta_tot / total_val,
         "Oro Fisico (Riserva Reale)": gld_tot / total_val,
+        "Cryptovalute (Convessità Asimmetrica)": cr_tot / total_val,
         "Bitcoin (Convessità Asimmetrica)": cr_tot / total_val,
         "Liquidità Cassa": cash_tot / total_val,
         "Esposizione Nozionale Totale": (equity_tot + bonds_tot + cta_tot + gld_tot + cr_tot + cash_tot) / total_val

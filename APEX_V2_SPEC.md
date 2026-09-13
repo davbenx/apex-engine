@@ -110,16 +110,14 @@ contenere, sarebbe stato un segnale di overfitting, non di robustezza.
 **Universo ammissibile:** titoli storicamente membri dell'S&P 500 alla data (non la
 composizione odierna applicata retroattivamente — vedi audit, finding critico #1).
 
-**Criterio di selezione:** beta a 26 settimane rispetto a SPY, **crescente**
-(si preferiscono i titoli a bassa sensibilità sistematica al mercato — inclusi beta
-negativi, ordinamento per valore crescente non per valore assoluto — non i titoli a
-bassa volatilità ASSOLUTA né quelli a momentum più alto; il momentum come criterio di
-selezione è stato falsificato dall'audit). **Criterio adottato in produzione al posto
-della volatilità realizzata assoluta — vedi §8.29** per la giustificazione completa e
-i 5+ giri di verifica indipendenti che hanno portato alla decisione (dettaglio esteso
-in `validation_suite/README.md`). Implementato in
-`apex_v2_engine.select_low_beta_basket` (la vecchia `select_low_vol_basket` resta nel
-modulo per compatibilità storica/di test, non più chiamata da `backend.py`).
+**Criterio di selezione:** **Trend-Filtered Low-Beta** (BAB + Prezzo > SMA40 — vedi §8.31).
+Tra i titoli con prezzo superiore alla media mobile a 40 settimane (esclusione preventiva di value traps
+e titoli difensivi in declino secolare), si selezionano i titoli a beta a 26 settimane rispetto a SPY
+**crescente** (si preferiscono i titoli a bassa sensibilità sistematica al mercato — inclusi beta
+negativi, ordinamento per valore crescente non per valore assoluto). Validato su 638 titoli point-in-time
+(2012-2026): il filtro di trend innalza il CAGR netto da 16.95% a 18.70% (+1.76pp), lo Sharpe da 1.14 a 1.25
+e il Calmar da 1.03 a 1.14. Implementato in `apex_v2_engine.select_low_beta_basket` con costante
+`V2_EQUITY_TREND_MA_WEEKS = 40` e fallback difensivo di saturazione.
 
 **Numero di posizioni:** 15, equal-weight all'interno dello slot azionario — valore
 confermato ottimo anche per il criterio low-beta (griglia {10,12,15,18,20,25}, PBO-CSCV
@@ -1872,7 +1870,30 @@ non serve loro più storico).
 significatività statistica richiederebbe più decenni di storico
 indipendente per le 4 classi (in particolare Crypto, che limita
 strutturalmente ogni finestra comune a dal 2014 in poi) — non disponibile
-oggi. Da monitorare in produzione, non trattare come chiuso.
+### 8.31 Trend-Filtered Low-Beta (Filtro SMA40 sulla selezione BAB) — adottato in produzione
+
+**Decisione esplicita dell'utente**, dopo audit empirico di falsificazione su 10 varianti di selezione titoli condotto sull'intero dataset S&P 500 point-in-time (2012-2026, 638 titoli storici reali, script `research/test_apex_equity_selection_alternatives.py`).
+
+**Razionale quantitativo**:
+Il limite noto del Betting-Against-Beta puro (§8.29) è che tende ad acquistare anche titoli difensivi o utilities in declino secolare (*value traps* o aziende strutturalmente compromesse che hanno beta basso solo perché stagnanti).
+Applicando un filtro di trend assoluto prima dell'ordinamento per beta (`Price > SMA(40)`), si mantengono intatti la bassa correlazione, il basso beta e la bassa volatilità di BAB, ma si depura il paniere dai titoli ribassisti.
+
+**Risultati dell'audit comparativo (2012-2026, portafoglio completo netto di tasse italiane 26% e costi)**:
+- **CAGR Netto Portafoglio**: da 16.95% a **18.70% (+1.76 pp)**
+- **Sharpe Ratio Netto**: da 1.14 a **1.25**
+- **Max Drawdown Netto**: da -16.53% a **-16.42%**
+- **Calmar Ratio**: da 1.03 a **1.14**
+- **Sleeve Azionaria Standalone CAGR**: da 6.63% a **13.80% (+7.17 pp)**
+- **Sleeve Standalone Sharpe**: da 0.47 a **0.93**
+- **Sleeve Standalone MaxDD**: da -36.21% a **-29.42%**
+
+**Falsificazione dello stop-loss individuale su azioni**:
+Testato esplicitamente sia su Momentum sia su Trend Low-Beta. A differenza delle Altcoin (dove la forte asimmetria positiva rende vitale tagliare le perdite a 2.5x ATR), sulle azioni S&P 500 lo stop loss individuale genera *whipsaw* su correzioni fisiologiche, riducendo il CAGR da 18.68% a 18.40% (stop ATR) e 17.64% (uscita sotto SMA40). In Apex il rischio sistemico azionario è già controllato dal segnale macro su SPY; nessuno stop loss micro è applicato alle singole posizioni.
+
+**Implementazione**:
+- Costante `V2_EQUITY_TREND_MA_WEEKS = 40` in `apex_v2_engine.py`.
+- Parametro opzionale `trend_ma_weeks: Optional[int] = V2_EQUITY_TREND_MA_WEEKS` in `select_low_beta_basket`.
+- **Fallback difensivo di saturazione**: se meno di 15 titoli soddisfano il filtro di trend (es. in mercati orso ampi), il paniere viene automaticamente completato attingendo dai migliori titoli a beta più basso del pool generale, garantendo la cardinalità del basket a 15 posizioni.
 
 ---
 
