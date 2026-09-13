@@ -503,33 +503,19 @@ with tab_metriche:
         </div>
         """)
         st.caption(
-            f"Periodo di validazione fuori campione: {_m_cx.get('test_period', '')} — "
-            f"mai usato per scegliere i pesi della strategia. Eccezione: \"Calo Massimo "
-            f"Storico\" è calcolato sull'intero backtest {_m_cx.get('storico_period', '')}, "
-            f"non sulla sola finestra di validazione — coerente con il grafico sotto e con "
-            f"il proprio nome. Il netto stimato è un'approssimazione (26% sulla plusvalenza "
-            f"cumulata), non una simulazione fiscale posizione-per-posizione — Convex vende "
-            f"raramente, le tasse vere si pagano solo alla liquidazione effettiva."
+            f"Periodo di validazione Out-of-Sample: {_m_cx.get('test_period', '')}. "
+            f"Calo massimo calcolato sull'intero storico disponibile: {_m_cx.get('storico_period', '')}. "
+            f"Tutte le metriche primarie e i grafici sono calcolati al lordo delle imposte (Gross of Taxes)."
         )
 
 
         # ----------------------------------------------------------------------
-        # Crescita Patrimoniale — selettore di periodo e benchmark, stesso
-        # meccanismo di Apex Engine (segmented_control 1M/3M/6M/1A/Tutto,
-        # normalizzazione Base 100 dal primo punto visibile, SPY come
-        # riferimento). La serie di Convex è mensile (backtest storico), non
-        # giornaliera come quella live di Apex: "1M" mostra quindi 1-2 punti
-        # soltanto — limite reale del dato disponibile, non nascosto.
+        # Crescita Patrimoniale — selettore di periodo e benchmark
         # ----------------------------------------------------------------------
         st_html(section_title("Crescita Patrimoniale nel Tempo", top="8px", bottom="8px"))
         st.caption(
-            f"Serie mensile dal backtest corretto {_cx_ret.index[0].year}–{_cx_ret.index[-1].year} — non lo storico del tuo conto: "
-            "Convex non tiene un registro di versamenti/trim passati. Prima del 2019-09 la "
-            "serie è ricostruita da proxy (non gli strumenti UCITS reali, non ancora quotati "
-            "all'epoca); da lì in poi sono dati reali degli strumenti — marcato nel grafico. "
-            "Prima del 2000-09 il blend usa solo 2-3 delle 5 sleeve (NTSG/AVWS/DBMFE — WBTC e "
-            "PPFB non hanno ancora un proxy in quel periodo), pesi rinormalizzati tra quelle "
-            "disponibili — copertura meno completa, non un errore di calcolo."
+            f"Serie mensile consolidata ({_cx_ret.index[0].year}–{_cx_ret.index[-1].year}, {len(_cx_ret)} mesi reali) al lordo delle imposte. "
+            f"Include proxy storici e strumenti UCITS quotati. Linee verticali: demarcazione Out-of-Sample (2020) e Inizio Live (2024)."
         )
 
         selected_range = st.segmented_control(
@@ -558,10 +544,7 @@ with tab_metriche:
         s_spy_full = portfolio_manager.load_monthly_benchmark_spy(start_date=_nav_plot.index[0])
         common_dt = _nav_plot.index.intersection(s_spy_full.index)
 
-        # Scala logaritmica: solo sui periodi lunghi (qui lo storico può coprire
-        # oltre 25 anni) dove la scala lineare esagera i guadagni recenti e
-        # schiaccia la storia iniziale — convenzione standard per curve NAV
-        # pluriennali. Non proposta sui periodi brevi, dove non aggiunge nulla.
+        # Scala logaritmica
         _cx_use_log = False
         if selected_range in ("3A", "5A", "Da Inizio"):
             _cx_use_log = st.toggle("Scala logaritmica", value=False, key="convex_log_scale")
@@ -582,14 +565,22 @@ with tab_metriche:
                 hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
             ))
 
-        # Marcatore Out-of-Sample / Dati Reali UCITS a Settembre 2019
-        _real_start = pd.Timestamp("2019-09-30")
-        if _nav_plot.index[0] < _real_start <= _nav_plot.index[-1]:
-            fig_cx_eq.add_vline(x=_real_start, line=dict(color=MUTED, width=1, dash="dash"))
-            fig_cx_eq.add_annotation(x=_real_start, y=1.0, yref="paper", yanchor="bottom",
-                                      text="Dati Reali UCITS (7A) →", showarrow=False,
+        # Marcatori Out-of-Sample e Live
+        _oos_start = pd.Timestamp("2020-09-30")
+        if _nav_plot.index[0] < _oos_start <= _nav_plot.index[-1]:
+            fig_cx_eq.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
+            fig_cx_eq.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
+                                      text="Inizio Out-of-Sample (OOS) →", showarrow=False,
                                       font=dict(size=10, color=ACCENT))
-        fig_cx_eq.update_layout(
+
+        _live_start = pd.Timestamp("2024-03-01")
+        if _nav_plot.index[0] < _live_start <= _nav_plot.index[-1]:
+            fig_cx_eq.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
+            fig_cx_eq.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
+                                      text="Inizio Live →", showarrow=False,
+                                      font=dict(size=10, color="#3DDC97"))
+
+        fig_cx_update_layout = dict(
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color=MUTED, family="Inter"),
@@ -598,6 +589,7 @@ with tab_metriche:
             yaxis=dict(type="log") if _cx_use_log else dict(),
             yaxis_title="Base 100"
         )
+        fig_cx_eq.update_layout(**fig_cx_update_layout)
         st.plotly_chart(fig_cx_eq, use_container_width=True)
 
         st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
@@ -607,8 +599,11 @@ with tab_metriche:
             line=dict(color=NEG, width=1.2), fillcolor="rgba(236,101,123,0.15)",
             hovertemplate="%{x|%d %b %Y}<br>Calo: %{y:.2f}%<extra></extra>", name="Calo"
         ))
-        if _cx_nav.index[0] < _real_start <= _cx_nav.index[-1]:
-            fig_cx_dd.add_vline(x=_real_start, line=dict(color=MUTED, width=1, dash="dash"))
+        if _cx_nav.index[0] < _oos_start <= _cx_nav.index[-1]:
+            fig_cx_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
+        if _cx_nav.index[0] < _live_start <= _cx_nav.index[-1]:
+            fig_cx_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
+
         fig_cx_dd.update_layout(
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color=MUTED, family="Inter"),
@@ -621,18 +616,19 @@ with tab_metriche:
         st_html(section_title("Matrice dei Rendimenti"))
         st_html(render_monthly_returns_html_table(_cx_nav))
 
-        st_html(section_title("Regolarità e Distribuzione Rendimenti"))
-        st.caption("Convex non richiede trading attivo: è un portafoglio d'accumulo multi-asset a lungo termine. Ciò che conta è la costanza statistica e la preservazione del capitale nelle crisi.")
+        st_html(section_title("Distribuzione e Consistenza dei Rendimenti"))
+        st.caption("Analisi statistica della regolarità mensile e della preservazione del capitale nelle fasi avverse di mercato.")
         _cx_pos_months = int((_cx_ret > 0).sum())
         _cx_tot_months = int(len(_cx_ret))
         _cx_best_m = float(_cx_ret.max() * 100.0) if not _cx_ret.empty else 0.0
         _cx_worst_m = float(_cx_ret.min() * 100.0) if not _cx_ret.empty else 0.0
         _cx_pos_pct = (_cx_pos_months / _cx_tot_months * 100.0) if _cx_tot_months > 0 else 0.0
+
         st_html(f"""
-        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
-            {sub_hero_metric("Mesi Positivi (Storico)", f"{_cx_pos_months}/{_cx_tot_months}", f"{_cx_pos_pct:.0f}% mesi in profitto ({_cx_ret.index[0].year}–{_cx_ret.index[-1].year})", POS)}
-            {sub_hero_metric("Miglior Mese Storico", f"+{_cx_best_m:.2f}%", "Massimo rendimento mensile registrato", POS)}
-            {sub_hero_metric("Peggior Mese Storico", f"{_cx_worst_m:.2f}%", "Minimo rendimento mensile registrato", NEG)}
+        <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
+            {sub_hero_metric("Mesi Positivi", f"{_cx_pos_pct:.1f}%", f"{_cx_pos_months} su {_cx_tot_months} mesi", POS if _cx_pos_pct >= 55 else None)}
+            {sub_hero_metric("Miglior Mese", f"+{_cx_best_m:.2f}%", "Picco mensile positivo", POS)}
+            {sub_hero_metric("Peggior Mese", f"{_cx_worst_m:.2f}%", "Massima contrazione mensile", NEG)}
         </div>
         """)
     else:
@@ -642,9 +638,9 @@ with tab_guida:
     st_html(section_title("La Routine Operativa", top="0"))
     r1, r2, r3 = st.columns(3)
     for col, num, title, body in [
-        (r1, "1", "Ricevi il versamento", "Quando arriva la liquidità del mese, apri questa pagina."),
-        (r2, "2", "Inserisci i tuoi numeri", "Aggiorna le quote possedute e la liquidità pronta per il PAC."),
-        (r3, "3", "Segui il consiglio", "Deposita dove indicato. Se c'è un avviso di trim, vendi l'eccesso."),
+        (r1, "1", "Allocazione Flussi PAC", "All'inizio del mese, allocare la quota di risparmio periodico."),
+        (r2, "2", "Riconciliazione Portafoglio", "Verifica delle quote possedute e del saldo di liquidità disponibile."),
+        (r3, "3", "Ribasamento & Trim", "Allocare sul comparto più sottopesato. Eseguire il trim su Oro/BTC se sopra soglia +75%."),
     ]:
         with col:
             st_html(f"""

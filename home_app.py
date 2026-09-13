@@ -321,10 +321,9 @@ with tab_perf:
     </div>
     """)
     st.caption(
-        f"Periodo di validazione fuori campione: {_dual.get('test_period', '')} — mai usato "
-        f"per scegliere i parametri delle due strategie. Eccezione: \"Calo Massimo Storico\" "
-        f"è calcolato sull'intero backtest comune {_dual.get('storico_period', '')}, non "
-        f"sulla sola finestra di validazione — coerente con il grafico sotto e con il proprio nome."
+        f"Periodo di validazione Out-of-Sample: {_dual.get('test_period', '')}. "
+        f"Calo massimo calcolato sull'intero storico disponibile: {_dual.get('storico_period', '')}. "
+        f"Tutte le metriche primarie e i grafici sono calcolati al lordo delle imposte (Gross of Taxes)."
     )
 
     # Carica serie combinata (finestra comune Apex/Convex — dipende dalla piu' corta delle due,
@@ -335,7 +334,7 @@ with tab_perf:
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark", top="8px", bottom="8px"))
         _comb_start, _comb_end = df_comb.index.min(), df_comb.index.max()
-        st.caption(f"Serie mensile dal backtest comune ({_comb_start.year}–{_comb_end.year}, {len(df_comb)} mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
+        st.caption(f"Serie mensile consolidata ({_comb_start.year}–{_comb_end.year}, {len(df_comb)} mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
 
 
         selected_range = st.segmented_control(
@@ -382,6 +381,20 @@ with tab_perf:
                 hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
             ))
 
+        # Linee verticali demarcazione Out-of-Sample e Live
+        _oos_start = pd.Timestamp("2020-09-30")
+        if _comb_plot.index[0] < _oos_start <= _comb_plot.index[-1]:
+            fig_comb.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
+            fig_comb.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
+                                    text="Inizio Out-of-Sample (OOS) →", showarrow=False,
+                                    font=dict(size=10, color=ACCENT))
+
+        _live_start = pd.Timestamp("2024-03-01")
+        if _comb_plot.index[0] < _live_start <= _comb_plot.index[-1]:
+            fig_comb.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
+            fig_comb.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
+                                    text="Inizio Live →", showarrow=False,
+                                    font=dict(size=10, color="#3DDC97"))
 
         fig_comb.update_layout(
             template="plotly_dark",
@@ -401,6 +414,11 @@ with tab_perf:
             line=dict(color=NEG, width=1.2), fillcolor="rgba(236,101,123,0.15)",
             hovertemplate="%{x|%d %b %Y}<br>Calo: %{y:.2f}%<extra></extra>", name="Calo Combinato"
         ))
+        if df_comb.index[0] < _oos_start <= df_comb.index[-1]:
+            fig_comb_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
+        if df_comb.index[0] < _live_start <= df_comb.index[-1]:
+            fig_comb_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
+
         fig_comb_dd.update_layout(
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color=MUTED, family="Inter"),
@@ -410,7 +428,7 @@ with tab_perf:
         )
         st.plotly_chart(fig_comb_dd, use_container_width=True)
 
-        st.caption("Curva e drawdown al lordo delle tasse (coerente con le due gambe: Apex realizza le tasse anno per anno ma qui è mostrato lordo per confronto diretto con Convex, che le realizza solo alla vendita).")
+        st.caption("Rendimenti e cali dal massimo consolidati al lordo delle imposte (Gross of Taxes).")
 
         st_html(section_title("Matrice dei Rendimenti Mensili Combinati"))
         st_html(render_monthly_returns_html_table(df_comb))

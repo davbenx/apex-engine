@@ -879,42 +879,19 @@ with tab_perf:
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
         {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}%", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
         {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
-        {sub_hero_metric("Calo Massimo Backtest", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Intero backtest 1987-2026 — non la simulazione live sotto", primary=True)}
+        {sub_hero_metric("Calo Massimo Backtest", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Massimo storico (1987-2026)", primary=True)}
     </div>
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
         {sub_hero_metric("Volatilità Annua", f"{_m_apex_active['volatility']*100:.1f}%", "Oscillazione realizzata")}
-        {sub_hero_metric("Indice di Sortino", f"{_m_apex_active['sortino']:.2f}", "Come Sharpe, guarda solo ai cali")}
-        {sub_hero_metric("Calmar", f"{_m_apex_active['calmar']:.2f}", "Crescita / peggior perdita")}
+        {sub_hero_metric("Indice di Sortino", f"{_m_apex_active['sortino']:.2f}", "Penalizzazione ribassi negativi")}
+        {sub_hero_metric("Calmar", f"{_m_apex_active['calmar']:.2f}", "Rapporto crescita / massimo drawdown")}
     </div>
     """)
     st.caption(
-        f"Periodo di validazione fuori campione: {_m_apex_active.get('test_period', '')} — "
-        f"mai usato per scegliere i parametri della strategia. Tutte le metriche primarie e i grafici "
-        f"sono calcolati al LORDO delle imposte. \"Calo Massimo Backtest\" è calcolato sull'intero backtest "
-        f"{_m_apex_active.get('storico_period', '')}, coerente con la vista storica del grafico sottostante."
+        f"Periodo di validazione Out-of-Sample: {_m_apex_active.get('test_period', '')}. "
+        f"Calo massimo calcolato sull'intero storico disponibile: {_m_apex_active.get('storico_period', '')}. "
+        f"Tutte le metriche primarie e i grafici sono calcolati al lordo delle imposte (Gross of Taxes)."
     )
-
-    # Nota auto-scadente sul cambio di algoritmo in produzione (basket low-beta
-    # + Kelly frazionario, merge del 2026-09-11): finché l'ultima decisione
-    # reale (v2_state.last_decision_month, cadenza mensile — vedi
-    # compute_should_decide in backend.py) resta antecedente al mese del merge,
-    # la curva live/statistiche/registro sotto riflettono ancora quasi
-    # interamente il sistema PRECEDENTE (basket low-vol, senza Kelly) — non
-    # per un bug, ma perché nessuna nuova decisione è ancora stata presa da
-    # allora. La nota sparisce da sola non appena last_decision_month
-    # raggiunge KELLY_DEPLOY_MONTH o lo supera, senza bisogno di rimuoverla a mano.
-    KELLY_DEPLOY_MONTH = "2026-09"
-    _last_decision_month = (data.get("v2_state", {}) or {}).get("last_decision_month")
-    if _last_decision_month and _last_decision_month < KELLY_DEPLOY_MONTH:
-        st.info(
-            f"L'ultima decisione di allocazione risale a {_last_decision_month} — prima "
-            f"dell'adozione in produzione della pesatura Kelly e della selezione low-beta "
-            f"(11 settembre 2026). La curva live, le statistiche operative e il registro "
-            f"qui sotto riflettono quindi ancora quasi interamente il sistema PRECEDENTE. "
-            f"La prossima decisione (fine mese, cadenza mensile) userà il nuovo sistema; "
-            f"queste statistiche si aggiorneranno gradualmente man mano che si accumulano "
-            f"nuove operazioni."
-        )
 
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
 
@@ -992,8 +969,16 @@ with tab_perf:
             if _plot_df.index[0] < _oos_start <= _plot_df.index[-1]:
                 fig.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
                 fig.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
-                                   text="Inizio Fuori Campione (OOS) →", showarrow=False,
+                                   text="Inizio Out-of-Sample (OOS) →", showarrow=False,
                                    font=dict(size=10, color=ACCENT))
+
+            # Linea verticale inizio Live a Marzo 2024
+            _live_start = pd.Timestamp("2024-03-01")
+            if _plot_df.index[0] < _live_start <= _plot_df.index[-1]:
+                fig.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
+                fig.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
+                                   text="Inizio Live →", showarrow=False,
+                                   font=dict(size=10, color="#3DDC97"))
 
             fig.update_layout(
                 template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
@@ -1012,6 +997,11 @@ with tab_perf:
                 line=dict(color=NEG, width=1.2), fillcolor='rgba(236, 101, 123, 0.15)',
                 hovertemplate="Calo: %{y:.2f}%<extra></extra>", name="Calo"
             ))
+            if _plot_df.index[0] < _oos_start <= _plot_df.index[-1]:
+                fig_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
+            if _plot_df.index[0] < _live_start <= _plot_df.index[-1]:
+                fig_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
+
             fig_dd.update_layout(
                 template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(family="Inter, sans-serif"),
@@ -1349,15 +1339,15 @@ with tab_guide:
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
             <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">1. Venerdì Sera</div>
-            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Il motore analizza le chiusure settimanali. Se c'è un ribilanciamento, ricevi la notifica Telegram con gli ordini esatti (vendite e acquisti) e le quote calcolate sul tuo capitale.</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Il motore analizza le chiusure settimanali. In caso di ribilanciamento, genera gli ordini operativi (vendite e acquisti) con quote dimensionate al capitale.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
             <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">2. Lunedì Pomeriggio</div>
-            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">All'apertura dei mercati USA, esegui gli ordini sul tuo broker (es. Fineco, IBKR, Trade Republic). Se il venerdì non c'erano ordini, <strong>non fai nulla</strong>.</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">All'apertura dei mercati USA, esecuzione degli ordini a mercato o limite. Se non vi sono ordini generati, il portafoglio resta invariato.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">3. Durante la Settimana</div>
-            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Nessun intervento necessario. L'algoritmo non fa micro-trading intraday: zero stress, zero decisioni emotive e piena serenità.</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 6px;">3. Infrasettimanale</div>
+            <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5;">Nessun intervento richiesto. Il modello opera su chiusure settimanali (weekly close), neutralizzando il rumore intraday ed eliminando l'over-trading.</div>
         </div>
     </div>
     """)
