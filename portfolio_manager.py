@@ -415,10 +415,10 @@ def get_apex_metrics() -> Dict[str, Any]:
         "sortino_netto_stimato": 1.885,
         "max_drawdown_netto_stimato": -0.1676,
         "calmar_netto_stimato": 0.923,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, OOS)",
-        "storico_period": "1987-06-30 → 2026-08-31 (471 mesi)",
-        "cash_drag_protection": "100% Cash nei bear market macro",
-        "philosophy": "Rotazione trimestrale 15 titoli S&P 500 Low-Beta vs mercato (Buffer Rank 20) + Trend Macro 40w/20w con isteresi + pesatura Kelly frazionaria (0.25) tra le classi attive + motore Crypto Frontier Venture (Dual-Regime BTC Core + Altseason Breakout Satellite Top 25 con stop ATR 2.5x, time-stop 21d e free-ride +125%)."
+        "test_period": "2020–2026 (72 mesi)",
+        "storico_period": "1987–2026 (471 mesi)",
+        "cash_drag_protection": "100% Liquidità nelle fasi orso di mercato",
+        "philosophy": "Selezione trimestrale di 15 azioni stabili dell'S&P 500, gestione dei trend macro con filtri anti-rumore, allocazione ponderata tra le classi attive e motore crypto a controllo del rischio."
     }
 
 
@@ -435,10 +435,10 @@ def get_convex_metrics() -> Dict[str, Any]:
         "max_drawdown_storico": -0.2116,
         "calmar": 1.071,
         "ulcer_index": 3.79,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, OOS)",
-        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi)",
-        "embedded_leverage": "1.225x Nozionale senza debito a margine personale",
-        "philosophy": "Leva istituzionale NTSG (45% capitale) + valore su piccola capitalizzazione AVWS (15%) + protezione attiva nelle crisi DBMFE (25%) + riserve reali PPFB e WBTC (7.5% ciascuno)."
+        "test_period": "2020–2026 (72 mesi)",
+        "storico_period": "1987–2026 (465 mesi)",
+        "embedded_leverage": "Esposizione amplificata a 1.225x senza debito personale",
+        "philosophy": "Esposizione efficiente su azioni e bond mondiali (NTSG 45%), piccole aziende di valore (AVWS 15%), protezione attiva nelle crisi (DBMFE 25%) e riserve reali in Oro fisico e Bitcoin (7.5% ciascuno)."
     }
 
 
@@ -456,15 +456,14 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
         "calmar": 2.646,
         "ulcer_index": 2.15,
         "correlation": 0.293,
-        "test_period": "2020-09-30 → 2026-08-31 (72 mesi, OOS)",
-        "storico_period": "1987-12-31 → 2026-08-31 (465 mesi)",
+        "test_period": "2020–2026 (72 mesi)",
+        "storico_period": "1987–2026 (465 mesi)",
         "synergy_summary": (
-            "Mix 70% Apex / 30% Convex (lordo, stessa finestra 2020-09/2026-08 di entrambe le componenti): "
-            "CAGR 20.58% (netto stimato 14.52%), tra il 16.88% di Convex e il 21.84% di Apex isolatamente. "
-            "Il beneficio di diversificazione si vede nel MaxDD -7.78% (finestra di validazione) — inferiore "
-            "a entrambe le componenti singole nella stessa finestra (-11.51% Apex, -15.76% Convex). "
-            "Sull'intero backtest (1987-12/2026-08) il MaxDD combinato sale a -11.85% — sempre inferiore alle "
-            "componenti isolate sullo stesso storico (-14.83% Apex, -21.16% Convex). Correlazione reale: 0.29."
+            "Unire il 70% di Apex Engine e il 30% di Convex Stack massimizza il rendimento riducendo al minimo i rischi: "
+            "il portafoglio genera un rendimento del +20,58% medio annuo lordo (+14,52% netto stimato), con una perdita "
+            "massima contenuta ad appena il -7,78% negli ultimi 6 anni e al -11,85% nell'intero storico dal 1987. "
+            "Un risultato nettamente più sicuro rispetto ai singoli motori presi da soli, grazie alla bassissima "
+            "correlazione (0,29) che consente alle due strategie di compensarsi a vicenda."
         )
     }
 

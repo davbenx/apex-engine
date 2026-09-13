@@ -877,20 +877,19 @@ with tab_perf:
     # sotto un separatore. Prima erano 6 numeri tutti uguali, senza gerarchia.
     st_html(f"""
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-        {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}%", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
-        {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
-        {sub_hero_metric("Calo Massimo Backtest", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Massimo storico (1987-2026)", primary=True)}
+        {sub_hero_metric("Crescita Annua Lorda", f"{_m_apex_active['cagr_gross']*100:+.2f}%", f"Netto stimato: {_m_apex_active['cagr_net']*100:+.2f}% annuo", POS if _m_apex_active['cagr_gross'] >= 0 else NEG, primary=True)}
+        {sub_hero_metric("Indice di Sharpe", f"{_m_apex_active['sharpe']:.2f}", "Rendimento rispetto al rischio", POS if _m_apex_active['sharpe'] >= 1.0 else None, primary=True)}
+        {sub_hero_metric("Calo Massimo Storico", f"{_m_apex_active.get('max_drawdown_storico', _m_apex_active['max_drawdown'])*100:.2f}%", "Massima discesa temporanea dal 1987", primary=True)}
     </div>
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
-        {sub_hero_metric("Volatilità Annua", f"{_m_apex_active['volatility']*100:.1f}%", "Oscillazione realizzata")}
-        {sub_hero_metric("Indice di Sortino", f"{_m_apex_active['sortino']:.2f}", "Penalizzazione ribassi negativi")}
-        {sub_hero_metric("Calmar", f"{_m_apex_active['calmar']:.2f}", "Rapporto crescita / massimo drawdown")}
+        {sub_hero_metric("Volatilità Annua", f"{_m_apex_active['volatility']*100:.1f}%", "Oscillazione media annua del capitale")}
+        {sub_hero_metric("Indice di Sortino", f"{_m_apex_active['sortino']:.2f}", "Protezione ed efficienza sui soli ribassi")}
+        {sub_hero_metric("Rapporto Calmar", f"{_m_apex_active['calmar']:.2f}", "Rapporto tra guadagno annuo e calo massimo")}
     </div>
     """)
     st.caption(
-        f"Periodo di validazione Out-of-Sample: {_m_apex_active.get('test_period', '')}. "
-        f"Calo massimo calcolato sull'intero storico disponibile: {_m_apex_active.get('storico_period', '')}. "
-        f"Tutte le metriche primarie e i grafici sono calcolati al lordo delle imposte (Gross of Taxes)."
+        f"Metriche calcolate al lordo delle imposte · Periodo di verifica recente: {_m_apex_active.get('test_period', '')} · "
+        f"Storico completo: {_m_apex_active.get('storico_period', '')}."
     )
 
     st_html(section_title("Curva Equity vs Benchmark", top="8px", bottom="8px"))
@@ -899,26 +898,26 @@ with tab_perf:
     with c_mode:
         selected_view = st.segmented_control(
             "Visualizzazione",
-            options=["Backtest Storico (1987-2026)", "Simulazione Live (2024-Oggi)"],
-            default="Backtest Storico (1987-2026)",
+            options=["Storico della Strategia (1987-2026)", "Operatività Recente (2024-Oggi)"],
+            default="Storico della Strategia (1987-2026)",
             label_visibility="collapsed",
             key="apex_chart_view_mode"
         )
         if not selected_view:
-            selected_view = "Backtest Storico (1987-2026)"
+            selected_view = "Storico della Strategia (1987-2026)"
 
     with c_rng:
         selected_range = st.segmented_control(
             "Periodo",
             options=["6M", "1A", "3A", "5A", "Da Inizio"],
-            default="5A" if selected_view.startswith("Backtest") else "1A",
+            default="5A" if selected_view.startswith("Storico") else "1A",
             label_visibility="collapsed",
             key="chart_range_ctrl"
         )
         if not selected_range:
-            selected_range = "5A" if selected_view.startswith("Backtest") else "1A"
+            selected_range = "5A" if selected_view.startswith("Storico") else "1A"
 
-    if selected_view.startswith("Backtest"):
+    if selected_view.startswith("Storico"):
         _apex_gross_path = os.path.join(os.path.dirname(__file__), "apex_monthly_returns_extended_gross.csv")
         if os.path.exists(_apex_gross_path):
             _ap_ret = pd.read_csv(_apex_gross_path, index_col=0, parse_dates=True).iloc[:, 0]
@@ -950,7 +949,7 @@ with tab_perf:
 
             fig = go.Figure()
             fig.add_trace(go.Scatter(
-                x=_plot_df.index, y=_plot_df["norm"], mode="lines", name="Apex Engine (Backtest Lordo)",
+                x=_plot_df.index, y=_plot_df["norm"], mode="lines", name="Apex Engine",
                 line=dict(color=ACCENT, width=2),
                 fill=None if _use_log else "tozeroy", fillcolor="rgba(201, 164, 76, 0.10)",
                 hovertemplate="Base 100: %{y:.2f}<extra></extra>"
@@ -964,21 +963,21 @@ with tab_perf:
                     hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
                 ))
 
-            # Linea verticale demarcazione Out-of-Sample a Settembre 2020
+            # Linea verticale demarcazione Test Recente a Settembre 2020
             _oos_start = pd.Timestamp("2020-09-30")
             if _plot_df.index[0] < _oos_start <= _plot_df.index[-1]:
                 fig.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
                 fig.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
-                                   text="Inizio Out-of-Sample (OOS) →", showarrow=False,
-                                   font=dict(size=10, color=ACCENT))
+                                    text="Fase di test recente (2020) →", showarrow=False,
+                                    font=dict(size=10, color=ACCENT))
 
-            # Linea verticale inizio Live a Marzo 2024
+            # Linea verticale inizio Operatività Reale a Marzo 2024
             _live_start = pd.Timestamp("2024-03-01")
             if _plot_df.index[0] < _live_start <= _plot_df.index[-1]:
                 fig.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
                 fig.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                   text="Inizio Live →", showarrow=False,
-                                   font=dict(size=10, color="#3DDC97"))
+                                    text="Inizio operatività reale (2024) →", showarrow=False,
+                                    font=dict(size=10, color="#3DDC97"))
 
             fig.update_layout(
                 template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
@@ -990,7 +989,7 @@ with tab_perf:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            st_html(section_title("Calo dal Massimo (Backtest Storico)", top="14px", bottom="6px"))
+            st_html(section_title("Perdite Temporanee dal Massimo (Calo dal Picco)", top="14px", bottom="6px"))
             fig_dd = go.Figure()
             fig_dd.add_trace(go.Scatter(
                 x=_plot_df.index, y=_plot_df['drawdown'], fill='tozeroy', mode='lines',
@@ -1012,14 +1011,13 @@ with tab_perf:
             st.plotly_chart(fig_dd, use_container_width=True)
 
             st.caption(
-                f"Serie mensile Base 100 vs S&P 500 al lordo delle imposte ({_ap_ret.index[0].year}–{_ap_ret.index[-1].year}, {len(_ap_ret)} mesi). "
-                f"Linee verticali: Out-of-Sample (2020) e Live (2024)."
+                f"Crescita di 100 € investiti nella strategia Apex a confronto con l'indice S&P 500 ({_ap_ret.index[0].year}–{_ap_ret.index[-1].year})."
             )
 
-            st_html(section_title("Matrice dei Rendimenti (Backtest Storico)"))
+            st_html(section_title("Tabella dei Rendimenti Mese per Mese"))
             st_html(render_monthly_returns_html_table(_ap_nav))
         else:
-            st.info("File di backtest storico apex_monthly_returns_extended_gross.csv non trovato.")
+            st.info("File storico di Apex non trovato.")
     else:
         # Simulazione Live (2024-Oggi) da equity.json
         @st.cache_data(ttl=3600)
@@ -1168,7 +1166,7 @@ with tab_perf:
                 if _spy_fresh_note:
                     st.caption(_spy_fresh_note)
 
-            st_html(section_title("Calo dal Massimo (simulazione live)", top="14px", bottom="6px"))
+            st_html(section_title("Perdite Temporanee dal Massimo (Periodo Live)", top="14px", bottom="6px"))
             df_underwater = df_eq[(df_eq.index >= df_plot.index[0]) & (df_eq.index <= df_plot.index[-1])]
             dd_it_dates_str = [f"{d.day:02d} {MESI_IT[d.month-1]} {d.year}" for d in df_underwater.index]
             fig_dd = go.Figure()
@@ -1190,11 +1188,11 @@ with tab_perf:
             st.plotly_chart(fig_dd, use_container_width=True)
 
             st.caption(
-                f"Esecuzione sistematica settimanale al lordo delle imposte ({df_eq.index[0].date()} → {df_eq.index[-1].date()}, {len(df_eq)} punti). "
-                f"Calo massimo periodo: {df_eq['drawdown'].min():.2f}%."
+                f"Tracciamento ad alta frequenza al lordo delle imposte ({df_eq.index[0].date()} → {df_eq.index[-1].date()}). "
+                f"Massima perdita temporanea registrata: {df_eq['drawdown'].min():.2f}%."
             )
 
-            st_html(section_title("Matrice dei Rendimenti (Simulazione Live)"))
+            st_html(section_title("Tabella dei Rendimenti Mese per Mese (Live)"))
             st_html(render_monthly_returns_html_table(df_eq.rename(columns={"close": "value"}) if "value" not in df_eq.columns else df_eq))
         else:
             st.info("In attesa del file di tracciamento storico.")
@@ -1349,67 +1347,67 @@ with tab_guide:
 
     st.divider()
 
-    st_html(section_title("Allocazione Dinamica", top="0"))
+    st_html(section_title("Allocazione Dinamica del Portafoglio", top="0"))
     st_html(f'''
     <div style="font-size: 12.5px; opacity: 0.85; line-height: 1.5; margin-bottom: 14px;">
-        Ogni classe di attivo viene attivata solo quando il proprio trend di fondo è confermato al rialzo, proteggendo il capitale durante le fasi orso e sfruttando la crescita nei mercati favorevoli:
+        Ciascun mercato viene attivato solo quando la tendenza di fondo è chiaramente positiva, proteggendo il capitale nelle fasi di ribasso e partecipando alla crescita nelle fasi favorevoli:
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Azioni", 16)} Azioni</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 AZIONI A BASSO BETA</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {POS}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">15 AZIONI PIÙ STABILI</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale delle 15 azioni a beta più basso rispetto al mercato (S&P 500, max 2 per settore). Massima efficienza fiscale (minusvalenze compensabili).</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Selezione trimestrale delle 15 aziende dell'S&P 500 meno sensibili alle oscillazioni di mercato (massimo 2 per settore). In caso di perdite, permette di recuperare le imposte future.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Cryptovalute", 16)} Cryptovalute</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">ATTIVI DIGITALI & VENTURE</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: #2E9E70; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">RISERVA DIGITALE & VENTURE</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Cattura la forte espansione dei cicli di liquidità globale tramite Bitcoin Core e posizioni asimmetriche su altcoin con Stop Loss e de-risking disciplinato. Disattivato durante i mercati ribassisti prolungati.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Partecipa alla crescita del mondo crypto puntando su Bitcoin e su una selezione di monete emergenti, con protezioni automatiche per limitare le perdite e incassare i profitti. Disattivato durante le crisi prolungate.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Oro", 16)} Oro</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: {ACCENT}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">BENE RIFUGIO</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Protezione contro svalutazione monetaria, inflazione e shock geopolitici. Attivo nei trend rialzisti dei metalli preziosi.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Protezione del potere d'acquisto contro inflazione, svalutazione monetaria e tensioni internazionali. Attivo durante le fasi di crescita dei metalli preziosi.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Obbligazioni", 16)} Obbligazioni</span>
                 <span style="background: {BADGE_NEUTRAL_BG}; color: #8B7FC7; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">TITOLI DI STATO USA</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Obbligazioni governative USA a 7-10 anni, allocate quando il trend dei tassi e del credito è favorevole.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Obbligazioni governative americane a 7-10 anni, allocate quando i tassi di interesse e l'andamento del credito offrono rendimenti sicuri.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <span style="font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 7px;">{get_class_svg("Liquidità", 16)} Liquidità</span>
-                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">RISERVA MONETARIA</span>
+                <span style="background: {BADGE_NEUTRAL_BG}; color: {MUTED}; font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-family: {MONO};">RISERVA PROTETTA</span>
             </div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Custodia sicura per la liquidità non investita. Genera rendimenti monetari di mercato a zero rischio di capitale.</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.45;">Rifugio sicuro per il capitale nei momenti in cui i mercati scendono. Genera rendimenti di mercato a zero rischio di perdita.</div>
         </div>
     </div>
     ''')
 
     st.divider()
 
-    st_html(section_title("Sicurezza Quantitativa", top="0"))
+    st_html(section_title("I 3 Livelli di Protezione del Capitale", top="0"))
     st_html(f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 24px;">
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Controllo della Volatilità Adattivo</div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Il peso di ciascun asset viene scalato periodicamente in base alla volatilità del mercato: nei periodi turbolenti l'esposizione si riduce in automatico, comprimendo i drawdown storici.</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">1. Riduzione Automatica nei Momenti Difficili</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Quando i mercati diventano troppo agitati e imprevedibili, la strategia riduce in automatico l'esposizione al rischio, salvaguardando il capitale e comprimendo le perdite.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">2. Garanzia Strutturale Senza Leva Finanziaria</div>
-            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">La somma dei pesi di portafoglio è vincolata matematicamente a non superare mai il 100% (&Sigma; w &le; 1.0). Zero rischio di margin call o liquidazione forzata.</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">2. Zero Debiti e Zero Rischio Margin Call</div>
+            <div style="font-size: 12px; opacity: 0.85; line-height: 1.5;">Il portafoglio non prende mai denaro a prestito e investe solo il capitale disponibile. Non esiste alcun rischio di richieste di liquidità forzata da parte del broker.</div>
         </div>
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 16px;">
-            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Tendenza a Doppio Orizzonte con Isteresi</div>
-            <div style="font-family: Inter, sans-serif; font-size: 12px; opacity: 0.85; line-height: 1.5;">Richiede l'accordo contemporaneo delle medie mobili a 40 e 20 settimane con una banda di tolleranza anti-rumore, evitando ingressi e uscite repentine sui falsi segnali.</div>
+            <div style="font-family: {FRAUNCES}; font-weight: 600; font-size: 14px; margin-bottom: 4px;">3. Filtro Anti-Falsi Segnali</div>
+            <div style="font-family: Inter, sans-serif; font-size: 12px; opacity: 0.85; line-height: 1.5;">Per entrare o uscire da una classe di attivo, la strategia richiede che la tendenza a medio termine (5 mesi) e quella a lungo termine (10 mesi) siano concordi, evitando mosse affrettate sui rimbalzi temporanei.</div>
         </div>
     </div>
     """)

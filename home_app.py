@@ -175,16 +175,16 @@ with tab_pf:
     </div>
     """)
 
-    # 2. Centro di Controllo dei Due Motori (Sintesi e Stato Operativo)
-    st_html(section_title("Centro di Controllo dei Due Motori"))
+    # 2. Stato Operativo dei Due Motori (Sintesi e Operazioni)
+    st_html(section_title("Stato Operativo dei Due Motori"))
     _pending_orders = apex_portfolio.get("pending_orders") or []
     
     col_mot1, col_mot2 = st.columns(2)
     with col_mot1:
         if _pending_orders:
-            _apex_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {len(_pending_orders)} ordine/i pendenti per lunedì</span>'
+            _apex_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {len(_pending_orders)} ordini pronti per lunedì</span>'
         else:
-            _apex_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Allineato · Nessun ordine da eseguire</span>'
+            _apex_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Portafoglio allineato · Nessun ordine richiesto</span>'
 
         st_html(f"""
         <div style="background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; padding:16px 18px; height:100%;">
@@ -192,15 +192,15 @@ with tab_pf:
                 <div style="font-family:{FRAUNCES}; font-size:16px; font-weight:700; color:#3DDC97; display:flex; align-items:center; gap:8px;">
                     Apex Engine
                 </div>
-                <div style="font-size:11px; color:{MUTED};">Venerdì ore 21:00 CET</div>
+                <div style="font-size:11px; color:{MUTED};">Aggiornato venerdì sera</div>
             </div>
             <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
-                Tattico Alpha · Rotazione 15 S&P 500 Low-Beta + Trend multi-asset
+                Motore attivo dinamico · 15 azioni stabili S&P 500 + Trend su obbligazioni, oro e crypto
             </div>
             <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
                 <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
                 <span style="font-family:{MONO}; font-weight:700; font-size:13px; color:{BADGE_TEXT};">€ {apex_val_eur:,.0f} ({_real_apex_ratio*100:.1f}%)</span>
-                <span style="font-size:11px; color:{MUTED}; margin-left:6px;">Target {_target_apex*100:.0f}%</span>
+                <span style="font-size:11px; color:{MUTED}; margin-left:6px;">Obiettivo {_target_apex*100:.0f}%</span>
             </div>
             <div>{_apex_badge_html}</div>
         </div>
@@ -208,9 +208,9 @@ with tab_pf:
 
     with col_mot2:
         if _cx_rep.trim_alerts:
-            _cx_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Trim consigliato ({len(_cx_rep.trim_alerts)} asset sopra soglia)</span>'
+            _cx_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Ribilanciamento consigliato: {len(_cx_rep.trim_alerts)} strumento/i sopra la soglia</span>'
         else:
-            _cx_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> In banda · Tutti i 5 asset entro soglie</span>'
+            _cx_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Portafoglio bilanciato · Tutti i 5 strumenti in linea</span>'
 
         st_html(f"""
         <div style="background:{SURFACE}; border:1px solid {BORDER}; border-radius:10px; padding:16px 18px; height:100%;">
@@ -218,23 +218,23 @@ with tab_pf:
                 <div style="font-family:{FRAUNCES}; font-size:16px; font-weight:700; color:#C9A44C; display:flex; align-items:center; gap:8px;">
                     Convex Stack
                 </div>
-                <div style="font-size:11px; color:{MUTED};">1° del mese con versamento PAC</div>
+                <div style="font-size:11px; color:{MUTED};">Aggiornato mensilmente con il PAC</div>
             </div>
             <div style="font-size:12px; color:{MUTED}; margin-bottom:12px;">
-                Strategico PAC · Leva 1.5x NTSG + SCV + CTA + Oro + BTC
+                Portafoglio strategico PAC · Azioni mondiali, piccole aziende di valore, protezione anticrisi, oro e Bitcoin
             </div>
             <div style="display:flex; justify-content:space-between; align-items:baseline; padding:10px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
                 <span style="font-size:12px; color:{MUTED};">Quota Reale:</span>
                 <span style="font-family:{MONO}; font-weight:700; font-size:13px; color:{BADGE_TEXT};">€ {convex_val_eur:,.0f} ({_real_convex_ratio*100:.1f}%)</span>
-                <span style="font-size:11px; color:{MUTED}; margin-left:6px;">Target {(1-_target_apex)*100:.0f}%</span>
+                <span style="font-size:11px; color:{MUTED}; margin-left:6px;">Obiettivo {(1-_target_apex)*100:.0f}%</span>
             </div>
             <div>{_cx_badge_html}</div>
         </div>
         """)
 
 
-    # 3. Composizione Macro Consolidata
-    st_html(section_title("Composizione Macro Consolidata"))
+    # 3. Distribuzione del Patrimonio per Classe di Attivo
+    st_html(section_title("Distribuzione del Patrimonio per Classe di Attivo"))
     _macro = unified_data["macro_breakdown"]
     canonical_classes = [
         "Azioni",
@@ -310,31 +310,29 @@ with tab_perf:
 
     st_html(f"""
     <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-        {sub_hero_metric("Crescita Annua Lorda", f"{_dual['cagr_gross']*100:.2f}%", f"Netto stimato: {_dual['cagr_net']*100:.2f}%", POS if _dual['cagr_gross'] >= 0 else NEG, primary=True)}
-        {sub_hero_metric("Indice di Sharpe", f"{_dual['sharpe']:.2f}", "Efficienza rendimento/rischio", POS if _dual['sharpe'] >= 1.0 else None, primary=True)}
-        {sub_hero_metric("Calo Massimo Storico", f"{_dual_mdd_storico*100:.2f}%", "Il calo peggiore mai vissuto, intero backtest", primary=True)}
+        {sub_hero_metric("Crescita Annua Lorda", f"{_dual['cagr_gross']*100:.2f}%", f"Netto stimato: {_dual['cagr_net']*100:.2f}% annuo", POS if _dual['cagr_gross'] >= 0 else NEG, primary=True)}
+        {sub_hero_metric("Indice di Sharpe", f"{_dual['sharpe']:.2f}", "Rendimento rispetto al rischio", POS if _dual['sharpe'] >= 1.0 else None, primary=True)}
+        {sub_hero_metric("Calo Massimo Storico", f"{_dual_mdd_storico*100:.2f}%", "Massima discesa temporanea dal 1987", primary=True)}
     </div>
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
-        {sub_hero_metric("Volatilità Annua", f"{_dual['volatility']*100:.1f}%", "Oscillazione realizzata del mix")}
-        {sub_hero_metric("Indice di Sortino", f"{_dual['sortino']:.2f}", "Rendimento sui ribassi negativi")}
-        {sub_hero_metric("Correlazione Reale", f"{_dual['correlation']:.2f}", "Bassa correlazione cross-strategia")}
+        {sub_hero_metric("Volatilità Annua", f"{_dual['volatility']*100:.1f}%", "Oscillazione media annua del capitale")}
+        {sub_hero_metric("Indice di Sortino", f"{_dual['sortino']:.2f}", "Protezione ed efficienza sui soli ribassi")}
+        {sub_hero_metric("Correlazione tra Motori", f"{_dual['correlation']:.2f}", "Bassa sincronia: massima diversificazione")}
     </div>
     """)
     st.caption(
-        f"Periodo di validazione Out-of-Sample: {_dual.get('test_period', '')}. "
-        f"Calo massimo calcolato sull'intero storico disponibile: {_dual.get('storico_period', '')}. "
-        f"Tutte le metriche primarie e i grafici sono calcolati al lordo delle imposte (Gross of Taxes)."
+        f"Metriche calcolate al lordo delle imposte · Periodo di verifica recente: {_dual.get('test_period', '')} · "
+        f"Storico completo: {_dual.get('storico_period', '')}."
     )
 
-    # Carica serie combinata (finestra comune Apex/Convex — dipende dalla piu' corta delle due,
-    # oggi Convex: 2000-09+; Apex da solo arriva al 1987-06, vedi get_apex_metrics())
+    # Carica serie combinata
     df_comb = portfolio_manager.load_combined_monthly_history(target_apex=_target_apex, target_convex=(1.0 - _target_apex))
 
 
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark", top="8px", bottom="8px"))
         _comb_start, _comb_end = df_comb.index.min(), df_comb.index.max()
-        st.caption(f"Serie mensile consolidata ({_comb_start.year}–{_comb_end.year}, {len(df_comb)} mesi reali). Combinazione pesata {_target_apex*100:.0f}% Apex Engine / {(1-_target_apex)*100:.0f}% Convex Stack.")
+        st.caption(f"Crescita di 100 € investiti nel portafoglio (70% Apex / 30% Convex) a confronto con l'indice S&P 500 ({_comb_start.year}–{_comb_end.year}).")
 
 
         selected_range = st.segmented_control(
@@ -381,19 +379,19 @@ with tab_perf:
                 hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
             ))
 
-        # Linee verticali demarcazione Out-of-Sample e Live
+        # Linee verticali demarcazione Test Recente e Live
         _oos_start = pd.Timestamp("2020-09-30")
         if _comb_plot.index[0] < _oos_start <= _comb_plot.index[-1]:
             fig_comb.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
             fig_comb.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
-                                    text="Inizio Out-of-Sample (OOS) →", showarrow=False,
+                                    text="Fase di test recente (2020) →", showarrow=False,
                                     font=dict(size=10, color=ACCENT))
 
         _live_start = pd.Timestamp("2024-03-01")
         if _comb_plot.index[0] < _live_start <= _comb_plot.index[-1]:
             fig_comb.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
             fig_comb.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                    text="Inizio Live →", showarrow=False,
+                                    text="Inizio operatività reale (2024) →", showarrow=False,
                                     font=dict(size=10, color="#3DDC97"))
 
         fig_comb.update_layout(
@@ -428,12 +426,12 @@ with tab_perf:
         )
         st.plotly_chart(fig_comb_dd, use_container_width=True)
 
-        st.caption("Rendimenti e cali dal massimo consolidati al lordo delle imposte (Gross of Taxes).")
+        st.caption("Percentuale di discesa temporanea dal valore massimo precedente, calcolata al lordo delle imposte.")
 
-        st_html(section_title("Matrice dei Rendimenti Mensili Combinati"))
+        st_html(section_title("Tabella dei Rendimenti Mese per Mese"))
         st_html(render_monthly_returns_html_table(df_comb))
 
-    st_html(section_title("Sinergia Quantitativa & Costi"))
+    st_html(section_title("Perché Unire i Due Motori (Sinergia)"))
     st_html(f"""
     <div class="glass-card">
         <div style="font-size: 13px; color: {MUTED}; line-height: 1.6;">
@@ -447,30 +445,30 @@ with tab_perf:
 # TAB 3: GUIDA OPERATIVA & FISCALITÀ
 # ==============================================================================
 with tab_guide:
-    st_html(section_title("La Routine Operativa Combinata", top="0"))
+    st_html(section_title("La Routine Mensile in 3 Semplici Passi", top="0"))
     r1, r2, r3 = st.columns(3)
     with r1:
         st_html(f"""
         <div class="glass-card" style="text-align:center; height: 140px;">
             <div style="font-family:{FRAUNCES}; font-size:24px; color:{POS}; font-weight:700;">1</div>
-            <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Venerdì ore 21:00 CET</div>
-            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Controlla Apex Engine: il motore valuta le chiusure settimanali e notifica su Telegram eventuali ordini operativi per lunedì.</div>
+            <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Venerdì Sera: Apex Engine</div>
+            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Controlla se la strategia attiva segnala acquisti o vendite da eseguire il lunedì successivo all'apertura dei mercati.</div>
         </div>
         """)
     with r2:
         st_html(f"""
         <div class="glass-card" style="text-align:center; height: 140px;">
             <div style="font-family:{FRAUNCES}; font-size:24px; color:{ACCENT}; font-weight:700;">2</div>
-            <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">1° del Mese</div>
-            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Controlla Convex Stack: inserisci la rata PAC del mese e versa sull'asset più sottopesato. Esegui il trim se Oro o BTC superano il 13.13% a fine trimestre (+75% sopra target).</div>
+            <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Inizio Mese: Convex Stack</div>
+            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Inserisci il risparmio mensile (PAC) e acquistalo sullo strumento rimasto più indietro rispetto al target, per riequilibrare senza vendere.</div>
         </div>
         """)
     with r3:
         st_html(f"""
         <div class="glass-card" style="text-align:center; height: 140px;">
             <div style="font-family:{FRAUNCES}; font-size:24px; color:#8B7FC7; font-weight:700;">3</div>
-            <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Ribilanciamento Smart-Flow</div>
-            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Se Apex scende sotto il {(_target_apex-0.05)*100:.0f}% del totale, indirizza il nuovo risparmio mensile verso Apex; altrimenti va su Convex, sull'asset più sottopesato tra i 5, riequilibrando tramite flussi senza vendite.</div>
+            <div style="font-size:13.5px; font-weight:700; color:{BADGE_TEXT}; margin:6px 0;">Ribilanciamento Intelligente</div>
+            <div style="font-size:12px; color:{MUTED}; line-height:1.4;">Se Apex scende sotto il {(_target_apex-0.05)*100:.0f}% del capitale, il risparmio del mese viene indirizzato verso Apex; altrimenti confluisce su Convex, mantenendo l'equilibrio ideale a costo fiscale zero.</div>
         </div>
         """)
 
@@ -479,32 +477,31 @@ with tab_guide:
     with m_col1:
         st_html(f"""
         <div class="glass-card" style="height: 195px;">
-            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">Apex Engine (Tattico Alpha)</div>
+            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">Apex Engine (Motore Attivo)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
-                Motore quantitativo a selezione attiva (15 titoli S&P 500 a beta più basso vs il mercato, con buffer rank 20) e trend following macro a doppio filtro temporale (40w/20w con isteresi).
-                Durante i mercati ribassisti disattiva l'azionario e protegge il 100% del capitale in liquidità remunerata o Treasury.
+                Strategia dinamica ad alto rendimento: seleziona le 15 aziende dell'S&P 500 più stabili e meno volatili, e cavalca i trend positivi di materie prime, bond e crypto.
+                Quando i mercati azionari entrano in crisi prolungata, chiude le posizioni a rischio e protegge il 100% del capitale in liquidità sicura.
             </div>
         </div>
         """)
     with m_col2:
         st_html(f"""
         <div class="glass-card" style="height: 195px;">
-            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">Convex Stack (Strategico PAC)</div>
+            <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{ACCENT}; display:flex; align-items:center; gap:6px;">Convex Stack (Motore Strategico PAC)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
-                Portafoglio multi-asset a leva implicita istituzionale (NTSG 1.5x, futures Treasury senza debito a margine personale).
-                Combina azionario globale, fattore small cap value, trend following anti-crisi (DBMFE) e riserve reali (Oro fisico ed ETP Bitcoin con compensazione fiscale delle minusvalenze).
+                Portafoglio solido per l'accumulo a lungo termine: sfrutta fondi istituzionali efficienti senza creare debito personale.
+                Combina azioni globali, piccole aziende ad alto valore, protezione attiva per le crisi, oro fisico e Bitcoin.
             </div>
         </div>
         """)
 
 
-    st_html(section_title("Ottimizzazione Fiscale Italiana (Redditi Diversi vs Capitale)"))
+    st_html(section_title("Vantaggi Fiscali: Recupero delle Minusvalenze"))
     st_html(f"""
     <div class="glass-card">
         <div style="font-size: 13px; color: {MUTED}; line-height: 1.6;">
-            Nel regime fiscale italiano, gli <strong>ETF armonizzati (NTSG, AVWS, DBMFE)</strong> generano <em>Redditi di Capitale</em> su cui l'imposta del 26% si applica per intero senza possibilità di compensare le perdite pregresse nello zainetto fiscale.
-            Al contrario, gli strumenti su materie prime e crypto (<strong>PPFB — iShares Physical Gold ETC</strong> e <strong>WBTC — WisdomTree Physical Bitcoin ETP</strong>) generano per legge <strong>Redditi Diversi</strong>.
-            Le plusvalenze realizzate durante le operazioni di trim di Oro e Bitcoin compensano direttamente le minusvalenze accumulate, azzerando l'imposta fino a concorrenza del credito d'imposta disponibile.
+            In Italia, gli ETF tradizionali (come NTSG, AVWS, DBMFE) non consentono di compensare le perdite pregresse. Al contrario, gli strumenti su materie prime e crypto (<strong>Oro fisico PPFB</strong> e <strong>Bitcoin ETP WBTC</strong>) generano <strong>Redditi Diversi</strong>.<br>
+            Questo consente, durante le operazioni di trim di Oro e Bitcoin, di <strong>azzerare l'imposta del 26%</strong> sfruttando il credito fiscale accumulato negli anni precedenti nello zainetto fiscale.
         </div>
     </div>
     """)

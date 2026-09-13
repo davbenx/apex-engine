@@ -492,30 +492,28 @@ with tab_metriche:
 
         st_html(f"""
         <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:16px;">
-            {sub_hero_metric("Crescita Annua Lorda", f"{cagr_gross*100:.2f}%", f"Netto stimato (se liquidato): {cagr_net*100:.2f}%", POS if cagr_gross >= 0 else NEG, primary=True)}
-            {sub_hero_metric("Indice di Sharpe", f"{sharpe:.2f}", "Efficienza rendimento/rischio", POS if sharpe >= 1.0 else None, primary=True)}
-            {sub_hero_metric("Calo Massimo Storico", f"{mdd_storico*100:.2f}%", "Il calo peggiore mai registrato, intero backtest", primary=True)}
+            {sub_hero_metric("Crescita Annua Lorda", f"{cagr_gross*100:.2f}%", f"Netto stimato (se liquidato): {cagr_net*100:.2f}% annuo", POS if cagr_gross >= 0 else NEG, primary=True)}
+            {sub_hero_metric("Indice di Sharpe", f"{sharpe:.2f}", "Rendimento rispetto al rischio", POS if sharpe >= 1.0 else None, primary=True)}
+            {sub_hero_metric("Calo Massimo Storico", f"{mdd_storico*100:.2f}%", "Massima discesa temporanea dal 1987", primary=True)}
         </div>
         <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px; padding-top:12px; border-top:1px solid {BORDER};">
-            {sub_hero_metric("Volatilità Annua", f"{vol*100:.2f}%", "Oscillazione realizzata")}
-            {sub_hero_metric("Indice di Sortino", f"{sortino:.2f}", "Rendimento su ribassi negativi")}
-            {sub_hero_metric("TER Ponderato Reale", f"{_cx_ter_annual*100:.3f}%/anno", f"Costo: € {_cx_ter_eur_year:,.0f}/anno")}
+            {sub_hero_metric("Volatilità Annua", f"{vol*100:.2f}%", "Oscillazione media annua del capitale")}
+            {sub_hero_metric("Indice di Sortino", f"{sortino:.2f}", "Protezione ed efficienza sui soli ribassi")}
+            {sub_hero_metric("Costo Annuo Strumenti", f"{_cx_ter_annual*100:.2f}%/anno", f"Costo totale: € {_cx_ter_eur_year:,.0f}/anno")}
         </div>
         """)
         st.caption(
-            f"Periodo di validazione Out-of-Sample: {_m_cx.get('test_period', '')}. "
-            f"Calo massimo calcolato sull'intero storico disponibile: {_m_cx.get('storico_period', '')}. "
-            f"Tutte le metriche primarie e i grafici sono calcolati al lordo delle imposte (Gross of Taxes)."
+            f"Metriche calcolate al lordo delle imposte · Periodo di verifica recente: {_m_cx.get('test_period', '')} · "
+            f"Storico completo: {_m_cx.get('storico_period', '')}."
         )
 
 
         # ----------------------------------------------------------------------
         # Crescita Patrimoniale — selettore di periodo e benchmark
         # ----------------------------------------------------------------------
-        st_html(section_title("Crescita Patrimoniale nel Tempo", top="8px", bottom="8px"))
+        st_html(section_title("Crescita del Portafoglio Convex vs S&P 500", top="8px", bottom="8px"))
         st.caption(
-            f"Serie mensile consolidata ({_cx_ret.index[0].year}–{_cx_ret.index[-1].year}, {len(_cx_ret)} mesi reali) al lordo delle imposte. "
-            f"Include proxy storici e strumenti UCITS quotati. Linee verticali: demarcazione Out-of-Sample (2020) e Inizio Live (2024)."
+            f"Crescita di 100 € investiti nel portafoglio Convex a confronto con l'indice S&P 500 ({_cx_ret.index[0].year}–{_cx_ret.index[-1].year})."
         )
 
         selected_range = st.segmented_control(
@@ -565,19 +563,19 @@ with tab_metriche:
                 hovertemplate="S&P 500: %{y:.2f}<extra></extra>"
             ))
 
-        # Marcatori Out-of-Sample e Live
+        # Marcatori Test Recente e Live
         _oos_start = pd.Timestamp("2020-09-30")
         if _nav_plot.index[0] < _oos_start <= _nav_plot.index[-1]:
             fig_cx_eq.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
             fig_cx_eq.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
-                                      text="Inizio Out-of-Sample (OOS) →", showarrow=False,
+                                      text="Fase di test recente (2020) →", showarrow=False,
                                       font=dict(size=10, color=ACCENT))
 
         _live_start = pd.Timestamp("2024-03-01")
         if _nav_plot.index[0] < _live_start <= _nav_plot.index[-1]:
             fig_cx_eq.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
             fig_cx_eq.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                      text="Inizio Live →", showarrow=False,
+                                      text="Inizio operatività reale (2024) →", showarrow=False,
                                       font=dict(size=10, color="#3DDC97"))
 
         fig_cx_update_layout = dict(
@@ -592,7 +590,7 @@ with tab_metriche:
         fig_cx_eq.update_layout(**fig_cx_update_layout)
         st.plotly_chart(fig_cx_eq, use_container_width=True)
 
-        st_html(section_title("Calo dal Massimo Storico", top="14px", bottom="6px"))
+        st_html(section_title("Perdite Temporanee dal Massimo (Calo dal Picco)", top="14px", bottom="6px"))
         fig_cx_dd = go.Figure()
         fig_cx_dd.add_trace(go.Scatter(
             x=_cx_nav.index, y=_cx_nav["drawdown"], fill="tozeroy", mode="lines",
@@ -613,11 +611,13 @@ with tab_metriche:
         )
         st.plotly_chart(fig_cx_dd, use_container_width=True)
 
-        st_html(section_title("Matrice dei Rendimenti"))
+        st.caption("Percentuale di discesa temporanea dal valore massimo precedente, calcolata al lordo delle imposte.")
+
+        st_html(section_title("Tabella dei Rendimenti Mese per Mese"))
         st_html(render_monthly_returns_html_table(_cx_nav))
 
-        st_html(section_title("Distribuzione e Consistenza dei Rendimenti"))
-        st.caption("Analisi statistica della regolarità mensile e della preservazione del capitale nelle fasi avverse di mercato.")
+        st_html(section_title("Affidabilità e Regolarità dei Risultati"))
+        st.caption("Statistiche sui mesi positivi e capacità di tenuta del portafoglio nei momenti negativi di mercato.")
         _cx_pos_months = int((_cx_ret > 0).sum())
         _cx_tot_months = int(len(_cx_ret))
         _cx_best_m = float(_cx_ret.max() * 100.0) if not _cx_ret.empty else 0.0
@@ -635,12 +635,12 @@ with tab_metriche:
         st.warning("Dati storici non trovati (convex_monthly_returns.csv).")
 
 with tab_guida:
-    st_html(section_title("La Routine Operativa", top="0"))
+    st_html(section_title("La Routine Operativa in 3 Semplici Passi", top="0"))
     r1, r2, r3 = st.columns(3)
     for col, num, title, body in [
-        (r1, "1", "Allocazione Flussi PAC", "All'inizio del mese, allocare la quota di risparmio periodico."),
-        (r2, "2", "Riconciliazione Portafoglio", "Verifica delle quote possedute e del saldo di liquidità disponibile."),
-        (r3, "3", "Ribasamento & Trim", "Allocare sul comparto più sottopesato. Eseguire il trim su Oro/BTC se sopra soglia +75%."),
+        (r1, "1", "Risparmio Mensile (PAC)", "All'inizio di ogni mese, versa la rata di risparmio periodico."),
+        (r2, "2", "Verifica del Portafoglio", "Controlla le quote possedute e la liquidità disponibile."),
+        (r3, "3", "Riequilibrio & Trim", "Acquista lo strumento più indietro. Vendi una parte di Oro/BTC solo se saliti oltre il 75% del target."),
     ]:
         with col:
             st_html(f"""
@@ -651,8 +651,8 @@ with tab_guida:
             </div>
             """)
 
-    st_html(section_title(f"I {len(active_instruments)} Strumenti"))
-    st.caption("Dossier strategico, tassonomia UCITS e regime fiscale italiano di ciascun componente del portafoglio.")
+    st_html(section_title(f"I {len(active_instruments)} Strumenti del Portafoglio"))
+    st.caption("Dossier strategico, dettagli operativi e trattamento fiscale per ciascun componente del portafoglio.")
     
     meta_map = portfolio_manager.CONVEX_INSTRUMENTS_METADATA
     col_c1, col_c2 = st.columns(2)
@@ -660,7 +660,7 @@ with tab_guida:
         meta = meta_map.get(key, {})
         target_pct = info.get("target_weight", 0.0) * 100.0
         target_col = _COLOR_MAP.get(key, ACCENT)
-        trim_str = f"Trim trimestrale oltre {meta['trim_threshold']*100:.2f}% (+75% sopra target)" if meta.get("trim_threshold") else "Ribilanciamento passivo tramite PAC (nessuna vendita)"
+        trim_str = f"Incasso profitti (trim) oltre {meta['trim_threshold']*100:.2f}% (+75% sopra target)" if meta.get("trim_threshold") else "Riequilibrio con nuovi versamenti PAC (nessuna vendita)"
         is_diverso = meta.get("tax_type") == "diverso"
         tax_badge_bg = "rgba(61,220,151,0.12)" if is_diverso else "rgba(255,247,237,0.05)"
         tax_badge_col = POS if is_diverso else MUTED
@@ -678,8 +678,8 @@ with tab_guida:
                     </div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-family:{MONO}; font-size:15px; font-weight:800; color:{BADGE_TEXT};">Target {target_pct:.1f}%</div>
-                    <div style="font-size:11px; color:{MUTED_2}; font-family:{MONO};">TER: {info['ter']*100:.2f}%/anno</div>
+                    <div style="font-family:{MONO}; font-size:15px; font-weight:800; color:{BADGE_TEXT};">Obiettivo {target_pct:.1f}%</div>
+                    <div style="font-size:11px; color:{MUTED_2}; font-family:{MONO};">Costo: {info['ter']*100:.2f}%/anno</div>
                 </div>
             </div>
             
@@ -688,16 +688,16 @@ with tab_guida:
             </div>
             
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-bottom:10px;">
-                <span style="font-weight:700; color:{BADGE_TEXT};">Ruolo Strategico:</span> {meta.get('role', info.get('asset_class', ''))}
+                <span style="font-weight:700; color:{BADGE_TEXT};">Ruolo nel Portafoglio:</span> {meta.get('role', info.get('asset_class', ''))}
             </div>
 
             <div style="font-size:11.5px; color:{MUTED_2}; line-height:1.45; padding:8px 12px; background:rgba(255,247,237,0.02); border:1px solid {BORDER_STRONG}; border-radius:6px; margin-bottom:12px;">
-                <span style="font-weight:700; color:{MUTED};">Meccanica:</span> {meta.get('driver', '')}
+                <span style="font-weight:700; color:{MUTED};">Funzionamento:</span> {meta.get('driver', '')}
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:11px; border-top:1px solid {BORDER}; padding-top:10px;">
                 <div style="color:{MUTED};">
-                    <span style="font-weight:600;">Gestione:</span> {trim_str}
+                    <span style="font-weight:600;">Regola:</span> {trim_str}
                 </div>
                 <div>
                     <span style="background:{tax_badge_bg}; color:{tax_badge_col}; padding:3px 8px; border-radius:4px; font-weight:600;">
@@ -711,21 +711,15 @@ with tab_guida:
             st_html(card_html)
 
 
-    # Nozionale = 100% capitale + la parte extra della leva 1.5x incorporata
-    # solo in NTSG (unico strumento a leva).
+    # Esposizione effettiva del portafoglio
     _ntsg_w = active_instruments.get("NTSG", {}).get("target_weight", 0.0)
     _notional_pct = (1.0 + 0.5 * _ntsg_w) * 100.0
-    _motori_txt = "cinque motori strutturalmente diversi: azionario, fattore value, trend-following anti-crisi, oro, Bitcoin"
-    st_html(section_title("Controllo del Rischio"))
+    st_html(section_title("Come Funziona il Controllo del Rischio"))
     st_html(f"""
     <div class="glass-card">
         <div style="font-size: 13px; color: {MUTED}; line-height: 1.6;">
-            Convex Stack <strong>non è a leva zero</strong>: l'esposizione nozionale totale è il {_notional_pct:.1f}% del capitale,
-            interamente tramite la leva 1.5x incorporata in NTSG (futures istituzionali, nessun debito a margine
-            personale). Il vero controllo del rischio sono le <strong>bande di trim trimestrali al 13.13% (+75%)</strong> su Bitcoin e
-            Oro — i due strumenti più volatili — che riportano automaticamente la posizione in linea quando supera
-            1,75 volte il suo peso target a fine trimestre. Il resto della protezione viene dalla diversificazione tra {_motori_txt} —
-            pensati per non muoversi tutti insieme nello stesso momento.
+            Convex Stack lavora con un'efficienza superiore alla media: per ogni 100 € investiti, sui mercati lavorano circa {_notional_pct:.1f} €, grazie ai titoli di stato già integrati nel fondo principale NTSG (senza alcun debito a tuo carico).<br><br>
+            La protezione del capitale si basa su una regola chiara: quando Bitcoin o Oro crescono tanto da superare la loro quota ideale di oltre il 75%, a fine trimestre si vende la quota in eccesso per <strong>mettere al sicuro i guadagni</strong> e destinarli agli strumenti più prudenti. La solidità complessiva è garantita dalla combinazione di <strong>cinque classi di attivo complementari</strong> (azioni mondiali, piccole aziende di valore, protezione per le crisi, oro fisico e Bitcoin), che non scendono mai tutte insieme nello stesso momento.
         </div>
     </div>
     """)
