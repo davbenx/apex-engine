@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "comparative_studies"))
 sys.path.insert(0, str(REPO_ROOT / "validation_suite" / "framework"))
 
 from apex_dashboard_stat_regeneration import (
-    SPLICE_SPEC, spliced_price_index, spliced_return,
+    SPLICE_SPEC, spliced_price_index, spliced_return, _load_ext,
     BASKET_SELECTION_FROM_YEAR,
 )
 from apex_v2_engine import (
@@ -72,6 +72,7 @@ def generate_full_historical_trades():
     snapshots = load_pointintime_snapshots()
 
     macro_prices = {ticker: spliced_price_index(*SPLICE_SPEC[ticker]) for ticker in V2_CLASS_TICKER.values()}
+    btc_raw_series = _load_ext("BTC_USD_weekly.csv")
     common_index = macro_prices["SPY"].index.intersection(macro_prices["IEF"].index)
     weeks = list(common_index.sort_values())
     n = len(weeks)
@@ -132,54 +133,59 @@ def generate_full_historical_trades():
 
         # A. Macro Era (1987 - 2011)
         if macro_era:
-            for cls_name, tkr in [("Equities", "SPY"), ("Bonds", "IEF"), ("Gold", "GLD")]:
+            for cls_name, tkr_key, is_cr in [("Equities", "SPY", False), ("Bonds", "IEF", False), ("Gold", "GLD", False), ("Crypto", "BTC-USD", True)]:
                 target_w = current_alloc.get(cls_name, 0.0) / 100.0
-                cur_pos = open_sim_positions.get(tkr)
-                if tkr not in macro_prices or wk not in macro_prices[tkr].index:
+                tkr_display = "BTC" if tkr_key == "BTC-USD" else tkr_key
+                cur_pos = open_sim_positions.get(tkr_display)
+                if tkr_key not in macro_prices or wk not in macro_prices[tkr_key].index:
                     continue
-                cur_p = float(macro_prices[tkr].loc[wk])
+                if is_cr and wk in btc_raw_series.index:
+                    cur_p = float(btc_raw_series.loc[wk])
+                else:
+                    cur_p = float(macro_prices[tkr_key].loc[wk])
 
                 if cur_pos is None and target_w > 0.001:
-                    open_sim_positions[tkr] = {
-                        "ticker": tkr,
+                    open_sim_positions[tkr_display] = {
+                        "ticker": tkr_display,
                         "entry_date": wk_str,
                         "entry_price": cur_p,
                         "weight": target_w,
-                        "is_crypto": False,
-                        "asset_class": determine_asset_class(tkr, False),
+                        "is_crypto": is_cr,
+                        "asset_class": determine_asset_class(tkr_display, is_cr),
                     }
                 elif cur_pos is not None and target_w <= 0.001:
                     entry_p = cur_pos["entry_price"]
                     pnl = (cur_p / entry_p - 1.0) * 100.0 if entry_p > 0 else 0.0
+                    reason_txt = "Disattivazione regime macro crypto" if is_cr else "Disattivazione regime macro"
                     closed_trades.append({
-                        "ticker": tkr,
+                        "ticker": tkr_display,
                         "entry_date": cur_pos["entry_date"],
                         "exit_date": wk_str,
-                        "entry_price": round(entry_p, 2),
-                        "exit_price": round(cur_p, 2),
+                        "entry_price": round(entry_p, 4 if is_cr else 2),
+                        "exit_price": round(cur_p, 4 if is_cr else 2),
                         "profit_pct": round(pnl, 2),
                         "weight": round(cur_pos["weight"], 6),
-                        "reason": "Disattivazione regime macro",
-                        "is_crypto": False,
+                        "reason": reason_txt,
+                        "is_crypto": is_cr,
                         "asset_class": cur_pos["asset_class"],
                         "era": "1987-2011 (Macro Allocazione)",
                     })
-                    del open_sim_positions[tkr]
+                    del open_sim_positions[tkr_display]
                 elif cur_pos is not None and target_w > 0.001 and is_month_end:
                     if target_w < cur_pos["weight"] - 0.005:
                         trim_w = cur_pos["weight"] - target_w
                         entry_p = cur_pos["entry_price"]
                         pnl = (cur_p / entry_p - 1.0) * 100.0 if entry_p > 0 else 0.0
                         closed_trades.append({
-                            "ticker": tkr,
+                            "ticker": tkr_display,
                             "entry_date": cur_pos["entry_date"],
                             "exit_date": wk_str,
-                            "entry_price": round(entry_p, 2),
-                            "exit_price": round(cur_p, 2),
+                            "entry_price": round(entry_p, 4 if is_cr else 2),
+                            "exit_price": round(cur_p, 4 if is_cr else 2),
                             "profit_pct": round(pnl, 2),
                             "weight": round(trim_w, 6),
                             "reason": "Ribilanciamento mensile (trim parziale)",
-                            "is_crypto": False,
+                            "is_crypto": is_cr,
                             "asset_class": cur_pos["asset_class"],
                             "era": "1987-2011 (Macro Allocazione)",
                         })
@@ -192,52 +198,55 @@ def generate_full_historical_trades():
         # B. Point-In-Time Low-Beta Basket Era (2012 - 2024)
         elif stock_selection_era:
             # Asset macro: IEF, GLD, BTC
-            for cls_name, tkr, is_cr in [("Bonds", "IEF", False), ("Gold", "GLD", False), ("Crypto", "BTC", True)]:
+            for cls_name, tkr_key, is_cr in [("Bonds", "IEF", False), ("Gold", "GLD", False), ("Crypto", "BTC-USD", True)]:
                 target_w = current_alloc.get(cls_name, 0.0) / 100.0
-                if tkr == "BTC" and wk < pd.Timestamp("2014-09-26"):
+                tkr_display = "BTC" if tkr_key == "BTC-USD" else tkr_key
+                cur_pos = open_sim_positions.get(tkr_display)
+                if tkr_key not in macro_prices or wk not in macro_prices[tkr_key].index:
                     continue
-                cur_pos = open_sim_positions.get(tkr)
-                if tkr not in macro_prices or wk not in macro_prices[tkr].index:
-                    continue
-                cur_p = float(macro_prices[tkr].loc[wk])
+                if is_cr and wk in btc_raw_series.index:
+                    cur_p = float(btc_raw_series.loc[wk])
+                else:
+                    cur_p = float(macro_prices[tkr_key].loc[wk])
 
                 if cur_pos is None and target_w > 0.001:
-                    open_sim_positions[tkr] = {
-                        "ticker": tkr,
+                    open_sim_positions[tkr_display] = {
+                        "ticker": tkr_display,
                         "entry_date": wk_str,
                         "entry_price": cur_p,
                         "weight": target_w,
                         "is_crypto": is_cr,
-                        "asset_class": determine_asset_class(tkr, is_cr),
+                        "asset_class": determine_asset_class(tkr_display, is_cr),
                     }
                 elif cur_pos is not None and target_w <= 0.001:
                     entry_p = cur_pos["entry_price"]
                     pnl = (cur_p / entry_p - 1.0) * 100.0 if entry_p > 0 else 0.0
+                    reason_txt = "Disattivazione regime macro crypto" if is_cr else "Disattivazione regime macro"
                     closed_trades.append({
-                        "ticker": tkr,
+                        "ticker": tkr_display,
                         "entry_date": cur_pos["entry_date"],
                         "exit_date": wk_str,
-                        "entry_price": round(entry_p, 2),
-                        "exit_price": round(cur_p, 2),
+                        "entry_price": round(entry_p, 4 if is_cr else 2),
+                        "exit_price": round(cur_p, 4 if is_cr else 2),
                         "profit_pct": round(pnl, 2),
                         "weight": round(cur_pos["weight"], 6),
-                        "reason": "Disattivazione regime macro",
+                        "reason": reason_txt,
                         "is_crypto": is_cr,
                         "asset_class": cur_pos["asset_class"],
                         "era": "2012-2024 (Point-In-Time)",
                     })
-                    del open_sim_positions[tkr]
+                    del open_sim_positions[tkr_display]
                 elif cur_pos is not None and target_w > 0.001 and is_month_end:
                     if target_w < cur_pos["weight"] - 0.005:
                         trim_w = cur_pos["weight"] - target_w
                         entry_p = cur_pos["entry_price"]
                         pnl = (cur_p / entry_p - 1.0) * 100.0 if entry_p > 0 else 0.0
                         closed_trades.append({
-                            "ticker": tkr,
+                            "ticker": tkr_display,
                             "entry_date": cur_pos["entry_date"],
                             "exit_date": wk_str,
-                            "entry_price": round(entry_p, 2),
-                            "exit_price": round(cur_p, 2),
+                            "entry_price": round(entry_p, 4 if is_cr else 2),
+                            "exit_price": round(cur_p, 4 if is_cr else 2),
                             "profit_pct": round(pnl, 2),
                             "weight": round(trim_w, 6),
                             "reason": "Ribilanciamento mensile (trim parziale)",
@@ -353,7 +362,7 @@ def generate_full_historical_trades():
     crypto_cache = REPO_ROOT / "research" / "crypto_ohlcv_extended_cache"
     crypto_dfs = load_crypto_dataset(str(crypto_cache))
     cfg = CryptoVentureConfig(
-        universe_mode="TOP25",
+        universe_mode="ALL",
         max_slots=7,
         stop_mode="ATR_CLOSE",
         atr_multiplier=2.5,
