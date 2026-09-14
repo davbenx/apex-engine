@@ -50,6 +50,8 @@ class CryptoVentureConfig:
     slippage_bps: float = 10.0                 # Slippage per trade (10 bps)
     tax_rate: float = 0.26                     # Aliquota imposta sostitutiva italiana (26%)
     initial_capital: float = 10_000.0          # Capitale iniziale di simulazione
+    start_date: Optional[str] = "2018-10-08"   # Data inizio simulazione (default baseline validata 2018-10-08)
+
 
 
 @dataclass
@@ -164,7 +166,11 @@ def precompute_market_matrices(
         "df_atr": df_atr,
         "breadth_series": breadth_series, "rs_spread_30": rs_spread_30,
         "active_universe": active_universe,
-        "simulation_dates": btc_c.index[config.macro_btc_slow_days:]
+        "simulation_dates": (
+            btc_c.index[config.macro_btc_slow_days:][btc_c.index[config.macro_btc_slow_days:] >= pd.Timestamp(config.start_date)]
+            if config.start_date is not None
+            else btc_c.index[config.macro_btc_slow_days:]
+        )
     }
 
 

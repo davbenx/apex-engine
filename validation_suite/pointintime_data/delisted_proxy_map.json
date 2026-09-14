@@ -1,0 +1,980 @@
+{
+  "ABC": {
+    "type": "RENAME",
+    "successor": "COR",
+    "name": "AmerisourceBergen -> Cencora"
+  },
+  "ABMD": {
+    "type": "M&A",
+    "successor": "JNJ",
+    "acquirer": "Johnson & Johnson",
+    "cash_deal": true
+  },
+  "ACE": {
+    "type": "MERGER",
+    "successor": "CB",
+    "name": "ACE Ltd merged with Chubb"
+  },
+  "ADS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "AGN": {
+    "type": "M&A",
+    "successor": "ABBV",
+    "acquirer": "AbbVie"
+  },
+  "ALTR": {
+    "type": "M&A",
+    "successor": "INTC",
+    "acquirer": "Intel"
+  },
+  "ALXN": {
+    "type": "M&A",
+    "successor": "AZN",
+    "acquirer": "AstraZeneca"
+  },
+  "ANR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ANSS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ANTM": {
+    "type": "RENAME",
+    "successor": "ELV",
+    "name": "Anthem -> Elevance Health"
+  },
+  "APOL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ARG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ARNC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ATVI": {
+    "type": "M&A",
+    "successor": "MSFT",
+    "acquirer": "Microsoft",
+    "cash_deal": true
+  },
+  "AVB": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "AVP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BBBY": {
+    "type": "BANKRUPTCY",
+    "delisting_return": -0.99,
+    "name": "Bed Bath & Beyond"
+  },
+  "BCR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BHGE": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BHI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BIG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BLL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BMC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "BRCM": {
+    "type": "M&A",
+    "successor": "AVGO",
+    "acquirer": "Broadcom"
+  },
+  "BXLT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CBE": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CBG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CBS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CCE": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CDAY": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CELG": {
+    "type": "M&A",
+    "successor": "BMY",
+    "acquirer": "Bristol-Myers Squibb"
+  },
+  "CERN": {
+    "type": "M&A",
+    "successor": "ORCL",
+    "acquirer": "Oracle"
+  },
+  "CFN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CHK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CMA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "COG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "COH": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "COV": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CPGX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CSC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CSRA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CTL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CTLT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CTRA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CTXS": {
+    "type": "TAKEN_PRIVATE",
+    "cash_deal": true,
+    "name": "Citrix Systems"
+  },
+  "CVC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CVH": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "CXO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DAY": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DF": {
+    "type": "BANKRUPTCY",
+    "delisting_return": -0.99,
+    "name": "Dean Foods"
+  },
+  "DFS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DISCA": {
+    "type": "MERGER",
+    "successor": "WBD",
+    "name": "Discovery -> Warner Bros Discovery"
+  },
+  "DISCK": {
+    "type": "MERGER",
+    "successor": "WBD",
+    "name": "Discovery -> Warner Bros Discovery"
+  },
+  "DISH": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DLPH": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DNB": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DNR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DPS": {
+    "type": "MERGER",
+    "successor": "KDP",
+    "name": "Dr Pepper Snapple -> Keurig Dr Pepper"
+  },
+  "DRE": {
+    "type": "M&A",
+    "successor": "PLD",
+    "acquirer": "Prologis"
+  },
+  "DTV": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "DWDP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "EA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ENDP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "EQR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ESV": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ETFC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FBHS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FDO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FII": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FLIR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FLT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FRC": {
+    "type": "BANKRUPTCY_M&A",
+    "successor": "JPM",
+    "delisting_return": -0.98,
+    "name": "First Republic Bank"
+  },
+  "FRX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "FTR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "GAS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "GCI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "GGP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "GMCR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "GPS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "GR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HAR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HBI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HCBK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HCN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HCP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HES": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HFC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HNZ": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HOLX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HRS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "HSP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "IGT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "IPG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "JCP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "JDSU": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "JEC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "JNPR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "JOY": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "JWN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "K": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "KFT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "KORS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "KRFT": {
+    "type": "MERGER",
+    "successor": "KHC",
+    "name": "Kraft Foods merged into Kraft Heinz"
+  },
+  "KSU": {
+    "type": "M&A",
+    "successor": "CP",
+    "acquirer": "Canadian Pacific"
+  },
+  "LEG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LLL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LLTC": {
+    "type": "M&A",
+    "successor": "ADI",
+    "acquirer": "Analog Devices"
+  },
+  "LM": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LSI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LTD": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LUK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LVLT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "LXK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MHFI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MHP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MJN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MMC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MNK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MOLX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MON": {
+    "type": "M&A",
+    "successor": "BAYN",
+    "acquirer": "Bayer"
+  },
+  "MRO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MWV": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "MXIM": {
+    "type": "M&A",
+    "successor": "ADI",
+    "acquirer": "Analog Devices"
+  },
+  "MYL": {
+    "type": "MERGER",
+    "successor": "VTRS",
+    "name": "Mylan merged into Viatris"
+  },
+  "NBL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "NFX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "NLOK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "NLSN": {
+    "type": "TAKEN_PRIVATE",
+    "cash_deal": true,
+    "name": "Nielsen Holdings"
+  },
+  "NVLS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "NYX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PBCT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PCP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PDCO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PEAK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PETM": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PGN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PKI": {
+    "type": "RENAME",
+    "successor": "RVTY",
+    "name": "PerkinElmer -> Revvity"
+  },
+  "PLL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "PXD": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "QEP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "RAI": {
+    "type": "M&A",
+    "successor": "BTI",
+    "acquirer": "British American Tobacco"
+  },
+  "RDC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "RE": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "RHT": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "RRD": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "RTN": {
+    "type": "MERGER",
+    "successor": "RTX",
+    "name": "Raytheon merged with UTC"
+  },
+  "SAI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SEE": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SIAL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SIVB": {
+    "type": "BANKRUPTCY",
+    "delisting_return": -0.99,
+    "name": "Silicon Valley Bank"
+  },
+  "SNI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SRCL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "STJ": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SWN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SWY": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "SYMC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TEG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TGNA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TIE": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TIF": {
+    "type": "M&A",
+    "successor": "MC.PA",
+    "acquirer": "LVMH"
+  },
+  "TMK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TSO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TSS": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TWC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "TWTR": {
+    "type": "TAKEN_PRIVATE",
+    "cash_deal": true,
+    "name": "Twitter -> X"
+  },
+  "TYC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "UTX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "VAR": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "VIAB": {
+    "type": "MERGER",
+    "successor": "PARA",
+    "name": "Viacom merged into Paramount"
+  },
+  "VIAC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WAG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WBA": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WCG": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WFM": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WIN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WLP": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WLTW": {
+    "type": "RENAME",
+    "successor": "WTW",
+    "name": "Willis Towers Watson -> WTW"
+  },
+  "WPI": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WPO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WPX": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WRK": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "WYN": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "X": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "XEC": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "XL": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "XLNX": {
+    "type": "M&A",
+    "successor": "AMD",
+    "acquirer": "AMD"
+  },
+  "YHOO": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  },
+  "ZMH": {
+    "type": "DELISTED_OR_ACQUIRED",
+    "action": "FROZEN_AT_LAST_CLOSE",
+    "note": "Acquisito, fuso o rimosso; trattato come liquidazione in cassa o proxy settoriale"
+  }
+}

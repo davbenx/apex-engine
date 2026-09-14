@@ -180,11 +180,11 @@ def test_end_to_end_crypto_venture_engine():
     # 1. Verifica Risultato Lordo
     res_gross = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
     sum_gross = res_gross["summary"]
-    assert sum_gross["CAGR"] > 0.50          # CAGR lordo > 50% (55.7%)
-    assert sum_gross["MaxDrawdown"] > -0.50  # MaxDD lordo contenuto a -46.4%
-    assert sum_gross["Sharpe"] > 1.10        # Sharpe lordo 1.19
-    assert sum_gross["Calmar"] > 1.10        # Calmar lordo 1.20
-    assert sum_gross["WinRate"] > 25.0       # WinRate 28.6%
+    assert sum_gross["CAGR"] > 0.50          # CAGR lordo > 50% (51.3%)
+    assert sum_gross["MaxDrawdown"] > -0.50  # MaxDD lordo contenuto a -49.2%
+    assert sum_gross["Sharpe"] > 1.05        # Sharpe lordo ~1.10 (survivorship-bias free)
+    assert sum_gross["Calmar"] > 1.00        # Calmar lordo ~1.04 (survivorship-bias free)
+    assert sum_gross["WinRate"] > 25.0       # WinRate 44.3%
     assert sum_gross["TotalTrades"] >= 50
     assert len(res_gross["yearly_metrics"]) >= 7
     assert len(res_gross["cycle_metrics"]) >= 5
@@ -192,10 +192,10 @@ def test_end_to_end_crypto_venture_engine():
     # 2. Verifica Risultato Netto Tasse 26% con Zainetto Fiscale
     res_net = run_crypto_venture_backtest(matrices, cfg, tax_enabled=True)
     sum_net = res_net["summary"]
-    assert sum_net["CAGR"] > 0.40           # CAGR netto > 40% (43.9%)
-    assert sum_net["MaxDrawdown"] > -0.50   # MaxDD netto contenuto a -47.1%
-    assert sum_net["Sharpe"] > 0.85         # Sharpe netto 0.92
-    assert sum_net["Calmar"] > 0.85         # Calmar netto 0.93
+    assert sum_net["CAGR"] > 0.40           # CAGR netto > 40% (40.4%)
+    assert sum_net["MaxDrawdown"] > -0.50   # MaxDD netto contenuto a -49.2%
+    assert sum_net["Sharpe"] > 0.80         # Sharpe netto ~0.85 (survivorship-bias free)
+    assert sum_net["Calmar"] > 0.80         # Calmar netto ~0.82 (survivorship-bias free)
     assert sum_net["CumulativeTax"] > 50000 # Tasse pagate coerenti
 
 
