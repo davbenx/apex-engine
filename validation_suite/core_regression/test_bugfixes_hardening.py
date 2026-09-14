@@ -176,8 +176,11 @@ def test_atr_stop_floor_bound():
         config=cfg
     )
     vol_pos = res["updated_positions"].get("VOL")
-    if vol_pos:
-        assert vol_pos["stop_loss"] >= 50.0, f"Stop loss {vol_pos['stop_loss']} inferiore al minimo consentito"
+    assert vol_pos is not None, (
+        "La posizione VOL e' stata chiusa in questo scenario: impossibile verificare il floor "
+        "dello stop ATR. Il test presuppone che resti aperta (Close=80 > floor emergenza=50)."
+    )
+    assert vol_pos["stop_loss"] >= 50.0, f"Stop loss {vol_pos['stop_loss']} inferiore al minimo consentito"
 
 
 def test_weekly_close_dataframe_robustness():
@@ -224,7 +227,7 @@ def test_convex_cash_allocation_bar():
     assert abs(cash_pct - (200.0 / 3000.0 * 100.0)) < 1e-4
 
 
-def test_trade_orders_and_action_log_renderers():
+def test_trade_orders_and_action_log_renderers(repo_root):
     """Verifica che i renderers delle tabelle ordini e log storico non contengano emoji e includano i badge corretti."""
     import page_apex
     import pandas as pd
@@ -270,7 +273,7 @@ def test_trade_orders_and_action_log_renderers():
     assert "76,652.09" in html_log
 
     # 3. Verifica assenza di emoji in portfolio.json
-    with open("portfolio.json", "r", encoding="utf-8") as f:
+    with open(repo_root / "portfolio.json", "r", encoding="utf-8") as f:
         content = f.read()
     emoji_pattern = re.compile(r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
     assert not emoji_pattern.findall(content), "Trovate emoji in portfolio.json"
