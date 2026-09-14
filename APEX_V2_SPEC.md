@@ -39,7 +39,7 @@ p<0.001, confermato anche su split temporale in-sample/out-of-sample.
 | Posizione azionaria reale | Basket di 15 titoli individuali | Selezionati per basso beta (vs SPY, §8.29) tra i membri storici (point-in-time) dell'S&P 500 |
 | Obbligazionario | IEF (ETF Treasury 7-10y) | Sia segnale sia posizione |
 | Oro | GLD (ETF oro fisico) | Sia segnale sia posizione |
-| Crypto | BTC-USD | Sia segnale sia posizione. **Nessuna rotazione verso altcoin** — testata e respinta (peggiora Sharpe/Calmar senza guadagno di rendimento) |
+| Crypto | BTC-USD + rotazione altcoin (Crypto Frontier Venture) | Sia segnale (BTC-USD, regime dual bull/bear) sia posizione. **Aggiornamento**: la rotazione verso altcoin, testata e respinta nella v2 originale (peggiorava Sharpe/Calmar — vedi nota sotto), è stata reintrodotta in produzione con un disegno diverso (breakout Donchian + gate di ampiezza "altseason", non selezione per momentum) — vedi `CRYPTO_VENTURE_SPEC.md` per la spec completa e §8.32 sotto |
 | Porto sicuro / cash-equivalent | Cash residuo (non investito) | Nella versione di ricerca era SHY; in produzione, se SHY non è tradabile facilmente, tenere cash puro — l'impatto misurato è marginale |
 
 **Perché titoli individuali e non un ETF azionario:** un ETF UCITS genera "redditi di
@@ -159,8 +159,12 @@ posizione è quindi una scelta misurata, non solo un'omissione.
 
 ## 5. Gamba crypto, obbligazionaria, oro
 
-- **BTC-USD**: nessuna selezione, nessuna rotazione verso altcoin. Peso = peso
-  finale della classe Crypto (§3).
+- **BTC-USD + rotazione altcoin**: peso = peso finale della classe Crypto (§3),
+  gestito internamente dal motore Crypto Frontier Venture (regime dual BTC Core /
+  Altseason Satellite, fino a 7 slot altcoin) — vedi `CRYPTO_VENTURE_SPEC.md` e
+  §8.32. Aggiornamento rispetto alla frase originale di questa sezione ("nessuna
+  rotazione verso altcoin"), scritta quando la rotazione per momentum della v1 era
+  stata testata e respinta: il disegno attuale non è quello, vedi §8.32.
 - **IEF**: nessuna selezione, peso = peso finale della classe Bonds (§3).
 - **GLD**: nessuna selezione, peso = peso finale della classe Gold (§3).
 
@@ -1894,6 +1898,47 @@ Testato esplicitamente sia su Momentum sia su Trend Low-Beta. A differenza delle
 - Costante `V2_EQUITY_TREND_MA_WEEKS = 40` in `apex_v2_engine.py`.
 - Parametro opzionale `trend_ma_weeks: Optional[int] = V2_EQUITY_TREND_MA_WEEKS` in `select_low_beta_basket`.
 - **Fallback difensivo di saturazione**: se meno di 15 titoli soddisfano il filtro di trend (es. in mercati orso ampi), il paniere viene automaticamente completato attingendo dai migliori titoli a beta più basso del pool generale, garantendo la cardinalità del basket a 15 posizioni.
+
+### 8.32 Crypto Frontier Venture — rotazione altcoin reintrodotta in produzione (nota di audit indipendente, non decisione di questa sessione)
+
+**Nota di allineamento documentale**: una rotazione verso altcoin per la classe Crypto
+è stata reintrodotta in produzione da lavoro esterno a questa sessione, con un disegno
+**diverso** da quello testato e respinto in v1/v2 (§1/§5 sopra, decisione originale
+basata su selezione per momentum): il motore attuale, "Crypto Frontier Venture", usa
+un regime dual Bitcoin Core / Altseason Satellite — breakout Donchian 30gg con gate di
+ampiezza/forza relativa per abilitare la rotazione, fino a 7 slot altcoin, stop ATR
+2.5x/circuit breaker -50%/time-stop 21gg/free-ride +125%. Spec completa in
+`CRYPTO_VENTURE_SPEC.md`, motore in `crypto_frontier_venture_engine.py`, integrato
+nella pipeline giornaliera di `backend.py`. §1/§5 sopra sono stati aggiornati di
+conseguenza; restavano disallineati (ancora "nessuna rotazione verso altcoin") fino a
+questo audit.
+
+**Bug trovati e corretti durante l'audit indipendente di questa sessione** (non presenti
+nella versione originale con cui il motore è stato introdotto): cost-basis calcolato
+male dopo una vendita parziale Free-Ride (trasformava perdite reali successive in falsi
+guadagni tassabili), esecuzione same-bar (lookahead) sulla rotazione Bitcoin Core,
+default fail-open su dati BTC mancanti nel valutatore giornaliero live, oltre a 4 bug di
+gestione dati mancanti (NaN) che potevano produrre drawdown fantasma, ordini di stop
+persi silenziosamente, o disattivare selettivamente il circuit breaker di emergenza —
+vedi storia git di `crypto_frontier_venture_engine.py` per il dettaglio completo di
+ciascun fix e il relativo test di regressione. Impatto netto-tasse italiane del fix
+sul cost-basis, verificato su dati di mercato reali (Yahoo Finance, 2018-2026, non
+sintetici, stesso dataset pre/post-fix): CAGR netto **+4.3pp**, Sharpe netto **+0.10**
+rispetto al codice con il bug (`validation_suite/comparative_studies/
+crypto_engine_verification_run.py`).
+
+**Non ancora verificabile in modo indipendente da questo repository**: le cifre
+headline di `CRYPTO_VENTURE_SPEC.md` (CAGR/Sharpe/MaxDD lordi e netti sull'intero
+storico dichiarato 2018-2026, claim di "eliminazione totale survivorship bias crypto
+su 118 asset") si basano su una cache OHLCV giornaliera
+(`research/crypto_ohlcv_extended_cache/`) che non è presente nel repository — né in
+working tree né nella storia git — in violazione della regola di persistere sempre i
+dati riutilizzabili. La metodologia dichiarata (universo punto-nel-tempo via snapshot
+trimestrali CMC, uscite meccaniche invece di un proxy di delisting per i token che
+falliscono) è solida sulla carta, e ogni dato di mercato effettivamente presente e
+verificabile nel repository (prezzo BTC, oro, tasso T-bill USA) ha superato controlli
+puntuali di plausibilità storica — ma senza quella cache le cifre headline restano
+**non riproducibili**, non solo non ancora riprodotte.
 
 ---
 
