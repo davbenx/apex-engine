@@ -343,11 +343,12 @@ def test_apex_full_historical_trades_integrity():
     from pathlib import Path
     import page_apex
 
-    json_path = Path("/home/davide/Scrivania/ApexConvex/apex_full_historical_trades.json")
-    csv_path = Path("/home/davide/Scrivania/ApexConvex/apex_full_historical_trades.csv")
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    json_path = repo_root / "apex_full_historical_trades.json"
+    csv_path = repo_root / "apex_full_historical_trades.csv"
 
-    assert json_path.exists(), "apex_full_historical_trades.json non trovato"
-    assert csv_path.exists(), "apex_full_historical_trades.csv non trovato"
+    assert json_path.exists(), f"apex_full_historical_trades.json non trovato in {repo_root}"
+    assert csv_path.exists(), f"apex_full_historical_trades.csv non trovato in {repo_root}"
 
     with open(json_path, encoding="utf-8") as f:
         trades = json.load(f)
