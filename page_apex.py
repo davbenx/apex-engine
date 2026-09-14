@@ -844,6 +844,37 @@ with tab_pf:
             latest_hist_exit_date = max(exit_dates)
             latest_hist_trades = [t for t in hist_trades if t.get("exit_date") == latest_hist_exit_date]
 
+    def _next_monthly_decision_date(today: datetime.date) -> datetime.date:
+        """Prossimo ultimo venerdì di mese >= oggi (solo per la didascalia in UI —
+        rispecchia compute_should_decide di backend.py, che resta l'unica fonte
+        di verità per quando la decisione scatta davvero)."""
+        d = today
+        while True:
+            next_month = (d.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+            last_day_of_month = next_month - datetime.timedelta(days=1)
+            last_friday = last_day_of_month
+            while last_friday.weekday() != 4:
+                last_friday -= datetime.timedelta(days=1)
+            if last_friday >= today:
+                return last_friday
+            d = next_month
+
+    # Scostamento tra il segnale macro CORRENTE (alloc, ricalcolato ad ogni run per
+    # monitoraggio) e la composizione EFFETTIVAMENTE detenuta (fissata all'ultima
+    # decisione mensile eseguita) — i due possono divergere molto a meta' ciclo,
+    # per disegno (§6 di APEX_V2_SPEC.md: decisione/esecuzione solo mensile). Serve
+    # a non mostrare "portafoglio allineato" quando in realta' non lo e' ancora
+    # rispetto al segnale di oggi, solo perche' non ci sono ordini in coda (bug
+    # segnalato dall'utente: i due pannelli sopra e sotto mostravano numeri molto
+    # diversi senza alcuna spiegazione, e questo banner affermava comunque
+    # "allineato ai target" e "pesi ottimali").
+    _held_eq_pct = sum(r.get("Peso (%)", 0.0) for r in op_eq)
+    _held_cr_pct = sum(r.get("Peso (%)", 0.0) for r in op_cr)
+    _drift_eq = abs(alloc.get("Equities", 0.0) - _held_eq_pct)
+    _drift_cr = abs(alloc.get("Crypto", 0.0) - _held_cr_pct)
+    _max_drift_pct = max(_drift_eq, _drift_cr)
+    _MID_CYCLE_DRIFT_THRESHOLD_PP = 10.0
+
     # --- 1. Ordini Operativi & Stato Allineamento ---
     st_html(section_title("Ordini Operativi & Stato Allineamento"))
     if pending_orders:
@@ -913,7 +944,7 @@ with tab_pf:
         """)
         df_orders = pd.DataFrame(orders_rows)
         st_html(render_orders_html_table(df_orders, curr_sym))
-    else:
+    elif _max_drift_pct <= _MID_CYCLE_DRIFT_THRESHOLD_PP:
         st_html(f"""
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; padding: 14px 18px; margin: 8px 0 16px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
@@ -928,6 +959,26 @@ with tab_pf:
                 </div>
                 <div style="font-size: 11.5px; color: {MUTED}; background: rgba(255,247,237,0.02); border: 1px solid {BORDER_STRONG}; padding: 5px 10px; border-radius: 6px; font-family: {MONO};">
                     Prossima verifica: Venerdì sera alle 22:00 CET
+                </div>
+            </div>
+        </div>
+        """)
+    else:
+        _next_decision = _next_monthly_decision_date(datetime.date.today())
+        st_html(f"""
+        <div style="background: {ACCENT_SOFT}; border: 1px solid rgba(201,164,76,0.35); border-radius: 10px; padding: 14px 18px; margin: 8px 0 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(201,164,76,0.15); border: 1px solid rgba(201,164,76,0.35); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{ACCENT}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    </div>
+                    <div>
+                        <strong style="font-size: 13.5px;">Nessun ordine in coda — segnale e portafoglio non ancora riallineati</strong>
+                        <div style="color: {MUTED}; font-size: 11.5px; margin-top: 1px;">Il segnale macro corrente si è mosso dall'ultima decisione mensile eseguita ({format_date_italian(last_action_date) if last_action_date else '—'}); il ribilanciamento avviene solo alla prossima finestra di decisione, non ogni giorno — vedi "Regimi e Segnali Macro" sopra per il segnale di oggi e "Composizione del Portafoglio" sotto per quanto effettivamente detenuto.</div>
+                    </div>
+                </div>
+                <div style="font-size: 11.5px; color: {MUTED}; background: rgba(255,247,237,0.02); border: 1px solid {BORDER_STRONG}; padding: 5px 10px; border-radius: 6px; font-family: {MONO};">
+                    Prossima decisione: {format_date_italian(_next_decision.isoformat())}
                 </div>
             </div>
         </div>
