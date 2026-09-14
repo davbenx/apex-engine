@@ -355,6 +355,128 @@ def test_evaluate_daily_crypto_frontier_missing_btc_data_fails_safe():
     )
 
 
+def test_pending_exit_retries_when_execution_day_open_is_nan():
+    """Un ordine di uscita gia' deciso (ATR_STOP_CLOSE, segnale al Close del giorno 339)
+    il cui giorno di esecuzione (Open del giorno 340) e' NaN deve essere ritentato il
+    giorno successivo, non scartato silenziosamente per sempre (bug confermato da audit
+    di robustezza indipendente: pending_exits veniva svuotato incondizionatamente a ogni
+    iterazione, a prescindere che la vendita fosse davvero eseguita).
+
+    Il prezzo RECUPERA immediatamente il giorno 340 (torna ben sopra la soglia ATR) e
+    resta sopra per il resto della serie: la condizione di stop non si ripresenta mai
+    piu' da sola. Senza il fix, l'ordine deciso al giorno 339 va perso e la posizione
+    finisce per chiudersi molto piu' tardi per un motivo completamente diverso
+    (TIME_STOP_21D) invece che per lo stop ATR originale — la prova che il segnale
+    originale e' stato scartato, non solo eseguito con un giorno di ritardo."""
+    n = 500
+    dates = pd.date_range("2020-01-01", periods=n, freq="D")
+    btc_p = np.linspace(10000, 60000, n)
+    btc_df = pd.DataFrame({
+        "Open": btc_p * 0.99, "High": btc_p * 1.02, "Low": btc_p * 0.98, "Close": btc_p,
+        "Volume": np.full(n, 1_000_000.0),
+    }, index=dates)
+
+    alt_p = np.full(n, 10.0)
+    alt_vol = np.full(n, 1_000_000.0)
+    for i in range(290, 320):
+        alt_p[i] = 10.0 + (i - 289) * 0.3
+        alt_vol[i] = 5_000_000.0
+    for i in range(320, 339):
+        alt_p[i] = 19.0 - (i - 319) * 0.5  # decresce fino a toccare la soglia ATR al giorno 339
+    alt_p[339] = 9.0
+    alt_p[340] = 14.0  # recupero immediato il giorno dell'esecuzione prevista
+    for i in range(341, n):
+        alt_p[i] = 14.0 + (i - 340) * 0.01  # tiene/risale lentamente, non ritocca mai piu' lo stop
+
+    alt_open = alt_p * 0.99
+    alt_open[340] = np.nan  # NaN esattamente il giorno di esecuzione dello stop deciso al giorno 339
+    alt_df = pd.DataFrame({
+        "Open": alt_open, "High": alt_p * 1.03, "Low": alt_p * 0.97, "Close": alt_p, "Volume": alt_vol,
+    }, index=dates)
+
+    cfg = CryptoVentureConfig(
+        universe_mode="UNCONSTRAINED", max_slots=7, macro_btc_slow_days=280,
+        altseason_breadth_pct=0.0, altseason_rs_spread_pct=0.0,
+    )
+    matrices = precompute_market_matrices({"BTC-USD": btc_df, "ALT-USD": alt_df}, cfg)
+    res = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
+
+    assert len(res["completed_trades"]) == 1
+    trade = res["completed_trades"][0]
+    assert trade.exit_reason == "ATR_STOP_CLOSE", (
+        f"lo stop ATR deciso al giorno 339 deve eseguire (ritentato il giorno dopo la Open "
+        f"NaN), non sparire nel nulla e far chiudere la posizione molto piu' tardi per un "
+        f"motivo estraneo (ottenuto: {trade.exit_reason})"
+    )
+
+
+def test_nan_close_gap_does_not_create_phantom_drawdown():
+    """Un buco di 3 giorni nel feed prezzi (Close/High/Low/Open tutti NaN, es. un
+    guasto temporaneo del data provider) su una posizione aperta non deve produrre
+    un drawdown fantasma: l'equity deve restare CONSTANTE durante il buco (valorizzata
+    all'ultimo prezzo noto) e RICONVERGERE esattamente con lo scenario senza buco non
+    appena i dati riprendono (bug confermato da audit di robustezza indipendente:
+    prima del fix, una posizione con Close NaN veniva esclusa dalla somma dell'equity,
+    cioe' valorizzata a $0 per quei giorni, per poi "risalire" di colpo al ritorno dei
+    dati — un artefatto puro, senza alcun movimento di mercato reale dietro).
+
+    Costruzione: ALT-USD fa breakout, scatta il free-ride, poi cresce in modo continuo
+    e monotono (sempre nuovi massimi, cosi' non scatta mai il time-stop) — cosi' la
+    posizione resta aperta abbastanza a lungo da attraversare un buco di 3 giorni
+    iniettato molto piu' avanti nella serie."""
+    n = 500
+    dates = pd.date_range("2020-01-01", periods=n, freq="D")
+    btc_p = np.linspace(10000, 60000, n)
+    btc_df = pd.DataFrame({
+        "Open": btc_p * 0.99, "High": btc_p * 1.02, "Low": btc_p * 0.98, "Close": btc_p,
+        "Volume": np.full(n, 1_000_000.0),
+    }, index=dates)
+
+    alt_p = np.full(n, 10.0)
+    alt_vol = np.full(n, 1_000_000.0)
+    for i in range(290, 320):
+        alt_p[i] = 10.0 + (i - 289) * 0.6
+        alt_vol[i] = 5_000_000.0
+    for i in range(320, n):
+        alt_p[i] = alt_p[319] * (1.0 + 0.004) ** (i - 319)  # crescita continua, sempre nuovi massimi
+
+    def build_alt_df(gap_indices):
+        open_, high, low, close = alt_p * 0.99, alt_p * 1.03, alt_p * 0.97, alt_p.copy()
+        if gap_indices:
+            open_, high, low, close = open_.copy(), high.copy(), low.copy(), close.copy()
+            for i in gap_indices:
+                open_[i] = high[i] = low[i] = close[i] = np.nan
+        return pd.DataFrame({"Open": open_, "High": high, "Low": low, "Close": close, "Volume": alt_vol}, index=dates)
+
+    cfg = CryptoVentureConfig(
+        universe_mode="UNCONSTRAINED", max_slots=7, macro_btc_slow_days=280,
+        altseason_breadth_pct=0.0, altseason_rs_spread_pct=0.0,
+    )
+    gap_idx = [420, 421, 422]
+
+    matrices_gap = precompute_market_matrices({"BTC-USD": btc_df, "ALT-USD": build_alt_df(gap_idx)}, cfg)
+    res_gap = run_crypto_venture_backtest(matrices_gap, cfg, tax_enabled=False)
+    s_equity_gap = res_gap["equity_curve"]
+
+    matrices_nogap = precompute_market_matrices({"BTC-USD": btc_df, "ALT-USD": build_alt_df(None)}, cfg)
+    res_nogap = run_crypto_venture_backtest(matrices_nogap, cfg, tax_enabled=False)
+    s_equity_nogap = res_nogap["equity_curve"]
+
+    d_before_gap = dates[419]
+    equity_before_gap = s_equity_gap.loc[d_before_gap]
+    for i in gap_idx:
+        assert s_equity_gap.loc[dates[i]] == pytest.approx(equity_before_gap), (
+            f"l'equity durante il buco dati (giorno {dates[i].date()}) deve restare uguale "
+            f"all'ultimo valore noto prima del buco, non crollare del valore della posizione esclusa"
+        )
+
+    d_after_gap = dates[gap_idx[-1] + 1]
+    assert s_equity_gap.loc[d_after_gap] == pytest.approx(s_equity_nogap.loc[d_after_gap]), (
+        "appena i dati riprendono l'equity deve riconvergere esattamente con lo scenario "
+        "senza buco, senza alcun salto residuo (drawdown fantasma seguito da un recupero di colpo)"
+    )
+
+
 def test_end_to_end_crypto_venture_engine():
     """Test end-to-end sul dataset storico reale della cache (Lordo e Netto Fiscale)."""
     cache_dir = "research/crypto_ohlcv_extended_cache"
@@ -463,6 +585,53 @@ def test_evaluate_daily_crypto_frontier_exits():
     res5 = evaluate_daily_crypto_frontier(pos5, 20.0, {"BTC-USD": btc_df, "SOL-USD": sol_df_time}, "2026-09-13", kraken_universe=["BTC", "SOL"])
     assert any("TIME_STOP_21D" in s["desc"] for s in res5["sells"])
     assert "SOL" not in res5["updated_positions"]
+
+
+def test_evaluate_daily_crypto_frontier_nan_low_does_not_disable_circuit_breaker():
+    """Un Low mancante (NaN) nel feed di oggi, con Close comunque valido e ben oltre
+    la soglia di emergenza, non deve disattivare silenziosamente il circuit breaker
+    -50% (bug confermato da audit di robustezza indipendente: un confronto
+    `cur_low <= emerg_px` con cur_low=NaN e' sempre False in Python, quindi un dropout
+    parziale del feed - solo il campo Low mancante - disattivava SOLO questo controllo
+    di emergenza, lasciando tutto il resto silenziosamente invariato)."""
+    dates = pd.date_range("2025-01-01", periods=300, freq="D")
+    btc_df = pd.DataFrame({
+        "Open": np.linspace(30000, 90000, 300), "High": np.linspace(30500, 91000, 300),
+        "Low": np.linspace(29500, 89000, 300), "Close": np.linspace(30000, 90000, 300),
+        "Volume": np.full(300, 1e6),
+    }, index=dates)
+
+    # entry=100, Close=40 (-60%, ben oltre la soglia -50%), Low=NaN
+    sol_df_nan_low = pd.DataFrame({
+        "Open": [45.0], "High": [46.0], "Low": [np.nan], "Close": [40.0], "Volume": [1e6],
+    }, index=[dates[-1]])
+    pos = {"SOL": {"entry_price": 100.0, "current_price": 100.0, "weight": 0.02857, "is_crypto": True, "atr_entry": 8.0}}
+    res = evaluate_daily_crypto_frontier(pos, 20.0, {"BTC-USD": btc_df, "SOL-USD": sol_df_nan_low}, "2026-09-13", kraken_universe=["BTC", "SOL"])
+    assert any("EMERGENCY_CIRCUIT_50" in s["desc"] for s in res["sells"]), (
+        "il circuit breaker deve scattare comunque (fallback sul Close) anche con Low mancante"
+    )
+    assert "SOL" not in res["updated_positions"]
+
+
+def test_evaluate_daily_crypto_frontier_nan_close_skips_position_without_poisoning_price():
+    """Un Close mancante (NaN) nel feed di oggi non deve propagarsi in
+    pos['current_price'] (che altrimenti arriva fino alla dashboard e al messaggio
+    Telegram di P&L aggregato) — la posizione va saltata per quel giorno, non
+    aggiornata con un prezzo NaN (bug confermato da audit di robustezza indipendente)."""
+    dates = pd.date_range("2025-01-01", periods=300, freq="D")
+    btc_df = pd.DataFrame({
+        "Open": np.linspace(30000, 90000, 300), "High": np.linspace(30500, 91000, 300),
+        "Low": np.linspace(29500, 89000, 300), "Close": np.linspace(30000, 90000, 300),
+        "Volume": np.full(300, 1e6),
+    }, index=dates)
+    sol_df_nan_close = pd.DataFrame({
+        "Open": [95.0], "High": [96.0], "Low": [94.0], "Close": [np.nan], "Volume": [1e6],
+    }, index=[dates[-1]])
+    pos = {"SOL": {"entry_price": 100.0, "current_price": 98.0, "weight": 0.02857, "is_crypto": True, "atr_entry": 8.0}}
+    res = evaluate_daily_crypto_frontier(pos, 20.0, {"BTC-USD": btc_df, "SOL-USD": sol_df_nan_close}, "2026-09-13", kraken_universe=["BTC", "SOL"])
+    assert "SOL" in res["updated_positions"], "senza dati validi oggi la posizione resta aperta, non viene chiusa a caso"
+    assert not pd.isna(res["updated_positions"]["SOL"]["current_price"]), "current_price non deve mai diventare NaN"
+    assert res["updated_positions"]["SOL"]["current_price"] == 98.0, "senza un Close valido oggi, il prezzo resta quello di ieri"
 
 
 def test_evaluate_daily_crypto_frontier_ballast_and_zero_alloc():
