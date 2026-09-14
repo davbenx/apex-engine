@@ -336,21 +336,16 @@ def test_apex_trades_register_renderers():
     assert not emoji_pattern.findall(html_open)
 
 
-def test_apex_full_historical_trades_integrity():
+def test_apex_full_historical_trades_integrity(historical_trades_json_path, historical_trades_csv_path):
     """Verifica l'integrità, la completezza e l'assenza di lookahead/emoji nel registro storico completo (1987-Oggi)."""
     import json
     import re
-    from pathlib import Path
     import page_apex
 
-    repo_root = Path(__file__).resolve().parent.parent.parent
-    json_path = repo_root / "apex_full_historical_trades.json"
-    csv_path = repo_root / "apex_full_historical_trades.csv"
+    assert historical_trades_json_path.exists(), f"apex_full_historical_trades.json non trovato in {historical_trades_json_path}"
+    assert historical_trades_csv_path.exists(), f"apex_full_historical_trades.csv non trovato in {historical_trades_csv_path}"
 
-    assert json_path.exists(), f"apex_full_historical_trades.json non trovato in {repo_root}"
-    assert csv_path.exists(), f"apex_full_historical_trades.csv non trovato in {repo_root}"
-
-    with open(json_path, encoding="utf-8") as f:
+    with open(historical_trades_json_path, encoding="utf-8") as f:
         trades = json.load(f)
 
     # 1. Almeno 1000 trade storici registrati
@@ -411,7 +406,7 @@ def test_apex_full_historical_trades_integrity():
     # 5. Assoluta assenza di emoji
     emoji_pattern = re.compile(r"[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
     assert not emoji_pattern.findall(html_out), "Trovate emoji nella tabella HTML renderizzata"
-    with open(json_path, encoding="utf-8") as f:
+    with open(historical_trades_json_path, encoding="utf-8") as f:
         json_content = f.read()
     assert not emoji_pattern.findall(json_content), "Trovate emoji nel file JSON dei trade storici"
 

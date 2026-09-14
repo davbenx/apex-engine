@@ -31,26 +31,30 @@ solo la parte di test/ricerca/validazione e i dataset point-in-time.
 validation_suite/
 ├── README.md                    <- questo file
 ├── EDGE_CHECKLIST.md            <- checklist Edge/Apex/Convex fornita dall'utente, NON verificata contro il codice (vedi "Idee in coda")
-├── conftest.py                  <- risolve per pytest gli import dei moduli di produzione in root + framework/
-├── pytest.ini                   <- testpaths = framework, kelly_stack, core_regression (comparative_studies escluso: lento)
+├── conftest.py                  <- fixture centralizzate (session-scoped) e risoluzione percorsi di import
+├── pytest.ini                   <- testpaths = framework, kelly_stack, core_regression, datasets (comparative_studies escluso: lento)
 ├── requirements-test.txt        <- dipendenze SOLO per eseguire questa cartella (pytest)
-├── run_fast_suite.sh            <- comando unico: tutta la suite veloce/deterministica, da qualunque cwd
+├── run_fast_suite.sh            <- comando unico: tutta la suite veloce/deterministica (177 test), da qualunque cwd
+├── datasets/                    <- VALIDAZIONE DATASET COMPLETI, serie macro e registri storici
+│   └── test_datasets_integrity.py <- 10 test quantitativi su continuità macro (1960-2026), PIT, proxy delistati, trade storici
 ├── framework/                    <- TOOLKIT GENERICO, riusabile da QUALSIASI strategia (non specifico a Kelly Stack)
 │   ├── metrics.py                <- cagr/sharpe/max_drawdown/calmar
 │   ├── tax_engine.py              <- apply_italian_tax (redditi capitale/diversi, PMC, NAV/nozionale separati)
 │   ├── statistical_validation.py <- Deflated Sharpe Ratio, PBO/CSCV, block bootstrap CI (Bailey/Lopez de Prado)
-│   └── test_*.py                 <- 19 test sui 3 moduli sopra
+│   └── test_*.py                 <- 35 test sui 3 moduli sopra
 ├── core_regression/              <- suite di non-regressione per il sistema LIVE (in CI, .github/workflows/ci.yml)
-│   ├── test_apex_convex.py                        <- integrazione Apex+Convex+PortfolioManager (16 test)
-│   ├── test_apex_v2_engine.py                     <- motore di segnale/basket Apex V2 canonico (13 test)
+│   ├── test_apex_convex.py                        <- integrazione Apex+Convex+PortfolioManager (17 test)
+│   ├── test_apex_v2_engine.py                     <- motore di segnale/basket Apex V2 canonico (29 test)
 │   ├── test_backend.py                            <- NAV/tassazione/rotazione/calendario/fetch_sector (19 test)
+│   ├── test_bugfixes_hardening.py                 <- regressione forense, assenza emoji, percorsi dinamici (14 test)
+│   ├── test_crypto_frontier_venture.py            <- motore Crypto Frontier Venture live (9 test)
 │   └── test_apex_v2_institutional_validation.py   <- DSR/PBO/bootstrap sulla VERA serie di rendimenti Apex V2 (6 test)
 ├── kelly_stack/                  <- modulo di ricerca "Kelly Stack" (3° pilastro esplorato, NON adottato)
 │   ├── KELLY_STACK_SPEC.md       <- spec/diario di validazione completo, incl. perché è stato scartato (§7)
 │   ├── kelly_engine.py           <- pesi Kelly vincolati (QP long-only), governor di rischio
 │   ├── kelly_optimization.py     <- solver QP (projected gradient ascent)
 │   ├── kelly_backtest.py         <- fetch universo, walk-forward (usa framework/metrics.py e tax_engine.py)
-│   └── test_kelly_*.py           <- 36 test (pytest) sui 3 moduli sopra
+│   └── test_kelly_*.py           <- 38 test (pytest) sui 3 moduli sopra
 ├── comparative_studies/          <- script di backtest indipendenti, uno-per-domanda, non un motore persistente
 │   ├── apex_stocks_vs_etf_backtest.py     <- basket azionario Apex vs ETF, netto tasse, point-in-time
 │   ├── altcoin_vs_btc_backtest.py         <- altcoin vs BTC, SETTIMANALE/universo fisso ETH+SOL — superata dalla successiva
