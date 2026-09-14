@@ -36,8 +36,8 @@ except Exception as _reload_err:
 # HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
 from ui_components import (
-    st_html, fill_slot, inject_page_styles, section_title, sub_hero_metric,
-    render_monthly_returns_html_table, get_logo_b64,
+    st_html, inject_page_styles, section_title, sub_hero_metric,
+    render_monthly_returns_html_table,
     POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
     BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
 )
@@ -117,41 +117,6 @@ def render_convex_positions_html_table(df, show_details=False):
 
 
 
-def get_logo_b64():
-    import base64
-    for p in ["logo_icon.png", "logo.png"]:
-        if os.path.exists(p):
-            try:
-                with open(p, "rb") as f:
-                    return base64.b64encode(f.read()).decode()
-            except Exception:
-                pass
-    return ""
-
-def render_html_table(df, right_align_cols=None):
-    right_align_cols = right_align_cols or []
-    th_cells = "".join(
-        f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; '
-        f'text-align:{"right" if c in right_align_cols else "left"}; text-transform:uppercase; '
-        f'border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>'
-        for c in df.columns
-    )
-    rows_html = []
-    for _, r in df.iterrows():
-        td_cells = "".join(
-            f'<td style="padding:10px 14px; font-size:12.5px; '
-            f'text-align:{"right" if c in right_align_cols else "left"}; '
-            f'font-family:{MONO if c in right_align_cols else "inherit"};">{r[c]}</td>'
-            for c in df.columns
-        )
-        rows_html.append(f'<tr style="border-bottom:1px solid {BORDER};">{td_cells}</tr>')
-    return (
-        f'<div style="width:100%; overflow-x:auto; border:1px solid {BORDER}; border-radius:8px; '
-        f'background:rgba(255,247,237,0.02); margin-bottom:14px;">'
-        f'<table style="width:100%; border-collapse:collapse; text-align:left;">'
-        f'<thead><tr>{th_cells}</tr></thead><tbody>{"".join(rows_html)}</tbody></table></div>'
-    )
-
 # ==============================================================================
 # PREZZI LIVE DEI 5 STRUMENTI (cache 15 minuti, fallback dichiarato se il
 # recupero fallisce — mai spacciato per prezzo di mercato)
@@ -230,9 +195,6 @@ convex_prices, convex_prices_live = fetch_convex_live_prices()
 # ==============================================================================
 # INTESTAZIONE
 # ==============================================================================
-_logo_b64 = get_logo_b64()
-_logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />'
-             if _logo_b64 else '')
 
 _cp_data = portfolio_manager.load_convex_portfolio()
 _last_updated = _cp_data.get("last_updated")
@@ -277,85 +239,26 @@ with col_stat:
 tab_pf, tab_metriche, tab_guida = st.tabs(["Portafoglio", "Metriche", "Guida"])
 
 with tab_pf:
-    hero_slot = st.empty()
-
     active_instruments = convex_engine.CONVEX_INSTRUMENTS
-
-    # ==========================================================================
-    # MODULO DI INPUT — Quote possedute & Cassa (Layout 2 colonne pulito)
-    # ==========================================================================
     cfg = portfolio_manager.load_config()
-    _saved_holdings = {k: v.get("shares", 0.0) for k, v in _cp_data.get("holdings", {}).items()}
+    _saved_holdings = {k: float(v.get("shares", 0.0)) for k, v in _cp_data.get("holdings", {}).items()}
     _saved_cash = float(_cp_data.get("cash_eur", 0.0))
-
-    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=False):
-        st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità per il PAC mensile.")
-        col_inp1, col_inp2 = st.columns(2)
-        instr_list = list(active_instruments.items())
-        half = (len(instr_list) + 1) // 2
-        convex_holdings = {}
-        with col_inp1:
-            for key, info in instr_list[:half]:
-                convex_holdings[key] = st.number_input(
-                    f"{key} — {info['name']}",
-                    min_value=0.0,
-                    value=float(_saved_holdings.get(key, 0.0)),
-                    step=1.0,
-                    format="%.2f",
-                    help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)")
-                )
-        with col_inp2:
-            for key, info in instr_list[half:]:
-                convex_holdings[key] = st.number_input(
-                    f"{key} — {info['name']}",
-                    min_value=0.0,
-                    value=float(_saved_holdings.get(key, 0.0)),
-                    step=1.0,
-                    format="%.2f",
-                    help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)")
-                )
-
-        c_pac, c_cash = st.columns(2)
-        with c_pac:
-            _saved_pac = float(cfg.get("monthly_pac_eur", 0.0))
-            pac_input = st.number_input(
-                "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
-                value=_saved_pac or 500.0, step=50.0, format="%.0f"
-            )
-        with c_cash:
-            cash_input = st.number_input(
-                "Cassa Residua Non Investita (€)", min_value=0.0,
-                value=_saved_cash, step=50.0, format="%.0f"
-            )
-
-        if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
-            _new_portfolio = {
-                "cash_eur": cash_input,
-                "holdings": {k: {"shares": v, "last_price": convex_prices.get(k, 0.0)} for k, v in convex_holdings.items()},
-                "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
-            }
-            _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
-            portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
-            if _ok_p:
-                st.toast("Quote Convex salvate con successo.")
-            else:
-                st.error("Errore nel salvataggio.")
-
+    _saved_pac = float(cfg.get("monthly_pac_eur", 500.0))
 
     convex_report = convex_engine.evaluate_convex_stack(
-        current_holdings=convex_holdings,
+        current_holdings=_saved_holdings,
         market_prices=convex_prices,
-        monthly_pac_eur=pac_input,
-        cash_balance=cash_input,
+        monthly_pac_eur=_saved_pac,
+        cash_balance=_saved_cash,
         instruments=active_instruments
     )
 
-    # Riempimento Hero Banner
+    # Hero Banner
     _tot_live = convex_report.total_value
     _val_str = f"€ {_tot_live:,.0f}" if _tot_live > 0 else "n/d"
     _ntsg_w = active_instruments.get("NTSG", {}).get("target_weight", 0.0)
     _notional_pct = (1.0 + 0.5 * _ntsg_w) * 100.0
-    fill_slot(hero_slot, f"""
+    st_html(f"""
     <div style="padding: 16px 2px 4px;">
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: {MUTED}; margin-bottom: 8px;">Valore Portafoglio Convex</div>
         <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
@@ -366,24 +269,7 @@ with tab_pf:
     </div>
     """)
 
-    # Barra di Allocazione Orizzontale (Identica ad Apex Engine)
-    if convex_report.total_value > 0:
-        st_html(section_title("Composizione del Portafoglio"))
-        alloc_segments = [(k, convex_report.assets[k].current_weight * 100.0, _COLOR_MAP.get(k, ACCENT)) for k in active_instruments]
-        cash_val = convex_report.total_value - sum(convex_report.assets[k].current_value for k in active_instruments)
-        cash_pct = max(0.0, (cash_val / convex_report.total_value) * 100.0) if convex_report.total_value > 0 else 0.0
-        if cash_pct > 0.01:
-            alloc_segments.append(("Liquidità", cash_pct, _COLOR_MAP.get("Liquidità", "#8E877F")))
-        bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
-        legend_items = "".join(
-            f'<div style="display:flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14, color=color)} <span style="opacity:0.85;">{k}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
-            for k, pct, color in alloc_segments
-        )
-
-        st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
-        st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
-
-    # Azione del Mese PAC
+    # 1. Azione del Mese PAC (Water-Filling)
     pac_act = convex_report.pac_action
     if pac_act and convex_report.total_value > 0:
         st_html(f"""
@@ -410,6 +296,7 @@ with tab_pf:
     elif convex_report.total_value <= 0:
         st.info("Inserisci le tue quote per ricevere il consiglio operativo di questo mese.")
 
+    # 2. Verifica Soglie di Trim
     if convex_report.trim_alerts:
         for al in convex_report.trim_alerts:
             st_html(f"""
@@ -433,7 +320,24 @@ with tab_pf:
         </div>
         """)
 
-    # Posizioni Attuali in Tabella HTML Styled
+    # 3. Composizione del Portafoglio
+    if convex_report.total_value > 0:
+        st_html(section_title("Composizione del Portafoglio"))
+        alloc_segments = [(k, convex_report.assets[k].current_weight * 100.0, _COLOR_MAP.get(k, ACCENT)) for k in active_instruments]
+        cash_val = convex_report.total_value - sum(convex_report.assets[k].current_value for k in active_instruments)
+        cash_pct = max(0.0, (cash_val / convex_report.total_value) * 100.0) if convex_report.total_value > 0 else 0.0
+        if cash_pct > 0.01:
+            alloc_segments.append(("Liquidità", cash_pct, _COLOR_MAP.get("Liquidità", "#8E877F")))
+        bar_segs = "".join(f'<div style="height:100%; width:{pct:.2f}%; background:{color};"></div>' for _, pct, color in alloc_segments)
+        legend_items = "".join(
+            f'<div style="display:flex; align-items:center; gap:6px;">{get_convex_class_svg(k, size=14, color=color)} <span style="opacity:0.85;">{k}</span> <b style="font-family:{MONO}; font-weight:700;">{pct:.1f}%</b></div>'
+            for k, pct, color in alloc_segments
+        )
+
+        st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
+        st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
+
+    # 4. Posizioni Attive nel Portafoglio
     if convex_report.total_value > 0:
         c_title, c_tog = st.columns([3, 2])
         with c_title:
@@ -460,6 +364,62 @@ with tab_pf:
                 "Regime Fiscale": "Reddito Diverso (compensa minus)" if st_info.tax_type == "REDDITO_DIVERSO" else "Reddito di Capitale (non compensa)"
             })
         st_html(render_convex_positions_html_table(pd.DataFrame(cx_rows), show_details=show_cx_details))
+
+    # 5. Modulo di Configurazione Quote e Parametri (in calce alla scheda)
+    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=False):
+        st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità per il PAC mensile.")
+        col_inp1, col_inp2 = st.columns(2)
+        instr_list = list(active_instruments.items())
+        half = (len(instr_list) + 1) // 2
+        input_holdings = {}
+        with col_inp1:
+            for key, info in instr_list[:half]:
+                input_holdings[key] = st.number_input(
+                    f"{key} — {info['name']}",
+                    min_value=0.0,
+                    value=float(_saved_holdings.get(key, 0.0)),
+                    step=1.0,
+                    format="%.2f",
+                    help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)"),
+                    key=f"cx_inp_{key}"
+                )
+        with col_inp2:
+            for key, info in instr_list[half:]:
+                input_holdings[key] = st.number_input(
+                    f"{key} — {info['name']}",
+                    min_value=0.0,
+                    value=float(_saved_holdings.get(key, 0.0)),
+                    step=1.0,
+                    format="%.2f",
+                    help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)"),
+                    key=f"cx_inp_{key}"
+                )
+
+        c_pac, c_cash = st.columns(2)
+        with c_pac:
+            pac_input = st.number_input(
+                "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
+                value=_saved_pac, step=50.0, format="%.0f", key="cx_pac_input"
+            )
+        with c_cash:
+            cash_input = st.number_input(
+                "Cassa Residua Non Investita (€)", min_value=0.0,
+                value=_saved_cash, step=50.0, format="%.0f", key="cx_cash_input"
+            )
+
+        if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
+            _new_portfolio = {
+                "cash_eur": cash_input,
+                "holdings": {k: {"shares": v, "last_price": convex_prices.get(k, 0.0)} for k, v in input_holdings.items()},
+                "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
+            }
+            _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
+            portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
+            if _ok_p:
+                st.toast("Quote Convex salvate con successo.")
+                st.rerun()
+            else:
+                st.error("Errore nel salvataggio.")
 
 
 with tab_metriche:

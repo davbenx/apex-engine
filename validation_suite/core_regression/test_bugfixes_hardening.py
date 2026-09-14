@@ -261,10 +261,12 @@ def test_trade_orders_and_action_log_renderers():
     actions = [
         "INCREMENTO: Bitcoin | Riallocazione +15.4% | Prezzo: $76,652.09",
         "CHIUSURA: KIM | Vende 2.13% del capitale (100% posizione) | Prezzo: $24.03 | P&L: +3.39%",
+        "MANTENIMENTO: BTC | Allocazione 15.9% | Prezzo: $76,793.20",
     ]
     html_log = page_apex.render_action_log_html_table(actions)
     assert "INCREMENTO" in html_log
     assert "CHIUSURA" in html_log
+    assert "MANTENIMENTO" in html_log
     assert "76,652.09" in html_log
 
     # 3. Verifica assenza di emoji in portfolio.json

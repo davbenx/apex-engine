@@ -35,8 +35,8 @@ except Exception as _reload_err:
 # HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
 from ui_components import (
-    st_html, fill_slot, inject_page_styles, section_title, sub_hero_metric,
-    render_monthly_returns_html_table, get_logo_b64,
+    st_html, inject_page_styles, section_title, sub_hero_metric,
+    render_monthly_returns_html_table,
     POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
     BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
 )
@@ -120,12 +120,8 @@ unified_data = portfolio_manager.compute_unified_portfolio(
 )
 
 # ==============================================================================
-# INTESTAZIONE BRANDING (Identica ad Apex Engine)
+# INTESTAZIONE BRANDING
 # ==============================================================================
-_logo_b64 = get_logo_b64()
-_logo_tag = (f'<img src="data:image/png;base64,{_logo_b64}" style="height: 48px; width: auto; object-fit: contain;" />'
-             if _logo_b64 else '')
-
 _last_sync_str = apex_data.get("timestamp", datetime.date.today().strftime("%Y-%m-%d"))
 _both_ok = not (apex_portfolio.get("pending_orders")) and not (_cx_rep.trim_alerts)
 _status_dot_color = POS if _both_ok else ACCENT
@@ -232,27 +228,20 @@ with tab_pf:
         </div>
         """)
 
-    if _pending_orders or _cx_rep.trim_alerts:
-        alert_lines = []
-        if _pending_orders:
-            alert_lines.append(f"<b>Apex Engine</b>: {len(_pending_orders)} ordini operativi pronti per Lunedì ore 15:30 CET (Apertura NYSE). Consulta la scheda Apex Engine per l'elenco completo con quote e controvalori.")
-        if _cx_rep.trim_alerts:
-            alert_lines.append(f"<b>Convex Stack</b>: {len(_cx_rep.trim_alerts)} strumento/i sopra la soglia di tolleranza (+75% dal target). Consulta la scheda Convex Stack per le quote consigliate da vendere.")
-        items_html = "".join(f'<li style="margin-bottom:5px;">{line}</li>' for line in alert_lines)
-        st_html(f"""
-        <div style="background:rgba(201,164,76,0.08); border:1px solid rgba(201,164,76,0.35); border-radius:8px; padding:12px 18px; margin:12px 0 16px;">
-            <div style="font-weight:700; font-size:13px; color:#f5d77f; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f5d77f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                Azioni Operative Richieste per l'Inizio Settimana
-            </div>
-            <ul style="margin:0; padding-left:18px; font-size:12px; color:{BADGE_TEXT}; line-height:1.5;">
-                {items_html}
-            </ul>
+    # 3. Ribilanciamento consigliato tra i due motori
+    st_html(section_title("Ribilanciamento consigliato"))
+    st_html(f"""
+    <div class="glass-card-accent">
+        <div style="font-size:14px; font-weight:700; color:{ACCENT}; margin-bottom:4px;">
+            DIREZIONE CONSIGLIATA PER IL PROSSIMO VERSAMENTO PAC: {unified_data['smart_flow_destination'].upper()}
         </div>
-        """)
+        <div style="font-size:12.5px; color:{BADGE_TEXT}; line-height:1.5;">
+            {unified_data['smart_flow_note']}
+        </div>
+    </div>
+    """)
 
-
-    # 3. Distribuzione del Patrimonio per Classe di Attivo
+    # 4. Distribuzione del Patrimonio per Classe di Attivo
     st_html(section_title("Distribuzione del Patrimonio per Classe di Attivo"))
     _macro = unified_data["macro_breakdown"]
     canonical_classes = [
@@ -275,19 +264,6 @@ with tab_pf:
         )
         st_html(f'<div style="display:flex; height:12px; border-radius:6px; overflow:hidden; border:1px solid {BORDER_STRONG}; margin-bottom:12px;">{bar_segs}</div>')
         st_html(f'<div style="display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:20px; font-size:11.5px;">{legend_items}</div>')
-
-    # 4. Ribilanciamento consigliato
-    st_html(section_title("Ribilanciamento consigliato"))
-    st_html(f"""
-    <div class="glass-card-accent">
-        <div style="font-size:14px; font-weight:700; color:{ACCENT}; margin-bottom:4px;">
-            DIREZIONE CONSIGLIATA PER IL PROSSIMO VERSAMENTO PAC: {unified_data['smart_flow_destination'].upper()}
-        </div>
-        <div style="font-size:12.5px; color:{BADGE_TEXT}; line-height:1.5;">
-            {unified_data['smart_flow_note']}
-        </div>
-    </div>
-    """)
 
 
     # 7. Parametri di Simulazione e Rata PAC
