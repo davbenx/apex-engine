@@ -401,23 +401,23 @@ def get_apex_metrics() -> Dict[str, Any]:
     e il Max Drawdown storico multi-decennale (1987-2026) resta a -14.83%."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1548,
-        "cagr_gross": 0.2184,
-        "volatility": 0.1417,
-        "sharpe": 1.474,
-        "sortino": 2.456,
-        "max_drawdown": -0.1151,
-        "max_drawdown_storico": -0.1483,
-        "calmar": 1.898,
-        "ulcer_index": 3.93,
-        "volatility_netto_stimato": 0.1339,
-        "sharpe_netto_stimato": 1.146,
-        "sortino_netto_stimato": 1.885,
-        "max_drawdown_netto_stimato": -0.1676,
-        "calmar_netto_stimato": 0.923,
+        "cagr_net": 0.1550,
+        "cagr_gross": 0.2172,
+        "volatility": 0.1422,
+        "sharpe": 1.463,
+        "sortino": 2.365,
+        "max_drawdown": -0.1126,
+        "max_drawdown_storico": -0.1126,
+        "calmar": 1.928,
+        "ulcer_index": 4.43,
+        "volatility_netto_stimato": 0.1345,
+        "sharpe_netto_stimato": 1.144,
+        "sortino_netto_stimato": 1.807,
+        "max_drawdown_netto_stimato": -0.1657,
+        "calmar_netto_stimato": 0.936,
         "test_period": "2020–2026 (72 mesi)",
         "storico_period": "1987–2026 (471 mesi)",
-        "cash_drag_protection": "100% Liquidità nelle fasi orso di mercato",
+        "cash_drag_protection": "100% Liquidità remunerata a tassi governativi T-Bill 3M nelle fasi orso",
         "philosophy": "Selezione trimestrale di 15 azioni stabili dell'S&P 500, gestione dei trend macro con filtri anti-rumore, allocazione ponderata tra le classi attive e motore crypto a controllo del rischio."
     }
 
@@ -446,24 +446,24 @@ def get_combined_dual_engine_metrics() -> Dict[str, Any]:
     """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD 70/30."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1452,
-        "cagr_gross": 0.2058,
-        "volatility": 0.1168,
-        "sharpe": 1.671,
-        "sortino": 3.485,
+        "cagr_net": 0.1508,
+        "cagr_gross": 0.2049,
+        "volatility": 0.1176,
+        "sharpe": 1.655,
+        "sortino": 3.357,
         "max_drawdown": -0.0778,
-        "max_drawdown_storico": -0.1185,
-        "calmar": 2.646,
-        "ulcer_index": 2.15,
-        "correlation": 0.293,
+        "max_drawdown_storico": -0.0957,
+        "calmar": 2.635,
+        "ulcer_index": 2.28,
+        "correlation": 0.306,
         "test_period": "2020–2026 (72 mesi)",
         "storico_period": "1987–2026 (465 mesi)",
         "synergy_summary": (
             "Unire il 70% di Apex Engine e il 30% di Convex Stack massimizza il rendimento riducendo al minimo i rischi: "
-            "il portafoglio genera un rendimento del +20,58% medio annuo lordo (+14,52% netto stimato), con una perdita "
-            "massima contenuta ad appena il -7,78% negli ultimi 6 anni e al -11,85% nell'intero storico dal 1987. "
+            "il portafoglio genera un rendimento del +20,49% medio annuo lordo (+15,08% netto stimato), con una perdita "
+            "massima contenuta ad appena il -7,78% negli ultimi 6 anni e al -9,57% nell'intero storico dal 1987. "
             "Un risultato nettamente più sicuro rispetto ai singoli motori presi da soli, grazie alla bassissima "
-            "correlazione (0,29) che consente alle due strategie di compensarsi a vicenda."
+            "correlazione (0,31) che consente alle due strategie di compensarsi a vicenda."
         )
     }
 

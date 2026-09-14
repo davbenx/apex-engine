@@ -149,7 +149,9 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     ormai corretti solo su un lato del confronto."""
     snapshots = load_pointintime_snapshots()
     with open(DATA_DIR / "sp500_tickers.json") as f:
-        all_tickers = json.load(f)
+        current_tickers = json.load(f)
+    all_snapshot_tickers = set().union(*snapshots.values())
+    all_tickers = sorted(set(current_tickers).union(all_snapshot_tickers))
     stock_prices = {}
     for t in all_tickers:
         try:
@@ -161,13 +163,9 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     macro_prices = {ticker: spliced_price_index(*SPLICE_SPEC[ticker]) for ticker in V2_CLASS_TICKER.values()}
     equity_index_ret = spliced_return(*SPLICE_SPEC["SPY"])  # rendimento indice puro, usato come proxy pre-2012 per lo slot Equity
 
-    # Solo SPY(proxy)/IEF(proxy) determinano l'inizio del walk-forward (VFINX/
-    # VUSTX dal 1986-09): Gold (proxy dal 2000-08) e Crypto (dal 2014-09)
-    # contribuiscono 0% finche' non hanno 40 settimane proprie di storico,
-    # gestito nativamente da compute_v2_macro_signal — NON si intersecano i 4
-    # indici sull'ultimo ad iniziare, altrimenti si perderebbero ~14 anni di
-    # storia Equity/Bonds pre-Gold-proxy/pre-BTC.
-    common_index = macro_prices["SPY"].index.intersection(macro_prices["IEF"].index)
+    # SPY, IEF e GLD (LBMA dal 1986-09) determinano l'inizio del walk-forward (1986-09).
+    # Crypto (da agosto 2010) contribuisce dal momento in cui raggiunge 40 settimane (maggio 2011).
+    common_index = macro_prices["SPY"].index.intersection(macro_prices["IEF"].index).intersection(macro_prices["GLD"].index)
     weeks = list(common_index.sort_values())
     n = len(weeks)
 
@@ -328,7 +326,21 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     })
     tax_types = {"Equity": "REDDITO_DIVERSO", "Bonds": "REDDITO_CAPITALE", "Gold": "REDDITO_DIVERSO", "Crypto": "REDDITO_DIVERSO"}
 
-    port_gross = (returns_df_gross * weights_df).sum(axis=1)
+    # Remunerazione della liquidita' non allocata con il tasso T-Bill 3M reale (US_3M_TBILL_weekly.csv)
+    tbill_file = EXT_DATA_DIR / "US_3M_TBILL_weekly.csv"
+    if tbill_file.exists():
+        tbill_df = pd.read_csv(tbill_file, index_col=0, parse_dates=True)
+        tbill_rate = tbill_df.iloc[:, 0].reindex(idx).ffill().bfill()
+        cash_weekly_ret = (tbill_rate / 100.0) / 52.0
+    else:
+        cash_weekly_ret = pd.Series(0.0, index=idx)
+
+    cash_weight = (1.0 - weights_df.sum(axis=1)).clip(lower=0.0)
+    cash_gross_contrib = cash_weight * cash_weekly_ret
+    # Tassazione white list titoli di stato / liquidita' governativa al 12.5%
+    cash_net_contrib = cash_weight * cash_weekly_ret * (1.0 - 0.125)
+
+    port_gross = (returns_df_gross * weights_df).sum(axis=1) + cash_gross_contrib
     weight_change = weights_df.diff().abs().sum(axis=1).fillna(0.0)
     cost_bps_map = {"Equity": BASKET_STOCK_COST_BPS, "Bonds": 0.0008, "Gold": 0.0010, "Crypto": 0.0010}
     basket_turnover_series = pd.Series(basket_turnover_cost[valid_from:], index=idx)
@@ -338,7 +350,7 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     # concern #4 dell'audit, invisibile al turnover di classe per costruzione).
     cost_drag = weight_change * np.mean(list(cost_bps_map.values())) + basket_turnover_series
     port_gross_after_costs = port_gross - cost_drag
-    port_net = _apply_italian_tax(returns_df_net, weights_df, tax_types=tax_types)
+    port_net = _apply_italian_tax(returns_df_net, weights_df, tax_types=tax_types) + cash_net_contrib
     port_net_after_costs = port_net - cost_drag
 
     if return_components:

@@ -121,8 +121,8 @@
             "weight": 0.022330568018775688
         },
         "BTC": {
-            "entry_date": "2026-09-13",
-            "entry_price": 77173.7265625,
+            "entry_date": "2026-08-24",
+            "entry_price": 78564.9765625,
             "current_price": 76793.203125,
             "stop_loss": 0.0,
             "is_crypto": true,
@@ -2792,17 +2792,6 @@
             "weight": 0.014323,
             "reason": "Ribilanciamento mensile (trim parziale)",
             "is_crypto": false
-        },
-        {
-            "ticker": "BTC",
-            "entry_date": "2026-08-24",
-            "exit_date": "2026-09-13",
-            "entry_price": 78564.9765625,
-            "exit_price": 77191.4375,
-            "profit_pct": -1.75,
-            "weight": 0.32613,
-            "reason": "Regime macro crypto disattivato o Bear Market Bitcoin",
-            "is_crypto": true
         }
     ],
     "v2_migrated": true,
@@ -2811,7 +2800,7 @@
     "pending_orders": [],
     "pending_orders_date": "2026-09-13",
     "last_action_log": [
-        "INCREMENTO: Bitcoin | Riallocazione +15.4% | Prezzo: $76,652.09"
+        "MANTENIMENTO: Bitcoin Core Ballast | Allocazione 15.9% | Prezzo: $76,793.20"
     ],
     "last_action_date": "2026-09-13"
 }

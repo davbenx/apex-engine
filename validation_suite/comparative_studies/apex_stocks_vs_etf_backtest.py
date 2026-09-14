@@ -125,9 +125,31 @@ def load_weekly_macro(ticker: str) -> pd.Series:
     return pd.read_csv(DATA_DIR / f"{ticker.replace('-', '_')}_weekly.csv", index_col=0, parse_dates=True).iloc[:, 0]
 
 
+DELISTED_MAP_FILE = REPO_ROOT / "validation_suite" / "pointintime_data" / "delisted_proxy_map.json"
+_DELISTED_MAP = None
+
+
 def load_weekly_sp500(ticker: str) -> pd.Series:
+    global _DELISTED_MAP
     path = DATA_DIR / f"sp500_{ticker.replace('-', '_').replace('.', '_')}_weekly.csv"
-    return pd.read_csv(path, index_col=0, parse_dates=True).iloc[:, 0]
+    if path.exists():
+        return pd.read_csv(path, index_col=0, parse_dates=True).iloc[:, 0]
+
+    if _DELISTED_MAP is None and DELISTED_MAP_FILE.exists():
+        try:
+            with open(DELISTED_MAP_FILE) as f:
+                _DELISTED_MAP = json.load(f)
+        except Exception:
+            _DELISTED_MAP = {}
+
+    if _DELISTED_MAP and ticker in _DELISTED_MAP:
+        succ = _DELISTED_MAP[ticker].get("successor")
+        if succ:
+            succ_path = DATA_DIR / f"sp500_{succ.replace('-', '_').replace('.', '_')}_weekly.csv"
+            if succ_path.exists():
+                return pd.read_csv(succ_path, index_col=0, parse_dates=True).iloc[:, 0]
+
+    raise FileNotFoundError(f"Ticker {ticker} non trovato in apex_stocks_data")
 
 
 def build_ohlc_like(series: pd.Series) -> pd.DataFrame:
