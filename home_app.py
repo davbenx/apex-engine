@@ -132,7 +132,7 @@ with col_title:
     st_html(f"""
     <div style="padding: 2px 0 8px 0;">
         <div style="font-size: 13px; font-weight: 600; color: {MUTED}; text-transform: uppercase; letter-spacing: 0.5px;">
-            Visione d'Insieme
+            Visione d'Insieme · <span style="color: {ACCENT}; font-weight: 700;">Portafoglio Integrato</span>
         </div>
     </div>
     """)
