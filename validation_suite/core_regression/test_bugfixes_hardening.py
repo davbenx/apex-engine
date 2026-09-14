@@ -257,7 +257,7 @@ def test_trade_orders_and_action_log_renderers():
     assert "RIDUZIONE" in html_orders
     assert "Microsoft" in html_orders
 
-    # 2. Verifica render_action_log_html_table
+    # 2. Verifica render_action_log_html_table (solo azioni operative reali, esclude mantenimenti)
     actions = [
         "INCREMENTO: Bitcoin | Riallocazione +15.4% | Prezzo: $76,652.09",
         "CHIUSURA: KIM | Vende 2.13% del capitale (100% posizione) | Prezzo: $24.03 | P&L: +3.39%",
@@ -266,7 +266,7 @@ def test_trade_orders_and_action_log_renderers():
     html_log = page_apex.render_action_log_html_table(actions)
     assert "INCREMENTO" in html_log
     assert "CHIUSURA" in html_log
-    assert "MANTENIMENTO" in html_log
+    assert "MANTENIMENTO" not in html_log
     assert "76,652.09" in html_log
 
     # 3. Verifica assenza di emoji in portfolio.json

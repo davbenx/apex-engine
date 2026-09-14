@@ -279,6 +279,14 @@ def render_orders_html_table(df, curr_sym):
 
 
 def render_action_log_html_table(actions):
+    # Mostra solo azioni reali (compravendite/variazioni quote). Esclude mantenimenti e non-azioni.
+    filtered_actions = [
+        a for a in actions
+        if not any(k in str(a).upper() for k in ("MANTENIMENTO", "HOLD", "ALLINEATO", "NESSUNA AZIONE"))
+    ]
+    if not filtered_actions:
+        return ""
+
     th_cols = ["Operazione", "Strumento", "Dettaglio Operativo", "Prezzo ($)"]
     th_cells = []
     for c in th_cols:
@@ -286,7 +294,7 @@ def render_action_log_html_table(actions):
         th_cells.append(f'<th style="padding:10px 14px; font-weight:600; color:{MUTED}; font-size:11px; text-align:{align}; text-transform:uppercase; border-bottom:1px solid {BORDER_STRONG}; position:sticky; top:0; background:#141210; z-index:2;">{c}</th>')
 
     rows_html = []
-    for act_str in actions:
+    for act_str in filtered_actions:
         clean = act_str.strip().replace("[", "").replace("]", "").replace("TRIM:", "RIDUZIONE:")
         parts = [p.strip() for p in clean.split("|")]
         first = parts[0]
@@ -1071,7 +1079,11 @@ with tab_pf:
     st_html(section_title("Storico Recente Operazioni"))
 
     has_recent_content = False
-    if last_actions:
+    real_actions = [
+        act for act in last_actions
+        if not any(k in str(act).upper() for k in ("MANTENIMENTO", "HOLD", "ALLINEATO", "NESSUNA AZIONE"))
+    ]
+    if real_actions:
         has_recent_content = True
         fmt_last_date = format_date_italian(last_action_date) if last_action_date else ""
         rebalance_date_label = f" ({fmt_last_date})" if fmt_last_date else ""
@@ -1080,7 +1092,7 @@ with tab_pf:
             Operazioni eseguite nell'ultimo ribilanciamento{rebalance_date_label}:
         </div>
         """)
-        st_html(render_action_log_html_table(last_actions))
+        st_html(render_action_log_html_table(real_actions))
 
     if latest_hist_trades or hist_trades:
         has_recent_content = True
