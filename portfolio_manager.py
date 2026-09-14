@@ -163,6 +163,27 @@ def get_class_color(classe: str) -> str:
     return ASSET_CLASSES_INFO["Liquidità"]["color"]
 
 
+def clean_crypto_ticker(sym: Any) -> str:
+    """Restituisce il solo ticker standard della cryptovaluta (es. BTC, ETH, SOL, LUNC).
+
+    Rimuove suffissi di coppia come -USD e normalizza denominazioni estese (es. Bitcoin Core Ballast -> BTC).
+    """
+    if sym is None or pd.isna(sym):
+        return ""
+    s = str(sym).strip()
+    s_upper = s.upper()
+    if s_upper in ("BITCOIN", "BITCOIN CORE BALLAST", "BITCOIN CORE", "BTC-USD", "BTC", "CORE BALLAST", "BALLAST"):
+        return "BTC"
+    if s_upper in ("ETHEREUM", "ETH-USD", "ETH"):
+        return "ETH"
+    if s_upper in ("SOLANA", "SOL-USD", "SOL"):
+        return "SOL"
+    if s_upper.endswith("-USD"):
+        return s_upper[:-4]
+    return s
+
+
+
 def get_default_convex_holdings_100k(prices: Dict[str, float] = None, target_capital: float = 100000.0) -> Dict[str, Any]:
     """
     Calcola le quote di default per un capitale standard di 100.000 € in Convex Stack

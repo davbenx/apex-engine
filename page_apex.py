@@ -295,6 +295,8 @@ def render_action_log_html_table(actions):
         else:
             tkr = first
 
+        tkr = portfolio_manager.clean_crypto_ticker(tkr)
+
         op_u = op_label.upper()
         if any(k in op_u for k in ("VENDITA", "CHIUSURA", "SELL")):
             badge_bg = "rgba(236,101,123,0.12)"
@@ -321,6 +323,7 @@ def render_action_log_html_table(actions):
         badge_html = f'<span style="background:{badge_bg}; color:{badge_col}; border:1px solid {border_col}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; font-family:{MONO}; display:inline-flex; align-items:center; gap:6px;">{action_svg} {op_name}</span>'
 
         detail_str = parts[1] if len(parts) > 1 else "—"
+        detail_str = detail_str.replace("Bitcoin Core Ballast", "BTC").replace("Bitcoin Core", "BTC").replace("Bitcoin", "BTC")
         price_str = ""
         for p in parts[2:]:
             if "Prezzo" in p:
@@ -707,7 +710,7 @@ if pf:
 
         row = {
             "Pos": pos_num,
-            "Titolo": ticker,
+            "Titolo": portfolio_manager.clean_crypto_ticker(ticker) if is_crypto else ticker,
             "Stato": "NUOVO" if is_new_this_week else "",
             "Data Ingresso": entry_formatted,
             "Ingresso ($)": info.get("entry_price", 0.0),
@@ -1025,7 +1028,7 @@ with tab_pf:
             "Peso (%)": r["Peso (%)"], "Rendimento %": r["Rendimento %"],
         })
     for r in sorted(op_cr, key=lambda x: x["Rendimento %"], reverse=True):
-        disp_name = "Bitcoin" if r["Titolo"] in ["BTC", "Bitcoin"] else r["Titolo"]
+        disp_name = portfolio_manager.clean_crypto_ticker(r["Titolo"])
         unified_rows.append({
             "Classe": "Cryptovalute", "Strumento": disp_name,
             "Data Ingresso": r["Data Ingresso"],
@@ -1125,7 +1128,7 @@ with tab_pf:
             op_type = "RIDUZIONE" if "trim" in reason.lower() else "CHIUSURA"
             recent_rows.append({
                 "Operazione": op_type,
-                "Strumento": t.get("ticker", ""),
+                "Strumento": portfolio_manager.clean_crypto_ticker(t.get("ticker", "")),
                 "Data Ingresso": format_date_italian(t.get("entry_date", "")),
                 "Data Uscita": format_date_italian(t.get("exit_date", "")),
                 "Ingresso ($)": t.get("entry_price", 0.0),
@@ -1362,6 +1365,8 @@ with tab_perf:
                 search_t = st.text_input("Cerca Ticker", placeholder="Cerca ticker (es. BTC, AAPL, IEF...)", label_visibility="collapsed")
 
             df_display = df_master.copy()
+            if "ticker" in df_display.columns:
+                df_display["ticker"] = df_display["ticker"].apply(portfolio_manager.clean_crypto_ticker)
             if "Titoli & Macro PIT" in flt_scope and "era" in df_display.columns:
                 df_display = df_display[df_display["era"] != "1987-2011 (Macro Allocazione)"]
             elif "Crypto Frontier Venture" in flt_scope and "era" in df_display.columns:
@@ -1488,7 +1493,7 @@ with tab_perf:
                 rend = ((curr_p / entry_p) - 1.0) * 100 if entry_p > 0 else 0.0
                 w = pos.get("weight", 0.0) * 100
                 open_rows.append({
-                    "Titolo": tkr,
+                    "Titolo": portfolio_manager.clean_crypto_ticker(tkr) if pos.get("is_crypto") else tkr,
                     "Data Ingresso": format_date_italian(entry_d_str) if entry_d_str else "—",
                     "Giorni": f"{days}g",
                     "Prezzo Ingresso": entry_p,

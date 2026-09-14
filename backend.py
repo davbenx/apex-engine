@@ -1052,7 +1052,7 @@ def main():
 
     output["crypto_top"] = [
         {
-            "Ticker": tkr,
+            "Ticker": tkr.replace("-USD", ""),
             "Prezzo ($)": round(float(pos.get("current_price", 0.0)), 2),
             "Stop Loss ($)": round(float(pos.get("stop_loss", 0.0)), 2) if pos.get("stop_loss", 0.0) > 0 else 0.0
         }

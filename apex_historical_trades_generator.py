@@ -378,8 +378,11 @@ def generate_full_historical_trades():
     crypto_closed_trades: List[Dict[str, Any]] = []
     for ct in crypto_trades:
         reason_label = CRYPTO_REASON_MAP.get(ct.exit_reason, ct.exit_reason)
+        clean_sym = str(ct.symbol).replace("-USD", "")
+        if clean_sym.upper() in ("BITCOIN", "BTC-USD"):
+            clean_sym = "BTC"
         crypto_closed_trades.append({
-            "ticker": ct.symbol,
+            "ticker": clean_sym,
             "entry_date": str(ct.entry_date.date()),
             "exit_date": str(ct.exit_date.date()),
             "entry_price": round(float(ct.entry_price), 4),
@@ -401,7 +404,9 @@ def generate_full_historical_trades():
             p_data = json.load(f)
         for lt in p_data.get("trade_history", []):
             is_cr = lt.get("is_crypto", False)
-            tkr = lt.get("ticker", "")
+            tkr = str(lt.get("ticker", "")).replace("-USD", "")
+            if tkr.upper() in ("BITCOIN", "BTC-USD"):
+                tkr = "BTC"
             ac = lt.get("asset_class") or determine_asset_class(tkr, is_cr)
             live_trades.append({
                 "ticker": tkr,
@@ -420,6 +425,14 @@ def generate_full_historical_trades():
 
     print("[5/5] Unificazione, ordinamento e persistenza su disco...")
     all_trades = closed_trades + crypto_closed_trades + live_trades
+
+    # Normalizzazione finale ticker crypto
+    for t in all_trades:
+        if t.get("is_crypto") or str(t.get("ticker", "")).endswith("-USD"):
+            clean_t = str(t.get("ticker", "")).replace("-USD", "")
+            if clean_t.upper() in ("BITCOIN", "BTC-USD"):
+                clean_t = "BTC"
+            t["ticker"] = clean_t
 
     # Ordiniamo cronologicamente decrescente per exit_date (dal piu recente al piu vecchio)
     all_trades.sort(key=lambda t: (t.get("exit_date", ""), t.get("entry_date", "")), reverse=True)
