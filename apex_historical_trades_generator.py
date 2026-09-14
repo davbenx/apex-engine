@@ -362,7 +362,7 @@ def generate_full_historical_trades():
     crypto_cache = REPO_ROOT / "research" / "crypto_ohlcv_extended_cache"
     crypto_dfs = load_crypto_dataset(str(crypto_cache))
     cfg = CryptoVentureConfig(
-        universe_mode="ALL",
+        universe_mode="TOP25",  # allineato alla configurazione live (evaluate_daily_crypto_frontier / backend.py)
         max_slots=7,
         stop_mode="ATR_CLOSE",
         atr_multiplier=2.5,
