@@ -517,11 +517,11 @@ with tab_metriche:
         )
 
         selected_range = st.segmented_control(
-            "Periodo", options=["6M", "1A", "3A", "5A", "Da Inizio"],
-            default="5A", label_visibility="collapsed", key="cx_chart_range_ctrl"
+            "Periodo", options=["6M", "1A", "3A", "Test (6A)", "Da Inizio"],
+            default="Test (6A)", label_visibility="collapsed", key="cx_chart_range_ctrl"
         )
         if not selected_range:
-            selected_range = "5A"
+            selected_range = "Test (6A)"
 
         last_dt = _cx_nav.index[-1]
         if selected_range == "6M":
@@ -530,8 +530,8 @@ with tab_metriche:
             start_dt = last_dt - pd.DateOffset(years=1)
         elif selected_range == "3A":
             start_dt = last_dt - pd.DateOffset(years=3)
-        elif selected_range == "5A":
-            start_dt = last_dt - pd.DateOffset(years=5)
+        elif selected_range in ("5A", "6A", "Test (6A)"):
+            start_dt = pd.Timestamp("2020-09-30")
         else:
             start_dt = _cx_nav.index[0]
 
@@ -544,7 +544,7 @@ with tab_metriche:
 
         # Scala logaritmica
         _cx_use_log = False
-        if selected_range in ("3A", "5A", "Da Inizio"):
+        if selected_range in ("3A", "5A", "Test (6A)", "Da Inizio"):
             _cx_use_log = st.toggle("Scala logaritmica", value=False, key="convex_log_scale")
 
         fig_cx_eq = go.Figure()
@@ -565,9 +565,10 @@ with tab_metriche:
 
         # Marcatori Test Recente e Live
         _oos_start = pd.Timestamp("2020-09-30")
-        if _nav_plot.index[0] < _oos_start <= _nav_plot.index[-1]:
+        if _nav_plot.index[0] <= _oos_start <= _nav_plot.index[-1]:
             fig_cx_eq.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
             fig_cx_eq.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
+                                      xanchor="left",
                                       text="Fase di test recente (2020) →", showarrow=False,
                                       font=dict(size=10, color=ACCENT))
 
@@ -575,7 +576,8 @@ with tab_metriche:
         if _nav_plot.index[0] < _live_start <= _nav_plot.index[-1]:
             fig_cx_eq.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
             fig_cx_eq.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                      text="Inizio operatività reale (Settembre 2026) →", showarrow=False,
+                                      xanchor="right",
+                                      text="← Inizio operatività reale (Settembre 2026)", showarrow=False,
                                       font=dict(size=10, color="#3DDC97"))
 
         fig_cx_update_layout = dict(
@@ -598,7 +600,7 @@ with tab_metriche:
             line=dict(color=NEG, width=1.2), fillcolor="rgba(236,101,123,0.15)",
             hovertemplate="%{x|%d %b %Y}<br>Calo: %{y:.2f}%<extra></extra>", name="Calo"
         ))
-        if _nav_plot.index[0] < _oos_start <= _nav_plot.index[-1]:
+        if _nav_plot.index[0] <= _oos_start <= _nav_plot.index[-1]:
             fig_cx_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
         if _nav_plot.index[0] < _live_start <= _nav_plot.index[-1]:
             fig_cx_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))

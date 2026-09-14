@@ -637,6 +637,13 @@ def load_convex_contiguous_history() -> pd.DataFrame:
     df_cx = pd.DataFrame({"return": cx_ret})
     df_cx["value"] = (1.0 + cx_ret).cumprod() * 100.0
 
+    # Raccordo contiguo con l'operativita' reale dal 14 settembre 2026 in poi
+    live_dt = pd.Timestamp("2026-09-14")
+    if live_dt > df_cx.index[-1]:
+        df_cx.loc[live_dt, "value"] = df_cx["value"].iloc[-1]
+        df_cx.loc[live_dt, "return"] = 0.0
+        df_cx = df_cx.sort_index()
+
     df_cx["roll_max"] = df_cx["value"].cummax()
     df_cx["drawdown"] = (df_cx["value"] - df_cx["roll_max"]) / df_cx["roll_max"] * 100.0
     return df_cx

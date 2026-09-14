@@ -355,9 +355,9 @@ with tab_perf:
 
 
         selected_range = st.segmented_control(
-            "Periodo", options=["6M", "1A", "3A", "5A", "Da Inizio"],
-            default="5A", label_visibility="collapsed", key="comb_chart_range_ctrl"
-        ) or "5A"
+            "Periodo", options=["6M", "1A", "3A", "Test (6A)", "Da Inizio"],
+            default="Test (6A)", label_visibility="collapsed", key="comb_chart_range_ctrl"
+        ) or "Test (6A)"
 
         last_dt = df_comb.index[-1]
         if selected_range == "6M":
@@ -366,8 +366,8 @@ with tab_perf:
             start_dt = last_dt - pd.DateOffset(years=1)
         elif selected_range == "3A":
             start_dt = last_dt - pd.DateOffset(years=3)
-        elif selected_range == "5A":
-            start_dt = last_dt - pd.DateOffset(years=5)
+        elif selected_range in ("5A", "6A", "Test (6A)"):
+            start_dt = pd.Timestamp("2020-09-30")
         else:
             start_dt = df_comb.index[0]
 
@@ -378,7 +378,7 @@ with tab_perf:
         common_dt = _comb_plot.index.intersection(s_spy_full.index)
 
         _comb_use_log = False
-        if selected_range in ("3A", "5A", "Da Inizio"):
+        if selected_range in ("3A", "5A", "Test (6A)", "Da Inizio"):
             _comb_use_log = st.toggle("Scala logaritmica", value=False, key="comb_log_scale")
 
         fig_comb = go.Figure()
@@ -400,9 +400,10 @@ with tab_perf:
 
         # Linee verticali demarcazione Test Recente e Live
         _oos_start = pd.Timestamp("2020-09-30")
-        if _comb_plot.index[0] < _oos_start <= _comb_plot.index[-1]:
+        if _comb_plot.index[0] <= _oos_start <= _comb_plot.index[-1]:
             fig_comb.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
             fig_comb.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
+                                    xanchor="left",
                                     text="Fase di test recente (2020) →", showarrow=False,
                                     font=dict(size=10, color=ACCENT))
 
@@ -410,7 +411,8 @@ with tab_perf:
         if _comb_plot.index[0] < _live_start <= _comb_plot.index[-1]:
             fig_comb.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
             fig_comb.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                    text="Inizio operatività reale (Settembre 2026) →", showarrow=False,
+                                    xanchor="right",
+                                    text="← Inizio operatività reale (Settembre 2026)", showarrow=False,
                                     font=dict(size=10, color="#3DDC97"))
 
         fig_comb.update_layout(
@@ -432,7 +434,7 @@ with tab_perf:
             line=dict(color=NEG, width=1.2), fillcolor="rgba(236,101,123,0.15)",
             hovertemplate="%{x|%d %b %Y}<br>Calo: %{y:.2f}%<extra></extra>", name="Calo Combinato"
         ))
-        if _comb_plot.index[0] < _oos_start <= _comb_plot.index[-1]:
+        if _comb_plot.index[0] <= _oos_start <= _comb_plot.index[-1]:
             fig_comb_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
         if _comb_plot.index[0] < _live_start <= _comb_plot.index[-1]:
             fig_comb_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))

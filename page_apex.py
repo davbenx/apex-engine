@@ -1174,11 +1174,11 @@ with tab_perf:
 
     selected_range = st.segmented_control(
         "Periodo",
-        options=["6M", "1A", "3A", "5A", "Da Inizio"],
-        default="5A",
+        options=["6M", "1A", "3A", "Test (6A)", "Da Inizio"],
+        default="Test (6A)",
         label_visibility="collapsed",
         key="chart_range_ctrl"
-    ) or "5A"
+    ) or "Test (6A)"
 
     _ap_nav = portfolio_manager.load_apex_contiguous_history()
     if not _ap_nav.empty:
@@ -1189,8 +1189,8 @@ with tab_perf:
             start_dt = last_dt - pd.DateOffset(years=1)
         elif selected_range == "3A":
             start_dt = last_dt - pd.DateOffset(years=3)
-        elif selected_range == "5A":
-            start_dt = last_dt - pd.DateOffset(years=5)
+        elif selected_range in ("5A", "6A", "Test (6A)"):
+            start_dt = pd.Timestamp("2020-09-30")
         else:
             start_dt = _ap_nav.index[0]
 
@@ -1201,7 +1201,7 @@ with tab_perf:
         common_dt = _plot_df.index.intersection(s_spy_full.index)
 
         _use_log = False
-        if selected_range in ("3A", "5A", "Da Inizio"):
+        if selected_range in ("3A", "5A", "Test (6A)", "Da Inizio"):
             _use_log = st.toggle("Scala logaritmica", value=False, key="apex_hist_log_scale")
 
         fig = go.Figure()
@@ -1222,9 +1222,10 @@ with tab_perf:
 
         # Linea verticale demarcazione Test Recente a Settembre 2020
         _oos_start = pd.Timestamp("2020-09-30")
-        if _plot_df.index[0] < _oos_start <= _plot_df.index[-1]:
+        if _plot_df.index[0] <= _oos_start <= _plot_df.index[-1]:
             fig.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
             fig.add_annotation(x=_oos_start, y=1.0, yref="paper", yanchor="bottom",
+                                xanchor="left",
                                 text="Fase di test recente (2020) →", showarrow=False,
                                 font=dict(size=10, color=ACCENT))
 
@@ -1233,7 +1234,8 @@ with tab_perf:
         if _plot_df.index[0] < _live_start <= _plot_df.index[-1]:
             fig.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
             fig.add_annotation(x=_live_start, y=0.88, yref="paper", yanchor="bottom",
-                                text="Inizio operatività reale (Settembre 2026) →", showarrow=False,
+                                xanchor="right",
+                                text="← Inizio operatività reale (Settembre 2026)", showarrow=False,
                                 font=dict(size=10, color="#3DDC97"))
 
         fig.update_layout(
@@ -1253,7 +1255,7 @@ with tab_perf:
             line=dict(color=NEG, width=1.2), fillcolor='rgba(236, 101, 123, 0.15)',
             hovertemplate="Calo: %{y:.2f}%<extra></extra>", name="Calo"
         ))
-        if _plot_df.index[0] < _oos_start <= _plot_df.index[-1]:
+        if _plot_df.index[0] <= _oos_start <= _plot_df.index[-1]:
             fig_dd.add_vline(x=_oos_start, line=dict(color=MUTED, width=1, dash="dash"))
         if _plot_df.index[0] < _live_start <= _plot_df.index[-1]:
             fig_dd.add_vline(x=_live_start, line=dict(color="#3DDC97", width=1, dash="dash"))
