@@ -8,6 +8,7 @@ implicito ai nomi delle sleeve di Kelly Stack).
 """
 import numpy as np
 import pandas as pd
+import pytest
 
 from tax_engine import apply_italian_tax, liquidation_tax_adjusted_nav, TAX_RATE_ITALY_FLAT
 
@@ -241,3 +242,54 @@ def test_rebalance_every_default_matches_historical_every_period_behavior():
     net_default = apply_italian_tax(returns, weights, tax_types=tax_types)
     net_explicit = apply_italian_tax(returns, weights, tax_types=tax_types, rebalance_every=1)
     pd.testing.assert_series_equal(net_default, net_explicit)
+
+
+def test_nav_wipeout_does_not_poison_future_periods_with_nan():
+    """Un -100% in un periodo (plausibile su una sleeve a leva, es. un ETP 3x che
+    azzera il sottostante) deve azzerare il NAV e restarci — non deve produrre NaN
+    che si propaga sui periodi successivi (bug confermato da audit di robustezza
+    indipendente: value[k]/nav a nav=0 produceva NaN per il resto della serie,
+    riprodotto anche con rebalance_every=None, la policy reale di Convex Stack)."""
+    returns = pd.DataFrame({"A": [0.05, -1.0, 0.30, 0.10, -0.05]})
+    net = apply_italian_tax(returns, {"A": 1.0}, tax_types={"A": "REDDITO_DIVERSO"})
+    assert not net.isna().any(), "nessun periodo deve restare NaN dopo un azzeramento del NAV"
+    assert net.iloc[1] == pytest.approx(-1.0)
+    assert (net.iloc[2:] == 0.0).all(), "dopo l'azzeramento il fondo resta a zero, non risorge"
+
+    net_never_sell = apply_italian_tax(returns, {"A": 1.0}, tax_types={"A": "REDDITO_DIVERSO"}, rebalance_every=None)
+    assert not net_never_sell.isna().any(), "lo stesso guard deve valere anche con la policy 'mai vendere'"
+
+
+def test_return_worse_than_minus_100pct_is_floored_to_full_wipeout():
+    """Un rendimento aggregato oltre -100% in un periodo (dato anomalo/non
+    validato a monte) deve essere contenuto a un azzeramento completo (NAV=0),
+    non propagare un NAV negativo silenziosamente nei periodi successivi."""
+    returns = pd.DataFrame({"A": [-1.5, 0.20, 0.10]})
+    net = apply_italian_tax(returns, {"A": 1.0}, tax_types={"A": "REDDITO_CAPITALE"})
+    assert not net.isna().any()
+    assert net.iloc[0] == pytest.approx(-1.0)
+    assert (net.iloc[1:] == 0.0).all()
+
+
+def test_nan_input_return_treated_as_zero_not_poisoning_future_periods():
+    """Un singolo NaN nel rendimento di un asset (gap nei dati, bar mancante) deve
+    essere trattato come rendimento nullo per quel periodo, non propagarsi come
+    NaN per il resto della serie (bug confermato: un solo NaN iniettato rendeva
+    NaN 5 periodi su 6 successivi, poiche' la funzione non aveva alcuna gestione
+    dei NaN in input e si affidava solo alla disciplina dei chiamanti)."""
+    returns = pd.DataFrame({
+        "A": [0.02, np.nan, 0.03, -0.01, 0.04],
+        "B": [0.01, 0.01, 0.01, 0.01, 0.01],
+    })
+    net = apply_italian_tax(returns, {"A": 0.5, "B": 0.5}, tax_types={"A": "REDDITO_DIVERSO", "B": "REDDITO_DIVERSO"})
+    assert not net.isna().any(), "un NaN in input non deve mai propagarsi come NaN in output"
+
+
+def test_missing_tax_type_raises_clear_error_at_entry_not_mid_simulation():
+    """Una tax_types incompleta rispetto a target_weights deve fallire subito con
+    un errore chiaro, non con un KeyError non gestito a meta' simulazione al primo
+    ribilanciamento che tocca l'asset mancante (bug confermato da audit di
+    robustezza indipendente)."""
+    returns = pd.DataFrame({"A": [0.05, -0.02], "B": [0.01, 0.01]})
+    with pytest.raises(ValueError, match="tax_types"):
+        apply_italian_tax(returns, {"A": 0.5, "B": 0.5}, tax_types={"A": "REDDITO_CAPITALE"})

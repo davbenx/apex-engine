@@ -98,24 +98,61 @@ def apply_italian_tax(
     is_dynamic = isinstance(target_weights, pd.DataFrame)
     first_weights = target_weights.iloc[0].to_dict() if is_dynamic else target_weights
     keys = list(first_weights.keys())
+    missing_tax_types = [k for k in keys if k not in tax_types]
+    if missing_tax_types:
+        raise ValueError(
+            f"tax_types manca la chiave per {missing_tax_types}: ogni asset in target_weights "
+            f"deve avere un tax_type ('REDDITO_CAPITALE' o 'REDDITO_DIVERSO'), altrimenti la "
+            f"funzione fallirebbe a meta' simulazione al primo ribilanciamento che lo tocca."
+        )
     nav = 1.0  # capitale proprio — MAI ricavato sommando i valori nozionali delle posizioni
     value = {k: first_weights[k] * nav for k in keys}  # valori nozionali, la somma puo' superare nav (leva)
     cost_basis = dict(value)
     loss_pool_diverso = 0.0  # minusvalenze REDDITO_DIVERSO non ancora compensate
 
     net_returns = []
+    ruined = False  # NAV azzerato (es. sleeve a leva a -100%): il fondo resta a zero, non risorge
     for i, (_, row) in enumerate(sleeve_returns.iterrows()):
         target_weights_t = target_weights.iloc[i].to_dict() if is_dynamic else target_weights
+
+        if ruined:
+            # Senza questo guard, un NAV=0 (o negativo) da un periodo precedente farebbe
+            # ripartire value[k]/nav in un NaN che si propaga per il resto della serie
+            # (bug confermato da audit di robustezza indipendente: 3 periodi su 5 restavano
+            # NaN dopo un singolo -100%, incluso con rebalance_every=None, la policy "mai
+            # vendere" reale di Convex Stack su una sleeve a leva).
+            net_returns.append(0.0)
+            continue
+
+        # Input difensivo: un NaN nel rendimento di un asset (gap nei dati, bar mancante)
+        # viene trattato come rendimento nullo per quel periodo invece di propagarsi come
+        # NaN per il resto della serie — stessa convenzione gia' applicata dai chiamanti
+        # esistenti (es. apex_dashboard_stat_regeneration.py), ora garantita anche se un
+        # futuro chiamante dimenticasse di farlo (bug confermato: un solo NaN iniettato in
+        # un punto qualsiasi della serie rendeva NaN 5 periodi su 6 successivi).
+        row_safe = {k: (float(row[k]) if pd.notna(row[k]) else 0.0) for k in keys}
 
         # 1. rendimento lordo di portafoglio del periodo dai pesi CORRENTI (rispetto al nav
         #    pre-rivalutazione) — stessa convenzione lineare gia' usata per port_gross
         weights_now = {k: value[k] / nav for k in keys}
-        gross_port_return = sum(weights_now[k] * row[k] for k in keys)
-        nav_after_market = nav * (1 + gross_port_return)
+        gross_port_return = sum(weights_now[k] * row_safe[k] for k in keys)
+        nav_after_market = max(0.0, nav * (1 + gross_port_return))
+        if nav_after_market <= 1e-12:
+            # Azzeramento totale in questo periodo (plausibile per una sleeve a leva, es.
+            # un ETP 3x su un -34% del sottostante): nessun capitale residuo da ribilanciare
+            # o tassare. Niente floor storicamente presente: un rendimento oltre -100% o un
+            # NAV negativo si propagava silenziosamente invece di essere contenuto qui.
+            net_returns.append(-1.0)
+            for k in keys:
+                value[k] = 0.0
+                cost_basis[k] = 0.0
+            nav = 0.0
+            ruined = True
+            continue
 
         # 2. rivaluta ciascuna posizione al proprio rendimento
         for k in keys:
-            value[k] *= (1 + row[k])
+            value[k] *= (1 + row_safe[k])
 
         # 3. ribilancia le posizioni verso i pesi target SOLO nei periodi di
         #    ribilanciamento programmati (rebalance_every) — negli altri periodi
