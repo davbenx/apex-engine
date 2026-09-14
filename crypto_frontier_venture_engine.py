@@ -220,11 +220,25 @@ def run_crypto_venture_backtest(
 
     pending_entries: List[Tuple[str, float]] = []
     pending_exits: List[Tuple[str, str]] = []
+    pending_btc_action: Optional[str] = None
 
     for d in sim_dates:
         cur_btc_p = btc_c.loc[d]
         btc_open = btc_o.loc[d]
         is_btc = btc_bull.loc[d]
+
+        # ----------------------------------------------------------------------
+        # 0. Esecuzione rotazione BTC Core decisa al Close di T-1, eseguita all'Open di T
+        # ----------------------------------------------------------------------
+        if pending_btc_action == "TO_CASH":
+            if btc_units > 0:
+                cash += btc_units * (btc_open * slip_sell)
+                btc_units = 0.0
+        elif pending_btc_action == "TO_BTC":
+            if cash > 100.0:
+                btc_units += cash / (btc_open * slip_buy)
+                cash = 0.0
+        pending_btc_action = None
 
         # ----------------------------------------------------------------------
         # 1. Esecuzione vendite pendenti all'Open di giorno T
@@ -341,7 +355,7 @@ def run_crypto_venture_backtest(
                 cash_rec = units_to_sell * (pos["entry_p"] * config.freeride_multiplier * slip_sell)
                 cash += cash_rec
                 pos["units"] -= units_to_sell
-                pos["cost_rem"] = max(0.0, pos["cost_rem"] - cash_rec)
+                pos["cost_rem"] = max(0.0, pos["cost_rem"] - (units_to_sell * pos["entry_p"]))
                 pos["freeride_done"] = True
                 gain_v = cash_rec - (units_to_sell * pos["entry_p"])
 
@@ -446,7 +460,8 @@ def run_crypto_venture_backtest(
             del positions[s]
 
         # ----------------------------------------------------------------------
-        # 5. Gestione Capitale Inattivo (Dual-Regime Core)
+        # 5. Decisione Capitale Inattivo (Dual-Regime Core) al Close di T,
+        #    accodata per esecuzione all'Open di T+1 (zero lookahead)
         # ----------------------------------------------------------------------
         alt_val = sum(pos["units"] * df_close.loc[d, s] for s, pos in positions.items() if not np.isnan(df_close.loc[d, s]))
         current_equity = cash + (btc_units * cur_btc_p) + alt_val
@@ -454,14 +469,12 @@ def run_crypto_venture_backtest(
         if not is_btc:
             # Bear Market BTC: 100% Cash/Liquidita
             if btc_units > 0:
-                cash += btc_units * (cur_btc_p * slip_sell)
-                btc_units = 0.0
+                pending_btc_action = "TO_CASH"
         else:
             # Bull Market BTC: se non c'e Altseason e nessun ordine pendente, 100% in BTC Core
             if not macro_alt and len(pending_entries) == 0:
                 if cash > 100.0:
-                    btc_units += cash / (cur_btc_p * slip_buy)
-                    cash = 0.0
+                    pending_btc_action = "TO_BTC"
 
         # ----------------------------------------------------------------------
         # 6. Selezione Segnali di Ingresso Altcoin
@@ -774,7 +787,9 @@ def evaluate_daily_crypto_frontier(
         btc_px = float(btc_c.iloc[-1])
         is_btc_bull = (btc_px > btc_fast) and (btc_fast > btc_slow)
     else:
-        is_btc_bull = True
+        # Dati BTC assenti/insufficienti: fail-safe, non presumere mercato rialzista
+        # (blocca solo il gate Altseason per i nuovi ingressi altcoin; non forza liquidazioni)
+        is_btc_bull = False
         btc_px = float(btc_df["Close"].iloc[-1]) if btc_df is not None and not btc_df.empty else 0.0
 
     # Se allocazione disattivata a livello macro: liquidare tutte le posizioni crypto

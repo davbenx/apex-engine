@@ -58,7 +58,62 @@ def test_freeride_math():
     
     remaining_units = units - units_to_sell
     assert np.isclose(remaining_units, units * (1.0 - frac_to_sell))
-    assert remaining_units > 0
+
+
+def test_freeride_partial_exit_preserves_cost_basis_for_remaining_units():
+    """Verifica che, dopo una vendita parziale Free-Ride (+125%), il cost-basis residuo
+    della posizione sia ridotto in proporzione alle unita' effettivamente vendute -
+    non del ricavo in cash incassato. Un cost-basis azzerato per errore trasformerebbe
+    qualunque perdita reale successiva sulle unita' rimanenti in un falso guadagno tassabile.
+
+    Scenario: un altcoin fa breakout, sale oltre 2.25x (scatta il free-ride, che per
+    costruzione recupera ~100% del capitale investito in cash), poi crolla ben sotto
+    il prezzo di ingresso: la quota residua deve chiudersi con una perdita reale.
+    """
+    n = 500
+    dates = pd.date_range("2020-01-01", periods=n, freq="D")
+    btc_p = np.linspace(10000, 60000, n)
+    btc_df = pd.DataFrame({
+        "Open": btc_p * 0.99, "High": btc_p * 1.02, "Low": btc_p * 0.98, "Close": btc_p,
+        "Volume": np.full(n, 1_000_000.0),
+    }, index=dates)
+
+    alt_p = np.full(n, 10.0)
+    alt_vol = np.full(n, 1_000_000.0)
+    for i in range(290, 320):
+        alt_p[i] = 10.0 + (i - 289) * 0.6
+        alt_vol[i] = 5_000_000.0
+    for i in range(320, 340):
+        alt_p[i] = 25.0   # > 2.25x l'entry: scatta il free-ride
+    for i in range(340, n):
+        alt_p[i] = 4.0    # crollo ben sotto l'entry (10.0): perdita reale sulla quota residua
+
+    alt_df = pd.DataFrame({
+        "Open": alt_p * 0.99, "High": alt_p * 1.03, "Low": alt_p * 0.97, "Close": alt_p,
+        "Volume": alt_vol,
+    }, index=dates)
+
+    cfg = CryptoVentureConfig(
+        universe_mode="UNCONSTRAINED", max_slots=7, macro_btc_slow_days=280,
+        altseason_breadth_pct=0.0, altseason_rs_spread_pct=0.0,
+    )
+    matrices = precompute_market_matrices({"BTC-USD": btc_df, "ALT-USD": alt_df}, cfg)
+    res = run_crypto_venture_backtest(matrices, cfg, tax_enabled=True)
+
+    freeride_trades = [t for t in res["completed_trades"] if t.exit_reason == "FREERIDE_DE_RISK"]
+    loss_trades = [t for t in res["completed_trades"] if t.exit_reason != "FREERIDE_DE_RISK" and t.pnl_pct < 0]
+    assert len(freeride_trades) == 1
+    assert len(loss_trades) == 1, "Attesa esattamente una chiusura in perdita sulla quota residua post free-ride"
+
+    loss_trade = loss_trades[0]
+    # La quota residua e' realmente in perdita (prezzo di uscita ben sotto l'entry) e deve
+    # essere contabilizzata come tale, non come guadagno per via di un cost-basis azzerato.
+    assert loss_trade.exit_price < loss_trade.entry_price
+    assert loss_trade.pnl_val < 0
+
+    # Il monte perdite (zainetto fiscale) deve aver accolto la perdita reale, e le tasse
+    # cumulate non devono includere alcuna imposta sulla vendita in perdita.
+    assert res["summary"]["TaxPoolRemaining"] > 0
 
 
 def test_tax_loss_pool_offset():
@@ -151,7 +206,7 @@ def test_zero_lookahead_and_execution():
     )
     matrices = precompute_market_matrices(dfs, cfg)
     res = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
-    
+
     trades = res["completed_trades"]
     assert len(trades) > 0
     for t in trades:
@@ -160,6 +215,144 @@ def test_zero_lookahead_and_execution():
         assert t.holding_days >= 0
         assert t.invested_amount > 0
         assert t.recovered_amount >= 0
+
+    # Verifica FORTE del fill price: ogni ingresso deve essere eseguito esattamente
+    # all'Open (con slippage) del proprio entry_date, mai al Close del giorno del segnale.
+    slip_buy = 1.0 + (cfg.slippage_bps / 10000.0)
+    slip_sell = 1.0 - (cfg.slippage_bps / 10000.0)
+    df_open = matrices["df_open"]
+    deferred_exit_reasons = {"ATR_STOP_CLOSE", "FIXED_STOP_CLOSE", "TRAIL_STOP_CLOSE", "TIME_STOP_21D"}
+    checked_entries = checked_exits = 0
+    for t in trades:
+        expected_entry_open = df_open.loc[t.entry_date, t.symbol] * slip_buy
+        assert t.entry_price == pytest.approx(expected_entry_open, rel=1e-9), (
+            f"{t.symbol}: entry_price non coincide con l'Open(entry_date)*slippage "
+            f"(possibile leak: esecuzione allo stesso Close del segnale)"
+        )
+        checked_entries += 1
+
+        if t.exit_reason in deferred_exit_reasons:
+            expected_exit_open = df_open.loc[t.exit_date, t.symbol] * slip_sell
+            assert t.exit_price == pytest.approx(expected_exit_open, rel=1e-9), (
+                f"{t.symbol}/{t.exit_reason}: exit_price non coincide con l'Open(exit_date)*slippage"
+            )
+            checked_exits += 1
+    assert checked_entries > 0
+    assert checked_exits > 0, "Nessun trade con uscita differita trovato: rafforzare il dataset sintetico"
+
+
+def test_btc_core_rotation_zero_lookahead():
+    """Verifica che la rotazione Bitcoin Core (regime dual) decisa al Close di T
+    venga eseguita all'Open di T+1, non allo stesso Close che ha generato il segnale.
+
+    Costruisce un BTC-only universe con un calo del -15% che fa scattare il regime
+    ribassista al Close del giorno T, seguito da un ulteriore gap overnight del -45%
+    sull'Open di T+1. Se la rotazione eseguisse (erroneamente) allo stesso Close di T,
+    il fondo eviterebbe il crollo overnight e l'equity resterebbe piatta da T in poi.
+    Con la disciplina corretta (esecuzione a Open di T+1), il fondo resta esposto al
+    Close di T e subisce anche il gap overnight su T+1, prima di stabilizzarsi in cash.
+    """
+    n = 60
+    dates = pd.date_range("2021-01-01", periods=n, freq="D")
+    close = np.zeros(n)
+    close[0] = 100.0
+    for i in range(1, 35):
+        close[i] = close[i - 1] * 1.02  # bull run costante
+    close[35] = close[34] * 0.85        # -15%: fa scattare il regime ribassista al Close
+    for i in range(36, n):
+        close[i] = close[35] * 0.55     # ulteriore -45% (gap overnight), poi piatto
+
+    open_ = np.empty(n)
+    open_[0] = close[0]
+    for i in range(1, n):
+        open_[i] = close[i - 1]
+    open_[36] = close[35] * 0.55        # l'Open di T+1 riflette gia' il gap overnight
+
+    high = np.maximum(open_, close) * 1.001
+    low = np.minimum(open_, close) * 0.999
+    btc_df = pd.DataFrame(
+        {"Open": open_, "High": high, "Low": low, "Close": close, "Volume": np.full(n, 1_000_000.0)},
+        index=dates,
+    )
+
+    cfg = CryptoVentureConfig(
+        macro_btc_fast_days=5, macro_btc_slow_days=10,
+        universe_mode="UNCONSTRAINED",
+        altseason_breadth_pct=999.0, altseason_rs_spread_pct=999.0,  # niente altseason: solo BTC Core
+    )
+    matrices = precompute_market_matrices({"BTC-USD": btc_df}, cfg)
+    btc_bull = matrices["btc_bull"]
+    res = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
+    s_equity = res["equity_curve"]
+
+    sim_dates = matrices["simulation_dates"]
+    bull_flags = btc_bull.reindex(sim_dates)
+    first_bear_idx = int(np.argmax(~bull_flags.values))
+    assert bull_flags.iloc[first_bear_idx] == False  # noqa: E712
+    d_prev = sim_dates[first_bear_idx - 1]
+    d_t = sim_dates[first_bear_idx]        # giorno del segnale ribassista (Close T)
+    d_next = sim_dates[first_bear_idx + 1]  # giorno di esecuzione (Open T+1)
+
+    # Sul giorno del segnale (T) il fondo deve essere ancora pienamente esposto a BTC:
+    # equity[T]/equity[T-1] deve coincidere con il rendimento del Close, non essere gia' in cash.
+    ret_equity_T = s_equity.loc[d_t] / s_equity.loc[d_prev]
+    ret_close_T = btc_df.loc[d_t, "Close"] / btc_df.loc[d_prev, "Close"]
+    assert ret_equity_T == pytest.approx(ret_close_T, rel=1e-6), (
+        "Il fondo risulta gia' fuori da BTC al Close del giorno del segnale: "
+        "esecuzione same-bar (lookahead) sulla rotazione BTC Core"
+    )
+
+    # Sul giorno successivo (T+1) l'equity deve ancora muoversi con il gap overnight
+    # (prova che la liquidazione non e' avvenuta prima dell'Open di T+1).
+    ret_equity_T1 = s_equity.loc[d_next] / s_equity.loc[d_t]
+    assert ret_equity_T1 < 0.90, (
+        "Il fondo non ha subito il gap overnight su T+1: probabile liquidazione anticipata al Close di T"
+    )
+
+    # Da T+2 in poi il fondo e' in cash: equity piatta nonostante il prezzo BTC resti costante.
+    d_t2 = sim_dates[first_bear_idx + 2]
+    assert s_equity.loc[d_t2] == pytest.approx(s_equity.loc[d_next], rel=1e-9)
+
+
+def test_evaluate_daily_crypto_frontier_missing_btc_data_fails_safe():
+    """Verifica che, con dati BTC assenti/insufficienti per calcolare il regime macro,
+    il gate Altseason resti disabilitato (fail-safe) invece di presumere un mercato
+    rialzista (fail-open). Isola la questione costruendo un altcoin che soddisfa da solo
+    entrambe le altre condizioni del gate (breadth 100%, RS spread 100%), cosi' che
+    l'unica variabile rimasta sia il regime BTC presunto quando i suoi dati sono corti."""
+    cfg = CryptoVentureConfig()
+
+    # BTC: solo 35 righe, sufficienti per il confronto RS a 30gg dell'alt ma insufficienti
+    # (< macro_btc_slow_days=280) per calcolare il proprio regime SMA140/SMA280.
+    btc_dates = pd.date_range(end="2026-01-05", periods=35, freq="D")
+    short_btc_df = pd.DataFrame({
+        "Open": [50000.0] * 35, "High": [50500.0] * 35, "Low": [49500.0] * 35,
+        "Close": np.linspace(50000.0, 50500.0, 35), "Volume": [1_000_000.0] * 35,
+    }, index=btc_dates)
+
+    # ALT1: 150 righe, forte trend rialzista -> supera la propria SMA140 (breadth) e batte
+    # nettamente il rendimento BTC a 30gg (RS spread), per costruzione al 100% da solo.
+    alt_dates = pd.date_range(end="2026-01-05", periods=150, freq="D")
+    alt_close = np.linspace(10.0, 40.0, 150)
+    alt1_df = pd.DataFrame({
+        "Open": alt_close * 0.99, "High": alt_close * 1.01, "Low": alt_close * 0.99,
+        "Close": alt_close, "Volume": [1_000_000.0] * 150,
+    }, index=alt_dates)
+
+    res = evaluate_daily_crypto_frontier(
+        open_positions={},
+        crypto_alloc_pct=15.0,
+        crypto_dfs={"BTC-USD": short_btc_df, "BTC": short_btc_df, "ALT1-USD": alt1_df, "ALT1": alt1_df},
+        today_str="2026-01-05",
+        kraken_universe=["ALT1"],
+        config=cfg,
+    )
+    assert res["breadth_pct"] == pytest.approx(100.0)
+    assert res["rs_spread_pct"] == pytest.approx(100.0)
+    assert res["altseason_gate"] is False, (
+        "Con dati BTC insufficienti il gate Altseason deve restare disattivato anche se "
+        "breadth e RS spread degli alt soddisfano le soglie: il fail-open presume erroneamente un bull market"
+    )
 
 
 def test_end_to_end_crypto_venture_engine():
