@@ -38,16 +38,29 @@ TEST_START = "2020-09-30"
 SERIES_OUT_DIR = Path(__file__).parent / "apex_sensitivity_series"
 
 # (label, kelly_fraction, vol_target, base_weight_per_class) — None = default di produzione
+#
+# NOTA sul braccio "Base weight": base_weight_per_class e' un fallback che si applica
+# SOLO quando kelly_fraction=0 (o storico insufficiente/Sigma singolare) — vedi il
+# docstring di compute_v2_macro_signal in apex_v2_engine.py ("base_weight_per_class
+# resta quindi sempre il valore di riferimento/fallback, anche quando Kelly e'
+# abilitato"). Con kelly_fraction lasciato al default di produzione (0.25, sempre
+# attivo su questo periodo/orizzonte storico), Kelly SOVRASCRIVE base_weight_per_class
+# per ogni classe attiva: variarlo senza disattivare Kelly non testa nulla (bug
+# confermato da audit di robustezza indipendente — i risultati per 0.35/0.50/0.65
+# risultavano bit-identici). Le tre righe sotto disattivano esplicitamente Kelly
+# (kelly_fraction=0.0) cosi' da isolare davvero l'effetto di base_weight_per_class,
+# nel regime (comportamento pre-Kelly) in cui e' effettivamente operativo.
 GRID = [
-    ("Produzione (0.25 / 22% / 0.50)", None, None, None),
+    ("Produzione (Kelly 0.25 / vol-target 22%)", None, None, None),
     ("Kelly fraction 0.15", 0.15, None, None),
     ("Kelly fraction 0.40", 0.40, None, None),
     ("Vol target 16%", None, 0.16, None),
     ("Vol target 19%", None, 0.19, None),
     ("Vol target 25%", None, 0.25, None),
     ("Vol target 28%", None, 0.28, None),
-    ("Base weight 0.35", None, None, 0.35),
-    ("Base weight 0.65", None, None, 0.65),
+    ("Base weight 0.35 (Kelly off)", 0.0, None, 0.35),
+    ("Base weight 0.50 (Kelly off, baseline pre-Kelly)", 0.0, None, 0.50),
+    ("Base weight 0.65 (Kelly off)", 0.0, None, 0.65),
 ]
 
 
@@ -83,7 +96,7 @@ def main():
 
     sharpes = [s["sharpe"] for s in results.values()]
     print(f"\nSharpe: min {min(sharpes):.3f}, max {max(sharpes):.3f}, "
-          f"range {max(sharpes)-min(sharpes):.3f}, produzione {results['Produzione (0.25 / 22% / 0.50)']['sharpe']:.3f}")
+          f"range {max(sharpes)-min(sharpes):.3f}, produzione {results['Produzione (Kelly 0.25 / vol-target 22%)']['sharpe']:.3f}")
 
 
 if __name__ == "__main__":

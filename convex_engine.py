@@ -102,9 +102,18 @@ CONVEX_INSTRUMENTS = {
         "isin": "GB00BJYDH287",
         "target_weight": 0.075,      # 7.5% del capitale
         "tolerance_min": 0.035,      # 3.5%
-        "tolerance_max": 0.13125,    # 13.125% = target x1.75 (+75% sopra target, validato:
-                                      # massimizza Sharpe a 0.99, riduce il drag fiscale e
-                                      # preserva il MaxDD a -15.86% con controllo trimestrale)
+        "tolerance_max": 0.13125,    # 13.125% = target x1.75 (+75% sopra target, verifica
+                                      # trimestrale). Verificato quantitativamente
+                                      # (validation_suite/comparative_studies/
+                                      # convex_trim_threshold_production_verification.py,
+                                      # 144 mesi 2014-2026, netto tasse italiane): +0.15pp
+                                      # CAGR e +0.009 Sharpe vs la soglia precedente
+                                      # (1.5x/11.25%), MaxDD sostanzialmente invariato —
+                                      # effetto reale ma piccolo, non "Sharpe 0.99/MaxDD
+                                      # -15.86%" come affermava in precedenza questo
+                                      # commento: quel claim non e' risultato riproducibile
+                                      # con nessuno script presente nel repository ed e'
+                                      # stato rimosso in sede di audit di robustezza.
         "ter": 0.0015,               # 0.15% annuo
         "tax_type": "REDDITO_DIVERSO", # ETP: COMPENSA MINUSVALENZE!
         "asset_class": "Bitcoin (Crescita Asimmetrica)",
