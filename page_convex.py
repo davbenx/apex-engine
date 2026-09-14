@@ -81,12 +81,6 @@ def get_convex_class_svg(strumento, size=16, color="currentColor", style=""):
         return f'<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{inline_style}"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line></svg>'
     return ""
 
-MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
-
-def section_title(text, top="26px", bottom="10px"):
-    """Identico ad Apex Engine (davbenx/apex-engine/app.py) — niente emoji,
-    solo tipografia Fraunces."""
-    return f'<div style="font-family:{FRAUNCES}; font-size:16px; font-weight:600; letter-spacing:-0.1px; margin:{top} 0 {bottom};">{text}</div>'
 
 def render_convex_positions_html_table(df, show_details=False):
     right_align_cols = ["Quote", "Prezzo", "Peso Reale", "Target", "Controvalore", "TER"]

@@ -790,7 +790,7 @@ def evaluate_daily_crypto_frontier(
                 "action": "CHIUSURA",
                 "action_type": "SELL",
                 "ticker": tkr,
-                "display_name": tkr if tkr != "BTC" else "Bitcoin",
+                "display_name": tkr,
                 "cur_w_pct": round(cur_w_pct, 2),
                 "tgt_w_pct": 0.0,
                 "delta_w_pct": round(-cur_w_pct, 2),
@@ -999,10 +999,13 @@ def evaluate_daily_crypto_frontier(
             if float(c.iloc[-1]) > sma140:
                 above_sma_count += 1
         if len(df) >= 31 and btc_df is not None and len(btc_df) >= 31:
-            ret_alt30 = (float(c.iloc[-1]) / float(c.iloc[-31])) - 1.0
-            ret_btc30 = (float(btc_df["Close"].iloc[-1]) / float(btc_df["Close"].iloc[-31])) - 1.0
-            if ret_alt30 > ret_btc30:
-                rs_beat_btc_count += 1
+            p_alt_old = float(c.iloc[-31])
+            p_btc_old = float(btc_df["Close"].iloc[-31])
+            if p_alt_old > 0 and p_btc_old > 0:
+                ret_alt30 = (float(c.iloc[-1]) / p_alt_old) - 1.0
+                ret_btc30 = (float(btc_df["Close"].iloc[-1]) / p_btc_old) - 1.0
+                if ret_alt30 > ret_btc30:
+                    rs_beat_btc_count += 1
 
     breadth_pct = (above_sma_count / valid_univ_count * 100.0) if valid_univ_count > 0 else 0.0
     rs_spread_pct = (rs_beat_btc_count / valid_univ_count * 100.0) if valid_univ_count > 0 else 0.0
@@ -1030,7 +1033,7 @@ def evaluate_daily_crypto_frontier(
 
             # Donchian 30d Breakout
             donch_high = float(df["Close"].iloc[:-1].tail(cfg.donchian_breakout_days).max())
-            if curr_p <= donch_high:
+            if donch_high <= 0 or curr_p <= donch_high:
                 continue
 
             # Filtro Anti-Crowding (massimo +10% sopra il breakout)
@@ -1045,8 +1048,10 @@ def evaluate_daily_crypto_frontier(
                     continue
 
             # Forza Relativa Alt vs BTC a 20 giorni
-            ret_alt20 = (curr_p / float(df["Close"].iloc[-21])) - 1.0 if len(df) >= 21 else 0.0
-            ret_btc20 = (float(btc_df["Close"].iloc[-1]) / float(btc_df["Close"].iloc[-21])) - 1.0 if btc_df is not None and len(btc_df) >= 21 else 0.0
+            p_alt_21 = float(df["Close"].iloc[-21]) if len(df) >= 21 else 0.0
+            p_btc_21 = float(btc_df["Close"].iloc[-21]) if (btc_df is not None and len(btc_df) >= 21) else 0.0
+            ret_alt20 = (curr_p / p_alt_21) - 1.0 if p_alt_21 > 0 else 0.0
+            ret_btc20 = (float(btc_df["Close"].iloc[-1]) / p_btc_21) - 1.0 if p_btc_21 > 0 else 0.0
             if ret_alt20 <= ret_btc20:
                 continue
 

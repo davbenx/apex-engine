@@ -415,3 +415,52 @@ def test_apex_full_historical_trades_integrity():
     assert not emoji_pattern.findall(json_content), "Trovate emoji nel file JSON dei trade storici"
 
 
+def test_audit_display_ticker_and_crypto_uniformity():
+    """Verifica che get_display_ticker restituisca nomi macro per GLD/IEF/Cash e ticker puri per crypto e azioni."""
+    import backend
+    assert backend.get_display_ticker("GLD") == "Oro"
+    assert backend.get_display_ticker("IEF") == "Obbligazioni"
+    assert backend.get_display_ticker("Cash") == "Liquidità"
+    assert backend.get_display_ticker("BTC") == "BTC"
+    assert backend.get_display_ticker("BTC-USD") == "BTC"
+    assert backend.get_display_ticker("SOL-USD") == "SOL"
+    assert backend.get_display_ticker("LUNC-USD") == "LUNC"
+    assert backend.get_display_ticker("NVDA") == "NVDA"
+
+
+def test_audit_record_trade_persists_is_crypto(tmp_path):
+    """Verifica che record_trade persista correttamente il flag is_crypto nel registro delle operazioni."""
+    import backend
+    test_pf = tmp_path / "portfolio.json"
+    backend.PORTFOLIO_FILE = str(test_pf)
+
+    pf_data = {"v2_migrated": True, "nav_usd": 100000.0, "open_positions": {
+        "BTC": {"weight": 0.20, "entry_price": 50000.0, "current_price": 60000.0, "is_crypto": True, "entry_date": "2026-08-01"},
+        "AAPL": {"weight": 0.10, "entry_price": 200.0, "current_price": 220.0, "is_crypto": False, "entry_date": "2026-08-01"}
+    }, "trade_history": []}
+    backend.save_json_atomic(str(test_pf), pf_data)
+
+    # Ribilanciamento con chiusura totale
+    backend.update_portfolio({"Equities": 0.0, "Bonds": 0.0, "Gold": 0.0, "Crypto": 0.0}, [], {"BTC-USD": 60000.0, "AAPL": 220.0}, "2026-09-14")
+    updated_pf = backend.load_json_safe(str(test_pf))
+    th = updated_pf.get("trade_history", [])
+    btc_trade = next((t for t in th if t["ticker"] == "BTC"), None)
+    aapl_trade = next((t for t in th if t["ticker"] == "AAPL"), None)
+
+    assert btc_trade is not None
+    assert btc_trade.get("is_crypto") is True
+    assert aapl_trade is not None
+    assert aapl_trade.get("is_crypto") is False
+
+
+def test_audit_convex_trim_threshold_alignment():
+    """Verifica che le soglie di trim per WBTC e PPFB siano allineate a 0.13125 (+75% sopra il target 7.5%)."""
+    import portfolio_manager
+    cfg = portfolio_manager.load_config()
+    assert cfg["wbtc_trim_threshold"] == 0.13125
+    assert cfg["ppfb_trim_threshold"] == 0.13125
+    assert portfolio_manager.CONVEX_INSTRUMENTS_METADATA["WBTC"]["trim_threshold"] == 0.13125
+    assert portfolio_manager.CONVEX_INSTRUMENTS_METADATA["PPFB"]["trim_threshold"] == 0.13125
+
+
+

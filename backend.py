@@ -509,13 +509,14 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str, target_cr
     def cost_bps(tkr):
         return 8.0 if tkr in ("IEF", "GLD", "BTC") else 10.0
 
-    def record_trade(ticker, entry_price, exit_price, entry_date, traded_weight, reason):
+    def record_trade(ticker, entry_price, exit_price, entry_date, traded_weight, reason, is_crypto=False):
         profit_pct = (exit_price / entry_price - 1.0) if entry_price > 0 else 0.0
         pf.setdefault("trade_history", []).append({
             "ticker": ticker, "entry_date": entry_date, "exit_date": today_str,
             "entry_price": entry_price, "exit_price": exit_price,
             "profit_pct": round(profit_pct * 100, 2), "weight": round(traded_weight, 6),
             "reason": reason,
+            "is_crypto": bool(is_crypto or ticker in ("BTC", "Bitcoin") or str(ticker).endswith("-USD")),
         })
         action_log.append(f"[CHIUSURA]: {ticker} | Prezzo Uscita: {fmt_usd(exit_price)} | Rendimento: {round(profit_pct * 100, 2):+0.2f}%")
         return profit_pct
@@ -535,7 +536,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str, target_cr
         entry_price = pos.get("entry_price", price)
 
         if tgt_w is None:
-            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), cur_w, "Uscito da basket/classe disattivata")
+            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), cur_w, "Uscito da basket/classe disattivata", is_crypto=pos.get("is_crypto", False))
             turnover_cost_frac += cur_w * (cost_bps(ticker) / 10000.0)
             del current[ticker]
             continue
@@ -560,7 +561,7 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str, target_cr
             turnover_cost_frac += delta_w * (cost_bps(ticker) / 10000.0)
         else:
             trimmed_w = -delta_w
-            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), trimmed_w, "Ribilanciamento mensile (trim parziale)")
+            record_trade(ticker, entry_price, price, pos.get("entry_date", today_str), trimmed_w, "Ribilanciamento mensile (trim parziale)", is_crypto=pos.get("is_crypto", False))
             pos["weight"] = tgt_w
             pos["current_price"] = price
             turnover_cost_frac += trimmed_w * (cost_bps(ticker) / 10000.0)
@@ -609,16 +610,21 @@ def update_portfolio(allocations, basket, prices_by_ticker, today_str, target_cr
 PROXIES = {
     "GLD": {"name": "Oro", "full": "Oro"},
     "IEF": {"name": "Obbligazioni", "full": "Obbligazioni"},
-    "BTC": {"name": "Cryptovalute", "full": "Cryptovalute"},
     "Cash": {"name": "Liquidità", "full": "Liquidità"},
 }
 
 
 def get_display_ticker(ticker):
-    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Cryptovalute, Obbligazioni, Liquidità) o il ticker per le azioni."""
+    """Restituisce il nome pulito dello strumento per gli asset macro (Oro, Obbligazioni, Liquidità) o il ticker puro per azioni e crypto."""
+    if not ticker:
+        return ""
     if ticker in PROXIES:
         return PROXIES[ticker]["full"]
-    return ticker
+    try:
+        from portfolio_manager import clean_crypto_ticker
+        return clean_crypto_ticker(ticker)
+    except Exception:
+        return str(ticker).replace("-USD", "").strip()
 
 
 def compute_rebalance_orders_structured(open_positions, target_allocations, basket, prices_by_ticker, target_crypto_positions=None):

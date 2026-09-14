@@ -54,9 +54,10 @@ def _load_price_cache():
     try:
         with open(_PRICE_CACHE_PATH, "r") as f:
             cache = json.load(f)
-        fetched_at = datetime.datetime.strptime(cache["fetched_at"], "%Y-%m-%dT%H:%M:%SZ")
-        age_h = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - fetched_at).total_seconds() / 3600
-        cache["_age_hours"] = age_h
+        raw_ts = str(cache["fetched_at"]).replace("Z", "+00:00")
+        fetched_at = datetime.datetime.fromisoformat(raw_ts)
+        age_h = (datetime.datetime.now(datetime.timezone.utc) - fetched_at).total_seconds() / 3600
+        cache["_age_hours"] = max(0.0, age_h)
         return cache
     except Exception:
         return None
@@ -850,7 +851,7 @@ with tab_pf:
     last_actions = (pf or {}).get("last_action_log") or []
     last_action_date = (pf or {}).get("pending_orders_date") or (pf or {}).get("last_action_date") or ""
 
-    PROXIES_DISPLAY = {"GLD": "Oro", "IEF": "Obbligazioni", "BTC": "Cryptovalute", "Cash": "Liquidità"}
+    PROXIES_DISPLAY = {"GLD": "Oro", "IEF": "Obbligazioni", "Cash": "Liquidità"}
 
     hist_trades = (pf or {}).get("trade_history") or []
     latest_hist_exit_date = ""
@@ -875,12 +876,15 @@ with tab_pf:
             if act_label == "TRIM":
                 act_label = "RIDUZIONE"
             tkr = o.get("ticker", "")
-            disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
+            is_cr = o.get("is_crypto", False) or tkr in ("BTC", "Bitcoin") or str(tkr).endswith("-USD")
+            if is_cr:
+                disp_name = portfolio_manager.clean_crypto_ticker(tkr)
+            else:
+                disp_name = o.get("display_name") or PROXIES_DISPLAY.get(tkr, tkr)
             px = o.get("price", 0.0)
             delta_w = abs(o.get("delta_w_pct", 0.0))
             val_usd = (delta_w / 100.0) * capitale
             val_user = val_usd * fx_ratio
-            is_cr = o.get("is_crypto", False) or tkr == "BTC"
             shares = (val_usd / px) if px > 0 else 0.0
             shares_str = f"{shares:.4f}" if is_cr else f"{int(round(shares)):,}"
 
