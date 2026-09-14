@@ -187,6 +187,14 @@ def run_crypto_venture_backtest(
     btc_o = matrices["btc_o"]
     btc_bull = matrices["btc_bull"]
     df_close = matrices["df_close"]
+    # Forward-fill SOLO per la valorizzazione mark-to-market delle posizioni aperte (non
+    # per i segnali/esecuzioni, che restano sui prezzi grezzi): un Close mancante per un
+    # giorno (gap nel feed) deve valorizzare la posizione all'ultimo prezzo noto, non
+    # azzerarla dalla somma dell'equity — altrimenti un semplice buco nei dati produce un
+    # drawdown fantasma (l'equity crolla del valore esatto della posizione esclusa e poi
+    # "risale" di colpo appena i dati riprendono, senza alcun movimento di mercato reale
+    # dietro — bug confermato da audit di robustezza indipendente).
+    df_close_valuation = df_close.ffill()
     df_open = matrices["df_open"]
     df_high = matrices["df_high"]
     df_low = matrices["df_low"]
@@ -243,44 +251,54 @@ def run_crypto_venture_backtest(
         # ----------------------------------------------------------------------
         # 1. Esecuzione vendite pendenti all'Open di giorno T
         # ----------------------------------------------------------------------
+        still_pending_exits: List[Tuple[str, str]] = []
         for sym, reason in pending_exits:
-            if sym in positions:
-                p_op = df_open.loc[d, sym]
-                if not np.isnan(p_op) and p_op > 0:
-                    pos = positions[sym]
-                    p_exec = p_op * slip_sell
-                    rec = pos["units"] * p_exec
-                    cash += rec
-                    pnl_v = rec - pos["cost_rem"]
-                    pnl_p = (p_exec / pos["entry_p"]) - 1.0
+            if sym not in positions:
+                continue
+            p_op = df_open.loc[d, sym]
+            if np.isnan(p_op) or p_op <= 0:
+                # Open mancante/non valido (gap nel feed dati): l'ordine di uscita NON
+                # viene scartato, resta in coda per un nuovo tentativo il giorno dopo —
+                # scartarlo qui significherebbe perdere silenziosamente uno stop-loss/
+                # time-stop gia' deciso, senza log ne' retry (bug confermato da audit di
+                # robustezza indipendente).
+                still_pending_exits.append((sym, reason))
+                continue
 
-                    if tax_enabled:
-                        if pnl_v > 0:
-                            taxable = max(0.0, pnl_v - loss_pool)
-                            loss_pool = max(0.0, loss_pool - pnl_v)
-                            tax = taxable * config.tax_rate
-                            cash -= tax
-                            cumulative_tax += tax
-                        else:
-                            loss_pool += abs(pnl_v)
+            pos = positions[sym]
+            p_exec = p_op * slip_sell
+            rec = pos["units"] * p_exec
+            cash += rec
+            pnl_v = rec - pos["cost_rem"]
+            pnl_p = (p_exec / pos["entry_p"]) - 1.0
 
-                    h_days = (d - pos["entry_date"]).days
-                    completed_trades.append(TradeRecord(
-                        symbol=sym,
-                        entry_date=pos["entry_date"],
-                        exit_date=d,
-                        entry_price=pos["entry_p"],
-                        exit_price=p_exec,
-                        units=pos["units"],
-                        invested_amount=pos["init_cost"],
-                        recovered_amount=rec,
-                        pnl_pct=pnl_p,
-                        pnl_val=pnl_v,
-                        holding_days=h_days,
-                        exit_reason=reason
-                    ))
-                    del positions[sym]
-        pending_exits = []
+            if tax_enabled:
+                if pnl_v > 0:
+                    taxable = max(0.0, pnl_v - loss_pool)
+                    loss_pool = max(0.0, loss_pool - pnl_v)
+                    tax = taxable * config.tax_rate
+                    cash -= tax
+                    cumulative_tax += tax
+                else:
+                    loss_pool += abs(pnl_v)
+
+            h_days = (d - pos["entry_date"]).days
+            completed_trades.append(TradeRecord(
+                symbol=sym,
+                entry_date=pos["entry_date"],
+                exit_date=d,
+                entry_price=pos["entry_p"],
+                exit_price=p_exec,
+                units=pos["units"],
+                invested_amount=pos["init_cost"],
+                recovered_amount=rec,
+                pnl_pct=pnl_p,
+                pnl_val=pnl_v,
+                holding_days=h_days,
+                exit_reason=reason
+            ))
+            del positions[sym]
+        pending_exits = still_pending_exits
 
         # ----------------------------------------------------------------------
         # 2. Esecuzione acquisti pendenti all'Open di giorno T
@@ -463,7 +481,7 @@ def run_crypto_venture_backtest(
         # 5. Decisione Capitale Inattivo (Dual-Regime Core) al Close di T,
         #    accodata per esecuzione all'Open di T+1 (zero lookahead)
         # ----------------------------------------------------------------------
-        alt_val = sum(pos["units"] * df_close.loc[d, s] for s, pos in positions.items() if not np.isnan(df_close.loc[d, s]))
+        alt_val = sum(pos["units"] * df_close_valuation.loc[d, s] for s, pos in positions.items())
         current_equity = cash + (btc_units * cur_btc_p) + alt_val
 
         if not is_btc:
@@ -537,7 +555,7 @@ def run_crypto_venture_backtest(
                 pending_entries.append((sym, budget))
 
         # Snapshot NAV giornaliero
-        p_val = sum(pos["units"] * df_close.loc[d, s] for s, pos in positions.items() if not np.isnan(df_close.loc[d, s]))
+        p_val = sum(pos["units"] * df_close_valuation.loc[d, s] for s, pos in positions.items())
         equity_series.append(cash + (btc_units * cur_btc_p) + p_val)
         btc_benchmark_series.append(cur_btc_p)
 
@@ -854,9 +872,24 @@ def evaluate_daily_crypto_frontier(
         if df is None or df.empty:
             continue
 
-        cur_close = float(df["Close"].iloc[-1])
-        cur_high = float(df["High"].iloc[-1])
-        cur_low = float(df["Low"].iloc[-1])
+        last_close_raw = df["Close"].iloc[-1]
+        if pd.isna(last_close_raw):
+            # Close mancante: nessun dato utilizzabile oggi per questa posizione. Saltare
+            # invece di propagare NaN in pos["current_price"] (che altrimenti arriva fino
+            # alla dashboard e avvelena silenziosamente il P&L% aggregato del portafoglio
+            # nel messaggio Telegram — bug confermato da audit di robustezza indipendente).
+            continue
+        cur_close = float(last_close_raw)
+        # Un High/Low mancante da solo (dropout parziale del feed, Close comunque valido)
+        # non deve disabilitare silenziosamente i controlli di rischio che li usano: si
+        # ripiega sul Close, un proxy conservativo che mantiene attivo il controllo invece
+        # di renderlo un confronto sempre-falso con NaN (bug confermato: un Low NaN da solo
+        # disattivava SOLO il circuit breaker di emergenza -50%, lasciando gli altri stop
+        # invariati, senza errori ne' segnalazioni).
+        cur_high_raw = df["High"].iloc[-1]
+        cur_low_raw = df["Low"].iloc[-1]
+        cur_high = float(cur_high_raw) if pd.notna(cur_high_raw) else cur_close
+        cur_low = float(cur_low_raw) if pd.notna(cur_low_raw) else cur_close
         entry_p = float(pos.get("entry_price", cur_close))
         cur_w = float(pos.get("weight", slot_weight))
 

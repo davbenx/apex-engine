@@ -365,6 +365,41 @@ def test_select_low_vol_basket_buffer_never_relaxes_new_entrants():
     assert [b["Ticker"] for b in buffered] == ["LOWVOL"]
 
 
+def test_select_low_vol_basket_deterministic_tie_break_independent_of_dict_order():
+    """Con volatilita' esattamente pari (stessa serie prezzi per piu' ticker, tie
+    perfetto), l'ordine di iterazione del dict eq_data non deve influenzare quali
+    titoli vengono selezionati (bug confermato da audit di robustezza indipendente:
+    il sort era stabile solo rispetto all'ordine di inserimento del dict, non
+    rispetto ai dati — un dict costruito con lo stesso universo ma popolato in
+    ordine diverso, es. un ordine diverso restituito da un fetch dati, cambiava il
+    basket selezionato)."""
+    tied = _weekly_close_df(amplitude=0.01)
+    eq_data_a = {"TIE_C": tied, "TIE_A": tied, "TIE_B": tied, "TIE_D": tied}
+    eq_data_b = {"TIE_D": tied, "TIE_B": tied, "TIE_A": tied, "TIE_C": tied}
+    basket_a = [b["Ticker"] for b in select_low_vol_basket(eq_data_a, top_n=2, lookback_weeks=26)]
+    basket_b = [b["Ticker"] for b in select_low_vol_basket(eq_data_b, top_n=2, lookback_weeks=26)]
+    assert basket_a == basket_b == ["TIE_A", "TIE_B"], "il tie-break deve essere alfabetico sul ticker, non dipendere dall'ordine del dict"
+
+
+def test_select_low_vol_basket_excludes_stale_ticker():
+    """Un titolo il cui feed prezzi si e' fermato molto prima degli altri (sospeso o
+    delistato, qui simulato con una serie che finisce ~20 settimane prima) non deve
+    essere selezionato sull'ultimo prezzo noto, ormai vecchio, come se fosse ancora
+    scambiato — anche se sarebbe il piu' a bassa volatilita' tra quelli rimasti
+    (bug confermato da audit di robustezza indipendente: _weekly_close fa .dropna(),
+    quindi un ticker con un 'tail' di NaN nel feed termina silenziosamente prima
+    delle altre serie, senza sollevare errori, e prima di questo fix veniva comunque
+    valutato e potenzialmente scelto)."""
+    eq_data = {
+        "STALE_LOWVOL": _weekly_close_df(amplitude=0.0005, n_weeks=40),
+        "FRESH_LOWVOL": _weekly_close_df(amplitude=0.003, n_weeks=60),
+        "FRESH_MIDVOL": _weekly_close_df(amplitude=0.010, n_weeks=60),
+    }
+    basket = [b["Ticker"] for b in select_low_vol_basket(eq_data, top_n=2, lookback_weeks=26)]
+    assert "STALE_LOWVOL" not in basket, "un titolo con dati vecchi non deve essere selezionato sull'ultimo prezzo noto"
+    assert basket == ["FRESH_LOWVOL", "FRESH_MIDVOL"]
+
+
 def _spy_ref_df(n_weeks=60, seed=99, vol=0.02, base=100.0):
     """Serie SPY di riferimento a rendimenti settimanali casuali ma riproducibili
     (seed fisso) — usata come base per costruire titoli a BETA controllato."""
@@ -480,6 +515,39 @@ def test_select_low_beta_basket_insufficient_history_excluded():
     tickers = [b["Ticker"] for b in basket]
     assert "TOOSHORT" not in tickers
     assert tickers == ["ENOUGH"]
+
+
+def test_select_low_beta_basket_deterministic_tie_break_independent_of_dict_order():
+    """Analogo per beta del test su select_low_vol_basket: con beta esattamente pari
+    (rumore idiosincratico azzerato), l'ordine del dict eq_data non deve influenzare
+    la selezione."""
+    spy = _spy_ref_df()
+    tied = _beta_controlled_df(spy, beta=0.3, noise_std=0.0, seed=1)
+    eq_data_a = {"TIE_C": tied, "TIE_A": tied, "TIE_B": tied}
+    eq_data_b = {"TIE_B": tied, "TIE_A": tied, "TIE_C": tied}
+    basket_a = [b["Ticker"] for b in select_low_beta_basket(eq_data_a, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=None)]
+    basket_b = [b["Ticker"] for b in select_low_beta_basket(eq_data_b, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=None)]
+    assert basket_a == basket_b == ["TIE_A", "TIE_B"], "il tie-break deve essere alfabetico sul ticker, non dipendere dall'ordine del dict"
+
+
+def test_select_low_beta_basket_excludes_stale_ticker():
+    """Analogo per beta del test su select_low_vol_basket: un titolo con beta
+    stimabile ma il cui ultimo dato e' rimasto indietro di 10 settimane rispetto al
+    resto dell'universo (sospeso/delistato) non deve essere selezionato sull'ultimo
+    beta/prezzo noto, ormai vecchio. Le 10 settimane mancanti lasciano comunque
+    storico comune sufficiente (50 >= lookback_weeks+1=27): l'esclusione qui deve
+    derivare dal filtro di staleness, non dal controllo di storico insufficiente
+    gia' coperto da un altro test."""
+    spy = _spy_ref_df(n_weeks=60)
+    stale_df = _beta_controlled_df(spy, beta=-0.5, seed=1).iloc[:-10]
+    eq_data = {
+        "STALE_LOWBETA": stale_df,
+        "FRESH_LOWBETA": _beta_controlled_df(spy, beta=-0.1, seed=2),
+        "FRESH_MIDBETA": _beta_controlled_df(spy, beta=0.5, seed=3),
+    }
+    basket = [b["Ticker"] for b in select_low_beta_basket(eq_data, spy, top_n=2, lookback_weeks=26, trend_ma_weeks=None)]
+    assert "STALE_LOWBETA" not in basket
+    assert basket == ["FRESH_LOWBETA", "FRESH_MIDBETA"]
 
 
 def test_select_low_beta_basket_trend_filter_excludes_downtrend():

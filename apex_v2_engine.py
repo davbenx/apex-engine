@@ -100,6 +100,27 @@ def _realized_vol(weekly_close: pd.Series, window: int) -> Optional[float]:
     return v if v > 1e-6 else None
 
 
+V2_STALENESS_TOLERANCE_DAYS = 21  # ~3 settimane di slack su una cadenza settimanale
+
+
+def _drop_stale_tickers(scored: List[tuple]) -> List[tuple]:
+    """Esclude i titoli il cui ultimo dato valido e' rimasto indietro rispetto al
+    resto dell'universo di oltre V2_STALENESS_TOLERANCE_DAYS. `_weekly_close` fa gia'
+    .dropna() sulle chiusure, quindi un titolo sospeso/delistato con un "tail" di NaN
+    nel feed (invece di una serie che semplicemente finisce) produce una wc che si
+    ferma prima delle altre, silenziosamente, senza sollevare errori — senza questo
+    filtro veniva comunque valutato e potenzialmente selezionato sull'ultimo prezzo
+    noto, ormai vecchio, come se fosse ancora scambiato (bug confermato da audit di
+    robustezza indipendente). `scored` e' una lista di tuple il cui ultimo elemento e'
+    la data dell'ultima osservazione valida (pd.Timestamp); l'elemento non viene
+    interpretato altrimenti, cosi' la funzione serve sia a select_low_vol_basket
+    (score=volatilita') sia a select_low_beta_basket (score=beta)."""
+    if not scored:
+        return scored
+    most_recent = max(item[-1] for item in scored)
+    return [item for item in scored if (most_recent - item[-1]).days <= V2_STALENESS_TOLERANCE_DAYS]
+
+
 def _kelly_class_weights(b_data: Dict[str, pd.DataFrame], window: int) -> Optional[Dict[str, float]]:
     """f* = Sigma^-1 mu sulle 4 classi macro (V2_CLASS_TICKER), mu/Sigma annualizzati
     (x52) su una finestra trailing di `window` settimane — nessun lookahead, solo
@@ -366,11 +387,12 @@ def select_low_vol_basket(
         wc = _weekly_close(df)
         v = _realized_vol(wc, lookback_weeks)
         if v is not None and len(wc) > 0:
-            scored.append((sym, v, float(wc.iloc[-1])))
+            scored.append((sym, v, float(wc.iloc[-1]), wc.index[-1]))
 
-    scored.sort(key=lambda t: t[1])  # bassa volatilita' prima
-    info_by_sym = {sym: (round(vol * 100, 2), round(price, 2)) for sym, vol, price in scored}
-    ranked_syms = [sym for sym, _, _ in scored]
+    scored = _drop_stale_tickers(scored)
+    scored.sort(key=lambda t: (t[1], t[0]))  # bassa volatilita' prima, poi ticker (tie-break deterministico)
+    info_by_sym = {sym: (round(vol * 100, 2), round(price, 2)) for sym, vol, price, _ in scored}
+    ranked_syms = [sym for sym, _, _, _ in scored]
 
     return _select_basket_by_metric(
         ranked_syms, info_by_sym, "Volatilita' Ann. (%)", top_n, prev_tickers, buffer_rank, sector_of, max_per_sector,
@@ -430,30 +452,34 @@ def select_low_beta_basket(
     pool generale per garantire la piena saturazione (top_n) del basket.
     """
     spy_wc = _weekly_close(spy_data)
-    ranked = []
-    fallback_pool = []
+    candidates = []
     for sym, df in eq_data.items():
         wc = _weekly_close(df)
         beta = _realized_beta(wc, spy_wc, lookback_weeks)
         if beta is not None and len(wc) > 0:
-            price = float(wc.iloc[-1])
-            fallback_pool.append((sym, beta, price))
-            if trend_ma_weeks is not None and len(wc) >= trend_ma_weeks:
-                ma = float(wc.iloc[-trend_ma_weeks:].mean())
-                if price <= ma:
-                    continue
-            ranked.append((sym, beta, price))
+            candidates.append((sym, beta, float(wc.iloc[-1]), wc, len(wc), wc.index[-1]))
+    candidates = _drop_stale_tickers(candidates)
+
+    ranked = []
+    fallback_pool = []
+    for sym, beta, price, wc, wc_len, _ in candidates:
+        fallback_pool.append((sym, beta, price))
+        if trend_ma_weeks is not None and wc_len >= trend_ma_weeks:
+            ma = float(wc.iloc[-trend_ma_weeks:].mean())
+            if price <= ma:
+                continue
+        ranked.append((sym, beta, price))
 
     if len(ranked) < top_n:
         seen = {s for s, _, _ in ranked}
-        fallback_pool.sort(key=lambda t: t[1])
+        fallback_pool.sort(key=lambda t: (t[1], t[0]))
         for item in fallback_pool:
             if item[0] not in seen:
                 ranked.append(item)
                 if len(ranked) >= top_n:
                     break
 
-    ranked.sort(key=lambda t: t[1])  # beta basso (incl. negativo) prima, non valore assoluto
+    ranked.sort(key=lambda t: (t[1], t[0]))  # beta basso (incl. negativo) prima, poi ticker (tie-break deterministico)
     info_by_sym = {sym: (round(beta, 3), round(price, 2)) for sym, beta, price in ranked}
     ranked_syms = [sym for sym, _, _ in ranked]
 
