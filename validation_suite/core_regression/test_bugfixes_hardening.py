@@ -466,6 +466,33 @@ def test_audit_record_trade_persists_is_crypto(tmp_path):
     assert aapl_trade.get("is_crypto") is False
 
 
+def test_apex_historical_trades_ui_filter_uses_substring_not_exact_era_match(full_historical_trades):
+    """BUG corretto in page_apex.py: il filtro "Registro Operativo Completo" (dropdown
+    Ambito Storico + logica di filtraggio) confrontava l'era per UGUAGLIANZA ESATTA
+    contro le vecchie etichette fisse "2018-2024 (Crypto Frontier Venture)" e
+    "2024-Oggi (Tracking Live)" — ma l'era crypto ha un'etichetta DINAMICA (anno
+    min/max reale dei trade, oggi "2020-2024 (...)") da quando e' stato corretto il bug
+    che la etichettava con un intervallo fisso a prescindere dalle date reali (vedi
+    apex_historical_trades_generator.py). Risultato: il confronto esatto non trovava
+    mai corrispondenza e il filtro "Crypto Frontier Venture" mostrava sempre una
+    tabella VUOTA nonostante i trade reali esistessero — un vero regression introdotto
+    dalla stessa correzione che ha reso l'etichetta dinamica. Fix: confronto per
+    sottostringa ("Crypto Frontier Venture" in era), stesso pattern di questo test."""
+    eras = {t["era"] for t in full_historical_trades}
+    crypto_trades_by_exact_stale_label = [t for t in full_historical_trades if t["era"] == "2018-2024 (Crypto Frontier Venture)"]
+    crypto_trades_by_substring = [t for t in full_historical_trades if "Crypto Frontier Venture" in t["era"]]
+
+    assert len(crypto_trades_by_substring) > 0, (
+        "il registro deve contenere trade Crypto Frontier Venture reali per questo test"
+    )
+    assert len(crypto_trades_by_exact_stale_label) == 0, (
+        "l'etichetta esatta '2018-2024 (...)' non deve più esistere ora che è dinamica — "
+        "se questo assert fallisce, l'etichetta è tornata fissa e il filtro UI può "
+        "tornare a usare un confronto esatto senza rompersi"
+    )
+    assert any("Crypto Frontier Venture" in e for e in eras)
+
+
 def test_audit_convex_trim_threshold_alignment():
     """Verifica che le soglie di trim per WBTC e PPFB (0.13125 = target 7.5% x1.75, +75%)
     siano allineate tra le DUE fonti reali che le duplicano indipendentemente: il valore

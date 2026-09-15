@@ -676,8 +676,7 @@ with col_stat:
 # CAGR, Sharpe e MaxDD rispetto alla Completa, senza alcun vantaggio a
 # compensare la minore complessità operativa.
 # ==========================================================================
-m_apex = portfolio_manager.get_apex_metrics()
-_m_apex_active = m_apex
+_m_apex_active = portfolio_manager.get_apex_metrics()
 
 # ==============================================================================
 # PORTFOLIO DATA EXTRACTION (serve sia al callout sopra le tab sia alla tab)
@@ -1396,9 +1395,16 @@ with tab_perf:
         c_scp, c_cls, c_yr, c_srch = st.columns([1.6, 1.3, 1.1, 1.4])
         with c_scp:
             n_tot = len(df_master)
+            # BUG corretto: l'era crypto ha un'etichetta DINAMICA (anno min/max reale dei
+            # trade, es. "2020-2024 (Crypto Frontier Venture)" oggi, non piu' un intervallo
+            # fisso "2018-2024") da quando e' stato corretto il bug che la etichettava cosi'
+            # a prescindere dalle date reali (vedi apex_historical_trades_generator.py) — il
+            # confronto esatto qui sotto non trovava mai una corrispondenza e il filtro
+            # "Crypto Frontier Venture" mostrava sempre una tabella vuota nonostante i trade
+            # reali esistessero. Confronto per sottostringa, stesso pattern usato nei test.
             n_pit = len(df_master[df_master["era"] != "1987-2011 (Macro Allocazione)"]) if "era" in df_master.columns else n_tot
-            n_cry = len(df_master[df_master["era"] == "2018-2024 (Crypto Frontier Venture)"]) if "era" in df_master.columns else 0
-            n_live = len(df_master[df_master["era"] == "2024-Oggi (Tracking Live)"]) if "era" in df_master.columns else 0
+            n_cry = len(df_master[df_master["era"].str.contains("Crypto Frontier Venture", na=False)]) if "era" in df_master.columns else 0
+            n_live = len(df_master[df_master["era"].str.contains("Tracking Live", na=False)]) if "era" in df_master.columns else 0
             scope_opts = [
                 f"Tutto lo Storico ({n_tot})",
                 f"Titoli & Macro PIT ({n_pit})",
@@ -1430,9 +1436,9 @@ with tab_perf:
         if "Titoli & Macro PIT" in flt_scope and "era" in df_display.columns:
             df_display = df_display[df_display["era"] != "1987-2011 (Macro Allocazione)"]
         elif "Crypto Frontier Venture" in flt_scope and "era" in df_display.columns:
-            df_display = df_display[df_display["era"] == "2018-2024 (Crypto Frontier Venture)"]
+            df_display = df_display[df_display["era"].str.contains("Crypto Frontier Venture", na=False)]
         elif "Tracking Live" in flt_scope and "era" in df_display.columns:
-            df_display = df_display[df_display["era"] == "2024-Oggi (Tracking Live)"]
+            df_display = df_display[df_display["era"].str.contains("Tracking Live", na=False)]
 
         if flt_cls != "Tutte le Classi" and "asset_class" in df_display.columns:
             df_display = df_display[df_display["asset_class"] == flt_cls]
