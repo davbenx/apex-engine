@@ -19,6 +19,33 @@ import convex_engine
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.json")
 CONVEX_FILE = os.path.join(os.path.dirname(__file__), "convex_portfolio.json")
 
+# Soglia di scostamento (punti percentuali) sopra la quale il segnale macro corrente
+# e la composizione EFFETTIVAMENTE detenuta (fissata all'ultima decisione mensile
+# eseguita) sono considerati "non ancora riallineati" — usata da page_apex.py e
+# home_app.py per evitare di dichiarare "portafoglio allineato" nei giorni centrali
+# del mese, quando i due possono divergere molto per disegno (decisione/esecuzione
+# solo mensile, §6 di APEX_V2_SPEC.md) pur non essendoci ancora ordini in coda.
+MID_CYCLE_DRIFT_THRESHOLD_PP = 10.0
+
+
+def compute_apex_signal_drift_pct(open_positions: Dict[str, Any], signal_allocations: Dict[str, float]) -> float:
+    """Scostamento massimo (punti percentuali) tra il peso Azioni/Crypto detenuto ORA
+    in open_positions e quello richiesto dal segnale macro corrente signal_allocations.
+    Unica fonte per questo calcolo — prima duplicato indipendentemente in page_apex.py
+    e home_app.py, rischiando un disallineamento silenzioso tra le due pagine se una
+    veniva aggiornata (es. per un bug fix) e l'altra no."""
+    held_eq_pct = sum(
+        v.get("weight", 0.0) * 100.0 for k, v in open_positions.items()
+        if not v.get("is_crypto", False) and k not in ("GLD", "IEF")
+    )
+    held_cr_pct = sum(
+        v.get("weight", 0.0) * 100.0 for k, v in open_positions.items() if v.get("is_crypto", False)
+    )
+    signal_allocations = signal_allocations or {}
+    drift_eq = abs(signal_allocations.get("Equities", 0.0) - held_eq_pct)
+    drift_cr = abs(signal_allocations.get("Crypto", 0.0) - held_cr_pct)
+    return max(drift_eq, drift_cr)
+
 
 ASSET_CLASSES_INFO = {
     "Azioni": {

@@ -866,13 +866,12 @@ with tab_pf:
     # rispetto al segnale di oggi, solo perche' non ci sono ordini in coda (bug
     # segnalato dall'utente: i due pannelli sopra e sotto mostravano numeri molto
     # diversi senza alcuna spiegazione, e questo banner affermava comunque
-    # "allineato ai target" e "pesi ottimali").
-    _held_eq_pct = sum(r.get("Peso (%)", 0.0) for r in op_eq)
-    _held_cr_pct = sum(r.get("Peso (%)", 0.0) for r in op_cr)
-    _drift_eq = abs(alloc.get("Equities", 0.0) - _held_eq_pct)
-    _drift_cr = abs(alloc.get("Crypto", 0.0) - _held_cr_pct)
-    _max_drift_pct = max(_drift_eq, _drift_cr)
-    _MID_CYCLE_DRIFT_THRESHOLD_PP = 10.0
+    # "allineato ai target" e "pesi ottimali"). Calcolo condiviso con home_app.py
+    # via portfolio_manager.compute_apex_signal_drift_pct — prima duplicato
+    # indipendentemente qui e la' (bug: home_app.py non l'aveva affatto, mostrando
+    # "Tutti i sistemi allineati" nella Home mentre questa pagina mostrava
+    # correttamente il banner ambra sotto).
+    _max_drift_pct = portfolio_manager.compute_apex_signal_drift_pct(open_pos_raw, alloc)
 
     # --- 1. Ordini Operativi & Stato Allineamento ---
     st_html(section_title("Ordini Operativi & Stato Allineamento"))
@@ -943,7 +942,7 @@ with tab_pf:
         """)
         df_orders = pd.DataFrame(orders_rows)
         st_html(render_orders_html_table(df_orders, curr_sym))
-    elif _max_drift_pct <= _MID_CYCLE_DRIFT_THRESHOLD_PP:
+    elif _max_drift_pct <= portfolio_manager.MID_CYCLE_DRIFT_THRESHOLD_PP:
         st_html(f"""
         <div style="background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; padding: 14px 18px; margin: 8px 0 16px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">

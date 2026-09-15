@@ -466,6 +466,34 @@ def test_audit_record_trade_persists_is_crypto(tmp_path):
     assert aapl_trade.get("is_crypto") is False
 
 
+def test_compute_apex_signal_drift_pct_shared_helper():
+    """portfolio_manager.compute_apex_signal_drift_pct() e' l'unica fonte per lo
+    scostamento segnale/portafoglio usato dai banner "allineato" di page_apex.py e
+    home_app.py — prima duplicato indipendentemente nei due file (bug corretto:
+    home_app.py non aveva affatto questo controllo, mostrando "Tutti i sistemi
+    allineati" nella Home anche quando page_apex.py mostrava correttamente un
+    banner di scostamento mid-cycle nella stessa istantanea di dati)."""
+    import portfolio_manager
+
+    # Nessuno scostamento: segnale e posizioni coincidono esattamente.
+    open_pos_aligned = {
+        "AAPL": {"weight": 0.60, "is_crypto": False},
+        "BTC": {"weight": 0.15, "is_crypto": True},
+        "GLD": {"weight": 0.25, "is_crypto": False},  # esclusa dal calcolo Azioni/Crypto
+    }
+    signal_aligned = {"Equities": 60.0, "Crypto": 15.0, "Gold": 25.0}
+    assert portfolio_manager.compute_apex_signal_drift_pct(open_pos_aligned, signal_aligned) < 1e-9
+
+    # Scostamento reale mid-cycle: il segnale Equities e' salito al 75% ma il
+    # portafoglio detenuto e' ancora fermo all'ultima decisione (60%).
+    signal_drifted = {"Equities": 75.0, "Crypto": 15.0, "Gold": 10.0}
+    drift = portfolio_manager.compute_apex_signal_drift_pct(open_pos_aligned, signal_drifted)
+    assert abs(drift - 15.0) < 1e-9, f"Atteso scostamento di 15pp su Equities, ottenuto {drift}"
+    assert drift > portfolio_manager.MID_CYCLE_DRIFT_THRESHOLD_PP, (
+        "questo scenario deve superare la soglia e far scattare il banner di non-allineamento"
+    )
+
+
 def test_apex_historical_trades_ui_filter_uses_substring_not_exact_era_match(full_historical_trades):
     """BUG corretto in page_apex.py: il filtro "Registro Operativo Completo" (dropdown
     Ambito Storico + logica di filtraggio) confrontava l'era per UGUAGLIANZA ESATTA

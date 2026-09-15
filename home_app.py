@@ -122,8 +122,22 @@ unified_data = portfolio_manager.compute_unified_portfolio(
 # ==============================================================================
 # INTESTAZIONE BRANDING
 # ==============================================================================
+# Scostamento tra il segnale macro CORRENTE e la composizione EFFETTIVAMENTE detenuta
+# (fissata all'ultima decisione mensile eseguita) — stessa logica anti-falso-positivo
+# di page_apex.py, ora condivisa via portfolio_manager.compute_apex_signal_drift_pct
+# (bug corretto: senza questo controllo, questa card mostrava "Tutti i sistemi
+# allineati" nei giorni centrali del mese anche quando il segnale si era gia' mosso
+# rispetto al portafoglio detenuto, solo perche' non c'erano ancora ordini in coda —
+# un'inconsistenza visibile con la card "Ordini Operativi & Stato Allineamento" della
+# pagina Apex Engine, che nello stesso istante mostrava correttamente un banner ambra
+# di segnale-non-ancora-riallineato).
+_max_drift_pct_home = portfolio_manager.compute_apex_signal_drift_pct(
+    apex_portfolio.get("open_positions", {}), apex_data.get("allocations")
+)
+_apex_aligned = not (apex_portfolio.get("pending_orders")) and _max_drift_pct_home <= portfolio_manager.MID_CYCLE_DRIFT_THRESHOLD_PP
+
 _last_sync_str = apex_data.get("timestamp", datetime.date.today().strftime("%Y-%m-%d"))
-_both_ok = not (apex_portfolio.get("pending_orders")) and not (_cx_rep.trim_alerts)
+_both_ok = _apex_aligned and not (_cx_rep.trim_alerts)
 _status_dot_color = POS if _both_ok else ACCENT
 _status_label_text = "Tutti i sistemi allineati" if _both_ok else "Intervento suggerito"
 
@@ -179,6 +193,8 @@ with tab_pf:
     with col_mot1:
         if _pending_orders:
             _apex_badge_html = f'<span style="background:rgba(236,101,123,0.12); color:{NEG}; border:1px solid rgba(236,101,123,0.3); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{NEG}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {len(_pending_orders)} ordini pronti per lunedì ore 15:30 CET</span>'
+        elif not _apex_aligned:
+            _apex_badge_html = f'<span style="background:rgba(201,164,76,0.15); color:{ACCENT}; border:1px solid rgba(201,164,76,0.35); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{ACCENT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Segnale e portafoglio non ancora riallineati</span>'
         else:
             _apex_badge_html = f'<span style="background:rgba(61,220,151,0.10); color:{POS}; border:1px solid rgba(61,220,151,0.25); padding:4px 9px; border-radius:6px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{POS}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Portafoglio allineato · Nessun ordine da eseguire</span>'
 
