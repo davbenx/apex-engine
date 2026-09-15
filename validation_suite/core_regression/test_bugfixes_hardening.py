@@ -467,13 +467,24 @@ def test_audit_record_trade_persists_is_crypto(tmp_path):
 
 
 def test_audit_convex_trim_threshold_alignment():
-    """Verifica che le soglie di trim per WBTC e PPFB siano allineate a 0.13125 (+75% sopra il target 7.5%)."""
+    """Verifica che le soglie di trim per WBTC e PPFB (0.13125 = target 7.5% x1.75, +75%)
+    siano allineate tra le DUE fonti reali che le duplicano indipendentemente: il valore
+    operativo (convex_engine.CONVEX_INSTRUMENTS[...]["tolerance_max"], usato dalla vera
+    logica di trim in evaluate_convex_stack) e quello puramente descrittivo mostrato in
+    dashboard (portfolio_manager.CONVEX_INSTRUMENTS_METADATA[...]["trim_threshold"]).
+    BUG corretto: la versione precedente confrontava solo ciascuna copia contro lo stesso
+    letterale hardcoded nel test (incluse due chiavi config.json "wbtc/ppfb_trim_threshold"
+    poi rimosse perche' morte — mai lette da nessuna logica reale), senza mai confrontare
+    le due fonti VERE tra loro: un drift silenzioso tra le due (es. dashboard che mostra
+    13.13% mentre il motore vende davvero a una soglia diversa) sarebbe passato inosservato."""
     import portfolio_manager
-    cfg = portfolio_manager.load_config()
-    assert cfg["wbtc_trim_threshold"] == 0.13125
-    assert cfg["ppfb_trim_threshold"] == 0.13125
-    assert portfolio_manager.CONVEX_INSTRUMENTS_METADATA["WBTC"]["trim_threshold"] == 0.13125
-    assert portfolio_manager.CONVEX_INSTRUMENTS_METADATA["PPFB"]["trim_threshold"] == 0.13125
+    import convex_engine
+    for tkr in ("WBTC", "PPFB"):
+        operational = convex_engine.CONVEX_INSTRUMENTS[tkr]["tolerance_max"]
+        displayed = portfolio_manager.CONVEX_INSTRUMENTS_METADATA[tkr]["trim_threshold"]
+        assert operational == displayed == 0.13125, (
+            f"{tkr}: soglia operativa {operational} disallineata dalla soglia mostrata {displayed}"
+        )
 
 
 

@@ -244,6 +244,18 @@ def test_convex_instruments_and_live_prices_schema(
     assert convex_metadata["PPFB"]["trim_threshold"] == 0.13125, "Soglia trim PPFB deve essere 13.125%"
     assert convex_metadata["WBTC"]["trim_threshold"] == 0.13125, "Soglia trim WBTC deve essere 13.125%"
 
+    # target_weight e' duplicato in due fonti indipendenti: quella descrittiva (convex_metadata,
+    # qui) e quella operativa (convex_engine.CONVEX_INSTRUMENTS, usata dalla vera logica di
+    # ribilanciamento/PAC in evaluate_convex_stack) — verificare solo che ciascuna sommi a 1.0
+    # in isolamento non basta a scoprire un drift tra le due (es. due pesi scambiati che
+    # sommano comunque a 1.0). Confronto diretto, strumento per strumento.
+    import convex_engine
+    for tkr, meta in convex_metadata.items():
+        op_w = convex_engine.CONVEX_INSTRUMENTS[tkr]["target_weight"]
+        assert abs(op_w - meta["target_weight"]) < 1e-9, (
+            f"{tkr}: target_weight operativo {op_w} disallineato da quello mostrato {meta['target_weight']}"
+        )
+
     # Verifica cache prezzi se disponibile
     if live_prices_cache:
         assert "fetched_at" in live_prices_cache, "Campo fetched_at mancante nella cache prezzi"

@@ -217,8 +217,6 @@ def load_config() -> Dict[str, Any]:
         "pac_annual_growth": 0.04,
         "target_apex_ratio": 0.70,
         "target_convex_ratio": 0.30,
-        "wbtc_trim_threshold": 0.13125,
-        "ppfb_trim_threshold": 0.13125,
         "last_updated": "2026-09-14"
     }
     if os.path.exists(CONFIG_FILE):
