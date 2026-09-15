@@ -327,7 +327,7 @@ with tab_perf:
     if not df_comb.empty:
         st_html(section_title("Curva Equity Combinata vs Benchmark", top="8px", bottom="8px"))
         _comb_start, _comb_end = df_comb.index.min(), df_comb.index.max()
-        st.caption(f"Crescita di 100 € investiti nel portafoglio (70% Apex / 30% Convex) a confronto con l'indice S&P 500 ({_comb_start.year}–{_comb_end.year}).")
+        st.caption(f"Crescita di 100 € investiti nel portafoglio ({_target_apex*100:.0f}% Apex / {(1-_target_apex)*100:.0f}% Convex) a confronto con l'indice S&P 500 ({_comb_start.year}–{_comb_end.year}).")
 
 
         selected_range = st.segmented_control(
@@ -477,7 +477,7 @@ with tab_guide:
         <div class="glass-card" style="height: 195px;">
             <div style="font-family:{MONO}; font-size:14px; font-weight:700; color:{POS}; display:flex; align-items:center; gap:6px;">Apex Engine (Motore Attivo)</div>
             <div style="font-size:12px; color:{MUTED}; line-height:1.5; margin-top:8px;">
-                Strategia dinamica ad alto rendimento: seleziona le 15 aziende dell'S&P 500 più stabili e meno volatili, e cavalca i trend positivi di materie prime, bond e crypto.
+                Strategia dinamica ad alto rendimento: seleziona le 15 aziende dell'S&P 500 meno sensibili alle oscillazioni di mercato (basso beta), e cavalca i trend positivi di materie prime, bond e crypto.
                 Quando i mercati azionari entrano in crisi prolungata, chiude le posizioni a rischio e protegge il 100% del capitale in liquidità sicura.
             </div>
         </div>

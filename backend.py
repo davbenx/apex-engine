@@ -1133,7 +1133,13 @@ def main():
 
     update_equity_curve(nav_usd, today_str)
 
-    has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "Ribilanciamento", "Uscito", "TRIM", "INCREMENTO")) for log in action_log) or bool(pending_orders_struct and pending_orders_struct.get("orders"))
+    # Verbi realmente prodotti nelle righe di action_log da update_portfolio/
+    # compute_rebalance_orders_structured (bug corretto: "Ribilanciamento", "Uscito" e
+    # "TRIM" non comparivano MAI in nessuna riga — erano solo valori del parametro
+    # `reason` passato a record_trade/_close_position, mai incluso nel testo loggato,
+    # quindi condizioni morte che non intercettavano mai nulla; "RIDUZIONE" invece e' un
+    # verbo reale del percorso di preview/decisione, prima assente dalla lista).
+    has_orders = any(any(k in log for k in ("APERTURA", "CHIUSURA", "MIGRAZIONE", "RIDUZIONE", "INCREMENTO")) for log in action_log) or bool(pending_orders_struct and pending_orders_struct.get("orders"))
 
     pf_state = load_json_safe(PORTFOLIO_FILE, default={})
     last_alert_str = pf_state.get("last_telegram_alert_date")

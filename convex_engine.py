@@ -310,8 +310,12 @@ def evaluate_convex_stack(
         "Obbligazionario Governativo (Treasury Futures)": bonds_tot / total_val,
         "Managed Futures (Crisis Alpha CTA)": cta_tot / total_val,
         "Oro Fisico (Riserva Reale)": gld_tot / total_val,
+        # BUG corretto: esisteva anche una chiave "Bitcoin (Convessità Asimmetrica)"
+        # duplicata con lo stesso identico valore — mai letta da nessun chiamante
+        # (portfolio_manager.compute_unified_portfolio la usava solo come fallback
+        # irraggiungibile dietro questa chiave), puro rischio di disallineamento
+        # silenzioso se in futuro una delle due copie viene aggiornata e l'altra no.
         "Cryptovalute (Convessità Asimmetrica)": cr_tot / total_val,
-        "Bitcoin (Convessità Asimmetrica)": cr_tot / total_val,
         "Liquidità Cassa": cash_tot / total_val,
         "Esposizione Nozionale Totale": (equity_tot + bonds_tot + cta_tot + gld_tot + cr_tot + cash_tot) / total_val
     }
