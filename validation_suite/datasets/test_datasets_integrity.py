@@ -202,14 +202,18 @@ def test_full_historical_trades_integrity_and_math(
         eras.add(t["era"])
         classes.add(t["asset_class"])
 
-    # Tutte e 4 le ere storiche e le 5 classi macro devono essere rappresentate
-    expected_eras = {
+    # Tutte e 4 le ere storiche e le 5 classi macro devono essere rappresentate. L'era
+    # crypto ha un'etichetta DINAMICA (anno min/max reale dei trade, non piu' un
+    # intervallo fisso "2018-2024") da quando e' stato corretto il bug per cui restava
+    # etichettata cosi' a prescindere dalle date reali e dal taglio contro il tracking
+    # live — verificare solo che un'era crypto esista, non l'anno esatto.
+    expected_eras_fixed = {
         "1987-2011 (Macro Allocazione)",
         "2012-2024 (Point-In-Time)",
-        "2018-2024 (Crypto Frontier Venture)",
-        "2024-Oggi (Tracking Live)"
+        "2024-Oggi (Tracking Live)",
     }
-    assert expected_eras.issubset(eras), f"Ere mancanti nel registro storico: {expected_eras - eras}"
+    assert expected_eras_fixed.issubset(eras), f"Ere mancanti nel registro storico: {expected_eras_fixed - eras}"
+    assert any("Crypto Frontier Venture" in e for e in eras), f"Nessuna era crypto trovata in {eras}"
     assert "Cryptovalute" in classes, "Classe Cryptovalute assente dal registro storico"
     assert "Azioni (Low-Beta)" in classes, "Classe Azioni Low-Beta assente dal registro storico"
 

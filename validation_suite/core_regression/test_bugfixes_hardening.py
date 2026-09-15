@@ -379,10 +379,14 @@ def test_apex_full_historical_trades_integrity(historical_trades_json_path, hist
         eras.add(t["era"])
         classes.add(t["asset_class"])
 
-    # 2. Tutte le 4 ere storiche devono essere presenti
+    # 2. Tutte le 4 ere storiche devono essere presenti. L'era crypto ha un'etichetta
+    # DINAMICA (anno min/max reale dei trade effettivamente generati, non piu' un
+    # intervallo fisso "2018-2024") da quando e' stato corretto il bug per cui veniva
+    # etichettata cosi' a prescindere dalle date reali dei trade e dal taglio contro il
+    # tracking live — verificare quindi solo che un'era crypto esista, non l'anno esatto.
     assert "1987-2011 (Macro Allocazione)" in eras
     assert "2012-2024 (Point-In-Time)" in eras
-    assert "2018-2024 (Crypto Frontier Venture)" in eras
+    assert any("Crypto Frontier Venture" in e for e in eras), f"Nessuna era crypto trovata in {eras}"
     assert "2024-Oggi (Tracking Live)" in eras
 
     # 3. Tutte le 5 classi di attivo devono essere coperte

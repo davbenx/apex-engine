@@ -61,6 +61,7 @@ GROSS.
 
 from __future__ import annotations
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -173,43 +174,50 @@ def run_full_backtest(sector_of: dict, kelly_fraction: float | None = None,
     gld_ret = spliced_return(*SPLICE_SPEC["GLD"])
     btc_ret = spliced_return(*SPLICE_SPEC["BTC-USD"])
 
+    # NOTA: questo blocco falliva silenziosamente (NameError: 'os' non importato al
+    # livello del modulo, corretto) e ricadeva sul fallback BTC-only sotto senza alcun
+    # segnale visibile a chi consuma il CSV risultante — una rigenerazione poteva quindi
+    # sembrare riuscita mentre in realta' escludeva l'intero motore Crypto Frontier
+    # Venture (rotazione altcoin) dall'intera serie storica. Ora fallisce rumorosamente:
+    # se serve rigenerare la cache crypto e non ci si riesce, meglio un errore esplicito
+    # che un numero silenziosamente degradato spacciato per quello vero.
     crypto_spliced_file = EXT_DATA_DIR / "crypto_venture_weekly_spliced.csv"
     if not crypto_spliced_file.exists():
-        try:
-            from crypto_frontier_venture_engine import (
-                CryptoVentureConfig, load_crypto_dataset, precompute_market_matrices, run_crypto_venture_backtest
+        from crypto_frontier_venture_engine import (
+            CryptoVentureConfig, load_crypto_dataset, precompute_market_matrices, run_crypto_venture_backtest
+        )
+        cache_dir = str(REPO_ROOT / "research" / "crypto_ohlcv_extended_cache")
+        if not os.path.exists(cache_dir):
+            raise FileNotFoundError(
+                f"Cache crypto assente ({cache_dir}) e crypto_venture_weekly_spliced.csv non "
+                f"presente: impossibile rigenerare la sleeve Crypto Frontier Venture. Popolare "
+                f"la cache (vedi validation_suite/comparative_studies/fetch_crypto_verification_cache.py "
+                f"per una cache di verifica reale, con i limiti metodologici dichiarati nel suo README) "
+                f"prima di rilanciare, invece di proseguire silenziosamente su un fallback BTC-only."
             )
-            cache_dir = str(REPO_ROOT / "research" / "crypto_ohlcv_extended_cache")
-            if os.path.exists(cache_dir):
-                dfs = load_crypto_dataset(cache_dir)
-                cfg = CryptoVentureConfig(
-                    universe_mode="TOP25", max_slots=7, stop_mode="ATR_CLOSE",
-                    atr_multiplier=2.5, time_stop_days=21, freeride_multiplier=2.25,
-                    trailing_stop_pct=0.30, slippage_bps=10.0
-                )
-                matrices = precompute_market_matrices(dfs, cfg)
-                res_g = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
-                res_n = run_crypto_venture_backtest(matrices, cfg, tax_enabled=True)
-                ret_w_g = res_g["equity_curve"].resample("W-FRI").last().pct_change().dropna()
-                ret_w_n = res_n["equity_curve"].resample("W-FRI").last().pct_change().dropna()
-                s_g = btc_ret.copy()
-                for d, r in ret_w_g.items():
-                    s_g.loc[d] = r
-                s_n = btc_ret.copy()
-                for d, r in ret_w_n.items():
-                    s_n.loc[d] = r
-                df_cv = pd.DataFrame({"gross": s_g, "net": s_n}).sort_index()
-                df_cv.to_csv(crypto_spliced_file)
-        except Exception as e:
-            print(f"[!] Impossibile generare cache crypto venture: {e}")
+        dfs = load_crypto_dataset(cache_dir)
+        cfg = CryptoVentureConfig(
+            universe_mode="TOP25", max_slots=7, stop_mode="ATR_CLOSE",
+            atr_multiplier=2.5, time_stop_days=21, freeride_multiplier=2.25,
+            trailing_stop_pct=0.30, slippage_bps=10.0
+        )
+        matrices = precompute_market_matrices(dfs, cfg)
+        res_g = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
+        res_n = run_crypto_venture_backtest(matrices, cfg, tax_enabled=True)
+        ret_w_g = res_g["equity_curve"].resample("W-FRI").last().pct_change().dropna()
+        ret_w_n = res_n["equity_curve"].resample("W-FRI").last().pct_change().dropna()
+        s_g = btc_ret.copy()
+        for d, r in ret_w_g.items():
+            s_g.loc[d] = r
+        s_n = btc_ret.copy()
+        for d, r in ret_w_n.items():
+            s_n.loc[d] = r
+        df_cv = pd.DataFrame({"gross": s_g, "net": s_n}).sort_index()
+        df_cv.to_csv(crypto_spliced_file)
 
-    if crypto_spliced_file.exists():
-        df_cv = pd.read_csv(crypto_spliced_file, index_col=0, parse_dates=True)
-        crypto_ret_gross = df_cv["gross"]
-        crypto_ret_net = df_cv["net"]
-    else:
-        crypto_ret_gross = btc_ret
-        crypto_ret_net = btc_ret
+    df_cv = pd.read_csv(crypto_spliced_file, index_col=0, parse_dates=True)
+    crypto_ret_gross = df_cv["gross"]
+    crypto_ret_net = df_cv["net"]
 
     hysteresis_state, prev_basket_tickers, current_basket = None, None, []
     locked_alloc = None
