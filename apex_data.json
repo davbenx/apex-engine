@@ -1,23 +1,23 @@
 {
     "macro": {
         "SPY": {
-            "price": 764.2899780273438
+            "price": 760.8800048828125
         },
         "IEF": {
-            "price": 91.01000213623047
+            "price": 90.93000030517578
         },
         "GLD": {
-            "price": 398.7699890136719
+            "price": 392.8399963378906
         },
         "BTC-USD": {
-            "price": 76782.1328125
+            "price": 76951.8984375
         }
     },
     "allocations": {
-        "Equities": 84.12,
+        "Equities": 85.11,
         "Bonds": 0.0,
         "Gold": 0.0,
-        "Crypto": 15.88,
+        "Crypto": 14.89,
         "Cash": 0.0
     },
     "macro_dates": {
@@ -29,100 +29,100 @@
     "macro_events": [],
     "top20": [
         {
-            "Ticker": "ATO",
-            "Prezzo ($)": 169.46,
-            "Volatilita' Ann. (%)": 15.62,
+            "Ticker": "APA",
+            "Prezzo ($)": 45.03,
+            "Beta (vs SPY)": -1.938,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "SNA",
-            "Prezzo ($)": 397.48,
-            "Volatilita' Ann. (%)": 16.35,
+            "Ticker": "CF",
+            "Prezzo ($)": 131.24,
+            "Beta (vs SPY)": -1.897,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "KVUE",
-            "Prezzo ($)": 19.22,
-            "Volatilita' Ann. (%)": 16.45,
+            "Ticker": "EOG",
+            "Prezzo ($)": 148.54,
+            "Beta (vs SPY)": -1.882,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "MCD",
-            "Prezzo ($)": 270.95,
-            "Volatilita' Ann. (%)": 17.9,
+            "Ticker": "MRNA",
+            "Prezzo ($)": 146.69,
+            "Beta (vs SPY)": -1.447,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "AFL",
-            "Prezzo ($)": 117.45,
-            "Volatilita' Ann. (%)": 18.21,
+            "Ticker": "LYB",
+            "Prezzo ($)": 62.75,
+            "Beta (vs SPY)": -1.257,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "WBD",
-            "Prezzo ($)": 28.75,
-            "Volatilita' Ann. (%)": 14.09,
+            "Ticker": "ABBV",
+            "Prezzo ($)": 261.77,
+            "Beta (vs SPY)": -1.185,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "NEE",
-            "Prezzo ($)": 84.22,
-            "Volatilita' Ann. (%)": 16.72,
+            "Ticker": "MO",
+            "Prezzo ($)": 70.61,
+            "Beta (vs SPY)": -1.023,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "CL",
-            "Prezzo ($)": 92.06,
-            "Volatilita' Ann. (%)": 17.3,
+            "Ticker": "ADM",
+            "Prezzo ($)": 86.44,
+            "Beta (vs SPY)": -0.972,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "AIZ",
-            "Prezzo ($)": 288.51,
-            "Volatilita' Ann. (%)": 17.65,
+            "Ticker": "T",
+            "Prezzo ($)": 26.51,
+            "Beta (vs SPY)": -0.668,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "O",
-            "Prezzo ($)": 62.26,
-            "Volatilita' Ann. (%)": 18.0,
+            "Ticker": "RSG",
+            "Prezzo ($)": 225.85,
+            "Beta (vs SPY)": -0.625,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "ESS",
-            "Prezzo ($)": 288.17,
-            "Volatilita' Ann. (%)": 19.21,
+            "Ticker": "VZ",
+            "Prezzo ($)": 51.29,
+            "Beta (vs SPY)": -0.585,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "ITW",
-            "Prezzo ($)": 285.51,
-            "Volatilita' Ann. (%)": 19.3,
+            "Ticker": "AWK",
+            "Prezzo ($)": 138.92,
+            "Beta (vs SPY)": -0.518,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "PFE",
-            "Prezzo ($)": 28.3,
-            "Volatilita' Ann. (%)": 20.31,
+            "Ticker": "DE",
+            "Prezzo ($)": 681.46,
+            "Beta (vs SPY)": -0.486,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "CI",
-            "Prezzo ($)": 280.87,
-            "Volatilita' Ann. (%)": 20.57,
+            "Ticker": "WRB",
+            "Prezzo ($)": 70.87,
+            "Beta (vs SPY)": -0.467,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "FTV",
-            "Prezzo ($)": 60.25,
-            "Volatilita' Ann. (%)": 20.75,
+            "Ticker": "WELL",
+            "Prezzo ($)": 234.21,
+            "Beta (vs SPY)": -0.306,
             "Stop Loss ($)": 0.0
         }
     ],
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 76793.2,
+            "Prezzo ($)": 76966.4,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -135,147 +135,147 @@
         },
         "basket": [
             {
-                "Ticker": "ATO",
-                "Prezzo ($)": 169.46,
-                "Volatilita' Ann. (%)": 15.62,
+                "Ticker": "APA",
+                "Prezzo ($)": 45.03,
+                "Beta (vs SPY)": -1.938,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "SNA",
-                "Prezzo ($)": 397.48,
-                "Volatilita' Ann. (%)": 16.35,
+                "Ticker": "CF",
+                "Prezzo ($)": 131.24,
+                "Beta (vs SPY)": -1.897,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "KVUE",
-                "Prezzo ($)": 19.22,
-                "Volatilita' Ann. (%)": 16.45,
+                "Ticker": "EOG",
+                "Prezzo ($)": 148.54,
+                "Beta (vs SPY)": -1.882,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "MCD",
-                "Prezzo ($)": 270.95,
-                "Volatilita' Ann. (%)": 17.9,
+                "Ticker": "MRNA",
+                "Prezzo ($)": 146.69,
+                "Beta (vs SPY)": -1.447,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "AFL",
-                "Prezzo ($)": 117.45,
-                "Volatilita' Ann. (%)": 18.21,
+                "Ticker": "LYB",
+                "Prezzo ($)": 62.75,
+                "Beta (vs SPY)": -1.257,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "WBD",
-                "Prezzo ($)": 28.75,
-                "Volatilita' Ann. (%)": 14.09,
+                "Ticker": "ABBV",
+                "Prezzo ($)": 261.77,
+                "Beta (vs SPY)": -1.185,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "NEE",
-                "Prezzo ($)": 84.22,
-                "Volatilita' Ann. (%)": 16.72,
+                "Ticker": "MO",
+                "Prezzo ($)": 70.61,
+                "Beta (vs SPY)": -1.023,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "CL",
-                "Prezzo ($)": 92.06,
-                "Volatilita' Ann. (%)": 17.3,
+                "Ticker": "ADM",
+                "Prezzo ($)": 86.44,
+                "Beta (vs SPY)": -0.972,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "AIZ",
-                "Prezzo ($)": 288.51,
-                "Volatilita' Ann. (%)": 17.65,
+                "Ticker": "T",
+                "Prezzo ($)": 26.51,
+                "Beta (vs SPY)": -0.668,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "O",
-                "Prezzo ($)": 62.26,
-                "Volatilita' Ann. (%)": 18.0,
+                "Ticker": "RSG",
+                "Prezzo ($)": 225.85,
+                "Beta (vs SPY)": -0.625,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "ESS",
-                "Prezzo ($)": 288.17,
-                "Volatilita' Ann. (%)": 19.21,
+                "Ticker": "VZ",
+                "Prezzo ($)": 51.29,
+                "Beta (vs SPY)": -0.585,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "ITW",
-                "Prezzo ($)": 285.51,
-                "Volatilita' Ann. (%)": 19.3,
+                "Ticker": "AWK",
+                "Prezzo ($)": 138.92,
+                "Beta (vs SPY)": -0.518,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "PFE",
-                "Prezzo ($)": 28.3,
-                "Volatilita' Ann. (%)": 20.31,
+                "Ticker": "DE",
+                "Prezzo ($)": 681.46,
+                "Beta (vs SPY)": -0.486,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "CI",
-                "Prezzo ($)": 280.87,
-                "Volatilita' Ann. (%)": 20.57,
+                "Ticker": "WRB",
+                "Prezzo ($)": 70.87,
+                "Beta (vs SPY)": -0.467,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "FTV",
-                "Prezzo ($)": 60.25,
-                "Volatilita' Ann. (%)": 20.75,
+                "Ticker": "WELL",
+                "Prezzo ($)": 234.21,
+                "Beta (vs SPY)": -0.306,
                 "Stop Loss ($)": 0.0
             }
         ],
-        "basket_quarter": "2026-08",
+        "basket_quarter": "2026-09",
+        "last_decision_month": "2026-09",
+        "pending_decision": null,
         "signal_debug": {
             "Equities": {
-                "price": 764.2899780273438,
-                "ma40w": 715.7492492675781,
-                "ma20w": 750.1359985351562,
-                "distanza_pct": 6.78,
-                "banda_isteresi_pct": 0.84,
+                "price": 760.8800048828125,
+                "ma40w": 717.7272491455078,
+                "ma20w": 752.1474975585937,
+                "distanza_pct": 6.01,
+                "banda_isteresi_pct": 0.74,
                 "attivo": true,
-                "kelly_f_star": 6.902,
-                "vol_12w_ann_pct": 12.07
+                "kelly_f_star": 7.514,
+                "vol_12w_ann_pct": 10.71
             },
             "Bonds": {
-                "price": 91.01000213623047,
-                "ma40w": 94.8152494430542,
-                "ma20w": 93.58199958801269,
-                "distanza_pct": -4.01,
+                "price": 90.93000030517578,
+                "ma40w": 94.68374938964844,
+                "ma20w": 93.39149971008301,
+                "distanza_pct": -3.96,
                 "banda_isteresi_pct": 0.5,
                 "attivo": false,
-                "kelly_f_star": -10.57,
-                "vol_12w_ann_pct": 4.23
+                "kelly_f_star": -9.426,
+                "vol_12w_ann_pct": 3.61
             },
             "Gold": {
-                "price": 398.7699890136719,
-                "ma40w": 417.0057502746582,
-                "ma20w": 397.6720001220703,
-                "distanza_pct": -4.37,
-                "banda_isteresi_pct": 1.63,
+                "price": 392.8399963378906,
+                "ma40w": 416.9407501220703,
+                "ma20w": 396.1550003051758,
+                "distanza_pct": -5.78,
+                "banda_isteresi_pct": 1.55,
                 "attivo": false,
-                "kelly_f_star": 7.886,
-                "vol_12w_ann_pct": 23.56
+                "kelly_f_star": 7.751,
+                "vol_12w_ann_pct": 22.38
             },
             "Crypto": {
-                "price": 76782.1328125,
-                "ma40w": 73455.6578125,
-                "ma20w": 69563.42734375,
-                "distanza_pct": 4.53,
+                "price": 76951.8984375,
+                "ma40w": 73459.901953125,
+                "ma20w": 69571.915625,
+                "distanza_pct": 4.75,
                 "banda_isteresi_pct": 3.68,
                 "attivo": true,
-                "kelly_f_star": 1.302,
-                "vol_12w_ann_pct": 53.07
+                "kelly_f_star": 1.315,
+                "vol_12w_ann_pct": 53.01
             },
             "_vol_target": {
-                "vol_portafoglio_stimata_pct": 38.1,
-                "fattore_scala": 0.577
+                "vol_portafoglio_stimata_pct": 37.54,
+                "fattore_scala": 0.586
             }
         },
-        "last_decision_month": "2026-08",
-        "pending_decision": null,
         "kelly_migrated": true
     },
-    "timestamp": "14 Sep 2026, 00:49 (UTC)",
-    "eur_usd": 1.1589
+    "eur_usd": 1.1538,
+    "timestamp": "15 Sep 2026, 09:47 (UTC)"
 }
