@@ -419,23 +419,39 @@ def get_apex_metrics() -> Dict[str, Any]:
     Effetto sul periodo TEST (72 mesi OOS): **CAGR lordo 19.61%->21.84%,
     Sharpe 1.36->1.474, Sortino 2.35->2.456, Calmar 1.88->1.898, Ulcer Index
     3.62->3.93**. Il Max Drawdown OOS resta rigorosamente controllato a -11.51%
-    e il Max Drawdown storico multi-decennale (1987-2026) resta a -14.83%."""
+    e il Max Drawdown storico multi-decennale (1987-2026) resta a -14.83%.
+
+    **Rigenerate una SESTA volta correggendo un bug reale in
+    apex_dashboard_stat_regeneration.py** (`import os` mancante a livello di
+    modulo, causava un NameError inghiottito silenziosamente da un
+    try/except che faceva ricadere l'intera classe Crypto su rendimenti
+    BTC-only, escludendo il motore Frontier Venture dall'intera serie senza
+    alcun segnale visibile — la rigenerazione precedente che produsse i
+    numeri sopra era quindi anch'essa silenziosamente degradata). Effetto
+    sul periodo TEST reincludendo correttamente il motore: **CAGR lordo
+    21.84%->21.10%, Sharpe 1.474->1.361, Sortino 2.456->2.250, Calmar
+    1.898->1.871, Ulcer Index 3.93->6.21** (volatilita' e drawdown piu'
+    realistici del vero motore di rotazione altcoin rispetto al proxy
+    BTC-only che li sottostimava). Il Max Drawdown storico multi-decennale
+    ricalcolato sull'intera serie 1987-2026 coincide ora con quello del solo
+    periodo TEST (-11.28%): il calo peggiore dell'intera storia e' avvenuto
+    proprio dentro la finestra OOS piu' recente, non prima."""
     return {
         "name": "Apex Engine (Tattico Alpha)",
-        "cagr_net": 0.1550,
-        "cagr_gross": 0.2172,
-        "volatility": 0.1422,
-        "sharpe": 1.463,
-        "sortino": 2.365,
-        "max_drawdown": -0.1126,
-        "max_drawdown_storico": -0.1126,
-        "calmar": 1.928,
-        "ulcer_index": 4.43,
-        "volatility_netto_stimato": 0.1345,
-        "sharpe_netto_stimato": 1.144,
-        "sortino_netto_stimato": 1.807,
-        "max_drawdown_netto_stimato": -0.1657,
-        "calmar_netto_stimato": 0.936,
+        "cagr_net": 0.1554,
+        "cagr_gross": 0.2110,
+        "volatility": 0.1497,
+        "sharpe": 1.361,
+        "sortino": 2.250,
+        "max_drawdown": -0.1128,
+        "max_drawdown_storico": -0.1128,
+        "calmar": 1.871,
+        "ulcer_index": 6.21,
+        "volatility_netto_stimato": 0.1385,
+        "sharpe_netto_stimato": 1.116,
+        "sortino_netto_stimato": 1.830,
+        "max_drawdown_netto_stimato": -0.1655,
+        "calmar_netto_stimato": 0.939,
         "test_period": "2020–2026 (72 mesi)",
         "storico_period": "1987–2026 (471 mesi)",
         "cash_drag_protection": "100% Liquidità remunerata a tassi governativi T-Bill 3M nelle fasi orso",
@@ -464,27 +480,34 @@ def get_convex_metrics() -> Dict[str, Any]:
 
 
 def get_combined_dual_engine_metrics() -> Dict[str, Any]:
-    """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD 70/30."""
+    """Metriche reali della combinazione APEX+CONVEX al mix target STANDARD 70/30.
+
+    Ricalcolate insieme al sesto ciclo di get_apex_metrics() (correzione del bug
+    import-os che escludeva silenziosamente il motore Crypto Frontier Venture —
+    vedi il docstring di get_apex_metrics()). Ricalcolate inoltre al vero mix
+    70/30 (apex_dashboard_stat_regeneration.py calcolava qui un blend 50/50,
+    disallineato dal target_apex_ratio=0.70 di default in config.json e dal
+    "70/30 STANDARD" gia' dichiarato in questo stesso docstring — bug corretto)."""
     return {
         "name": "APEX CONVEX (Dual-Engine)",
-        "cagr_net": 0.1508,
-        "cagr_gross": 0.2049,
-        "volatility": 0.1176,
-        "sharpe": 1.655,
-        "sortino": 3.357,
+        "cagr_net": 0.1457,
+        "cagr_gross": 0.2009,
+        "volatility": 0.1217,
+        "sharpe": 1.574,
+        "sortino": 3.072,
         "max_drawdown": -0.0778,
         "max_drawdown_storico": -0.0957,
-        "calmar": 2.635,
-        "ulcer_index": 2.28,
-        "correlation": 0.306,
+        "calmar": 2.583,
+        "ulcer_index": 2.98,
+        "correlation": 0.280,
         "test_period": "2020–2026 (72 mesi)",
         "storico_period": "1987–2026 (465 mesi)",
         "synergy_summary": (
             "Unire il 70% di Apex Engine e il 30% di Convex Stack massimizza il rendimento riducendo al minimo i rischi: "
-            "il portafoglio genera un rendimento del +20,49% medio annuo lordo (+15,08% netto stimato), con una perdita "
+            "il portafoglio genera un rendimento del +20,09% medio annuo lordo (+14,57% netto stimato), con una perdita "
             "massima contenuta ad appena il -7,78% negli ultimi 6 anni e al -9,57% nell'intero storico dal 1987. "
             "Un risultato nettamente più sicuro rispetto ai singoli motori presi da soli, grazie alla bassissima "
-            "correlazione (0,31) che consente alle due strategie di compensarsi a vicenda."
+            "correlazione (0,28) che consente alle due strategie di compensarsi a vicenda."
         )
     }
 
@@ -568,7 +591,7 @@ def compute_unified_portfolio(
     conv_bd  = convex_val * convex_report.macro_exposure["Obbligazionario Governativo (Treasury Futures)"]
     conv_cta = convex_val * convex_report.macro_exposure["Managed Futures (Crisis Alpha CTA)"]
     conv_gld = convex_val * convex_report.macro_exposure["Oro Fisico (Riserva Reale)"]
-    conv_cr  = convex_val * convex_report.macro_exposure.get("Cryptovalute (Convessità Asimmetrica)", convex_report.macro_exposure.get("Bitcoin (Convessità Asimmetrica)", 0.0))
+    conv_cr  = convex_val * convex_report.macro_exposure.get("Cryptovalute (Convessità Asimmetrica)", 0.0)
     conv_cash = convex_val * convex_report.macro_exposure.get("Liquidità Cassa", 0.0)
 
     macro_breakdown = {

@@ -418,19 +418,24 @@ def main():
     for k, v in stats.items():
         print(f"  {k}: {v}")
 
-    # --- Combinato 50/50 con Convex (INVARIATO — Convex non usa selezione
-    # azionaria beta/vol, il basket switch di Apex non lo tocca) ---
+    # --- Combinato al mix target REALE (70/30, stesso default target_apex_ratio
+    # di config.json/load_config() e stesso mix "STANDARD 70/30" gia' dichiarato
+    # nel docstring di get_combined_dual_engine_metrics() — bug corretto: questo
+    # blocco usava un 50/50 hardcoded, disallineato da entrambi) con Convex
+    # (INVARIATO — Convex non usa selezione azionaria beta/vol, il basket switch
+    # di Apex non lo tocca) ---
+    TARGET_APEX, TARGET_CONVEX = 0.70, 0.30
     cx_path = REPO_ROOT / "convex_monthly_returns.csv"
     if cx_path.exists():
         cx = pd.read_csv(cx_path, index_col=0, parse_dates=True).iloc[:, 0]
         common = gross_test.index.intersection(cx.index)
-        combined_gross = 0.5 * gross_test.reindex(common) + 0.5 * cx.reindex(common)
+        combined_gross = TARGET_APEX * gross_test.reindex(common) + TARGET_CONVEX * cx.reindex(common)
         # cagr_net combinato = media pesata delle stime nette dei due componenti,
         # stessa convenzione documentata in get_combined_dual_engine_metrics():
         # Apex usa la sua serie netta reale (tasse italiane modellate), Convex
         # l'haircut fisso 26% sul CAGR lordo (approssimazione dichiarata, invariata).
-        combined_cagr_net = 0.5 * _cagr(net_test.reindex(common), 12) + 0.5 * (_cagr(cx.reindex(common), 12) * (1 - 0.26))
-        print(f"\nCombinato 50/50 Apex(nuovo)/Convex(invariato), {len(common)} mesi comuni:")
+        combined_cagr_net = TARGET_APEX * _cagr(net_test.reindex(common), 12) + TARGET_CONVEX * (_cagr(cx.reindex(common), 12) * (1 - 0.26))
+        print(f"\nCombinato {TARGET_APEX*100:.0f}/{TARGET_CONVEX*100:.0f} Apex(nuovo)/Convex(invariato), {len(common)} mesi comuni:")
         print(f"  cagr_gross: {round(_cagr(combined_gross, 12), 4)}")
         print(f"  cagr_net (stima): {round(combined_cagr_net, 4)}")
         print(f"  volatility: {round(float(combined_gross.std() * np.sqrt(12)), 4)}")
