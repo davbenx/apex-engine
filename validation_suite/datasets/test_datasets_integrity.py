@@ -161,8 +161,13 @@ def test_full_historical_trades_integrity_and_math(
     full_historical_trades: List[Dict[str, Any]],
     historical_trades_csv_path: Path
 ):
-    """Verifica l'integrità matematica, la pulizia dei ticker e la struttura dell'archivio trade (1.183 operazioni)."""
-    assert len(full_historical_trades) >= 1100, f"Attesi almeno 1100 trade storici, trovati {len(full_historical_trades)}"
+    """Verifica l'integrità matematica, la pulizia dei ticker e la struttura dell'archivio trade."""
+    # Soglia abbassata da 1100 a 800: quella copriva anche i trade dell'era
+    # "2024-Oggi (Tracking Live)" di un portafoglio live poi resettato a zero posizioni
+    # (nessuna posizione realmente investita/collegata alla dashboard — richiesta esplicita
+    # dell'utente). Le componenti deterministiche (macro + point-in-time + crypto pre-live)
+    # restano a 868.
+    assert len(full_historical_trades) >= 800, f"Attesi almeno 800 trade storici, trovati {len(full_historical_trades)}"
     assert historical_trades_csv_path.exists(), f"File CSV trade mancante: {historical_trades_csv_path}"
 
     df_csv = pd.read_csv(historical_trades_csv_path)
@@ -202,15 +207,17 @@ def test_full_historical_trades_integrity_and_math(
         eras.add(t["era"])
         classes.add(t["asset_class"])
 
-    # Tutte e 4 le ere storiche e le 5 classi macro devono essere rappresentate. L'era
-    # crypto ha un'etichetta DINAMICA (anno min/max reale dei trade, non piu' un
+    # Le ere storiche deterministiche e le classi macro devono essere rappresentate.
+    # L'era crypto ha un'etichetta DINAMICA (anno min/max reale dei trade, non piu' un
     # intervallo fisso "2018-2024") da quando e' stato corretto il bug per cui restava
     # etichettata cosi' a prescindere dalle date reali e dal taglio contro il tracking
     # live — verificare solo che un'era crypto esista, non l'anno esatto.
+    # "2024-Oggi (Tracking Live)" non e' piu' garantita: il portafoglio live e' stato
+    # resettato a zero trade chiusi (nessuna posizione realmente investita — richiesta
+    # esplicita dell'utente), quindi quest'era compare solo con trade live reali chiusi.
     expected_eras_fixed = {
         "1987-2011 (Macro Allocazione)",
         "2012-2024 (Point-In-Time)",
-        "2024-Oggi (Tracking Live)",
     }
     assert expected_eras_fixed.issubset(eras), f"Ere mancanti nel registro storico: {expected_eras_fixed - eras}"
     assert any("Crypto Frontier Venture" in e for e in eras), f"Nessuna era crypto trovata in {eras}"

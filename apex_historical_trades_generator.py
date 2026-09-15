@@ -98,6 +98,9 @@ def generate_full_historical_trades():
     locked_alloc = None
     current_basket: List[str] = []
     prev_basket_tickers = None
+    crypto_alloc_by_week: Dict[pd.Timestamp, float] = {}  # peso macro Crypto reale per settimana,
+    # usato dopo per stimare il peso dei trade Crypto Frontier Venture (§3 sotto) sul
+    # capitale reale dell'epoca, invece di una costante fissa indipendente dal regime.
 
     t0 = time.time()
 
@@ -123,6 +126,7 @@ def generate_full_historical_trades():
         current_alloc = locked_alloc
         if is_month_end:
             locked_alloc = alloc
+        crypto_alloc_by_week[wk] = current_alloc.get("Crypto", 0.0)
 
         macro_era = (wk.year < BASKET_SELECTION_FROM_YEAR)
         stock_selection_era = (wk.year >= BASKET_SELECTION_FROM_YEAR) and (wk < pd.Timestamp("2024-03-04"))
@@ -358,7 +362,7 @@ def generate_full_historical_trades():
 
     print(f"      Simulazione completata in {time.time() - t0:.1f}s. Generati {len(closed_trades)} trade.")
 
-    print("[3/5] Esecuzione Crypto Frontier Venture Backtest (2018-2024)...")
+    print("[3/5] Esecuzione Crypto Frontier Venture Backtest (fino all'inizio del tracking live)...")
     crypto_cache = REPO_ROOT / "research" / "crypto_ohlcv_extended_cache"
     crypto_dfs = load_crypto_dataset(str(crypto_cache))
     cfg = CryptoVentureConfig(
@@ -373,7 +377,26 @@ def generate_full_historical_trades():
     )
     matrices = precompute_market_matrices(crypto_dfs, cfg)
     res_crypto = run_crypto_venture_backtest(matrices, cfg, tax_enabled=False)
-    crypto_trades = res_crypto["completed_trades"]
+
+    # Il tracking LIVE reale (portfolio.json) copre i trade crypto dal 2024-03-04 in poi
+    # (stessa soglia "live_era" usata sopra per l'era azionaria/macro) — un backtest senza
+    # taglio genererebbe trade fino all'ultimo dato disponibile in cache, duplicando quelli
+    # gia' realmente eseguiti e tracciati nel vivo (bug corretto: prima non c'era alcun
+    # taglio e l'era era etichettata "2018-2024" a prescindere dalle date reali dei trade).
+    LIVE_CRYPTO_CUTOFF = pd.Timestamp("2024-03-04")
+    crypto_trades = [ct for ct in res_crypto["completed_trades"] if pd.Timestamp(ct.exit_date) < LIVE_CRYPTO_CUTOFF]
+
+    # Lookup del peso macro Crypto REALE piu' recente disponibile a ciascuna entry_date,
+    # invece di una costante fissa (0.08/7) indipendente dal regime effettivo dell'epoca
+    # (bug corretto: un trade aperto quando la classe Crypto era disattivata o al 25%
+    # macro veniva comunque pesato come se il regime fosse sempre stato all'8%).
+    _crypto_alloc_series = pd.Series(crypto_alloc_by_week).sort_index()
+
+    def _weight_for_entry(entry_date: pd.Timestamp) -> float:
+        pct = _crypto_alloc_series.asof(entry_date)
+        if pd.isna(pct):
+            pct = _crypto_alloc_series.iloc[0] if len(_crypto_alloc_series) else 0.0
+        return round((float(pct) / 100.0) / cfg.max_slots, 6)
 
     crypto_closed_trades: List[Dict[str, Any]] = []
     for ct in crypto_trades:
@@ -388,13 +411,19 @@ def generate_full_historical_trades():
             "entry_price": round(float(ct.entry_price), 4),
             "exit_price": round(float(ct.exit_price), 4),
             "profit_pct": round(float(ct.pnl_pct * 100.0), 2),
-            "weight": round(0.08 / 7.0, 6),  # 8% crypto bucket diviso 7 slot = ~1.14% nominale per slot
+            "weight": _weight_for_entry(pd.Timestamp(ct.entry_date)),
             "reason": reason_label,
             "is_crypto": True,
             "asset_class": "Cryptovalute",
-            "era": "2018-2024 (Crypto Frontier Venture)",
+            "era": "_CRYPTO_DYNAMIC_ERA_",  # placeholder, sostituito sotto con min/max date reali
         })
-    print(f"      Generati {len(crypto_closed_trades)} trade da Crypto Frontier Venture.")
+    if crypto_closed_trades:
+        _dates = [t["entry_date"] for t in crypto_closed_trades] + [t["exit_date"] for t in crypto_closed_trades]
+        _era_label = f"{min(_dates)[:4]}-{max(_dates)[:4]} (Crypto Frontier Venture)"
+        for t in crypto_closed_trades:
+            t["era"] = _era_label
+    print(f"      Generati {len(crypto_closed_trades)} trade da Crypto Frontier Venture "
+          f"({len(res_crypto['completed_trades']) - len(crypto_trades)} scartati perche' oltre l'inizio del tracking live).")
 
     print("[4/5] Caricamento trade reali dal Portafoglio Tracciato Live (2024-Oggi)...")
     portfolio_file = REPO_ROOT / "portfolio.json"

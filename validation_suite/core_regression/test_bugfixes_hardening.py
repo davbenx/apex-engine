@@ -353,8 +353,13 @@ def test_apex_full_historical_trades_integrity(historical_trades_json_path, hist
     with open(historical_trades_json_path, encoding="utf-8") as f:
         trades = json.load(f)
 
-    # 1. Almeno 1000 trade storici registrati
-    assert len(trades) >= 1000, f"Attesi almeno 1000 trade, trovati {len(trades)}"
+    # 1. Almeno 800 trade storici registrati. Soglia abbassata da 1000: quella copriva
+    # anche ~242 trade dell'era "2024-Oggi (Tracking Live)" da un portafoglio live poi
+    # resettato a zero (nessuna posizione realmente investita/collegata alla dashboard —
+    # richiesta esplicita dell'utente). Le componenti deterministiche (macro 1987-2011 +
+    # point-in-time 2012-2024 + crypto pre-live) restano a 868; il pavimento resta sotto
+    # quel numero per non rompersi su piccole variazioni della cache crypto.
+    assert len(trades) >= 800, f"Attesi almeno 800 trade, trovati {len(trades)}"
 
     required_fields = {
         "trade_id", "ticker", "entry_date", "exit_date", "entry_price",
@@ -379,15 +384,18 @@ def test_apex_full_historical_trades_integrity(historical_trades_json_path, hist
         eras.add(t["era"])
         classes.add(t["asset_class"])
 
-    # 2. Tutte le 4 ere storiche devono essere presenti. L'era crypto ha un'etichetta
-    # DINAMICA (anno min/max reale dei trade effettivamente generati, non piu' un
-    # intervallo fisso "2018-2024") da quando e' stato corretto il bug per cui veniva
-    # etichettata cosi' a prescindere dalle date reali dei trade e dal taglio contro il
-    # tracking live — verificare quindi solo che un'era crypto esista, non l'anno esatto.
+    # 2. Le ere storiche deterministiche devono essere presenti. L'era crypto ha
+    # un'etichetta DINAMICA (anno min/max reale dei trade effettivamente generati, non
+    # piu' un intervallo fisso "2018-2024") da quando e' stato corretto il bug per cui
+    # veniva etichettata cosi' a prescindere dalle date reali dei trade e dal taglio
+    # contro il tracking live — verificare quindi solo che un'era crypto esista, non
+    # l'anno esatto. "2024-Oggi (Tracking Live)" non e' piu' garantita: il portafoglio
+    # live e' stato resettato a zero trade chiusi (nessuna posizione realmente investita
+    # — richiesta esplicita dell'utente), quindi quest'era compare solo una volta che
+    # esistono trade live reali chiusi.
     assert "1987-2011 (Macro Allocazione)" in eras
     assert "2012-2024 (Point-In-Time)" in eras
     assert any("Crypto Frontier Venture" in e for e in eras), f"Nessuna era crypto trovata in {eras}"
-    assert "2024-Oggi (Tracking Live)" in eras
 
     # 3. Tutte le 5 classi di attivo devono essere coperte
     assert "Azioni (Low-Beta)" in classes
