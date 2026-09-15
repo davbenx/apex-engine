@@ -785,7 +785,15 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             if sells or buys:
                 struct = {"sells": sells, "buys": buys}
 
-        if action_log or macro_evs or struct:
+        # BUG corretto: la condizione precedente ("or struct") entrava in questo ramo
+        # anche quando struct era un dict vuoto ({"sells": [], "buys": []} — una
+        # decisione mensile che non ha prodotto alcun ordine, es. basket/allocazioni
+        # invariati), saltando poi silenziosamente sia il blocco ordini (vuoto) sia il
+        # fallback action_log (vuoto anch'esso) e producendo un messaggio spoglio
+        # (solo intestazione + regimi) invece della riga di stato "Nessuna operazione
+        # richiesta" piu' informativa del ramo sotto.
+        has_struct_orders = bool(struct and (struct.get("sells") or struct.get("buys")))
+        if action_log or macro_evs or has_struct_orders:
             msg = f"*APEX ENGINE* · {date_str}\n\n"
 
             if macro_evs:
@@ -795,7 +803,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                     msg += f"• {clean_ev}\n"
                 msg += "\n"
 
-            if struct and (struct.get("sells") or struct.get("buys")):
+            if has_struct_orders:
                 all_o = struct.get("sells", []) + struct.get("buys", [])
                 has_tradfi = any(not o.get("is_crypto") for o in all_o)
                 has_crypto = any(o.get("is_crypto") for o in all_o)

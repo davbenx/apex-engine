@@ -398,6 +398,61 @@ def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch=None):
             urllib.request.urlopen = orig_urlopen
 
 
+def test_send_telegram_alert_empty_struct_falls_back_to_steady_state(monkeypatch=None):
+    """BUG corretto: una decisione mensile che non produce alcun ordine (basket e
+    allocazioni invariati) passa un pending_orders_struct non-None ma con sells/buys
+    entrambi vuoti. La condizione precedente ("action_log or macro_evs or struct")
+    entrava comunque nel ramo "ordini" perche' un dict vuoto e' comunque truthy in
+    Python, producendo un messaggio spoglio (solo intestazione + regimi, nessuna
+    riga di stato) invece del messaggio "steady state" piu' informativo (P&L +
+    "Nessuna operazione richiesta") che si ottiene quando struct e' davvero None."""
+    calls = []
+    def fake_urlopen(req, timeout=10):
+        calls.append(req.data.decode("utf-8"))
+        return io.BytesIO(b'{"ok": true}')
+
+    if monkeypatch is not None:
+        monkeypatch.setenv("TELEGRAM_TOKEN", "dummy_token")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "dummy_chat_id")
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    else:
+        orig_token = os.environ.get("TELEGRAM_TOKEN")
+        orig_chat = os.environ.get("TELEGRAM_CHAT_ID")
+        orig_urlopen = urllib.request.urlopen
+        os.environ["TELEGRAM_TOKEN"] = "dummy_token"
+        os.environ["TELEGRAM_CHAT_ID"] = "dummy_chat_id"
+        urllib.request.urlopen = fake_urlopen
+
+    try:
+        data_dict = {
+            "allocations": {"Equities": 50, "Crypto": 12, "Gold": 18, "Bonds": 0, "Cash": 20},
+            "macro_events": [],
+            "timestamp": "28 Ago 2026",
+        }
+        empty_struct = {"sells": [], "buys": [], "orders": [], "action_log": []}
+        sent = backend.send_telegram_alert(data_dict, [], pending_orders_struct=empty_struct)
+        assert sent is True
+        assert len(calls) == 1
+        sent_text = calls[0]
+        assert "ORDINI+OPERATIVI" not in sent_text.replace("%20", "+"), (
+            "non deve dichiarare ordini operativi quando struct non ne contiene nessuno"
+        )
+        assert "Nessuna+operazione+richiesta" in sent_text or "Nessuna%20operazione%20richiesta" in sent_text, (
+            "deve cadere nel messaggio di stato 'steady state', non in uno spoglio senza status line"
+        )
+    finally:
+        if monkeypatch is None:
+            if orig_token is not None:
+                os.environ["TELEGRAM_TOKEN"] = orig_token
+            else:
+                os.environ.pop("TELEGRAM_TOKEN", None)
+            if orig_chat is not None:
+                os.environ["TELEGRAM_CHAT_ID"] = orig_chat
+            else:
+                os.environ.pop("TELEGRAM_CHAT_ID", None)
+            urllib.request.urlopen = orig_urlopen
+
+
 class _FakeYahooResponse:
     def __init__(self, body):
         self._body = body
