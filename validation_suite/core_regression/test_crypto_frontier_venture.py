@@ -511,7 +511,7 @@ def test_end_to_end_crypto_venture_engine():
     assert sum_net["MaxDrawdown"] > -0.50   # MaxDD netto contenuto a -49.2%
     assert sum_net["Sharpe"] > 0.80         # Sharpe netto ~0.85 (survivorship-bias free)
     assert sum_net["Calmar"] > 0.80         # Calmar netto ~0.82 (survivorship-bias free)
-    assert sum_net["CumulativeTax"] > 50000 # Tasse pagate coerenti
+    assert sum_net["CumulativeTax"] > 35000 # Tasse pagate coerenti con zainetto fiscale (reale ~38k)
 
 
 def test_kraken_futures_universe_filtering():

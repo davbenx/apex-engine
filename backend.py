@@ -1111,6 +1111,8 @@ def main():
         if crypto_eval.get("action_log"):
             pf["last_action_log"] = crypto_eval["action_log"]
             pf["last_action_date"] = today_str
+        else:
+            pf["last_action_log"] = []
         # Pulisce eventuali ordini pendenti obsoleti/zombie
         if not prev_pending:
             pf["pending_orders"] = []

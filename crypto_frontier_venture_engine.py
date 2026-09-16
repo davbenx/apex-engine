@@ -1174,19 +1174,20 @@ def evaluate_daily_crypto_frontier(
             })
             action_log.append(f"APERTURA: BTC | Allocazione {btc_target_w*100:.1f}% | Prezzo: {_fmt_usd(btc_px)}")
         elif delta_btc_w > EPS:
-            buys.append({
-                "action": "INCREMENTO",
-                "action_type": "BUY",
-                "ticker": "BTC",
-                "display_name": "BTC",
-                "cur_w_pct": round(cur_btc_w * 100, 2),
-                "tgt_w_pct": round(btc_target_w * 100, 2),
-                "delta_w_pct": round(delta_btc_w * 100, 2),
-                "price": btc_px,
-                "is_crypto": True,
-                "desc": f"Riallocazione su BTC (+{delta_btc_w*100:.1f}%)"
-            })
-            action_log.append(f"INCREMENTO: BTC | Riallocazione +{delta_btc_w*100:.1f}% | Prezzo: {_fmt_usd(btc_px)}")
+            if buys or delta_btc_w >= 0.01:
+                buys.append({
+                    "action": "INCREMENTO",
+                    "action_type": "BUY",
+                    "ticker": "BTC",
+                    "display_name": "BTC",
+                    "cur_w_pct": round(cur_btc_w * 100, 2),
+                    "tgt_w_pct": round(btc_target_w * 100, 2),
+                    "delta_w_pct": round(delta_btc_w * 100, 2),
+                    "price": btc_px,
+                    "is_crypto": True,
+                    "desc": f"Riallocazione su BTC (+{delta_btc_w*100:.1f}%)"
+                })
+                action_log.append(f"INCREMENTO: BTC | Riallocazione +{delta_btc_w*100:.1f}% | Prezzo: {_fmt_usd(btc_px)}")
         elif btc_target_w <= EPS and cur_btc_w > EPS:
             sells.append({
                 "action": "CHIUSURA",
@@ -1202,19 +1203,22 @@ def evaluate_daily_crypto_frontier(
             })
             action_log.append(f"CHIUSURA: BTC | Slot saturi da altcoin | Prezzo: {_fmt_usd(btc_px)}")
         elif delta_btc_w < -EPS:
-            sells.append({
-                "action": "RIDUZIONE",
-                "action_type": "SELL",
-                "ticker": "BTC",
-                "display_name": "BTC",
-                "cur_w_pct": round(cur_btc_w * 100, 2),
-                "tgt_w_pct": round(btc_target_w * 100, 2),
-                "delta_w_pct": round(delta_btc_w * 100, 2),
-                "price": btc_px,
-                "is_crypto": True,
-                "desc": f"Finanziamento nuovi slot altcoin da BTC ({delta_btc_w*100:.1f}%)"
-            })
-            action_log.append(f"RIDUZIONE: BTC | Finanziamento slot altcoin ({delta_btc_w*100:.1f}%) | Prezzo: {_fmt_usd(btc_px)}")
+            if buys or delta_btc_w <= -0.01:
+                desc = f"Finanziamento nuovi slot altcoin da BTC ({delta_btc_w*100:.1f}%)" if buys else f"Riallocazione BTC ({delta_btc_w*100:.1f}%)"
+                log_tag = "Finanziamento slot altcoin" if buys else "Riallocazione"
+                sells.append({
+                    "action": "RIDUZIONE",
+                    "action_type": "SELL",
+                    "ticker": "BTC",
+                    "display_name": "BTC",
+                    "cur_w_pct": round(cur_btc_w * 100, 2),
+                    "tgt_w_pct": round(btc_target_w * 100, 2),
+                    "delta_w_pct": round(delta_btc_w * 100, 2),
+                    "price": btc_px,
+                    "is_crypto": True,
+                    "desc": desc
+                })
+                action_log.append(f"RIDUZIONE: BTC | {log_tag} ({delta_btc_w*100:.1f}%) | Prezzo: {_fmt_usd(btc_px)}")
 
     if btc_target_w > EPS:
         updated_positions["BTC"] = {
