@@ -327,6 +327,9 @@ def test_weekly_due_anchored_to_friday_not_drifting_with_rolling_day_count():
     # Venerdi' stesso, ultimo alert quel venerdi' stesso (gia' inviato questa
     # settimana ISO) -> non dovuto, evita doppio invio nella stessa settimana
     assert backend.compute_weekly_due(this_friday, "2026-08-28") is False
+    # Mercoledi' della stessa settimana ISO (es. alert per ordini o stop infrasettimanale)
+    # -> il resoconto di chiusura di venerdi' sera resta pienamente dovuto
+    assert backend.compute_weekly_due(this_friday, "2026-08-26") is True
     assert backend.compute_weekly_due(this_friday, None) is True  # mai inviato prima
 
 

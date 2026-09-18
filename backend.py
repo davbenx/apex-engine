@@ -140,11 +140,13 @@ def compute_weekly_due(now_dt, last_alert_str):
     l'alert sempre un giorno PRIMA nella settimana ad ogni ciclo (Ven->Gio->Mer->
     Mar->Lun, poi si stabilizza di lunedi', dove i due giorni di weekend senza run
     ricreano la condizione ">=6" in modo stabile) — l'alert delle 2:45 di venerdi'
-    era in realta' il run di GIOVEDI' 23:00 UTC, con dati di chiusura di giovedi',
     non di venerdi'. Fix: invece di contare giorni trascorsi, confronta la settimana
-    ISO dell'ultimo alert con quella corrente — al massimo un alert per settimana
-    ISO, e solo nella finestra Ven-Dom, quindi sempre ancorato a venerdi' (o al
-    primo giorno disponibile dopo, se il run di venerdi' slitta), mai alla deriva."""
+    # ISO dell'ultimo alert con quella corrente — al massimo un alert per settimana
+    # ISO, e solo nella finestra Ven-Dom, quindi sempre ancorato a venerdi' (o al
+    # primo giorno disponibile dopo, se il run di venerdi' slitta), mai alla deriva.
+    # Se un alert e' gia' stato inviato nella finestra di questo weekend (Ven-Dom),
+    # l'heartbeat e' gia' soddisfatto; se invece e' stato infrasettimanale (Lun-Gio,
+    # es. ordini eseguiti o stop loss), il resoconto del venerdi' resta dovuto."""
     if not last_alert_str:
         return True
     try:
@@ -153,7 +155,8 @@ def compute_weekly_due(now_dt, last_alert_str):
         return True
     current_week = now_dt.isocalendar()[:2]  # (anno ISO, settimana ISO)
     last_alert_week = last_alert_dt.isocalendar()[:2]
-    return now_dt.weekday() >= 4 and current_week != last_alert_week
+    already_sent_this_weekend = (current_week == last_alert_week and last_alert_dt.weekday() >= 4)
+    return now_dt.weekday() >= 4 and not already_sent_this_weekend
 
 
 def compute_executing_pending(prev_pending, latest_market_date_str):
