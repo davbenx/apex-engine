@@ -26,10 +26,11 @@ _root = os.path.dirname(os.path.abspath(__file__))
 if _root not in sys.path:
     sys.path.insert(0, _root)
 
+_icon_path = os.path.join(_root, "logo_icon.png")
 
 st.set_page_config(
     page_title="Apex Convex",
-    page_icon=None,
+    page_icon=_icon_path if os.path.exists(_icon_path) else None,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
