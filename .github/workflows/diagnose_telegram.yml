@@ -1,0 +1,79 @@
+name: Diagnose Telegram
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Telegram Diagnostics
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - << 'PYEOF'
+          import os, urllib.request, urllib.parse, json
+
+          token = os.environ.get("TELEGRAM_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+
+          print(f"Token present: {bool(token)}, length: {len(token)}")
+          print(f"Chat ID present: {bool(chat_id)}, length: {len(chat_id)}, value: {chat_id}")
+
+          # 1. getMe
+          try:
+              req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getMe")
+              with urllib.request.urlopen(req) as resp:
+                  print("getMe SUCCESS:", resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f"getMe HTTPError {e.code}:", e.read().decode())
+          except Exception as e:
+              print("getMe Exception:", e)
+
+          # 2. getChat
+          try:
+              data = urllib.parse.urlencode({"chat_id": chat_id}).encode('utf-8')
+              req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getChat", data=data)
+              with urllib.request.urlopen(req) as resp:
+                  print("getChat SUCCESS:", resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f"getChat HTTPError {e.code}:", e.read().decode())
+          except Exception as e:
+              print("getChat Exception:", e)
+
+          # 3. Test sending a simple message
+          msg = "Test di verifica connessione Apex Convex"
+          try:
+              data = urllib.parse.urlencode({"chat_id": chat_id, "text": msg}).encode('utf-8')
+              req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data)
+              with urllib.request.urlopen(req) as resp:
+                  print("sendMessage simple SUCCESS:", resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f"sendMessage simple HTTPError {e.code}:", e.read().decode())
+          except Exception as e:
+              print("sendMessage simple Exception:", e)
+
+          # 4. Test sending Friday message
+          msg_full = (
+              "*APEX ENGINE* · 19 Sep 2026\n\n"
+              "*ORDINI DA ESEGUIRE*\n"
+              "• RIDUZIONE: BTC | Riallocazione (-1.1%) | Prezzo: $81,679.50\n\n"
+              "*REGIMI DI MERCATO*\n"
+              "• Azioni: [ON] 85%\n"
+              "• Cryptovalute: [ON] 15%\n"
+              "• Oro: [OFF] 0%\n"
+              "• Obbligazioni: [OFF] 0%\n"
+              "• Liquidità: [—] 0%\n\n"
+              "Quote, controvalori e dettagli operativi su Dashboard."
+          )
+          try:
+              data = urllib.parse.urlencode({"chat_id": chat_id, "text": msg_full, "parse_mode": "Markdown"}).encode('utf-8')
+              req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data)
+              with urllib.request.urlopen(req) as resp:
+                  print("sendMessage markdown SUCCESS:", resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f"sendMessage markdown HTTPError {e.code}:", e.read().decode())
+          except Exception as e:
+              print("sendMessage markdown Exception:", e)
+          PYEOF
