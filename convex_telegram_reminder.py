@@ -47,7 +47,11 @@ def build_message() -> str:
     )
 
 
+DEFAULT_TELEGRAM_CHAT_ID = "-1004387972246"
+
+
 def send_telegram_reminder(token: str, chat_id: str, message: str, timeout: int = 15) -> bool:
+    chat_id = (chat_id or DEFAULT_TELEGRAM_CHAT_ID).strip()
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = urllib.parse.urlencode(
         {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
@@ -55,14 +59,26 @@ def send_telegram_reminder(token: str, chat_id: str, message: str, timeout: int 
     req = urllib.request.Request(url, data=payload)
     try:
         urllib.request.urlopen(req, timeout=timeout)
+        print(f"[+] Promemoria Convex inviato con successo a {chat_id}.")
         return True
     except Exception as e_md:
-        print(f"[!] Errore invio Markdown ({e_md}), riprovo in modalità testo semplice...")
+        err_str = str(e_md)
+        if hasattr(e_md, "read") and getattr(e_md, "fp", None) is not None:
+            try:
+                err_str = e_md.read().decode("utf-8", errors="replace")
+            except Exception:
+                pass
+        print(f"[!] Errore invio Markdown ({e_md}): {err_str}, riprovo in modalità testo semplice...")
+        target_id = chat_id
+        if "chat not found" in err_str and chat_id != DEFAULT_TELEGRAM_CHAT_ID:
+            print(f"[*] Fallback chat_id su canale predefinito: {DEFAULT_TELEGRAM_CHAT_ID}")
+            target_id = DEFAULT_TELEGRAM_CHAT_ID
         plain = message.replace("*", "")
-        payload_plain = urllib.parse.urlencode({"chat_id": chat_id, "text": plain}).encode("utf-8")
+        payload_plain = urllib.parse.urlencode({"chat_id": target_id, "text": plain}).encode("utf-8")
         req_plain = urllib.request.Request(url, data=payload_plain)
         try:
             urllib.request.urlopen(req_plain, timeout=timeout)
+            print(f"[+] Promemoria Convex (fallback testo) inviato con successo a {target_id}.")
             return True
         except Exception as e:
             print(f"[!] Errore invio alert Telegram: {e}")
@@ -71,7 +87,7 @@ def send_telegram_reminder(token: str, chat_id: str, message: str, timeout: int 
 
 def main(dry_run: bool = False) -> int:
     token = os.environ.get("TELEGRAM_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    chat_id = (os.environ.get("TELEGRAM_CHAT_ID") or DEFAULT_TELEGRAM_CHAT_ID).strip()
     message = build_message()
 
     if dry_run:

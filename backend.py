@@ -744,6 +744,18 @@ def compute_rebalance_orders_structured(open_positions, target_allocations, bask
     return {"sells": sells, "buys": buys, "orders": sells + buys, "action_log": action_log}
 
 
+DEFAULT_TELEGRAM_CHAT_ID = "-1004387972246"
+
+
+def _extract_http_error_body(err):
+    try:
+        if hasattr(err, "read") and getattr(err, "fp", None) is not None:
+            return err.read().decode("utf-8", errors="replace")
+    except Exception:
+        pass
+    return str(err)
+
+
 # ==============================================================================
 # TELEGRAM NOTIFICATIONS
 # ==============================================================================
@@ -752,7 +764,7 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
     1. VENDITE e 2. ACQUISTI, con percentuali di capitale esatte e timing
     esplicito per l'apertura di Lunedì."""
     token = os.environ.get("TELEGRAM_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    chat_id = (os.environ.get("TELEGRAM_CHAT_ID") or DEFAULT_TELEGRAM_CHAT_ID).strip()
 
     if not token or not chat_id:
         print("[-] Credenziali Telegram non configurate. Skip invio notifica.")
@@ -863,18 +875,31 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
         req = urllib.request.Request(url, data=payload)
         try:
             urllib.request.urlopen(req, timeout=HTTP_TIMEOUT)
-            print("[+] Notifica Telegram inviata con successo.")
+            print(f"[+] Notifica Telegram inviata con successo a {chat_id}.")
             return True
         except Exception as e_md:
-            print(f"[!] Errore invio Markdown ({e_md}), riprovo in modalità testo semplice...")
+            err_body = _extract_http_error_body(e_md)
+            print(f"[!] Errore invio Markdown ({e_md}): {err_body}, riprovo in modalità testo semplice...")
+            
+            target_chat_id = chat_id
+            if "chat not found" in err_body and chat_id != DEFAULT_TELEGRAM_CHAT_ID:
+                print(f"[*] Fallback chat_id su canale predefinito: {DEFAULT_TELEGRAM_CHAT_ID}")
+                target_chat_id = DEFAULT_TELEGRAM_CHAT_ID
+
             plain_msg = msg.replace("*", "").replace("`", "")
-            payload_plain = urllib.parse.urlencode({"chat_id": chat_id, "text": plain_msg}).encode('utf-8')
+            payload_plain = urllib.parse.urlencode({"chat_id": target_chat_id, "text": plain_msg}).encode('utf-8')
             req_plain = urllib.request.Request(url, data=payload_plain)
-            urllib.request.urlopen(req_plain, timeout=HTTP_TIMEOUT)
-            print("[+] Notifica Telegram (fallback testo) inviata con successo.")
-            return True
+            try:
+                urllib.request.urlopen(req_plain, timeout=HTTP_TIMEOUT)
+                print(f"[+] Notifica Telegram (fallback testo) inviata con successo a {target_chat_id}.")
+                return True
+            except Exception as e_plain:
+                plain_err = _extract_http_error_body(e_plain)
+                print(f"[!] Errore invio fallback testo: {plain_err}")
+                return False
     except Exception as e:
-        print(f"[!] Errore invio alert Telegram: {e}")
+        err_msg = _extract_http_error_body(e)
+        print(f"[!] Errore invio alert Telegram: {err_msg}")
         return False
 
 
