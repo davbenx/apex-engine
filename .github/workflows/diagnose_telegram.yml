@@ -10,26 +10,32 @@ jobs:
       - name: Run Telegram Diagnostics
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python - << 'PYEOF'
           import os, urllib.request, urllib.parse, json
 
           token = os.environ.get("TELEGRAM_TOKEN", "").strip()
-          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          target_chat_id = "-1004387972246"
 
-          print(f"Chat ID raw length: {len(chat_id)}, repr: {repr(chat_id)[:4]}...{repr(chat_id)[-4:]}")
-
-          # Check getUpdates
+          msg_full = (
+              "*APEX ENGINE* · 19 Sep 2026\n\n"
+              "*ORDINI DA ESEGUIRE*\n"
+              "• RIDUZIONE: BTC | Riallocazione (-1.1%) | Prezzo: $81,679.50\n\n"
+              "*REGIMI DI MERCATO*\n"
+              "• Azioni: [ON] 85%\n"
+              "• Cryptovalute: [ON] 15%\n"
+              "• Oro: [OFF] 0%\n"
+              "• Obbligazioni: [OFF] 0%\n"
+              "• Liquidità: [—] 0%\n\n"
+              "Quote, controvalori e dettagli operativi su Dashboard."
+          )
           try:
-              req = urllib.request.Request(f"https://api.telegram.org/bot{token}/getUpdates")
+              data = urllib.parse.urlencode({"chat_id": target_chat_id, "text": msg_full, "parse_mode": "Markdown"}).encode('utf-8')
+              req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data)
               with urllib.request.urlopen(req) as resp:
-                  data = json.loads(resp.read().decode())
-                  print("getUpdates count:", len(data.get("result", [])))
-                  for upd in data.get("result", [])[-5:]:
-                      msg = upd.get("message") or upd.get("channel_post") or upd.get("my_chat_member", {})
-                      chat = msg.get("chat", {})
-                      print("Found update chat:", chat.get("id"), chat.get("type"), chat.get("title") or chat.get("username"))
+                  print("TARGET CHAT SUCCESS:", resp.read().decode())
+          except urllib.error.HTTPError as e:
+              print(f"TARGET CHAT HTTPError {e.code}:", e.read().decode())
           except Exception as e:
-              print("getUpdates Exception:", e)
+              print("TARGET CHAT Exception:", e)
           PYEOF
