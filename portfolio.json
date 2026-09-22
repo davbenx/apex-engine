@@ -3,10 +3,10 @@
         "BTC": {
             "entry_date": "2026-09-15",
             "entry_price": 76966.3984375,
-            "current_price": 81642.5234375,
+            "current_price": 85711.0703125,
             "stop_loss": 0.0,
             "is_crypto": true,
-            "weight": 0.1539
+            "weight": 0.1517
         },
         "APA": {
             "entry_date": "2026-09-15",
@@ -14,7 +14,7 @@
             "current_price": 44.869998931884766,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.056776712514525596
+            "weight": 0.056344583233428766
         },
         "CF": {
             "entry_date": "2026-09-15",
@@ -22,7 +22,7 @@
             "current_price": 127.69999694824219,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.0554422396021467
+            "weight": 0.05502026703486316
         },
         "EOG": {
             "entry_date": "2026-09-15",
@@ -30,7 +30,7 @@
             "current_price": 144.22999572753906,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05532587728063289
+            "weight": 0.05490479035050789
         },
         "MRNA": {
             "entry_date": "2026-09-15",
@@ -38,7 +38,7 @@
             "current_price": 154.0399932861328,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05983414555817277
+            "weight": 0.05937874606144282
         },
         "LYB": {
             "entry_date": "2026-09-15",
@@ -46,7 +46,7 @@
             "current_price": 61.93000030517578,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.0562345818801482
+            "weight": 0.055806578771753504
         },
         "ABBV": {
             "entry_date": "2026-09-15",
@@ -54,7 +54,7 @@
             "current_price": 263.9599914550781,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.057455865251369316
+            "weight": 0.05701856691819234
         },
         "MO": {
             "entry_date": "2026-09-15",
@@ -62,7 +62,7 @@
             "current_price": 69.5199966430664,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.056099584620695885
+            "weight": 0.05567260898053761
         },
         "ADM": {
             "entry_date": "2026-09-15",
@@ -70,7 +70,7 @@
             "current_price": 85.18000030517578,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.056148606865521346
+            "weight": 0.055721258115570764
         },
         "T": {
             "entry_date": "2026-09-15",
@@ -78,7 +78,7 @@
             "current_price": 25.399999618530273,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.054593394294211395
+            "weight": 0.05417788231431369
         },
         "RSG": {
             "entry_date": "2026-09-15",
@@ -86,7 +86,7 @@
             "current_price": 218.07000732421875,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05501637225857233
+            "weight": 0.054597640980558124
         },
         "VZ": {
             "entry_date": "2026-09-15",
@@ -94,7 +94,7 @@
             "current_price": 48.09000015258789,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05342421998702323
+            "weight": 0.05301760662824088
         },
         "AWK": {
             "entry_date": "2026-09-15",
@@ -102,7 +102,7 @@
             "current_price": 135.89999389648438,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.055740490582954584
+            "weight": 0.05531624801840958
         },
         "DE": {
             "entry_date": "2026-09-15",
@@ -110,7 +110,7 @@
             "current_price": 683.989990234375,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05719070913555625
+            "weight": 0.056755428913619434
         },
         "WRB": {
             "entry_date": "2026-09-15",
@@ -118,7 +118,7 @@
             "current_price": 69.98999786376953,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05627164991094551
+            "weight": 0.05584336467664407
         },
         "WELL": {
             "entry_date": "2026-09-15",
@@ -126,7 +126,7 @@
             "current_price": 228.8699951171875,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05568003918098863
+            "weight": 0.0552562567138976
         }
     },
     "macro_positions": {},
@@ -2795,7 +2795,7 @@
         }
     ],
     "v2_migrated": true,
-    "nav_usd": 99495.49743584356,
+    "nav_usd": 100258.56844128875,
     "last_telegram_alert_date": "2026-09-19",
     "pending_orders": [],
     "pending_orders_date": "2026-09-15",
