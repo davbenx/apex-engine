@@ -295,6 +295,23 @@ with tab_pf:
         """)
     elif convex_report.total_value <= 0:
         st.info("Inserisci le tue quote per ricevere il consiglio operativo di questo mese.")
+    else:
+        # convex_report.total_value > 0 ma pac_act e' None: l'unico altro caso possibile
+        # e' monthly_pac_eur <= 0 (vedi convex_engine.evaluate_convex_stack) — un versamento
+        # a zero e' un input legittimo (gestito esplicitamente anche da
+        # portfolio_manager.compute_unified_portfolio), ma lasciare la sezione
+        # completamente vuota senza alcun messaggio e' una vera assenza di
+        # comunicazione: l'utente non puo' distinguere "nessun consiglio perche' non
+        # c'e' liquidita' impostata" da "qualcosa non funziona".
+        st_html(f"""
+        <div style="background: rgba(255,247,237,0.03); border: 1px solid {BORDER}; border-radius: 8px; padding: 14px 18px; margin: 8px 0 12px;">
+            <div style="color:{MUTED}; font-weight:700; font-size:13.5px;">NESSUN VERSAMENTO PAC IMPOSTATO PER QUESTO MESE</div>
+            <div style="font-size:12.5px; color:{MUTED_2}; margin-top:4px;">
+                La "Liquidità Pronta per il PAC di Questo Mese" è a 0 € — nessun acquisto da consigliare.
+                Imposta un importo nel modulo "Modifica Quote Possedute e Rata PAC" qui sotto per ricevere il consiglio su dove investire.
+            </div>
+        </div>
+        """)
 
     # 2. Verifica Soglie di Trim
     if convex_report.trim_alerts:
