@@ -102,7 +102,21 @@ def compute_should_decide(now_dt, prev_state, just_migrating):
     all'ultimo giorno del mese se l'intero weekend e' saltato).
     Garantisce che la decisione non venga mai saltata nei mesi in cui l'ultimo venerdi'
     cade il giorno 24, 25 o 26 (es. settembre 2026, aprile 2025/2026, luglio 2025, ecc.)
-    e che non venga scatenata anticipatamente a meta' settimana."""
+    e che non venga scatenata anticipatamente a meta' settimana.
+
+    ATTENZIONE per chi fa un reset manuale di v2_state (es. per ripristinare il
+    portafoglio live "come se esistesse solo la versione corrente"): NON impostare
+    last_decision_month al mese corrente a meno che la data del reset non sia
+    davvero l'ultimo venerdi' del mese. Incidente reale (settembre 2026): un reset
+    il 15/9 ha impostato last_decision_month="2026-09", facendo si' che il primo
+    controllo sotto restituisse sempre False per il resto del mese — la vera
+    decisione del 25/9 (fine trimestre, riselezione dell'intero paniere azionario)
+    e' stata COMPLETAMENTE SALTATA senza alcun errore o segnale visibile, scoperta
+    solo perche' l'utente ha notato l'assenza di rotazione e ha chiesto conferma.
+    Corretto a posteriori con un ribilanciamento di recupero (vedi commit git),
+    ma il modo corretto di evitarlo e' impostare last_decision_month al mese
+    PRECEDENTE (o lasciarlo None) in qualunque reset che non coincida esattamente
+    con l'ultimo venerdi' del mese corrente."""
     current_month_str = now_dt.strftime("%Y-%m")
     if not just_migrating and prev_state.get("last_decision_month") == current_month_str:
         return False

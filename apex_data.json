@@ -29,93 +29,93 @@
     "macro_events": [],
     "top20": [
         {
-            "Ticker": "APA",
-            "Prezzo ($)": 45.03,
-            "Beta (vs SPY)": -1.938,
+            "Ticker": "MRNA",
+            "Prezzo ($)": 198.88,
+            "Beta (vs SPY)": -1.909,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "CF",
-            "Prezzo ($)": 131.24,
-            "Beta (vs SPY)": -1.897,
+            "Prezzo ($)": 114.67,
+            "Beta (vs SPY)": -1.795,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "EOG",
-            "Prezzo ($)": 148.54,
-            "Beta (vs SPY)": -1.882,
+            "Prezzo ($)": 140.35,
+            "Beta (vs SPY)": -1.781,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "MRNA",
-            "Prezzo ($)": 146.69,
-            "Beta (vs SPY)": -1.447,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "LYB",
-            "Prezzo ($)": 62.75,
-            "Beta (vs SPY)": -1.257,
+            "Ticker": "APA",
+            "Prezzo ($)": 42.74,
+            "Beta (vs SPY)": -1.692,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "ABBV",
-            "Prezzo ($)": 261.77,
-            "Beta (vs SPY)": -1.185,
+            "Prezzo ($)": 264.34,
+            "Beta (vs SPY)": -1.288,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "MO",
-            "Prezzo ($)": 70.61,
-            "Beta (vs SPY)": -1.023,
+            "Prezzo ($)": 68.82,
+            "Beta (vs SPY)": -1.017,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "ADM",
-            "Prezzo ($)": 86.44,
-            "Beta (vs SPY)": -0.972,
+            "Prezzo ($)": 81.12,
+            "Beta (vs SPY)": -0.79,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "T",
-            "Prezzo ($)": 26.51,
-            "Beta (vs SPY)": -0.668,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "RSG",
-            "Prezzo ($)": 225.85,
-            "Beta (vs SPY)": -0.625,
+            "Prezzo ($)": 25.38,
+            "Beta (vs SPY)": -0.566,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "VZ",
-            "Prezzo ($)": 51.29,
-            "Beta (vs SPY)": -0.585,
-            "Stop Loss ($)": 0.0
-        },
-        {
-            "Ticker": "AWK",
-            "Prezzo ($)": 138.92,
-            "Beta (vs SPY)": -0.518,
+            "Prezzo ($)": 47.08,
+            "Beta (vs SPY)": -0.553,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "DE",
-            "Prezzo ($)": 681.46,
-            "Beta (vs SPY)": -0.486,
+            "Prezzo ($)": 690.46,
+            "Beta (vs SPY)": -0.528,
             "Stop Loss ($)": 0.0
         },
         {
-            "Ticker": "WRB",
-            "Prezzo ($)": 70.87,
-            "Beta (vs SPY)": -0.467,
+            "Ticker": "TRV",
+            "Prezzo ($)": 363.04,
+            "Beta (vs SPY)": -0.482,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "CB",
+            "Prezzo ($)": 333.37,
+            "Beta (vs SPY)": -0.357,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "VTR",
+            "Prezzo ($)": 86.59,
+            "Beta (vs SPY)": -0.346,
             "Stop Loss ($)": 0.0
         },
         {
             "Ticker": "WELL",
-            "Prezzo ($)": 234.21,
-            "Beta (vs SPY)": -0.306,
+            "Prezzo ($)": 231.37,
+            "Beta (vs SPY)": -0.338,
+            "Stop Loss ($)": 0.0
+        },
+        {
+            "Ticker": "CTAS",
+            "Prezzo ($)": 199.91,
+            "Beta (vs SPY)": -0.331,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -135,93 +135,93 @@
         },
         "basket": [
             {
-                "Ticker": "APA",
-                "Prezzo ($)": 45.03,
-                "Beta (vs SPY)": -1.938,
+                "Ticker": "MRNA",
+                "Prezzo ($)": 198.88,
+                "Beta (vs SPY)": -1.909,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "CF",
-                "Prezzo ($)": 131.24,
-                "Beta (vs SPY)": -1.897,
+                "Prezzo ($)": 114.67,
+                "Beta (vs SPY)": -1.795,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "EOG",
-                "Prezzo ($)": 148.54,
-                "Beta (vs SPY)": -1.882,
+                "Prezzo ($)": 140.35,
+                "Beta (vs SPY)": -1.781,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "MRNA",
-                "Prezzo ($)": 146.69,
-                "Beta (vs SPY)": -1.447,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "LYB",
-                "Prezzo ($)": 62.75,
-                "Beta (vs SPY)": -1.257,
+                "Ticker": "APA",
+                "Prezzo ($)": 42.74,
+                "Beta (vs SPY)": -1.692,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "ABBV",
-                "Prezzo ($)": 261.77,
-                "Beta (vs SPY)": -1.185,
+                "Prezzo ($)": 264.34,
+                "Beta (vs SPY)": -1.288,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "MO",
-                "Prezzo ($)": 70.61,
-                "Beta (vs SPY)": -1.023,
+                "Prezzo ($)": 68.82,
+                "Beta (vs SPY)": -1.017,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "ADM",
-                "Prezzo ($)": 86.44,
-                "Beta (vs SPY)": -0.972,
+                "Prezzo ($)": 81.12,
+                "Beta (vs SPY)": -0.79,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "T",
-                "Prezzo ($)": 26.51,
-                "Beta (vs SPY)": -0.668,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "RSG",
-                "Prezzo ($)": 225.85,
-                "Beta (vs SPY)": -0.625,
+                "Prezzo ($)": 25.38,
+                "Beta (vs SPY)": -0.566,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "VZ",
-                "Prezzo ($)": 51.29,
-                "Beta (vs SPY)": -0.585,
-                "Stop Loss ($)": 0.0
-            },
-            {
-                "Ticker": "AWK",
-                "Prezzo ($)": 138.92,
-                "Beta (vs SPY)": -0.518,
+                "Prezzo ($)": 47.08,
+                "Beta (vs SPY)": -0.553,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "DE",
-                "Prezzo ($)": 681.46,
-                "Beta (vs SPY)": -0.486,
+                "Prezzo ($)": 690.46,
+                "Beta (vs SPY)": -0.528,
                 "Stop Loss ($)": 0.0
             },
             {
-                "Ticker": "WRB",
-                "Prezzo ($)": 70.87,
-                "Beta (vs SPY)": -0.467,
+                "Ticker": "TRV",
+                "Prezzo ($)": 363.04,
+                "Beta (vs SPY)": -0.482,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "CB",
+                "Prezzo ($)": 333.37,
+                "Beta (vs SPY)": -0.357,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "VTR",
+                "Prezzo ($)": 86.59,
+                "Beta (vs SPY)": -0.346,
                 "Stop Loss ($)": 0.0
             },
             {
                 "Ticker": "WELL",
-                "Prezzo ($)": 234.21,
-                "Beta (vs SPY)": -0.306,
+                "Prezzo ($)": 231.37,
+                "Beta (vs SPY)": -0.338,
+                "Stop Loss ($)": 0.0
+            },
+            {
+                "Ticker": "CTAS",
+                "Prezzo ($)": 199.91,
+                "Beta (vs SPY)": -0.331,
                 "Stop Loss ($)": 0.0
             }
         ],
@@ -276,6 +276,6 @@
         },
         "kelly_migrated": true
     },
-    "timestamp": "02 Oct 2026, 02:03 (UTC)",
+    "timestamp": "02 Oct 2026, 09:55 (UTC)",
     "eur_usd": 1.1244
 }
