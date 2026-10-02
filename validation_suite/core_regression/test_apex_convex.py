@@ -56,6 +56,29 @@ class TestApexConvexEcosystem(unittest.TestCase):
         self.assertEqual(report.pac_action.recommended_asset, "DBMFE", "Il PAC deve raccomandare l'acquisto dell'asset più sottopesato")
         self.assertEqual(report.pac_action.estimated_shares, 24, "600€ / 25€ = 24 quote")
 
+    def test_pac_water_filling_uses_relative_not_absolute_deficit(self):
+        """BUG reale segnalato dall'utente: con NTSG al 31.7% di un target 45% e PPFB
+        allo 0.45% di un target 7.5%, l'app consigliava di comprare NTSG. Causa: la
+        selezione usava lo scostamento ASSOLUTO in punti percentuali (target-corrente),
+        non quello relativo nonostante il commento nel codice dicesse gia' "deficit
+        relativo" — con 5 strumenti a target molto diversi (45/15/25/7.5/7.5%), un
+        gap assoluto favorisce quasi sempre NTSG/DBMFE (target grande, tetto di gap
+        possibile alto) anche quando PPFB/WBTC (target piccolo, 7.5%) sono quasi
+        completamente vuoti in proporzione al proprio obiettivo. Scenario esatto
+        segnalato: NTSG 13.3pp sotto target (ma solo il 30% sotto in proporzione) vs
+        PPFB 7.05pp sotto target (ma il 94% sotto in proporzione) — deve vincere PPFB."""
+        holdings = {"NTSG": 1420.0, "AVWS": 1419.0, "DBMFE": 255.0, "PPFB": 8.0, "WBTC": 1030.0}
+        prices = {"NTSG": 28.90, "AVWS": 25.16, "DBMFE": 130.68, "PPFB": 72.21, "WBTC": 18.35}
+        report = convex_engine.evaluate_convex_stack(holdings, prices, monthly_pac_eur=500.0)
+
+        self.assertIsNotNone(report.pac_action)
+        self.assertEqual(
+            report.pac_action.recommended_asset, "PPFB",
+            f"PPFB e' sottopesato del 94% del proprio target (il piu' trascurato in "
+            f"proporzione) ma ha vinto {report.pac_action.recommended_asset} — la "
+            f"selezione sta ancora usando il gap assoluto invece che relativo"
+        )
+
     def test_trim_thresholds_and_tax_classification(self):
         """Verifica che lo sforamento delle soglie attivi l'alert con nota fiscale appropriata."""
         # Creiamo un portafoglio con Bitcoin che sale al 20% (> 15% soglia)

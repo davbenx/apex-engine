@@ -208,8 +208,20 @@ def evaluate_convex_stack(
         val = values[k]
         w_cur = val / total_val
         w_tgt = info["target_weight"]
-        diff = w_tgt - w_cur  # Positivo = sottopesato (deficit)
-        deficits[k] = diff
+        diff = w_tgt - w_cur  # Positivo = sottopesato (deficit), usato per display/trim (weight_diff sotto)
+        # BUG corretto: la selezione PAC usava questo scostamento ASSOLUTO in punti
+        # percentuali (segnalato dall'utente: con NTSG al 31.7% di un target 45% e
+        # PPFB allo 0.45% di un target 7.5%, veniva consigliato NTSG perche' il suo
+        # gap assoluto, 13.3pp, supera quello di PPFB, 7.05pp — pur essendo PPFB
+        # investito solo al 6% del proprio target contro il 70% di NTSG, quindi
+        # MOLTO piu' trascurato in proporzione). Con 5 strumenti a target molto
+        # diversi (45/15/25/7.5/7.5%), un gap assoluto favorisce quasi sempre NTSG/
+        # DBMFE semplicemente perche' hanno un target piu' grande e quindi un tetto
+        # di gap possibile piu' alto — PPFB/WBTC (7.5% ciascuno) non possono quasi
+        # mai "vincere" anche quando sono quasi completamente vuoti. Il commento
+        # originale sotto diceva gia' "deficit RELATIVO": la formula ora lo e'
+        # davvero — scostamento come FRAZIONE del proprio target, non punti assoluti.
+        deficits[k] = (diff / w_tgt) if w_tgt > 0 else diff
 
         is_under = w_cur < info["tolerance_min"]
         is_over = w_cur > info["tolerance_max"]
