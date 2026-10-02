@@ -35,7 +35,7 @@ except Exception as _reload_err:
 # HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
 from ui_components import (
-    st_html, inject_page_styles, section_title, sub_hero_metric,
+    st_html, inject_page_styles, section_title, sub_hero_metric, clamp_for_widget,
     render_monthly_returns_html_table,
     POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
     BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
@@ -287,11 +287,15 @@ with tab_pf:
         st.caption("Configura i capitali di riferimento standard, il target di allocazione e la rata PAC per la simulazione globale.")
         p_c1, p_c2 = st.columns(2)
         with p_c1:
-            cfg_apex_cap = st.number_input("Capitale di Riferimento Apex (€)", min_value=1000.0, value=float(cfg.get("apex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
-            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(cfg.get("target_apex_ratio", 0.70)*100), step=5) / 100.0
+            cfg_apex_cap = st.number_input("Capitale di Riferimento Apex (€)", min_value=1000.0, value=clamp_for_widget(float(cfg.get("apex_capital_eur", 100000.0)), 1000.0), step=5000.0, format="%.0f")
+            cfg_target_apex = st.slider("Target Allocazione Apex (%)", min_value=10, max_value=90, value=int(clamp_for_widget(cfg.get("target_apex_ratio", 0.70)*100, 10, 90)), step=5) / 100.0
         with p_c2:
-            cfg_convex_cap = st.number_input("Capitale di Riferimento Convex (€)", min_value=1000.0, value=float(cfg.get("convex_capital_eur", 100000.0)), step=5000.0, format="%.0f")
-            cfg_pac = st.number_input("Rata PAC Mensile (€)", min_value=50.0, value=float(cfg.get("monthly_pac_eur", 500.0)), step=50.0, format="%.0f")
+            cfg_convex_cap = st.number_input("Capitale di Riferimento Convex (€)", min_value=1000.0, value=clamp_for_widget(float(cfg.get("convex_capital_eur", 100000.0)), 1000.0), step=5000.0, format="%.0f")
+            # min_value=0.0 (non 50.0): un PAC a zero e' un input legittimo, gia' gestito
+            # esplicitamente da portfolio_manager.compute_unified_portfolio come "nessun
+            # versamento questo mese" — e page_convex.py lo permette con lo stesso minimo
+            # (vedi clamp_for_widget per il bug reale che questo disallineamento ha causato).
+            cfg_pac = st.number_input("Rata PAC Mensile (€)", min_value=0.0, value=clamp_for_widget(float(cfg.get("monthly_pac_eur", 500.0)), 0.0), step=50.0, format="%.0f")
         
         if st.button("Salva Parametri Globali", use_container_width=True, key="home_save_cfg"):
             new_cfg = {

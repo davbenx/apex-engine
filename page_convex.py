@@ -36,7 +36,7 @@ except Exception as _reload_err:
 # HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
 from ui_components import (
-    st_html, inject_page_styles, section_title, sub_hero_metric,
+    st_html, inject_page_styles, section_title, sub_hero_metric, clamp_for_widget,
     render_monthly_returns_html_table,
     POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
     BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
@@ -377,7 +377,7 @@ with tab_pf:
                 input_holdings[key] = st.number_input(
                     f"{key} — {info['name']}",
                     min_value=0.0,
-                    value=float(_saved_holdings.get(key, 0.0)),
+                    value=clamp_for_widget(float(_saved_holdings.get(key, 0.0)), 0.0),
                     step=1.0,
                     format="%.2f",
                     help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)"),
@@ -388,7 +388,7 @@ with tab_pf:
                 input_holdings[key] = st.number_input(
                     f"{key} — {info['name']}",
                     min_value=0.0,
-                    value=float(_saved_holdings.get(key, 0.0)),
+                    value=clamp_for_widget(float(_saved_holdings.get(key, 0.0)), 0.0),
                     step=1.0,
                     format="%.2f",
                     help=f"Prezzo: {convex_prices[key]:.2f} €" + ("" if convex_prices_live[key] else " (base)"),
@@ -399,12 +399,12 @@ with tab_pf:
         with c_pac:
             pac_input = st.number_input(
                 "Liquidità Pronta per il PAC di Questo Mese (€)", min_value=0.0,
-                value=_saved_pac, step=50.0, format="%.0f", key="cx_pac_input"
+                value=clamp_for_widget(_saved_pac, 0.0), step=50.0, format="%.0f", key="cx_pac_input"
             )
         with c_cash:
             cash_input = st.number_input(
                 "Cassa Residua Non Investita (€)", min_value=0.0,
-                value=_saved_cash, step=50.0, format="%.0f", key="cx_cash_input"
+                value=clamp_for_widget(_saved_cash, 0.0), step=50.0, format="%.0f", key="cx_cash_input"
             )
 
         if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
