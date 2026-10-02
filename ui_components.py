@@ -35,6 +35,34 @@ MESI_IT = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott",
 
 
 # ==============================================================================
+# UTILITY: VALORI DI CONFIGURAZIONE DIFENSIVI
+# ==============================================================================
+def clamp_for_widget(value: float, min_value: float, max_value: Optional[float] = None) -> float:
+    """Riporta `value` dentro [min_value, max_value] prima di passarlo come
+    `value=` a st.number_input/st.slider — altrimenti Streamlit genera un
+    hard-crash (StreamlitValueBelowMinError/AboveMaxError) non catturabile,
+    bloccando l'intera pagina per ogni utente finche' qualcuno non corregge
+    a mano config.json.
+
+    BUG reale verificato in produzione (ottobre 2026): "monthly_pac_eur" aveva
+    min_value=0.0 nel form di salvataggio di page_convex.py ma min_value=50.0
+    in quello di home_app.py — un utente che azzerava la rata PAC dalla
+    pagina Convex (valore legittimo, gestito esplicitamente da
+    compute_unified_portfolio come "nessun versamento questo mese") faceva
+    crashare permanentemente la Home alla ricarica successiva, perche' il
+    valore salvato (0) era sotto il minimo del widget che lo rilegge li' (50).
+    Questo clamp e' la difesa di secondo livello: anche quando i minimi dei
+    widget nelle varie pagine finiscono per non essere perfettamente
+    allineati (come qui, e come potrebbe ri-accadere in futuro), il valore
+    letto da config.json non puo' piu' far crashare la pagina — nel peggiore
+    dei casi si vede un numero diverso da quello salvato, mai un errore."""
+    v = max(min_value, value)
+    if max_value is not None:
+        v = min(max_value, v)
+    return v
+
+
+# ==============================================================================
 # HTML RENDERING HELPERS
 # ==============================================================================
 def st_html(html_str: str) -> None:

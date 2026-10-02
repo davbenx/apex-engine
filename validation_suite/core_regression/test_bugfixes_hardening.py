@@ -531,4 +531,43 @@ def test_audit_convex_trim_threshold_alignment():
         )
 
 
+def test_clamp_for_widget_prevents_streamlit_value_below_min_crash():
+    """BUG reale in produzione (ottobre 2026): home_app.py leggeva config.json con
+    st.number_input(..., min_value=50.0, value=float(cfg.get("monthly_pac_eur", 500.0))) —
+    se il valore salvato era sotto 50 (legittimo: page_convex.py salvava lo stesso campo
+    con min_value=0.0, e un PAC a zero e' un input valido gia' gestito da
+    compute_unified_portfolio), Streamlit lanciava StreamlitValueBelowMinError non
+    catturabile, bloccando l'intera pagina per ogni utente. clamp_for_widget() e' la
+    difesa di secondo livello: qualunque valore fuori range non deve piu' propagarsi
+    fino al costruttore del widget."""
+    from ui_components import clamp_for_widget
+
+    assert clamp_for_widget(0.0, 50.0) == 50.0, "il caso reale: PAC salvato a 0, widget con minimo 50"
+    assert clamp_for_widget(500.0, 0.0) == 500.0, "un valore normale dentro i limiti non deve cambiare"
+    assert clamp_for_widget(5.0, 10.0, 90.0) == 10.0
+    assert clamp_for_widget(95.0, 10.0, 90.0) == 90.0
+
+
+def test_monthly_pac_eur_min_value_consistent_across_pages(repo_root):
+    """BUG reale: lo stesso campo config.json (monthly_pac_eur) aveva un minimo
+    diverso nei due form che lo salvano — page_convex.py permetteva 0 (valore
+    legittimo), home_app.py ne richiedeva almeno 50 in LETTURA, rendendo possibile
+    salvare da una pagina un valore che faceva crashare l'altra alla ricarica
+    successiva. Verifica diretta sul codice sorgente delle due pagine, cosi' un
+    futuro disallineamento tra i due minimi fallisce qui invece che in produzione."""
+    import re
+
+    with open(repo_root / "home_app.py", encoding="utf-8") as f:
+        home_src = f.read()
+    with open(repo_root / "page_convex.py", encoding="utf-8") as f:
+        convex_src = f.read()
+
+    home_match = re.search(r'"Rata PAC Mensile[^"]*",\s*min_value=([\d.]+)', home_src)
+    convex_match = re.search(r'"Liquidit[^"]*PAC[^"]*",\s*min_value=([\d.]+)', convex_src)
+    assert home_match and convex_match, "pattern non trovato: il codice e' cambiato, aggiornare questo test"
+    assert float(home_match.group(1)) == float(convex_match.group(1)), (
+        f"minimi disallineati: home_app.py={home_match.group(1)} vs page_convex.py={convex_match.group(1)}"
+    )
+
+
 

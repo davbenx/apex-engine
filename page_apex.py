@@ -79,7 +79,7 @@ def _spy_benchmark_freshness_label():
 # HTML RENDERING HELPERS & STYLING (DA UI_COMPONENTS CONDIVISO)
 # ==============================================================================
 from ui_components import (
-    st_html, inject_page_styles, section_title, sub_hero_metric,
+    st_html, inject_page_styles, section_title, sub_hero_metric, clamp_for_widget,
     render_monthly_returns_html_table,
     POS, NEG, MUTED_DOT, ACCENT, ACCENT_SOFT, SURFACE, BORDER, BORDER_STRONG,
     BORDER_GOLD, MUTED, MUTED_2, BADGE_TEXT, FRAUNCES, MONO, MESI_IT
@@ -1191,7 +1191,7 @@ with tab_pf:
             cap_apex_input = st.number_input(
                 "Capitale di Riferimento Apex (€)",
                 min_value=1000.0,
-                value=cap_apex_val,
+                value=clamp_for_widget(cap_apex_val, 1000.0),
                 step=5000.0,
                 format="%.0f",
                 help="Capitale di riferimento per il calcolo delle quote e dei controvalori operativi di Apex Engine.",
