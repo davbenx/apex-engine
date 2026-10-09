@@ -333,6 +333,31 @@ def test_weekly_due_anchored_to_friday_not_drifting_with_rolling_day_count():
     assert backend.compute_weekly_due(this_friday, None) is True  # mai inviato prima
 
 
+def test_compute_effective_run_dt_corrects_github_actions_scheduling_delay():
+    # BUG reale segnalato dall'utente (alert Telegram ricevuto oggi alle 4:49 del
+    # mattino, non "venerdi' sera" come documentato): la cronologia reale dei run
+    # GitHub Actions (API actions/workflows/.../runs) mostra il cron '0 23 * * *'
+    # partire sistematicamente 2-4 ore in ritardo (in crescita), tanto che un
+    # trigger pensato per "giovedi' 23:00 UTC" parte sempre dopo mezzanotte UTC,
+    # con now_dt.weekday() che legge "venerdi'" invece di "giovedi'" — soddisfacendo
+    # la finestra Ven-Dom di compute_weekly_due un giorno troppo presto.
+    real_run_friday_0249 = datetime.datetime(2026, 10, 9, 2, 49, 35)  # in realta' giovedi' slittato
+    effective = backend.compute_effective_run_dt(real_run_friday_0249)
+    assert effective == datetime.datetime(2026, 10, 8, 2, 49, 35)
+    assert effective.strftime("%A") == "Thursday"
+
+    # Con now_dt grezzo, l'heartbeat scatterebbe in anticipo (BUG); con
+    # effective_dt (giovedi' corretto) resta non dovuto.
+    assert backend.compute_weekly_due(real_run_friday_0249, "2026-10-02") is True
+    assert backend.compute_weekly_due(effective, "2026-10-02") is False
+
+    # Un run che parte davvero dopo la chiusura dei mercati USA (>=10:00 UTC, ampio
+    # margine rispetto alle 13:30 UTC di apertura) non va corretto: e' il giorno
+    # giusto, nessuno slittamento da compensare.
+    real_run_friday_evening = datetime.datetime(2026, 10, 9, 23, 0, 0)
+    assert backend.compute_effective_run_dt(real_run_friday_evening) == real_run_friday_evening
+
+
 def test_compute_rebalance_orders_structured():
     current_pos = {
         "TSLA": {"weight": 0.05, "entry_price": 200.0, "current_price": 250.0, "is_crypto": False},

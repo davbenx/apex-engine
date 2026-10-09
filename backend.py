@@ -95,6 +95,53 @@ def is_rebalancing_schedule(dt=None):
     return is_friday, is_rotation
 
 
+def compute_effective_run_dt(now_dt):
+    """Corregge now_dt per le decisioni sensibili al giorno della settimana/mese
+    (compute_should_decide, compute_weekly_due, is_quarter_end_month) quando
+    l'esecuzione e' iniziata troppo presto per riflettere davvero il giorno di
+    calendario che now_dt indicherebbe.
+
+    BUG REALE confermato (ottobre 2026, segnalato dall'utente: alert delle 4:49
+    del mattino invece che "venerdi' sera" come documentato ovunque nell'app) —
+    verificato con la cronologia reale dei run GitHub Actions (API
+    actions/workflows/.../runs): il cron '0 23 * * *' parte SISTEMATICAMENTE in
+    ritardo di 2-4 ore (in crescita: ~2h a fine settembre 2026, quasi 4h
+    all'inizio di ottobre), tanto che OGNI esecuzione osservata su ~20 giorni e'
+    partita tra le 00:48 e le 02:49 UTC — mai vicino alle 23:00 programmate. Il
+    trigger pensato per "giovedi' 23:00 UTC" parte quindi sempre dopo
+    mezzanotte, con now_dt.weekday() che diventa "venerdi'" (4) invece di
+    "giovedi'" (3) — soddisfacendo la finestra Ven-Dom di compute_weekly_due con
+    un giorno di anticipo, ore prima ancora che i mercati USA di venerdi' abbiano
+    aperto (13:30 UTC). Il fix precedente in compute_weekly_due (dedup per
+    settimana ISO) garantisce un solo alert a settimana ma non impedisce che SIA
+    quello sbagliato — e lo stesso slittamento espone un rischio piu' serio e
+    silenzioso: se capita su un vero ultimo-venerdi'-di-mese,
+    compute_should_decide tratterebbe quel run come "la decisione di venerdi'"
+    usando però l'ultima barra disponibile in quel momento, che e' ancora la
+    chiusura di GIOVEDI' (i mercati USA aprono alle 13:30 UTC, molto dopo le
+    00-03 UTC in cui questi run partono davvero) — _weekly_close() la
+    etichetterebbe silenziosamente come se fosse la chiusura settimanale del
+    venerdi'. Lo stesso scivolamento attraverso un cambio di mese (es. 30
+    settembre tardo che slitta in ottobre) farebbe anche sbagliare
+    is_quarter_end_month, saltando una vera riselezione trimestrale del
+    paniere.
+
+    Fix: se l'esecuzione e' iniziata ben prima che qualunque mercato rilevante
+    per questo sistema (USA, apertura 13:30 UTC) possa aver chiuso la propria
+    sessione — qui soglia 10:00 UTC, con ampio margine di sicurezza — il giorno
+    di calendario "effettivo" per le decisioni sensibili al giorno e' quello di
+    IERI, non quello di now_dt: il trigger di ieri sera e' semplicemente
+    arrivato tardi, non e' un nuovo giorno. Usato SOLO per le decisioni
+    giorno-della-settimana/mese (should_decide, weekly_due, is_quarter_end_month)
+    — mai per datare i trade o la equity curve, che devono riflettere la vera
+    data di calendario in cui l'esecuzione e' realmente avvenuta (specialmente
+    per la crypto, che opera 24/7 e non ha un vincolo analogo di "il mercato non
+    ha ancora aperto")."""
+    if now_dt.hour < 10:
+        return now_dt - datetime.timedelta(days=1)
+    return now_dt
+
+
 def compute_should_decide(now_dt, prev_state, just_migrating):
     """Vero se e' il momento di ricalcolare la decisione mensile (segnale + eventuale
     ribilanciamento, §6 della spec). Ancorato all'ultimo venerdi' del mese (o alla finestra
@@ -924,6 +971,12 @@ def main():
     start_time = time.time()
     now_dt = datetime.datetime.now()
     today_str = now_dt.strftime("%Y-%m-%d")
+    # effective_dt: usato SOLO per le decisioni sensibili al giorno della
+    # settimana/mese (should_decide, weekly_due, is_quarter_end_month) — vedi
+    # compute_effective_run_dt per il bug reale che corregge (run schedulati in
+    # ritardo oltre mezzanotte UTC). now_dt/today_str restano quelli reali per
+    # tutto il resto (datazione trade, equity curve, timestamp mostrato).
+    effective_dt = compute_effective_run_dt(now_dt)
     print("=== AVVIO APEX ENGINE v2 (Timing Multi-Asset + Basket Azionario Low-Vol) ===")
     print("    Vedi APEX_V2_SPEC.md per la specifica completa.")
 
@@ -936,8 +989,8 @@ def main():
     prev_basket = prev_state.get("basket", [])
     prev_pending = prev_state.get("pending_decision")
 
-    current_month_str = now_dt.strftime("%Y-%m")
-    should_decide = compute_should_decide(now_dt, prev_state, just_migrating)
+    current_month_str = effective_dt.strftime("%Y-%m")
+    should_decide = compute_should_decide(effective_dt, prev_state, just_migrating)
     # Decisione ed esecuzione NON avvengono piu' nella stessa esecuzione (vedi
     # APEX_V2_SPEC.md §8.14): la decisione si calcola oggi sull'ultima chiusura
     # settimanale disponibile, ma resta "in attesa" (`pending_decision`) finche' non
@@ -1007,7 +1060,7 @@ def main():
         print(f"    Decisione calcolata: {allocations_new} — in attesa della prossima barra di mercato per l'esecuzione.")
 
         if allocations_new.get("Equities", 0) > 0:
-            need_full_universe = is_quarter_end_month(now_dt) or not prev_basket
+            need_full_universe = is_quarter_end_month(effective_dt) or not prev_basket
             if need_full_universe:
                 print("[2/4] Riselezione basket azionario a basso beta (vs SPY) su tutto l'S&P 500 (decisione)...")
                 eq_ticks = list(set(get_sp500_tickers() + held_eq))
@@ -1195,7 +1248,7 @@ def main():
 
     pf_state = load_json_safe(PORTFOLIO_FILE, default={})
     last_alert_str = pf_state.get("last_telegram_alert_date")
-    weekly_due = compute_weekly_due(now_dt, last_alert_str)
+    weekly_due = compute_weekly_due(effective_dt, last_alert_str)
 
     if weekly_due or output.get("macro_events") or has_orders:
         sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct)
