@@ -17,7 +17,28 @@ on:
     # questo orario: e' garantita da compute_effective_run_dt in backend.py
     # indipendentemente da quanto il run slitti.
     - cron: '47 22 * * *' # ~22:47 UTC, minuto non tondo, margine su chiusura USA (20:00 UTC EDT / 21:00 UTC EST)
+    # Trigger ridondante, non un secondo giorno: GitHub accoda ogni run
+    # schedulato in modo indipendente, quindi il ritardo del primo e del
+    # secondo non sono lo stesso numero — un giorno il primo puo' slittare di
+    # 3h e il secondo di soli 40min, o viceversa. Con due trigger, vince (nel
+    # senso di "fa il lavoro vero") quello che arriva per primo; l'altro
+    # trova gia' tutto fatto e non fa nulla di nuovo. Sicuro perche' il motore
+    # e' idempotente sullo stesso giorno effettivo (compute_should_decide
+    # confronta last_decision_month, compute_executing_pending confronta la
+    # barra di mercato, compute_weekly_due deduplica per settimana ISO) — SOLO
+    # se i due run non si sovrappongono mai (vedi `concurrency` sotto, che
+    # accoda il secondo finche' il primo non ha fatto commit/push: altrimenti
+    # il secondo leggerebbe apex_data.json/portfolio.json ancora vecchi e
+    # l'idempotenza non si applicherebbe).
+    - cron: '52 23 * * *' # ~23:52 UTC, backup indipendente ~1h05m dopo il primo
   workflow_dispatch: # Permette avvio manuale
+
+concurrency:
+  group: update-data-apex
+  cancel-in-progress: false # accoda, non cancella: il run in corso deve finire
+  # (commit + push) prima che l'altro trigger ridondante parta, altrimenti i
+  # due run leggerebbero lo stesso stato vecchio e l'idempotenza del motore
+  # (vedi sopra) non avrebbe nulla da deduplicare.
 
 jobs:
   update-data:
