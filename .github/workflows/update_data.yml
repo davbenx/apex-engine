@@ -2,7 +2,21 @@ name: Aggiorna Dati Apex
 
 on:
   schedule:
-    - cron: '0 23 * * *' # Tutti i giorni alle 23:00 UTC (monitoraggio continuo 24/7 per crypto)
+    # Era '0 23 * * *'. Dati reali (API actions/workflows/.../runs, 30 run):
+    # il cron parte SEMPRE in ritardo rispetto all'orario programmato (mai piu'
+    # vicino di ~1h45m), e il ritardo medio e' cresciuto da ~118min (inizio
+    # settembre 2026) a ~192min (inizio ottobre 2026), ~+3min/giorno — in linea
+    # con la nota ufficiale di GitHub che i workflow schedulati sono "best effort"
+    # e il minuto :00 (inizio di ogni ora) e' il piu' congestionato. Spostato su
+    # un minuto non tondo e un'ora piu' anticipata per guadagnare margine:
+    # mitiga la latenza media, NON la elimina (il ritardo resta fuori dal nostro
+    # controllo e la tendenza in crescita puo' riassorbire il margine in poche
+    # settimane — se ricompare, l'unica soluzione definitiva e' un trigger
+    # esterno via workflow_dispatch, non ulteriore tuning del cron). La
+    # correttezza delle decisioni giorno/settimana/mese/trimestre NON dipende da
+    # questo orario: e' garantita da compute_effective_run_dt in backend.py
+    # indipendentemente da quanto il run slitti.
+    - cron: '47 22 * * *' # ~22:47 UTC, minuto non tondo, margine su chiusura USA (20:00 UTC EDT / 21:00 UTC EST)
   workflow_dispatch: # Permette avvio manuale
 
 jobs:
