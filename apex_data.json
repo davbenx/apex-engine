@@ -10,14 +10,14 @@
             "price": 382.1499938964844
         },
         "BTC-USD": {
-            "price": 83203.3984375
+            "price": 83312.65625
         }
     },
     "allocations": {
-        "Equities": 84.89,
+        "Equities": 84.88,
         "Bonds": 0.0,
         "Gold": 0.0,
-        "Crypto": 15.11,
+        "Crypto": 15.12,
         "Cash": 0.0
     },
     "macro_dates": {
@@ -122,7 +122,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 83203.4,
+            "Prezzo ($)": 83312.66,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -236,7 +236,7 @@
                 "distanza_pct": 7.1,
                 "banda_isteresi_pct": 0.63,
                 "attivo": true,
-                "kelly_f_star": 7.908,
+                "kelly_f_star": 7.907,
                 "vol_12w_ann_pct": 9.02
             },
             "Bonds": {
@@ -246,7 +246,7 @@
                 "distanza_pct": -4.86,
                 "banda_isteresi_pct": 0.5,
                 "attivo": false,
-                "kelly_f_star": -8.463,
+                "kelly_f_star": -8.462,
                 "vol_12w_ann_pct": 3.88
             },
             "Gold": {
@@ -260,22 +260,22 @@
                 "vol_12w_ann_pct": 23.31
             },
             "Crypto": {
-                "price": 83203.3984375,
-                "ma40w": 73019.1220703125,
-                "ma20w": 71077.82578125,
-                "distanza_pct": 13.95,
+                "price": 83312.65625,
+                "ma40w": 73021.853515625,
+                "ma20w": 71083.288671875,
+                "distanza_pct": 14.09,
                 "banda_isteresi_pct": 3.72,
                 "attivo": true,
-                "kelly_f_star": 1.407,
-                "vol_12w_ann_pct": 53.63
+                "kelly_f_star": 1.409,
+                "vol_12w_ann_pct": 53.61
             },
             "_vol_target": {
-                "vol_portafoglio_stimata_pct": 36.7,
-                "fattore_scala": 0.6
+                "vol_portafoglio_stimata_pct": 36.71,
+                "fattore_scala": 0.599
             }
         },
         "kelly_migrated": true
     },
-    "timestamp": "13 Oct 2026, 03:58 (UTC)",
-    "eur_usd": 1.1178
+    "timestamp": "14 Oct 2026, 01:26 (UTC)",
+    "eur_usd": 1.1206
 }
