@@ -10,14 +10,14 @@
             "price": 375.989990234375
         },
         "BTC-USD": {
-            "price": 81504.5390625
+            "price": 81624.1171875
         }
     },
     "allocations": {
-        "Equities": 84.72,
+        "Equities": 84.7,
         "Bonds": 0.0,
         "Gold": 0.0,
-        "Crypto": 15.28,
+        "Crypto": 15.3,
         "Cash": 0.0
     },
     "macro_dates": {
@@ -122,7 +122,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 81501.27,
+            "Prezzo ($)": 81608.59,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -246,7 +246,7 @@
                 "distanza_pct": -4.57,
                 "banda_isteresi_pct": 0.5,
                 "attivo": false,
-                "kelly_f_star": -8.046,
+                "kelly_f_star": -8.045,
                 "vol_12w_ann_pct": 4.07
             },
             "Gold": {
@@ -260,22 +260,22 @@
                 "vol_12w_ann_pct": 23.84
             },
             "Crypto": {
-                "price": 81504.5390625,
-                "ma40w": 72976.6505859375,
-                "ma20w": 70992.8828125,
-                "distanza_pct": 11.69,
+                "price": 81624.1171875,
+                "ma40w": 72979.6400390625,
+                "ma20w": 70998.86171875,
+                "distanza_pct": 11.85,
                 "banda_isteresi_pct": 3.75,
                 "attivo": true,
-                "kelly_f_star": 1.394,
-                "vol_12w_ann_pct": 54.09
+                "kelly_f_star": 1.396,
+                "vol_12w_ann_pct": 54.05
             },
             "_vol_target": {
-                "vol_portafoglio_stimata_pct": 37.34,
+                "vol_portafoglio_stimata_pct": 37.35,
                 "fattore_scala": 0.589
             }
         },
         "kelly_migrated": true
     },
-    "timestamp": "15 Oct 2026, 00:57 (UTC)",
-    "eur_usd": 1.1197
+    "timestamp": "15 Oct 2026, 01:54 (UTC)",
+    "eur_usd": 1.1212
 }
