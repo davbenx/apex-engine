@@ -426,6 +426,57 @@ def test_send_telegram_alert_fallback_on_markdown_error(monkeypatch=None):
             urllib.request.urlopen = orig_urlopen
 
 
+def test_send_telegram_alert_timeout_does_not_retry_or_report_failure(monkeypatch=None):
+    """BUG reale in produzione (24 ottobre 2026): l'utente ha ricevuto 3 notifiche
+    identiche per lo stesso alert settimanale. Causa confermata dai log reali: un
+    timeout di LETTURA su urlopen (che avviene DOPO che la richiesta e' stata
+    interamente trasmessa a Telegram - il messaggio e' quasi certamente gia' stato
+    recapitato) veniva trattato come un errore qualsiasi, scatenando un secondo
+    invio reale (fallback testo semplice) per lo STESSO messaggio, e poi restituendo
+    False - cosi' last_telegram_alert_date non veniva salvato e il trigger
+    ridondante successivo rispediva da zero lo stesso heartbeat (3 invii reali
+    totali per un solo evento). Un timeout non deve ripetere una seconda richiesta
+    reale, e deve essere trattato come "probabilmente consegnato" (sent=True) per
+    non far rispedire l'alert al prossimo run."""
+    calls = []
+    def fake_urlopen(req, timeout=10):
+        calls.append(req.data.decode("utf-8"))
+        raise TimeoutError("The read operation timed out")
+
+    if monkeypatch is not None:
+        monkeypatch.setenv("TELEGRAM_TOKEN", "dummy_token")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "dummy_chat_id")
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    else:
+        orig_token = os.environ.get("TELEGRAM_TOKEN")
+        orig_chat = os.environ.get("TELEGRAM_CHAT_ID")
+        orig_urlopen = urllib.request.urlopen
+        os.environ["TELEGRAM_TOKEN"] = "dummy_token"
+        os.environ["TELEGRAM_CHAT_ID"] = "dummy_chat_id"
+        urllib.request.urlopen = fake_urlopen
+
+    try:
+        data_dict = {
+            "allocations": {"Equities": 50, "Crypto": 12, "Gold": 18, "Bonds": 0, "Cash": 20},
+            "macro_events": ["Segnale test"],
+            "timestamp": "24 Ott 2026",
+        }
+        sent = backend.send_telegram_alert(data_dict, ["Log test"])
+        assert sent is True, "un timeout va trattato come probabilmente consegnato, non come fallimento"
+        assert len(calls) == 1, "un timeout non deve scatenare un secondo invio reale (nessun fallback testo semplice)"
+    finally:
+        if monkeypatch is None:
+            if orig_token is not None:
+                os.environ["TELEGRAM_TOKEN"] = orig_token
+            else:
+                os.environ.pop("TELEGRAM_TOKEN", None)
+            if orig_chat is not None:
+                os.environ["TELEGRAM_CHAT_ID"] = orig_chat
+            else:
+                os.environ.pop("TELEGRAM_CHAT_ID", None)
+            urllib.request.urlopen = orig_urlopen
+
+
 def test_send_telegram_alert_empty_struct_falls_back_to_steady_state(monkeypatch=None):
     """BUG corretto: una decisione mensile che non produce alcun ordine (basket e
     allocazioni invariati) passa un pending_orders_struct non-None ma con sells/buys
