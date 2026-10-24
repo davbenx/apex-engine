@@ -12,6 +12,7 @@ import json
 import os
 import random
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -938,10 +939,14 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
             urllib.request.urlopen(req, timeout=HTTP_TIMEOUT)
             print(f"[+] Notifica Telegram inviata con successo a {chat_id}.")
             return True
-        except Exception as e_md:
+        except urllib.error.HTTPError as e_md:
+            # Risposta HTTP concreta (es. 400 "can't parse entities"): il
+            # messaggio Markdown e' stato rifiutato, NON consegnato - il
+            # fallback in testo semplice e' un secondo tentativo legittimo
+            # per la stessa, unica consegna.
             err_body = _extract_http_error_body(e_md)
             print(f"[!] Errore invio Markdown ({e_md}): {err_body}, riprovo in modalità testo semplice...")
-            
+
             target_chat_id = chat_id
             if "chat not found" in err_body and chat_id != DEFAULT_TELEGRAM_CHAT_ID:
                 print(f"[*] Fallback chat_id su canale predefinito: {DEFAULT_TELEGRAM_CHAT_ID}")
@@ -954,10 +959,42 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                 urllib.request.urlopen(req_plain, timeout=HTTP_TIMEOUT)
                 print(f"[+] Notifica Telegram (fallback testo) inviata con successo a {target_chat_id}.")
                 return True
-            except Exception as e_plain:
+            except urllib.error.HTTPError as e_plain:
                 plain_err = _extract_http_error_body(e_plain)
                 print(f"[!] Errore invio fallback testo: {plain_err}")
                 return False
+            except Exception as e_plain_timeout:
+                # Stesso ragionamento del blocco sotto: nessuna risposta HTTP
+                # ricevuta, esito incerto - trattato come consegnato.
+                print(f"[?] Esito incerto invio fallback testo (timeout/connessione): {e_plain_timeout} - trattato come consegnato per evitare un doppio invio.")
+                return True
+        except Exception as e_md_timeout:
+            # BUG REALE in produzione (24 ottobre 2026, l'utente ha ricevuto 3
+            # notifiche identiche per lo stesso alert settimanale): un timeout
+            # di LETTURA su urlopen avviene DOPO che la richiesta e' stata
+            # interamente trasmessa a Telegram - il messaggio e' quasi
+            # certamente gia' stato recapitato, solo la risposta HTTP non e'
+            # arrivata entro HTTP_TIMEOUT. La versione precedente catturava
+            # QUALSIASI eccezione (timeout incluso, non solo un vero errore
+            # HTTP) e ripartiva ciecamente col fallback in testo semplice,
+            # inviando una SECONDA richiesta reale per lo stesso identico
+            # messaggio (markdown probabilmente consegnato + plaintext
+            # anch'esso tentato = 2 messaggi reali da UNA sola chiamata).
+            # Inoltre restituiva False, quindi last_telegram_alert_date non
+            # veniva salvato: il trigger ridondante successivo (stesso giorno
+            # effettivo, stesso heartbeat settimanale non ancora segnato come
+            # inviato) rispediva IDENTICO l'alert da zero - 3 messaggi reali
+            # totali per un solo evento, confermato dai log di produzione
+            # (due "The read operation timed out" sullo stesso run, poi un
+            # invio "riuscito" dal run ridondante successivo).
+            # Fix: solo una risposta HTTP concreta di errore (HTTPError)
+            # attiva il fallback in testo semplice; un timeout/errore di
+            # connessione (nessuna risposta ricevuta) non ripete una seconda
+            # richiesta reale nello stesso run, ed e' trattato come
+            # "probabilmente consegnato" (return True) cosi' che il prossimo
+            # trigger ridondante non rispedisca lo stesso heartbeat.
+            print(f"[?] Esito incerto invio Markdown (timeout/connessione): {e_md_timeout} - trattato come consegnato per evitare un doppio invio (nessun retry in testo semplice).")
+            return True
     except Exception as e:
         err_msg = _extract_http_error_body(e)
         print(f"[!] Errore invio alert Telegram: {err_msg}")
