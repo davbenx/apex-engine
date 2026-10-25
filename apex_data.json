@@ -10,14 +10,14 @@
             "price": 366.6099853515625
         },
         "BTC-USD": {
-            "price": 80810.7734375
+            "price": 80778.0390625
         }
     },
     "allocations": {
-        "Equities": 83.96,
+        "Equities": 84.01,
         "Bonds": 0.0,
         "Gold": 0.0,
-        "Crypto": 16.04,
+        "Crypto": 15.99,
         "Cash": 0.0
     },
     "macro_dates": {
@@ -122,7 +122,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 80810.77,
+            "Prezzo ($)": 80778.05,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -236,7 +236,7 @@
                 "distanza_pct": 4.42,
                 "banda_isteresi_pct": 0.71,
                 "attivo": true,
-                "kelly_f_star": 7.095,
+                "kelly_f_star": 7.097,
                 "vol_12w_ann_pct": 10.22
             },
             "Bonds": {
@@ -256,26 +256,26 @@
                 "distanza_pct": -11.36,
                 "banda_isteresi_pct": 1.73,
                 "attivo": false,
-                "kelly_f_star": 6.935,
+                "kelly_f_star": 6.934,
                 "vol_12w_ann_pct": 24.99
             },
             "Crypto": {
-                "price": 80810.7734375,
-                "ma40w": 72403.8990234375,
-                "ma20w": 72875.5359375,
-                "distanza_pct": 11.61,
-                "banda_isteresi_pct": 3.73,
+                "price": 80778.0390625,
+                "ma40w": 72397.1380859375,
+                "ma20w": 72862.0140625,
+                "distanza_pct": 11.58,
+                "banda_isteresi_pct": 3.74,
                 "attivo": true,
-                "kelly_f_star": 1.356,
+                "kelly_f_star": 1.351,
                 "vol_12w_ann_pct": 53.87
             },
             "_vol_target": {
-                "vol_portafoglio_stimata_pct": 36.38,
-                "fattore_scala": 0.605
+                "vol_portafoglio_stimata_pct": 36.33,
+                "fattore_scala": 0.606
             }
         },
         "kelly_migrated": true
     },
-    "timestamp": "24 Oct 2026, 02:02 (UTC)",
+    "timestamp": "25 Oct 2026, 00:34 (UTC)",
     "eur_usd": 1.1204
 }
