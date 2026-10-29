@@ -1,23 +1,23 @@
 {
     "macro": {
         "SPY": {
-            "price": 769.6599731445312
+            "price": 772.3099975585938
         },
         "IEF": {
-            "price": 91.0999984741211
+            "price": 90.8499984741211
         },
         "GLD": {
-            "price": 372.2799987792969
+            "price": 373.510009765625
         },
         "BTC-USD": {
-            "price": 80815.046875
+            "price": 79961.890625
         }
     },
     "allocations": {
-        "Equities": 85.44,
+        "Equities": 85.61,
         "Bonds": 0.0,
         "Gold": 0.0,
-        "Crypto": 14.56,
+        "Crypto": 14.39,
         "Cash": 0.0
     },
     "macro_dates": {
@@ -122,7 +122,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 80819.05,
+            "Prezzo ($)": 79967.69,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -230,52 +230,52 @@
         "pending_decision": null,
         "signal_debug": {
             "Equities": {
-                "price": 769.6599731445312,
-                "ma40w": 729.8327484130859,
-                "ma20w": 759.8994964599609,
-                "distanza_pct": 5.46,
-                "banda_isteresi_pct": 0.51,
+                "price": 772.3099975585938,
+                "ma40w": 729.8989990234375,
+                "ma20w": 760.0319976806641,
+                "distanza_pct": 5.81,
+                "banda_isteresi_pct": 0.54,
                 "attivo": true,
-                "kelly_f_star": 7.672,
-                "vol_12w_ann_pct": 7.42
+                "kelly_f_star": 7.711,
+                "vol_12w_ann_pct": 7.74
             },
             "Bonds": {
-                "price": 91.0999984741211,
-                "ma40w": 93.78249950408936,
-                "ma20w": 92.19599990844726,
-                "distanza_pct": -2.86,
+                "price": 90.8499984741211,
+                "ma40w": 93.77624950408935,
+                "ma20w": 92.18349990844726,
+                "distanza_pct": -3.12,
                 "banda_isteresi_pct": 0.5,
                 "attivo": false,
-                "kelly_f_star": -6.658,
-                "vol_12w_ann_pct": 5.23
+                "kelly_f_star": -6.81,
+                "vol_12w_ann_pct": 5.2
             },
             "Gold": {
-                "price": 372.2799987792969,
-                "ma40w": 411.4297508239746,
-                "ma20w": 387.284001159668,
-                "distanza_pct": -9.52,
-                "banda_isteresi_pct": 1.34,
+                "price": 373.510009765625,
+                "ma40w": 411.4605010986328,
+                "ma20w": 387.3455017089844,
+                "distanza_pct": -9.22,
+                "banda_isteresi_pct": 1.35,
                 "attivo": false,
-                "kelly_f_star": 6.725,
-                "vol_12w_ann_pct": 19.28
+                "kelly_f_star": 6.754,
+                "vol_12w_ann_pct": 19.46
             },
             "Crypto": {
-                "price": 80815.046875,
-                "ma40w": 72398.06328125,
-                "ma20w": 72863.864453125,
-                "distanza_pct": 11.63,
-                "banda_isteresi_pct": 3.73,
+                "price": 79961.890625,
+                "ma40w": 72376.734375,
+                "ma20w": 72821.206640625,
+                "distanza_pct": 10.48,
+                "banda_isteresi_pct": 3.75,
                 "attivo": true,
-                "kelly_f_star": 1.308,
-                "vol_12w_ann_pct": 53.86
+                "kelly_f_star": 1.296,
+                "vol_12w_ann_pct": 54.13
             },
             "_vol_target": {
-                "vol_portafoglio_stimata_pct": 31.84,
-                "fattore_scala": 0.691
+                "vol_portafoglio_stimata_pct": 32.45,
+                "fattore_scala": 0.678
             }
         },
         "kelly_migrated": true
     },
-    "timestamp": "28 Oct 2026, 02:38 (UTC)",
-    "eur_usd": 1.1127
+    "timestamp": "29 Oct 2026, 02:01 (UTC)",
+    "eur_usd": 1.1153
 }
