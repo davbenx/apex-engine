@@ -3,7 +3,7 @@
         "BTC": {
             "entry_date": "2026-09-15",
             "entry_price": 76966.3984375,
-            "current_price": 77226.4296875,
+            "current_price": 77284.7578125,
             "stop_loss": 0.0,
             "is_crypto": true,
             "weight": 0.3188
@@ -14,7 +14,7 @@
             "current_price": 52.81999969482422,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.06578050715920736
+            "weight": 0.06576467197828013
         },
         "CF": {
             "entry_date": "2026-09-15",
@@ -22,7 +22,7 @@
             "current_price": 123.30000305175781,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.058102341785313726
+            "weight": 0.058088354950395604
         },
         "EOG": {
             "entry_date": "2026-09-15",
@@ -30,7 +30,7 @@
             "current_price": 165.5399932861328,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.06322921296279115
+            "weight": 0.06321399194868846
         },
         "MRNA": {
             "entry_date": "2026-09-15",
@@ -38,7 +38,7 @@
             "current_price": 221.72000122070312,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.06333863319348314
+            "weight": 0.0633233858389154
         },
         "ABBV": {
             "entry_date": "2026-09-15",
@@ -46,7 +46,7 @@
             "current_price": 294.8900146484375,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.061233827178916594
+            "weight": 0.061219086509163204
         },
         "MO": {
             "entry_date": "2026-09-15",
@@ -54,7 +54,7 @@
             "current_price": 78.02999877929688,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.06290697042468102
+            "weight": 0.06289182698323799
         },
         "ADM": {
             "entry_date": "2026-09-15",
@@ -62,7 +62,7 @@
             "current_price": 76.91000366210938,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.052202849616348135
+            "weight": 0.05219028295178
         },
         "T": {
             "entry_date": "2026-09-15",
@@ -70,7 +70,7 @@
             "current_price": 21.40999984741211,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.04755521351241669
+            "weight": 0.04754376566194361
         },
         "VZ": {
             "entry_date": "2026-09-15",
@@ -78,7 +78,7 @@
             "current_price": 44.72999954223633,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.052507055289252355
+            "weight": 0.0524944153939951
         },
         "DE": {
             "entry_date": "2026-09-15",
@@ -86,7 +86,7 @@
             "current_price": 675.47998046875,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.0546034835590946
+            "weight": 0.054590338995777046
         },
         "WELL": {
             "entry_date": "2026-09-15",
@@ -94,7 +94,7 @@
             "current_price": 234.60000610351562,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05579620940748276
+            "weight": 0.055782777722183007
         },
         "TRV": {
             "entry_date": "2026-10-02",
@@ -102,7 +102,7 @@
             "current_price": 396.2200012207031,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05913541493686059
+            "weight": 0.05912117941276429
         },
         "CB": {
             "entry_date": "2026-10-02",
@@ -110,7 +110,7 @@
             "current_price": 364.1199951171875,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05932132461238145
+            "weight": 0.05930704433470275
         },
         "VTR": {
             "entry_date": "2026-10-02",
@@ -118,7 +118,7 @@
             "current_price": 84.80000305175781,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.05466413634297441
+            "weight": 0.054650977178860236
         },
         "CTAS": {
             "entry_date": "2026-10-02",
@@ -126,7 +126,7 @@
             "current_price": 219.82000732421875,
             "stop_loss": 0.0,
             "is_crypto": false,
-            "weight": 0.06065772050637276
+            "weight": 0.060643118521372455
         }
     },
     "macro_positions": {},
@@ -2861,7 +2861,7 @@
         }
     ],
     "v2_migrated": true,
-    "nav_usd": 102863.51935274513,
+    "nav_usd": 102888.28739903448,
     "last_telegram_alert_date": "2026-10-31",
     "pending_orders": [
         {
@@ -3073,23 +3073,6 @@
         }
     ],
     "pending_orders_date": "2026-10-31",
-    "last_action_log": [
-        "INCREMENTO: BTC | Riallocazione +18.0% | Prezzo: $77,226.43",
-        "CHIUSURA: ABBV | Vende 6.12% del capitale (100% posizione) | Prezzo: $294.89 | P&L: +12.65%",
-        "CHIUSURA: ADM | Vende 5.22% del capitale (100% posizione) | Prezzo: $76.91 | P&L: -10.55%",
-        "CHIUSURA: APA | Vende 6.58% del capitale (100% posizione) | Prezzo: $52.82 | P&L: +17.38%",
-        "CHIUSURA: CB | Vende 5.93% del capitale (100% posizione) | Prezzo: $364.12 | P&L: +9.91%",
-        "CHIUSURA: CF | Vende 5.81% del capitale (100% posizione) | Prezzo: $123.30 | P&L: -4.55%",
-        "CHIUSURA: CTAS | Vende 6.07% del capitale (100% posizione) | Prezzo: $219.82 | P&L: +12.38%",
-        "CHIUSURA: DE | Vende 5.46% del capitale (100% posizione) | Prezzo: $675.48 | P&L: -0.88%",
-        "CHIUSURA: EOG | Vende 6.32% del capitale (100% posizione) | Prezzo: $165.54 | P&L: +11.61%",
-        "CHIUSURA: MO | Vende 6.29% del capitale (100% posizione) | Prezzo: $78.03 | P&L: +10.70%",
-        "CHIUSURA: MRNA | Vende 6.33% del capitale (100% posizione) | Prezzo: $221.72 | P&L: +51.15%",
-        "CHIUSURA: T | Vende 4.76% del capitale (100% posizione) | Prezzo: $21.41 | P&L: -18.76%",
-        "CHIUSURA: TRV | Vende 5.91% del capitale (100% posizione) | Prezzo: $396.22 | P&L: +9.56%",
-        "CHIUSURA: VTR | Vende 5.47% del capitale (100% posizione) | Prezzo: $84.80 | P&L: +1.28%",
-        "CHIUSURA: VZ | Vende 5.25% del capitale (100% posizione) | Prezzo: $44.73 | P&L: -11.93%",
-        "CHIUSURA: WELL | Vende 5.58% del capitale (100% posizione) | Prezzo: $234.60 | P&L: +0.20%"
-    ],
+    "last_action_log": [],
     "last_action_date": "2026-10-31"
 }
