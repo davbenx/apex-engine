@@ -273,7 +273,7 @@ def load_convex_portfolio(prices: Dict[str, float] = None) -> Dict[str, Any]:
             with open(CONVEX_FILE, "r") as f:
                 data = json.load(f)
                 h = data.get("holdings", {})
-                if bool(h) and any(v.get("shares", 0.0) > 0 for v in h.values()):
+                if bool(h) and (data.get("user_configured", False) or any(v.get("shares", 0.0) > 0 for v in h.values()) or float(data.get("cash_eur", 0.0)) > 0):
                     return data
         except Exception:
             pass

@@ -192,8 +192,8 @@ def evaluate_convex_stack(
         values[k] = val
         total_val += val
 
-    if total_val <= 0:
-        total_val = 1.0  # Safe guard division by zero
+    actual_total_val = total_val
+    denom = total_val if total_val > 0 else 1.0
 
     asset_status = {}
     trim_alerts = []
@@ -206,7 +206,7 @@ def evaluate_convex_stack(
         shares = max(0.0, float(current_holdings.get(k, 0.0)))
         px = max(0.0, float(market_prices.get(k, 1.0)))
         val = values[k]
-        w_cur = val / total_val
+        w_cur = val / denom
         w_tgt = info["target_weight"]
         diff = w_tgt - w_cur  # Positivo = sottopesato (deficit), usato per display/trim (weight_diff sotto)
         # BUG corretto: la selezione PAC usava questo scostamento ASSOLUTO in punti
@@ -318,25 +318,25 @@ def evaluate_convex_stack(
     cash_tot   = cash_balance
 
     macro_exposure = {
-        "Azionario Globale (Large/Mid + Small SCV)": equity_tot / total_val,
-        "Obbligazionario Governativo (Treasury Futures)": bonds_tot / total_val,
-        "Managed Futures (Crisis Alpha CTA)": cta_tot / total_val,
-        "Oro Fisico (Riserva Reale)": gld_tot / total_val,
+        "Azionario Globale (Large/Mid + Small SCV)": equity_tot / denom,
+        "Obbligazionario Governativo (Treasury Futures)": bonds_tot / denom,
+        "Managed Futures (Crisis Alpha CTA)": cta_tot / denom,
+        "Oro Fisico (Riserva Reale)": gld_tot / denom,
         # BUG corretto: esisteva anche una chiave "Bitcoin (Convessità Asimmetrica)"
         # duplicata con lo stesso identico valore — mai letta da nessun chiamante
         # (portfolio_manager.compute_unified_portfolio la usava solo come fallback
         # irraggiungibile dietro questa chiave), puro rischio di disallineamento
         # silenzioso se in futuro una delle due copie viene aggiornata e l'altra no.
-        "Cryptovalute (Convessità Asimmetrica)": cr_tot / total_val,
-        "Liquidità Cassa": cash_tot / total_val,
-        "Esposizione Nozionale Totale": (equity_tot + bonds_tot + cta_tot + gld_tot + cr_tot + cash_tot) / total_val
+        "Cryptovalute (Convessità Asimmetrica)": cr_tot / denom,
+        "Liquidità Cassa": cash_tot / denom,
+        "Esposizione Nozionale Totale": (equity_tot + bonds_tot + cta_tot + gld_tot + cr_tot + cash_tot) / denom
     }
 
     # TER ponderato reale
     ter_weighted = sum(asset_status[k].current_weight * instruments[k]["ter"] for k in asset_status)
 
     return ConvexPortfolioReport(
-        total_value=total_val,
+        total_value=actual_total_val,
         assets=asset_status,
         pac_action=pac_action,
         trim_alerts=trim_alerts,

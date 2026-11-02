@@ -198,7 +198,8 @@ convex_prices, convex_prices_live = fetch_convex_live_prices()
 
 _cp_data = portfolio_manager.load_convex_portfolio()
 _last_updated = _cp_data.get("last_updated")
-_has_holdings = bool(_cp_data.get("holdings")) and any(v.get("shares", 0) > 0 for v in _cp_data.get("holdings", {}).values())
+_is_user_cfg = _cp_data.get("user_configured", False)
+_has_holdings = bool(_cp_data.get("holdings")) and (any(v.get("shares", 0) > 0 for v in _cp_data.get("holdings", {}).values()) or float(_cp_data.get("cash_eur", 0)) > 0)
 
 _is_fresh = False
 if _last_updated and _has_holdings:
@@ -207,8 +208,14 @@ if _last_updated and _has_holdings:
         _is_fresh = _days <= 35
     except Exception:
         pass
-_status_color = POS if _is_fresh else MUTED_DOT
-_status_label = f"Aggiornato al {_last_updated}" if _is_fresh else "Portafoglio Modello (100.000 €)"
+
+_status_color = POS if (_is_user_cfg or _is_fresh) else MUTED_DOT
+if _is_user_cfg:
+    _status_label = f"Portafoglio Utente (aggiornato al {_last_updated})"
+elif _is_fresh:
+    _status_label = f"Aggiornato al {_last_updated}"
+else:
+    _status_label = "Portafoglio Modello (100.000 €)"
 
 
 col_title, col_stat = st.columns([3, 2])
@@ -245,11 +252,20 @@ with tab_pf:
     _saved_cash = float(_cp_data.get("cash_eur", 0.0))
     _saved_pac = float(cfg.get("monthly_pac_eur", 500.0))
 
+    # Reattivita' live: leggiamo prioritariamente dai widget in session_state se presenti,
+    # altrimenti usiamo i valori salvati nel file di configurazione
+    current_holdings = {
+        k: float(st.session_state.get(f"cx_inp_{k}", _saved_holdings.get(k, 0.0)))
+        for k in active_instruments
+    }
+    current_cash = float(st.session_state.get("cx_cash_input", _saved_cash))
+    current_pac = float(st.session_state.get("cx_pac_input", _saved_pac))
+
     convex_report = convex_engine.evaluate_convex_stack(
-        current_holdings=_saved_holdings,
+        current_holdings=current_holdings,
         market_prices=convex_prices,
-        monthly_pac_eur=_saved_pac,
-        cash_balance=_saved_cash,
+        monthly_pac_eur=current_pac,
+        cash_balance=current_cash,
         instruments=active_instruments
     )
 
@@ -383,7 +399,7 @@ with tab_pf:
         st_html(render_convex_positions_html_table(pd.DataFrame(cx_rows), show_details=show_cx_details))
 
     # 5. Modulo di Configurazione Quote e Parametri (in calce alla scheda)
-    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=False):
+    with st.expander("Modifica Quote Possedute e Rata PAC", expanded=(convex_report.total_value <= 0)):
         st.caption("Inserisci le quote possedute di ciascuno strumento e la liquidità per il PAC mensile.")
         col_inp1, col_inp2 = st.columns(2)
         instr_list = list(active_instruments.items())
@@ -424,19 +440,34 @@ with tab_pf:
                 value=clamp_for_widget(_saved_cash, 0.0), step=50.0, format="%.0f", key="cx_cash_input"
             )
 
-        if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
-            _new_portfolio = {
-                "cash_eur": cash_input,
-                "holdings": {k: {"shares": v, "last_price": convex_prices.get(k, 0.0)} for k, v in input_holdings.items()},
-                "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
-            }
-            _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
-            portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
-            if _ok_p:
-                st.toast("Quote Convex salvate con successo.")
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            if st.button("Salva Quote e Parametri", use_container_width=True, key="convex_save_holdings"):
+                _new_portfolio = {
+                    "user_configured": True,
+                    "cash_eur": cash_input,
+                    "holdings": {k: {"shares": v, "last_price": convex_prices.get(k, 0.0)} for k, v in input_holdings.items()},
+                    "last_updated": datetime.date.today().strftime("%Y-%m-%d"),
+                }
+                _ok_p = portfolio_manager.save_convex_portfolio(_new_portfolio)
+                portfolio_manager.save_config({**cfg, "monthly_pac_eur": pac_input})
+                if _ok_p:
+                    st.toast("Quote Convex salvate con successo.")
+                    st.rerun()
+                else:
+                    st.error("Errore nel salvataggio.")
+        with col_b2:
+            if st.button("Ripristina Modello Dimostrativo (100.000 €)", use_container_width=True, key="convex_reset_holdings"):
+                _default_p = portfolio_manager.get_default_convex_holdings_100k(convex_prices)
+                portfolio_manager.save_convex_portfolio(_default_p)
+                for k in active_instruments:
+                    st.session_state.pop(f"cx_inp_{k}", None)
+                st.session_state.pop("cx_cash_input", None)
+                st.session_state.pop("cx_pac_input", None)
+                st.toast("Modello dimostrativo ripristinato con successo.")
                 st.rerun()
-            else:
-                st.error("Errore nel salvataggio.")
+
+        st.caption("I calcoli di allocazione, pesi ed eventuale ribilanciamento PAC si aggiornano istantaneamente ad ogni digitazione nei campi soprastanti. Il pulsante 'Salva' rende persistenti le quote sul disco tra una sessione e l'altra.")
 
 
 with tab_metriche:
