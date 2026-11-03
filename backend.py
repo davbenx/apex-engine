@@ -821,10 +821,14 @@ def _extract_http_error_body(err):
 # ==============================================================================
 # TELEGRAM NOTIFICATIONS
 # ==============================================================================
-def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_orders_struct=None):
+def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_orders_struct=None, execution_recorded=False):
     """Notifica Telegram istituzionale e lean: ordini suddivisi rigorosamente in
     1. VENDITE e 2. ACQUISTI, con percentuali di capitale esatte e timing
-    esplicito per l'apertura di Lunedì."""
+    esplicito per l'apertura di Lunedì.
+
+    execution_recorded=True: l'alert accompagna la registrazione, nel portafoglio
+    simulato, di una decisione GIA' comunicata (giorno di decisione = venerdi'/
+    sabato, con gli ordini per lunedi'). Il log mostrato e' storico, non operativo."""
     token = os.environ.get("TELEGRAM_TOKEN")
     chat_id = (os.environ.get("TELEGRAM_CHAT_ID") or DEFAULT_TELEGRAM_CHAT_ID).strip()
 
@@ -913,6 +917,18 @@ def send_telegram_alert(data_dict, action_log, is_rotation_now=None, pending_ord
                         px = fmt_usd(o.get("price"))
                         msg += f"• {act}: `{disp}` | {desc} | Prezzo: {px}\n"
                     msg += "\n"
+            elif action_log and execution_recorded:
+                # BUG REALE (3 novembre 2026, segnalato dall'utente): il messaggio del
+                # giorno di esecuzione (martedi' mattina, dopo la chiusura di lunedi')
+                # riusava l'intestazione "ORDINI DA ESEGUIRE" per un log gia' storico,
+                # che ripeteva gli stessi ordini gia' comunicati nell'alert di
+                # decisione (sabato) con i prezzi di chiusura di lunedi' — leggibile
+                # come una nuova richiesta di operare.
+                msg += "*ESECUZIONE REGISTRATA*\n"
+                msg += "Ordini gia' comunicati nell'alert di decisione: nessuna azione richiesta.\n"
+                for log in action_log:
+                    msg += f"• {log}\n"
+                msg += "\n"
             elif action_log:
                 msg += "*ORDINI DA ESEGUIRE*\n"
                 for log in action_log:
@@ -1288,7 +1304,7 @@ def main():
     weekly_due = compute_weekly_due(effective_dt, last_alert_str)
 
     if weekly_due or output.get("macro_events") or has_orders:
-        sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct)
+        sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct, execution_recorded=executing_pending)
         if sent:
             pf_state["last_telegram_alert_date"] = today_str
             save_json_atomic(PORTFOLIO_FILE, pf_state)

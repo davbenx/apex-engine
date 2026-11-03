@@ -477,6 +477,44 @@ def test_send_telegram_alert_timeout_does_not_retry_or_report_failure(monkeypatc
             urllib.request.urlopen = orig_urlopen
 
 
+def test_send_telegram_alert_execution_day_is_not_labeled_as_orders_to_execute(monkeypatch=None):
+    """BUG reale (3 novembre 2026, segnalato dall'utente): il messaggio del giorno di
+    esecuzione di una decisione gia' comunicata (martedi' mattina, dopo la chiusura di
+    lunedi') usava l'intestazione "ORDINI DA ESEGUIRE" per un log storico che
+    ripeteva gli stessi ordini dell'alert di decisione (sabato) — leggibile come una
+    nuova richiesta di operare. Gli ordini crypto giornalieri, invece, sono davvero
+    operativi (24/7) e devono mantenere l'intestazione originale."""
+    import urllib.parse
+    texts = []
+    def fake_urlopen(req, timeout=10):
+        texts.append(urllib.parse.parse_qs(req.data.decode("utf-8"))["text"][0])
+        return io.BytesIO(b'{"ok": true}')
+
+    orig_token = os.environ.get("TELEGRAM_TOKEN")
+    orig_urlopen = urllib.request.urlopen
+    os.environ["TELEGRAM_TOKEN"] = "dummy_token"
+    urllib.request.urlopen = fake_urlopen
+    try:
+        data_dict = {"allocations": {"Equities": 0, "Crypto": 32, "Gold": 0, "Bonds": 0, "Cash": 68},
+                     "macro_events": [], "timestamp": "03 Nov 2026"}
+        log = ["[CHIUSURA]: APA | Prezzo Uscita: $48.82 | Rendimento: +8.49%"]
+        assert backend.send_telegram_alert(data_dict, log, execution_recorded=True) is True
+        assert "ESECUZIONE REGISTRATA" in texts[0]
+        assert "nessuna azione richiesta" in texts[0]
+        assert "ORDINI DA ESEGUIRE" not in texts[0]
+        assert "APA" in texts[0], "il log storico resta consultabile"
+
+        assert backend.send_telegram_alert(data_dict, ["INCREMENTO: BTC | Riallocazione +1.0%"]) is True
+        assert "ORDINI DA ESEGUIRE" in texts[1]
+        assert "ESECUZIONE REGISTRATA" not in texts[1]
+    finally:
+        urllib.request.urlopen = orig_urlopen
+        if orig_token is not None:
+            os.environ["TELEGRAM_TOKEN"] = orig_token
+        else:
+            os.environ.pop("TELEGRAM_TOKEN", None)
+
+
 def test_send_telegram_alert_empty_struct_falls_back_to_steady_state(monkeypatch=None):
     """BUG corretto: una decisione mensile che non produce alcun ordine (basket e
     allocazioni invariati) passa un pending_orders_struct non-None ma con sells/buys
