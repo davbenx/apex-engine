@@ -3,10 +3,10 @@
         "BTC": {
             "entry_date": "2026-09-15",
             "entry_price": 76966.3984375,
-            "current_price": 76610.609375,
+            "current_price": 76668.6171875,
             "stop_loss": 0.0,
             "is_crypto": true,
-            "weight": 0.3188
+            "weight": 0.3605
         }
     },
     "macro_positions": {},
@@ -2906,26 +2906,12 @@
         }
     ],
     "v2_migrated": true,
-    "nav_usd": 101736.20036457304,
+    "nav_usd": 101760.75827425807,
     "last_telegram_alert_date": "2026-11-03",
     "pending_orders": [],
     "pending_orders_date": "2026-10-31",
     "last_action_log": [
-        "[CHIUSURA]: APA | Prezzo Uscita: $48.82 | Rendimento: +8.49%",
-        "[CHIUSURA]: CF | Prezzo Uscita: $120.33 | Rendimento: -6.85%",
-        "[CHIUSURA]: EOG | Prezzo Uscita: $157.89 | Rendimento: +6.45%",
-        "[CHIUSURA]: MRNA | Prezzo Uscita: $220.83 | Rendimento: +50.54%",
-        "[CHIUSURA]: ABBV | Prezzo Uscita: $288.84 | Rendimento: +10.34%",
-        "[CHIUSURA]: MO | Prezzo Uscita: $77.17 | Rendimento: +9.48%",
-        "[CHIUSURA]: ADM | Prezzo Uscita: $75.77 | Rendimento: -11.88%",
-        "[CHIUSURA]: T | Prezzo Uscita: $21.44 | Rendimento: -18.65%",
-        "[CHIUSURA]: VZ | Prezzo Uscita: $45.05 | Rendimento: -11.30%",
-        "[CHIUSURA]: DE | Prezzo Uscita: $667.60 | Rendimento: -2.03%",
-        "[CHIUSURA]: WELL | Prezzo Uscita: $239.00 | Rendimento: +2.08%",
-        "[CHIUSURA]: TRV | Prezzo Uscita: $398.80 | Rendimento: +10.28%",
-        "[CHIUSURA]: CB | Prezzo Uscita: $368.98 | Rendimento: +11.37%",
-        "[CHIUSURA]: VTR | Prezzo Uscita: $86.72 | Rendimento: +3.57%",
-        "[CHIUSURA]: CTAS | Prezzo Uscita: $224.77 | Rendimento: +14.91%"
+        "INCREMENTO: BTC | Riallocazione +4.2% | Prezzo: $76,668.62"
     ],
     "last_action_date": "2026-11-03"
 }
