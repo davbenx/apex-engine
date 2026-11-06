@@ -1306,7 +1306,7 @@ def main():
     if weekly_due or output.get("macro_events") or has_orders:
         sent = send_telegram_alert(output, action_log, is_rotation_now=executing_pending, pending_orders_struct=pending_orders_struct, execution_recorded=executing_pending)
         if sent:
-            pf_state["last_telegram_alert_date"] = today_str
+            pf_state["last_telegram_alert_date"] = effective_dt.strftime("%Y-%m-%d")
             save_json_atomic(PORTFOLIO_FILE, pf_state)
     else:
         print("[-] Nessun alert Telegram programmato oggi (nessun ordine/cambio regime, heartbeat settimanale non ancora dovuto).")

@@ -353,9 +353,11 @@ def test_compute_effective_run_dt_corrects_github_actions_scheduling_delay():
 
     # Un run che parte davvero dopo la chiusura dei mercati USA (>=10:00 UTC, ampio
     # margine rispetto alle 13:30 UTC di apertura) non va corretto: e' il giorno
-    # giusto, nessuno slittamento da compensare.
+    # giusto, nessuno slittamento da compensare. Inoltre, l'alert infrasettimanale
+    # datato con effective (giovedi') NON sopprime il resoconto del venerdi' sera.
     real_run_friday_evening = datetime.datetime(2026, 10, 9, 23, 0, 0)
     assert backend.compute_effective_run_dt(real_run_friday_evening) == real_run_friday_evening
+    assert backend.compute_weekly_due(real_run_friday_evening, effective.strftime("%Y-%m-%d")) is True
 
 
 def test_compute_rebalance_orders_structured():
