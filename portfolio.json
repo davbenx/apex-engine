@@ -3,7 +3,7 @@
         "BTC": {
             "entry_date": "2026-09-15",
             "entry_price": 76966.3984375,
-            "current_price": 75940.0078125,
+            "current_price": 75909.2890625,
             "stop_loss": 0.0,
             "is_crypto": true,
             "weight": 0.3601
@@ -2906,7 +2906,7 @@
         }
     ],
     "v2_migrated": true,
-    "nav_usd": 102510.67334373589,
+    "nav_usd": 102495.74109864561,
     "last_telegram_alert_date": "2026-11-06",
     "pending_orders": [],
     "pending_orders_date": "2026-10-31",
