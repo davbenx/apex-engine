@@ -10,7 +10,7 @@
             "price": 372.5199890136719
         },
         "BTC-USD": {
-            "price": 75076.421875
+            "price": 75179.0
         }
     },
     "allocations": {
@@ -31,7 +31,7 @@
     "crypto_top": [
         {
             "Ticker": "BTC",
-            "Prezzo ($)": 75079.83,
+            "Prezzo ($)": 75165.72,
             "Stop Loss ($)": 0.0
         }
     ],
@@ -78,22 +78,22 @@
                 "vol_12w_ann_pct": 22.38
             },
             "Crypto": {
-                "price": 75076.421875,
-                "ma40w": 72211.125,
-                "ma20w": 74046.326953125,
-                "distanza_pct": 3.97,
+                "price": 75179.0,
+                "ma40w": 72213.689453125,
+                "ma20w": 74051.455859375,
+                "distanza_pct": 4.11,
                 "banda_isteresi_pct": 1.41,
                 "attivo": true,
                 "kelly_f_star": 1.437,
-                "vol_12w_ann_pct": 20.36
+                "vol_12w_ann_pct": 20.34
             },
             "_vol_target": {
-                "vol_portafoglio_stimata_pct": 7.32,
+                "vol_portafoglio_stimata_pct": 7.31,
                 "fattore_scala": 1.0
             }
         },
         "kelly_migrated": true
     },
-    "timestamp": "09 Nov 2026, 02:01 (UTC)",
-    "eur_usd": 1.1159
+    "timestamp": "09 Nov 2026, 03:04 (UTC)",
+    "eur_usd": 1.1157
 }
