@@ -10,7 +10,7 @@
             "price": 341.19000244140625
         },
         "BTC-USD": {
-            "price": 63022.62109375
+            "price": 63327.2890625
         }
     },
     "allocations": {
@@ -48,7 +48,7 @@
                 "distanza_pct": -0.43,
                 "banda_isteresi_pct": 0.83,
                 "attivo": false,
-                "kelly_f_star": 6.349,
+                "kelly_f_star": 6.346,
                 "vol_12w_ann_pct": 11.96
             },
             "Bonds": {
@@ -58,7 +58,7 @@
                 "distanza_pct": -2.9,
                 "banda_isteresi_pct": 0.5,
                 "attivo": false,
-                "kelly_f_star": -7.51,
+                "kelly_f_star": -7.512,
                 "vol_12w_ann_pct": 7.11
             },
             "Gold": {
@@ -68,18 +68,18 @@
                 "distanza_pct": -15.48,
                 "banda_isteresi_pct": 1.35,
                 "attivo": false,
-                "kelly_f_star": 5.694,
+                "kelly_f_star": 5.693,
                 "vol_12w_ann_pct": 19.44
             },
             "Crypto": {
-                "price": 63022.62109375,
-                "ma40w": 71894.56572265625,
-                "ma20w": 73728.890625,
-                "distanza_pct": -12.34,
-                "banda_isteresi_pct": 2.19,
+                "price": 63327.2890625,
+                "ma40w": 71902.182421875,
+                "ma20w": 73744.1240234375,
+                "distanza_pct": -11.93,
+                "banda_isteresi_pct": 2.17,
                 "attivo": false,
-                "kelly_f_star": 1.251,
-                "vol_12w_ann_pct": 31.62
+                "kelly_f_star": 1.26,
+                "vol_12w_ann_pct": 31.23
             },
             "_vol_target": {
                 "vol_portafoglio_stimata_pct": 0.0,
@@ -88,6 +88,6 @@
         },
         "kelly_migrated": true
     },
-    "timestamp": "19 Nov 2026, 03:52 (UTC)",
-    "eur_usd": 1.096
+    "timestamp": "19 Nov 2026, 04:35 (UTC)",
+    "eur_usd": 1.0966
 }
